@@ -19,7 +19,8 @@ fast: obj_dir_fast/Vtop
 single: obj_dir_single/Vtop
 single-fast: obj_dir_single_fast/Vtop
 
-test-single: single test-clock-enables test-sub-timer test-fdc-abort
+test-single: single test-clock-enables test-sub-timer test-fdc-abort test-fdc-sd-abort
+	python3 tests/test_d88_bounds.py ./obj_dir_single/Vtop
 	python3 tests/test_single_clock.py ./obj_dir_single/Vtop
 	python3 tests/test_memory.py ./obj_dir_single/Vtop
 	python3 tests/test_subcpu.py ./obj_dir_single/Vtop
@@ -68,12 +69,12 @@ obj_dir_single/crtc/Vcrtc_enable_tb: tests/crtc_enable_tb.sv ../rtl/legacy/crtc/
 	$(V) --binary --timing --assert --top-module crtc_enable_tb --Mdir obj_dir_single/crtc \
 		-j 4 ../rtl/legacy/crtc/crtc6845s.v tests/crtc_enable_tb.sv -Wno-fatal
 
-obj_dir_single/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h Makefile $(MACHINE_MANIFEST)
+obj_dir_single/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc --timing --assert --trace-fst --exe --build -j 4 --Mdir obj_dir_single --top-module top \
 		-GSINGLE_CLOCK=1 -GMASTER_HZ=28636364 -CFLAGS "-std=c++20 -DX1_SINGLE_CLOCK" \
 		-MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 
-obj_dir_single_fast/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h sdl_frontend.h Makefile $(MACHINE_MANIFEST)
+obj_dir_single_fast/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h sdl_frontend.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc --no-timing --savable --assert --trace-fst --exe --build -j 4 --Mdir obj_dir_single_fast --top-module top \
 		-GSINGLE_CLOCK=1 -GMASTER_HZ=28636364 -CFLAGS "-std=c++20 -DX1_SINGLE_CLOCK -DX1_SDL -DX1_SAVABLE $(shell sdl2-config --cflags)" \
 		-MAKEFLAGS "OPT_FAST=-O3" -LDFLAGS "$(shell sdl2-config --libs)" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
@@ -95,17 +96,17 @@ play: fast
 	./obj_dir_fast/Vtop --interactive --cycles $(PLAY_CYCLES) \
 		--restore-state $(GAME_STATE) --disk $(GAME_DISK)
 
-obj_dir_fast/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h sdl_frontend.h Makefile $(MACHINE_MANIFEST)
+obj_dir_fast/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h sdl_frontend.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc --no-timing --savable --assert --trace-fst --exe --build -j 4 --Mdir obj_dir_fast --top-module top \
 		-CFLAGS "-std=c++20 -DX1_SDL -DX1_SAVABLE $(shell sdl2-config --cflags)" -MAKEFLAGS "OPT_FAST=-O3" \
 		-LDFLAGS "$(shell sdl2-config --libs)" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 
-obj_dir_interactive/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h sdl_frontend.h Makefile $(MACHINE_MANIFEST)
+obj_dir_interactive/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h sdl_frontend.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc --timing --assert --trace-fst --exe --build -j 4 --Mdir obj_dir_interactive --top-module top \
 		-CFLAGS "-O2 -std=c++20 -DX1_SDL $(shell sdl2-config --cflags)" \
 		-LDFLAGS "$(shell sdl2-config --libs)" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 
-$(HEADLESS_EXE): $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h Makefile $(MACHINE_MANIFEST)
+$(HEADLESS_EXE): $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc --timing --assert --trace-fst --exe --build -j 4 --Mdir $(HEADLESS_DIR) --top-module top \
 		-CFLAGS "-std=c++20" -MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp \
 		-Wno-fatal -o Vtop
@@ -113,7 +114,8 @@ $(HEADLESS_EXE): $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h Makef
 run: headless
 	./$(HEADLESS_EXE) $(CYCLES)
 
-test: headless test-sub-timer test-fdc-abort
+test: headless test-sub-timer test-fdc-abort test-fdc-sd-abort
+	python3 tests/test_d88_bounds.py ./$(HEADLESS_EXE)
 	python3 tests/test_timing.py ./$(HEADLESS_EXE)
 	python3 tests/test_memory.py ./$(HEADLESS_EXE)
 	python3 tests/test_subcpu.py ./$(HEADLESS_EXE)
@@ -129,7 +131,8 @@ test: headless test-sub-timer test-fdc-abort
 	$(MAKE) test-pcg-access
 	$(MAKE) test-disk-control
 
-test-fast: fast test-sub-timer test-fdc-abort
+test-fast: fast test-sub-timer test-fdc-abort test-fdc-sd-abort
+	python3 tests/test_d88_bounds.py ./obj_dir_fast/Vtop
 	python3 tests/test_memory.py ./obj_dir_fast/Vtop
 	python3 tests/test_subcpu.py ./obj_dir_fast/Vtop
 	python3 tests/test_graphics_bus.py ./obj_dir_fast/Vtop
@@ -157,6 +160,15 @@ $(HEADLESS_DIR)/abort/Vfdc_abort_tb: tests/fdc_abort_tb.sv ../rtl/vendor/wd1793.
 		-j 4 ../rtl/vendor/wd1793.sv ../rtl/vendor/x1_fdc_index_ram.v tests/fdc_abort_tb.sv -Wno-fatal
 
 .PHONY: test-fdc-abort
+
+test-fdc-sd-abort: $(HEADLESS_DIR)/sd-abort/Vfdc_sd_abort_tb
+	./$(HEADLESS_DIR)/sd-abort/Vfdc_sd_abort_tb
+
+$(HEADLESS_DIR)/sd-abort/Vfdc_sd_abort_tb: tests/fdc_sd_abort_tb.sv ../rtl/vendor/wd1793.sv ../rtl/vendor/x1_fdc_index_ram.v
+	$(V) --binary --timing --assert --top-module fdc_sd_abort_tb --Mdir $(HEADLESS_DIR)/sd-abort \
+		-j 4 ../rtl/vendor/wd1793.sv ../rtl/vendor/x1_fdc_index_ram.v tests/fdc_sd_abort_tb.sv -Wno-fatal
+
+.PHONY: test-fdc-sd-abort
 
 $(HEADLESS_DIR)/disk/Vdisk_control_tb: tests/disk_control_tb.sv ../rtl/x1_disk_control.v
 	$(V) --binary --timing --assert --top-module disk_control_tb --Mdir $(HEADLESS_DIR)/disk \

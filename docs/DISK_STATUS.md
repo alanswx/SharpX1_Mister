@@ -29,7 +29,7 @@ selects the X1 index/head-load configuration without changing upstream snapshots
 the ordinary completion interrupt. Idle/busy `$D0` now clears BUSY/DRQ silently;
 `$D8` still interrupts. The register-level fixture also verifies a subsequent
 normal completion, status-read acknowledgement and reset. This does not cover
-aborting an outstanding host SD request. The fixture now also verifies
+aborting an outstanding host SD request by itself. The fixture now also verifies
 `$D1/$D2` only trigger on the selected READY transition, `$D4` waits for an index
 rising edge, conditional sources stay armed after acknowledgement, and a normal
 command or `$D0` cancels the mask. `$D8` remains asserted across status reads,
@@ -40,6 +40,35 @@ simultaneous event/read edge priorities are not established by these fixtures.
 The local MAME `src/devices/machine/wd_fdc.cpp` `interrupt_start()` provides the
 cross-check for a zero force-interrupt mask. Imported source notices and sibling
 reference snapshots remain unchanged.
+
+`fdc_sd_abort_tb.sv` adds twelve original raw-media transport cases: reads and
+writes, `$D0` and reset, before ACK and while ACK stays high, including reset
+held through completion. It reproduced
+premature abort completion before the fix. Requests now latch their LBA,
+continue draining through reset, and cannot be reused by an ordinary command
+until the old acknowledgement has fully cleared. The fixture checks stable
+pending-write buffer samples, quiet DRQ/INTRQ, and a subsequent fresh-address
+read. `$D0` holds BUSY while draining; this adapter safety policy is not a claim
+of exact MB8877 pin timing. Reset clears controller BUSY but temporarily rejects
+ordinary commands while transport drains. An already accepted host write can
+still commit; abort/reset cannot roll it back. No ACK timeout or media-change
+recovery is implemented by this change.
+
+## Simulator media preflight
+
+The headless/SDL runner validates D88 before constructing the machine or opening
+an output disk. `d88_image.h` checks volume sizes, track offsets, sector headers,
+counts and payload bounds for every concatenated volume. It distinguishes
+structural corruption from layouts unsupported by the forward-only scanner:
+non-increasing offsets, counts above 255, more than 1992 indexed sectors, or
+lengths inconsistent with supported N=0..3 sectors. Original generated CLI tests
+cover mixed sizes, concatenated volumes and truncated/out-of-range records,
+checking that source bytes remain unchanged. Successful preflight is not a boot
+or compatibility test. Copy-protected irregular layouts may be valid D88 but
+unsupported here. CRC/deleted-data/density flags are not certified by preflight.
+These are **host checks only**: direct MiSTer mounts still need equivalent RTL
+validation and error/not-ready recovery. The simulator now accepts D88 only for
+`--disk`, not the vendor controller's reference EDSK/raw formats.
 
 ## Write safety
 
@@ -60,8 +89,10 @@ not been verified on hardware; use disposable media copies for bring-up.
 
 Only drive A and the base MFM/2D path are covered. Exact command/byte/seek timing,
 exact force-interrupt pin timing, deleted-data marks, metadata updates after writes,
-per-sector density, format/write-track, malformed-image rejection, eject/reset
-during transfers, drive B and Turbo 2HD/2DD remain unvalidated or incomplete.
+per-sector density, format/write-track, board malformed-image rejection,
+eject/remount during transfers, reset during scanning, stalled-host recovery,
+drive B and Turbo 2HD/2DD remain unvalidated or incomplete. Pending-sector SD
+abort/reset is covered by the focused synthetic fixture, not hardware fault injection.
 Image addressing is limited to less than 1 MiB. Synthetic CRC flags do not
 establish exact MB8877 behavior on bad ID/data fields. Do not mark the broad
 storage milestone complete from these tests or a successful FPGA compile.

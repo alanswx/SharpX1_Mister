@@ -23,6 +23,7 @@
 #endif
 #include "frame_capture.h"
 #include "audio_capture.h"
+#include "d88_image.h"
 #ifdef X1_SDL
 #include "sdl_frontend.h"
 #endif
@@ -153,6 +154,7 @@ int main(int argc, char **argv) {
                 throw std::runtime_error("disk output must not overwrite input media");
         }
         if (disk.size() > 1048575) throw std::runtime_error("disk exceeds current FDC addressing");
+        if (disk_path) validate_d88(disk);
         uint64_t disk_fingerprint = 14695981039346656037ULL;
         for (auto byte : disk) { disk_fingerprint ^= byte; disk_fingerprint *= 1099511628211ULL; }
         struct KeyEvent { uint64_t time; uint8_t byte; };

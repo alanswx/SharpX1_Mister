@@ -1,5 +1,25 @@
 # Implementation progress
 
+## 2026-10-03 — pending disk transport and D88 preflight
+
+A new original raw-media fixture reproduced `$D0` completing before its SD
+request drained. The shared controller now latches request LBA, drains ACK
+through controller reset, suppresses further sector traffic on abort and blocks
+ordinary commands until the transport is free. Twelve read/write, D0/reset,
+before/during-ACK cases pass, including pending-write buffer samples and fresh
+commands. Accepted host writes are not rolled back. The BUSY drain policy is
+adapter safety, not exact native pin timing; stalled-host, eject/remount and
+reset-during-scanning behavior remain open.
+
+Added bounded simulator D88 preflight based on the local MAME format layout.
+Generated cases exercise volume/track/sector boundaries and distinguish corrupt
+images from valid but unsupported scanner layouts. These checks do not protect
+arbitrary direct MiSTer mounts; equivalent RTL rejection remains a separate TODO.
+Baseline delay-aware, opt-in single-clock and baseline fast diagnostic suites
+pass, including generated disk read/write tests and 18 D88 preflight cases.
+The final held-reset fixture passes all 12 transport cases. Fresh native-game
+and source-bound Quartus verification are tracked separately below.
+
 ## 2026-10-03 — first MiSTer boot and conditional floppy interrupts
 
 With explicit user permission, loaded the compensated single-clock timer RBF

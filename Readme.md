@@ -56,6 +56,9 @@ offers IPL/D88 OSD entries. Disk writes default to protected; enabling them
 does not override read-only media. Generated D88 tests cover reads, safe writes,
 protection, variable sector sizes, seeking, sides and error/status cases.
 See [disk verification and limits](docs/DISK_STATUS.md).
+Focused tests now cover pending SD read/write abort/reset and stable request
+addresses. Simulator D88 loads receive structural preflight; equivalent FPGA
+scanner guards, eject/remount and stalled-host recovery remain open.
 The initial Quartus 17 build produced an RBF, but **timing does not close**;
 The optional single-clock checkpoint has positive analyzed timing and a native
 hardware game boot. See [build evidence](docs/QUARTUS_BUILD.md) and

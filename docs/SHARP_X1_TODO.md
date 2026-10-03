@@ -100,6 +100,14 @@ support before optional Turbo extensions.
 - [x] Cross-check Fujitsu MB8877A Type IV bits and status acknowledgement;
   implement `$D1/$D2` ready edges, `$D4` index edges and `$D8` persistence,
   with mask cancellation/re-arming and reset tests. Exact pin timing remains open.
+- [x] Drain pending sector SD reads/writes across `$D0` and controller reset;
+  test before/during ACK, stable LBA/write-buffer samples and fresh commands.
+  Already accepted writes can commit; stalled-host/eject/remount/scanner reset
+  and hardware fault injection remain open.
+- [x] Add simulator D88 structural preflight and original malformed-media CLI
+  tests; reject unsupported scanner layouts separately from corrupt images.
+- [ ] Add equivalent safe bounds/rejection in the FPGA image scanner and test
+  malformed direct MiSTer mounts, media changes and reset during scanning.
 - [ ] Implement DMA bus arbitration and verify Z80 DMA transfers.
 - [ ] Add CTC/SIO behavior and interrupt priority/acknowledgement tests.
 - [ ] Implement X1 Turbo high-resolution/400-line behavior.

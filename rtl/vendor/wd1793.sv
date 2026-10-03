@@ -111,7 +111,15 @@ assign dout      = q;
 assign drq       = s_drq;
 assign busy      = s_busy;
 assign intrq     = s_intrq;
-assign sd_lba    = scan_active ? scan_addr[19:9] : buff_a[19:9] + sd_block;
+// An accepted host transfer owns its LBA until ACK falls, even if controller
+// registers reset or software writes a new track/sector during an abort.
+reg [31:0] request_lba = 0;
+reg [5:0] ack = 0;
+reg sd_busy = 0;
+wire transport_active = sd_busy || sd_ack || (|ack);
+assign sd_lba = request_lba;
+wire [31:0] next_lba = scan_active ? {21'd0, scan_addr[19:9]}
+                                  : {21'd0, buff_a[19:9]} + {30'd0, sd_block};
 assign prepare   = EDSK ? scan_active : img_mounted;
 assign buff_addr = {buff_a[19:9], 9'd0} + byte_addr;
 assign buff_read = ((addr == A_DATA) && buff_rd);
@@ -440,8 +448,6 @@ always @(posedge clk_sys) begin
 	reg [7:0] ra_sector;
 	reg       multisector;
 	reg       write;
-	reg [5:0] ack;
-	reg       sd_busy;
 	reg       old_mounted;
 	reg [3:0] scan_state;
 	reg [1:0] scan_cnt;
@@ -498,6 +504,15 @@ always @(posedge clk_sys) begin
 		end
 	end
 
+	// Host acknowledgements continue draining during a machine reset. Cancelling
+	// a published request cannot undo an already accepted host write; never reuse
+	// its handshake for a different command. Declaration initialisers above give
+	// deterministic power-up, independently of the controller reset.
+	if(ce) begin
+		ack <= {ack[4:0], sd_ack};
+		if(ack[5:4] == 'b01) {sd_rd,sd_wr} <= 0;
+		if(ack[5:4] == 'b10) sd_busy <= 0;
+	end
 	if(reset & ~scan_active) begin
 		read_data <= 0;
 		write_data <= 0;
@@ -523,7 +538,7 @@ always @(posedge clk_sys) begin
 		s_drq_busy <= 0;
 		watchdog_set <= 0;
 		seektimer <= 'h3FF;
-		{ack, sd_wr, sd_rd, sd_busy} <= 0;
+		if(!transport_active) {sd_wr, sd_rd, sd_busy} <= 0;
 		ra_sector <= 1;
 	end else if(ce) begin
 		previous_ready <= ready;
@@ -532,9 +547,6 @@ always @(posedge clk_sys) begin
 		   || (force_mask[1] && previous_ready && !ready)
 		   || (force_mask[0] && !previous_ready && ready)) s_intrq <= 1;
 
-		ack <= {ack[4:0], sd_ack};
-		if(ack[5:4] == 'b01) {sd_rd,sd_wr} <= 0;
-		if(ack[5:4] == 'b10) sd_busy <= 0;
 
 		if(RWMODE & scan_active) begin
 			if(scan_addr >= scan_limit) scan_active <= 0;
@@ -542,6 +554,7 @@ always @(posedge clk_sys) begin
 				case(scan_state)
 					0:	begin
 							sd_rd   <= 1;
+							request_lba <= next_lba;
 							sd_busy <= 1;
 							scan_wr <= 0;
 							scan_state <= 1;
@@ -688,6 +701,7 @@ always @(posedge clk_sys) begin
 				begin
 					sd_busy <= 1;
 					sd_rd   <= 1;
+					request_lba <= next_lba;
 					state   <= STATE_WAIT_READ_2;
 				end
 			STATE_WAIT_READ_2:
@@ -787,6 +801,7 @@ always @(posedge clk_sys) begin
 				begin
 					sd_busy <= 1;
 					sd_wr   <= 1;
+					request_lba <= next_lba;
 					state   <= STATE_WAIT_WRITE_2;
 				end
 			STATE_WAIT_WRITE_2:
@@ -842,8 +857,13 @@ always @(posedge clk_sys) begin
 			STATE_ABORT:
 				begin
 					data_length <= 0;
+					read_data <= 0;
+					write_data <= 0;
+					buff_rd <= 0;
+					if(RWMODE) buff_wr <= 0;
+					s_drq_busy <= 2'b01;
 					{s_wrfault,s_seekerr,s_crcerr,s_lostdata} <= 0;
-					state <= STATE_ENDCOMMAND;
+					if(!transport_active) state <= STATE_ENDCOMMAND;
 				end
 
 			STATE_WAIT:
@@ -900,7 +920,7 @@ always @(posedge clk_sys) begin
 						$display("WDCMD %02x accepted=%0d", din, ((state == STATE_IDLE) | (din[7:4] == 'hD)));
 `endif
 						s_intrq <= 0;
-						if((state == STATE_IDLE) | (din[7:4] == 'hD)) begin
+						if(((state == STATE_IDLE) && !transport_active) | (din[7:4] == 'hD)) begin
 							force_command <= (din[7:4] == 4'hD);
 							force_mask <= (din[7:4] == 4'hD) ? din[3:0] : 4'd0;
 							cmd_mode <= din[7];
