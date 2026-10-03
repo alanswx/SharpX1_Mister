@@ -63,10 +63,11 @@ External framework/PS2 crossings remain. One internal clock does not itself
 prove safe asynchronous reset release, physical RAM collision behavior or
 hardware correctness. Quartus comparison evidence belongs in `QUARTUS_BUILD.md`.
 
-The single revision completed synthesis, fitting, assembly and TimeQuest on
-2026-10-03. Core setup/hold/recovery slack is **+10.397 / +0.245 / +12.244 ns**;
+The timer-compensated single revision completed synthesis, fitting, assembly
+and TimeQuest on 2026-10-03. Core setup/hold/recovery slack is
+**+10.144 / +0.247 / +13.106 ns**;
 there are **zero unconstrained clocks**, eliminating the legacy CRTC gap.
-Whole-design worst setup slack is +0.401 ns (HDMI domain). Three input and
+Whole-design worst setup slack is +0.513 ns (HDMI domain). Three input and
 44 output ports remain incompletely constrained, and hardware has not been
 tested. These positive analyzed results are not full board timing signoff.
 The initial failing baseline build predates disk changes, so it is not an
@@ -95,9 +96,10 @@ not a claim of complete keyboard or game compatibility. Firmware
 `fw_subcpu/x1sub.asm` specifies `CPU_MHZ=32`; the original regression was
 retained rather than relaxing its duration or input spacing.
 
-The positive Quartus results above describe the earlier snapshot. A new frozen
-build of the timer compensation and normalized enable accumulators is in
-progress; consult `QUARTUS_BUILD.md` before attributing those results to it.
+The positive Quartus results above describe frozen timer/clock commit `f45918d`,
+not the later FDC silent-abort change. Normalized enable accumulators eliminated
+the two latch warnings without suppressions; other warnings remain. Consult
+`QUARTUS_BUILD.md` for source hashes and constraints before claiming signoff.
 
 An interleaved three-run IPL-wait benchmark used equal 1-second durations and
 28,636,364 Hz video in both fast models, without frame/bus capture:

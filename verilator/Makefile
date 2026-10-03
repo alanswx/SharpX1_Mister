@@ -19,7 +19,7 @@ fast: obj_dir_fast/Vtop
 single: obj_dir_single/Vtop
 single-fast: obj_dir_single_fast/Vtop
 
-test-single: single test-clock-enables test-sub-timer
+test-single: single test-clock-enables test-sub-timer test-fdc-abort
 	python3 tests/test_single_clock.py ./obj_dir_single/Vtop
 	python3 tests/test_memory.py ./obj_dir_single/Vtop
 	python3 tests/test_subcpu.py ./obj_dir_single/Vtop
@@ -113,7 +113,7 @@ $(HEADLESS_EXE): $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h Makef
 run: headless
 	./$(HEADLESS_EXE) $(CYCLES)
 
-test: headless test-sub-timer
+test: headless test-sub-timer test-fdc-abort
 	python3 tests/test_timing.py ./$(HEADLESS_EXE)
 	python3 tests/test_memory.py ./$(HEADLESS_EXE)
 	python3 tests/test_subcpu.py ./$(HEADLESS_EXE)
@@ -129,7 +129,7 @@ test: headless test-sub-timer
 	$(MAKE) test-pcg-access
 	$(MAKE) test-disk-control
 
-test-fast: fast test-sub-timer
+test-fast: fast test-sub-timer test-fdc-abort
 	python3 tests/test_memory.py ./obj_dir_fast/Vtop
 	python3 tests/test_subcpu.py ./obj_dir_fast/Vtop
 	python3 tests/test_graphics_bus.py ./obj_dir_fast/Vtop
@@ -148,6 +148,15 @@ test-fast: fast test-sub-timer
 test-disk-control: $(HEADLESS_DIR)/disk/Vdisk_control_tb $(HEADLESS_DIR)/index/Vfdc_index_tb
 	./$(HEADLESS_DIR)/disk/Vdisk_control_tb
 	./$(HEADLESS_DIR)/index/Vfdc_index_tb
+
+test-fdc-abort: $(HEADLESS_DIR)/abort/Vfdc_abort_tb
+	./$(HEADLESS_DIR)/abort/Vfdc_abort_tb
+
+$(HEADLESS_DIR)/abort/Vfdc_abort_tb: tests/fdc_abort_tb.sv ../rtl/vendor/wd1793.sv ../rtl/vendor/x1_fdc_index_ram.v
+	$(V) --binary --timing --assert --top-module fdc_abort_tb --Mdir $(HEADLESS_DIR)/abort \
+		-j 4 ../rtl/vendor/wd1793.sv ../rtl/vendor/x1_fdc_index_ram.v tests/fdc_abort_tb.sv -Wno-fatal
+
+.PHONY: test-fdc-abort
 
 $(HEADLESS_DIR)/disk/Vdisk_control_tb: tests/disk_control_tb.sv ../rtl/x1_disk_control.v
 	$(V) --binary --timing --assert --top-module disk_control_tb --Mdir $(HEADLESS_DIR)/disk \

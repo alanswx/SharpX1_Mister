@@ -1,5 +1,20 @@
 # Implementation progress
 
+## 2026-10-03 — silent floppy abort
+
+An original register-level fixture reproduced busy `$D0` incorrectly raising
+INTRQ on the shared WD1793-family controller. The command now carries a silent
+abort flag through command termination; the next accepted ordinary command
+clears it. The fixture passes idle/busy `$D0` and `$D8`, subsequent RESTORE
+completion, status acknowledgement and reset. It is included in the baseline,
+fast and single-clock suites. Imported notices/reference snapshots are intact.
+Conditional force-interrupt timing and outstanding host-I/O abort safety remain
+open; this narrow fix does not finish the floppy milestone. The clock-path
+Quartus snapshot was frozen before this controller change.
+Baseline/single delay-aware and baseline fast diagnostic suites pass, including generated
+disk read/write cases. A fresh 13-second single-clock native game boot followed
+by the unchanged 200 ms movement test passes with baseline-equivalent hashes.
+
 ## 2026-10-03 — preserve MR16 timer rate in one-clock mode
 
 Forwarded the actual master frequency through the replacement sub-CPU and
@@ -14,7 +29,10 @@ Chase state passes the unchanged 200 ms movement regression: (22,14) becomes
 (21,13), with baseline-equivalent frame hashes and repeatable execution.
 This supersedes the failed game test in the historical entry below. The MR16
 instruction rate is still slower; broader compatibility remains open and the
-baseline remains default. Quartus is building this frozen increment separately.
+baseline remains default. Quartus completed this frozen increment separately:
+core setup/hold/recovery +10.144/+0.247/+13.106 ns, no unconstrained clocks.
+Constant-low-bit accumulator latch warnings disappeared; other warnings and
+external I/O constraints remain open. This build excludes the later FDC change.
 No MiSTer deployment was attempted: it is running a SharpMZ hardware test.
 
 Extended the IM1 fixture to preserve all response bytes and verify six F/I/J

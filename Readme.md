@@ -66,9 +66,11 @@ video-rate master. It boots the game and passes focused diagnostics and the
 original two-direction gameplay regression after compensating the MR16 timer.
 The MR16 instruction rate is still slower. The baseline remains
 the default; do not advertise the experiment as fully compatible.
-The single revision builds an RBF with positive analyzed core timing and no
+The frozen single-clock timer checkpoint builds an RBF with positive analyzed
+core timing and no
 unconstrained clocks; incomplete external I/O constraints and hardware testing
-still prevent full signoff.
+still prevent full signoff. That FPGA build excludes the subsequent floppy
+silent-abort fix; see the source-bound build report before testing an RBF.
 
 ## Play CROSS Chase locally
 

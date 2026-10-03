@@ -276,6 +276,9 @@ reg	[1:0]	s_drq_busy;
 wire			s_drq  = s_drq_busy[1];
 wire			s_busy = s_drq_busy[0];
 reg         s_intrq;
+// X1: D0 abort must not inherit the ordinary command-completion interrupt.
+// Keep this latched until the next accepted command, including while busy.
+reg         silent_abort;
 
 reg   [7:0] wdreg_track;
 reg   [7:0] wdreg_sector;
@@ -507,6 +510,7 @@ always @(posedge clk_sys) begin
 		buff_rd <= 0;
 		if(RWMODE) buff_wr <= 0;
 		state <= STATE_IDLE;
+		silent_abort <= 0;
 		cmd_mode <= 0;
 		s_wpe <= 1;
 		{s_headloaded, s_seekerr, s_crcerr, s_intrq} <= 0;
@@ -870,7 +874,7 @@ always @(posedge clk_sys) begin
 					state <= STATE_IDLE;
 					s_drq_busy <= 2'b00;
 					seektimer <= 'h3FF;
-					s_intrq <= 1;
+					s_intrq <= !silent_abort;
 				end
 		endcase
 
@@ -884,6 +888,7 @@ always @(posedge clk_sys) begin
 `endif
 						s_intrq <= 0;
 						if((state == STATE_IDLE) | (din[7:4] == 'hD)) begin
+							silent_abort <= (din == 8'hD0);
 							cmd_mode <= din[7];
 							s_wpe    <= ~din[7];
 

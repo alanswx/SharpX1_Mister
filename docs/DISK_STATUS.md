@@ -25,6 +25,18 @@ The inherited controller previously cleared lost-data on later bytes and used
 an unrelated short index period; this integration now preserves the error and
 selects the X1 index/head-load configuration without changing upstream snapshots.
 
+`fdc_abort_tb.sv` reproduces and fixes a busy `$D0` abort that incorrectly raised
+the ordinary completion interrupt. Idle/busy `$D0` now clears BUSY/DRQ silently;
+`$D8` still interrupts. The register-level fixture also verifies a subsequent
+normal completion, status-read acknowledgement and reset. This does not cover
+aborting an outstanding host SD request or conditional `$D1/$D2/$D4` semantics.
+The inherited controller also clears INTRQ on every status read, whereas local
+MAME retains it when the immediate force-interrupt mask is active; verify that
+distinction against MB8877 documentation before claiming exact `$D8` behavior.
+The local MAME `src/devices/machine/wd_fdc.cpp` `interrupt_start()` provides the
+cross-check for a zero force-interrupt mask. Imported source notices and sibling
+reference snapshots remain unchanged.
+
 ## Write safety
 
 The simulator opens input images for reading only. `--disk-output NEW_COPY`

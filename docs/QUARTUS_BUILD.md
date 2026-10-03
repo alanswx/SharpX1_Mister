@@ -259,7 +259,55 @@ movements and matches baseline frame hashes. This supersedes the earlier
 software gameplay failure for that diagnostic; it does not retroactively change
 the old RBF's behavior or establish broader software/hardware compatibility.
 This sidecar verifies synthesis/timing for the frozen increment, not a fresh
-execution of the parent's gameplay regression. Stage results are pending.
+execution of the parent's gameplay regression. The parent subsequently committed
+the increment as `f45918dd5ac5aa3ebd622f1f8386a36e616abc16`; the four changed
+machine files in that commit were individually hash-checked against this snapshot
+and match exactly. This mapping does not change the originally recorded
+working-tree source identity.
+
+### Completed timer-increment build and comparison
+
+All stages and the sidecar finished with exit status **0**. Map/fit/asm/STA
+took **2:21 / 6:39 / 0:15 / 0:10**; recorded wall time was **9:34**
+(12:47:59–12:57:33 UTC, 2026-10-03). RBF SHA-256:
+`b2ca0708fc679a7babb52bd29dfec994839f5f429dac7b5c67a2b2799866886b`.
+
+| Metric | Previous single-clock `Rc7U8tGG` | Compensated timer `qOsoLktO` |
+| --- | ---: | ---: |
+| Core setup / hold / recovery (ns) | +10.397 / +0.245 / +12.244 | +10.144 / +0.247 / +13.106 |
+| Global worst setup / hold / recovery (ns) | +0.401 / +0.173 / +3.698 | +0.513 / +0.178 / +3.446 |
+| ALMs | 19,927 (48%) | 20,023 (48%) |
+| Registers | 31,566 | 31,569 |
+| Memory bits | 2,071,408 (37%) | 2,071,408 (37%) |
+| Map warnings | 79 | 81 |
+| Fit / STA warnings | 9 / 0 | 9 / 0 |
+| Unconstrained clocks | 0 | 0 |
+| Unconstrained input / output ports | 3 / 44 | 3 / 44 |
+
+Global removal/minimum-pulse-width slack is **+1.011 / +1.122 ns**.
+RAM/DSP/PLL counts remain **263 / 32 / 3**. The additional timer logic costs
+96 ALMs and 3 registers in these fits; placement-dependent timing changes should
+not be attributed solely to that arithmetic. Reported constrained-path timing
+continues to pass, but the inherited single-corner setting, 7 unconstrained input
+paths and 50 unconstrained output paths still prevent full timing signoff.
+
+The two accumulator latch warnings disappeared without suppressions. One old
+enable arithmetic truncation warning also disappeared, while five warnings were
+added: `x1_sub` body parameters `RAM_DEPTH`/`JOY_EMU` are treated as local
+parameters after introducing a module parameter-port list, plus three timer
+constant/step width truncations. The normalized master localparam still produces
+one width warning. Existing ignored PCG `async_reg`, implicit `text_cs`,
+PLL/reset/connectivity and memory-collision warnings remain open. No RTL,
+constraint, installation or licensing changes were made by the sidecar.
+
+**Scope boundary:** this RBF excludes the parent's later FDC D0 silent-abort
+regression/fix. Its snapshotted `rtl/vendor/wd1793.sv` SHA-256 is
+`c4b71f361da354c57e2d5b579316b61032c390ce48f4d8993c45bfb4c02e3a5d`.
+It is evidence for this frozen timer/clock checkpoint only, **not timing coverage
+of the latest whole working tree**, future disk changes, or a default-baseline
+rebuild. No additional build/revision was run for this increment. Full peripheral
+compatibility, asynchronous reset-release/PLL behavior, physical inputs/audio
+and hardware operation remain unverified; the baseline remains the default.
 
 A fresh **read-only** SSH check at **12:48:00 UTC, 2026-10-03** succeeded.
 MiSTer was running `/media/fat/_Computer/SharpMZ-std_20261003.rbf` with

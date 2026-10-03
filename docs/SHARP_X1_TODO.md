@@ -93,7 +93,13 @@ support before optional Turbo extensions.
   sticky lost-data, write protection and byte-exact cross-block write/readback.
 - [x] Add drive/density decode, motor hold and 300 rpm index/head-load tests.
 - [ ] Validate deleted-data/format/force-interrupt/metadata/CRC edge cases,
+  including conditional force-interrupt sources, abort during host SD I/O,
   malformed/eject/reset transfers, drive B and applicable 2HD/2DD media.
+- [x] Fix busy `$D0` falsely raising completion INTRQ; add idle/busy `$D0/$D8`,
+  subsequent normal completion, status acknowledgement and reset regression.
+- [ ] Cross-check `$D8` INTRQ persistence across status reads against MB8877
+  documentation: current RTL clears all status reads; local MAME preserves
+  INTRQ while the immediate force-interrupt mask is active.
 - [ ] Implement DMA bus arbitration and verify Z80 DMA transfers.
 - [ ] Add CTC/SIO behavior and interrupt priority/acknowledgement tests.
 - [ ] Implement X1 Turbo high-resolution/400-line behavior.
