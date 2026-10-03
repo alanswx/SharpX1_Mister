@@ -12,8 +12,10 @@ Conditional force-interrupt timing and outstanding host-I/O abort safety remain
 open; this narrow fix does not finish the floppy milestone. The clock-path
 Quartus snapshot was frozen before this controller change.
 Baseline/single delay-aware and baseline fast diagnostic suites pass, including generated
-disk read/write cases. A fresh 13-second single-clock native game boot followed
-by the unchanged 200 ms movement test passes with baseline-equivalent hashes.
+disk read/write cases. Fresh 13-second baseline and single-clock native game
+boots followed by the unchanged 200 ms movement test both pass, with identical
+idle/controlled frame hashes. Both ignored local gameplay checkpoints were
+regenerated after the RTL change; the default play path has current state.
 
 ## 2026-10-03 — preserve MR16 timer rate in one-clock mode
 
