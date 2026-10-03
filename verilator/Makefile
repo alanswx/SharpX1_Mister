@@ -1,111 +1,122 @@
-#
-#
-#
+# Headless shared-machine simulation. Historical GUI artifacts remain untouched.
+V ?= verilator
+MACHINE_MANIFEST = ../rtl/machine.qip
+MACHINE_SRC = $(addprefix ../,$(shell awk '/^set_global_assignment -name (SYSTEMVERILOG_FILE|VERILOG_FILE) / { print $$4 }' $(MACHINE_MANIFEST)))
+V_SRC = sim.v $(MACHINE_SRC)
+HEADLESS_DIR = obj_dir_headless
+HEADLESS_EXE = $(HEADLESS_DIR)/Vtop
 
-V = verilator
-#V = /usr/local/bin/verilator
-#V = /usr/local/src/verilator-3.876/bin/verilator
-COSIM = n
+all: headless
+headless: $(HEADLESS_EXE)
 
-TOP = --top-module top
-RTL = ../rtl
-V_INC = +incdir+$(RTL) 
+interactive: obj_dir_interactive/Vtop
 
-V_DEFINE = +define+debug=1 +define+SIMULATION=1   -CFLAGS "-I../sim/imgui -I../sim/vinc -I../sim/ -O3" 
-#V_DEFINE += --converge-limit 2000 -Wno-WIDTH -Wno-IMPLICIT -Wno-MODDUP -Wno-UNSIGNED -Wno-CASEINCOMPLETE -Wno-CASEX -Wno-SYMRSVDWORD -Wno-COMBDLY -Wno-INITIALDLY -Wno-BLKANDNBLK -Wno-UNOPTFLAT -Wno-SELRANGE -Wno-CMPCONST -Wno-CASEOVERLAP -Wno-PINMISSING -Wno-MULTIDRIVEN
-#V_DEFINE += --threads 8  # this slows it way down
-V_DEFINE += 
+# Clocked, synthesis-style execution: inherited intra-assignment delays are
+# ignored. Keep the headless --timing build as the scheduling reference.
+fast: obj_dir_fast/Vtop
 
-UNAME_S := $(shell uname -s)
+GAME_DISK ?= ../references/software/private-downloads/cross-chase/Xchase_x1.d88
+GAME_STATE ?= obj_dir_fast/cross-start.state
+PLAY_CYCLES ?= 32000000000
 
-ifeq ($(UNAME_S), Darwin) #APPLE
-	ECHO_MESSAGE = "Mac OS X"
-	LIBS += -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo `sdl2-config --libs`
-	LIBS += -L/usr/local/lib -L/opt/local/lib
+# Local, licensed assets are not bundled. Regenerate after changing RTL.
+boot-game: fast
+	./obj_dir_fast/Vtop --cycles 416000000 --rom ../bios/ipl_x1.hex --disk $(GAME_DISK) \
+		--keys tests/cross_start.keys --save-state $(GAME_STATE) \
+		--frame obj_dir_fast/cross-start.ppm --dump obj_dir_fast/cross-start --progress
 
-	CXXFLAGS += `sdl2-config --cflags` -Iimgui
-	CXXFLAGS += -I/usr/local/include -I/opt/local/include 
-	CFLAGS = $(CXXFLAGS) -Iimgui
-endif
+test-game: fast
+	python3 tests/test_gameplay.py ./obj_dir_fast/Vtop $(GAME_STATE) $(GAME_DISK)
 
-ifeq ($(UNAME_S), Linux) #LINUX
-	ECHO_MESSAGE = "Linux"
-	LIBS += -lGL -ldl `sdl2-config --libs`
+play: fast
+	./obj_dir_fast/Vtop --interactive --cycles $(PLAY_CYCLES) \
+		--restore-state $(GAME_STATE) --disk $(GAME_DISK)
 
-	CXXFLAGS += `sdl2-config --cflags` -Iimgui
-	CFLAGS = $(CXXFLAGS)
-endif
+obj_dir_fast/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h sdl_frontend.h Makefile $(MACHINE_MANIFEST)
+	$(V) -cc --no-timing --savable --assert --trace-fst --exe --build -j 4 --Mdir obj_dir_fast --top-module top \
+		-CFLAGS "-std=c++20 -DX1_SDL -DX1_SAVABLE $(shell sdl2-config --cflags)" -MAKEFLAGS "OPT_FAST=-O3" \
+		-LDFLAGS "$(shell sdl2-config --libs)" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 
-ifeq ($(findstring MINGW,$(UNAME_S)),MINGW)
-	ECHO_MESSAGE = "MinGW"
-	LIBS += -lgdi32 -lopengl32 -limm32 `pkg-config --static --libs sdl2`
+obj_dir_interactive/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h sdl_frontend.h Makefile $(MACHINE_MANIFEST)
+	$(V) -cc --timing --assert --trace-fst --exe --build -j 4 --Mdir obj_dir_interactive --top-module top \
+		-CFLAGS "-O2 -std=c++20 -DX1_SDL $(shell sdl2-config --cflags)" \
+		-LDFLAGS "$(shell sdl2-config --libs)" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 
-	CXXFLAGS += `pkg-config --cflags sdl2`
-	CFLAGS = $(CXXFLAGS)
-endif
+$(HEADLESS_EXE): $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h Makefile $(MACHINE_MANIFEST)
+	$(V) -cc --timing --assert --trace-fst --exe --build -j 4 --Mdir $(HEADLESS_DIR) --top-module top \
+		-CFLAGS "-std=c++20" -MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp \
+		-Wno-fatal -o Vtop
 
-CFLAGS += $(CC_OPT) $(CC_DEFINE) -Iimgui
-LDFLAGS = $(LIBS)
-EXE = ./obj_dir/Vtop
-V_OPT = -O3 --x-assign fast --x-initial fast --noassert 
-CC_OPT = -O
-#V_OPT = 
-#CC_OPT =   
+run: headless
+	./$(HEADLESS_EXE) $(CYCLES)
 
-V_SRC = \
-	sim.v \
-	$(RTL)/sharpx1_legacy.v \	
-	$(RTL)/legacy/noicez80.v \	
-	$(RTL)/legacy/bootrom.v \	
-	$(RTL)/legacy/x1_mode.v \	
-	$(RTL)/legacy/x1t_mode.v \	
-	$(RTL)/legacy/x1_vid.v \	
-	$(RTL)/legacy/crtc/crtc6845s.v \
-	$(RTL)/legacy/pcg_wait.v \			
-	$(RTL)/legacy/z80/z80ctc.v \	
-	$(RTL)/legacy/dpram2k.v \	
-	$(RTL)/legacy/x1_cg8.v \		
-	$(RTL)/legacy/video/dbl_scan.v \	
-	$(RTL)/legacy/uart_rx.v \	
-	$(RTL)/legacy/uart_tx.v \	
-	$(RTL)/legacy/fz80/fz80c.v \
-	$(RTL)/legacy/fz80/fz80_110.v \		
-	$(RTL)/legacy/z80/z80reti.v \	
-	$(RTL)/legacy/PIA8255.v \		
-	$(RTL)/legacy/sound/ay8910.v \	
-	$(RTL)/legacy/spartan3/xc3_sram.v \			
-	$(RTL)/sharpx1.v \
-	$(RTL)/cpu.v \		
-	$(RTL)/tv80/tv80e.v \	
-	$(RTL)/tv80/tv80_core.v \	
-	$(RTL)/tv80/tv80_mcode.v \	
-	$(RTL)/tv80/tv80_alu.v \			
-	$(RTL)/tv80/tv80_reg.v \				
-	$(RTL)/dpram.sv \	
-	$(RTL)/rom.v \
-	$(RTL)/sub_cpu.v \
-	$(RTL)/sub_rom.v \
-	$(RTL)/mr16_x1.v \
-	$(RTL)/mr16core.v \
-	$(RTL)/x1_adec.v
+test: headless
+	python3 tests/test_timing.py ./$(HEADLESS_EXE)
+	python3 tests/test_memory.py ./$(HEADLESS_EXE)
+	python3 tests/test_subcpu.py ./$(HEADLESS_EXE)
+	python3 tests/test_graphics_bus.py ./$(HEADLESS_EXE)
+	python3 tests/test_keyboard_irq.py ./$(HEADLESS_EXE)
+	python3 tests/test_audio.py ./$(HEADLESS_EXE)
+	python3 tests/test_psg_modes.py ./$(HEADLESS_EXE)
+	python3 tests/test_system_ports.py ./$(HEADLESS_EXE)
+	python3 tests/test_pcg.py ./$(HEADLESS_EXE)
+	$(MAKE) test-loader
+	$(MAKE) test-joystick
+	$(MAKE) test-pcg-access
 
-C_SRC = \
-	sim_main.cpp  \
-sim/sim_bus.cpp		sim/sim_clock.cpp	sim/sim_console.cpp	sim/sim_video.cpp sim/sim_input.cpp \
- sim/imgui/imgui_impl_sdl.cpp sim/imgui/imgui_impl_opengl2.cpp sim/imgui/imgui_draw.cpp sim/imgui/imgui_widgets.cpp sim/imgui/imgui_tables.cpp sim/imgui/imgui.cpp
-VOUT = obj_dir/Vtop.cpp
+test-fast: fast
+	python3 tests/test_memory.py ./obj_dir_fast/Vtop
+	python3 tests/test_subcpu.py ./obj_dir_fast/Vtop
+	python3 tests/test_graphics_bus.py ./obj_dir_fast/Vtop
+	python3 tests/test_keyboard_irq.py ./obj_dir_fast/Vtop
+	python3 tests/test_audio.py ./obj_dir_fast/Vtop
+	python3 tests/test_psg_modes.py ./obj_dir_fast/Vtop
+	python3 tests/test_system_ports.py ./obj_dir_fast/Vtop
+	python3 tests/test_pcg.py ./obj_dir_fast/Vtop
+	python3 tests/test_snapshot.py ./obj_dir_fast/Vtop
+	$(MAKE) test-sdl
+	$(MAKE) test-joystick
+	$(MAKE) test-pcg-access
 
-all: $(EXE)
+test-pcg-access: $(HEADLESS_DIR)/pcg/Vpcg_access_tb
+	./$(HEADLESS_DIR)/pcg/Vpcg_access_tb
+	./$(HEADLESS_DIR)/pcg/Vpcg_access_tb +VIDEO_HALF=3
+	./$(HEADLESS_DIR)/pcg/Vpcg_access_tb +VIDEO_HALF=17
 
-$(VOUT): $(V_SRC)  Makefile
-	$V -cc $(V_OPT) -LDFLAGS "$(LDFLAGS) " -exe --trace --savable --Mdir ./obj_dir $(V_DEFINE) $(V_INC) $(TOP) -CFLAGS $(CFLAGS) $(V_SRC) $(C_SRC)
+$(HEADLESS_DIR)/pcg/Vpcg_access_tb: tests/pcg_access_tb.sv ../rtl/x1_pcg_access.v ../rtl/x1_video_ram.v
+	$(V) --binary --timing --assert --top-module pcg_access_tb --Mdir $(HEADLESS_DIR)/pcg \
+		-j 4 ../rtl/x1_pcg_access.v ../rtl/x1_video_ram.v tests/pcg_access_tb.sv -Wno-fatal
 
-$(EXE): $(VOUT) $(C_SRC)
-#	(cd obj_dir; make OPT="-fauto-inc-dec -fdce -fdefer-pop -fdse -ftree-ccp -ftree-ch -ftree-fre -ftree-dce -ftree-dse" -f Vtop.mk)
-	(cd obj_dir; make -f Vtop.mk)
+test-joystick: $(HEADLESS_DIR)/joystick/Vjoystick_tb
+	./$(HEADLESS_DIR)/joystick/Vjoystick_tb
 
-fast:
-	(cd obj_dir; rm -f *.o ; make OPT="-fcompare-elim -fcprop-registers -fguess-branch-probability -fauto-inc-dec -fif-conversion2 -fif-conversion -fipa-pure-const -fdce -fipa-profile -fipa-reference -fmerge-constants -fsplit-wide-types -fdefer-pop -fdse -ftree-ccp -ftree-ch -ftree-fre -ftree-dce -ftree-dse -ftree-builtin-call-dce -ftree-copyrename -ftree-dominator-opts -ftree-forwprop -ftree-phiprop -ftree-sra -ftree-pta -ftree-ter -funit-at-a-time -ftree-bit-ccp -falign-functions  -falign-jumps -falign-loops  -falign-labels -fcaller-saves -fcrossjumping -fcse-follow-jumps -fcse-skip-blocks -fdelete-null-pointer-checks -fdevirtualize -fexpensive-optimizations -fgcse  -fgcse-lm -finline-small-functions -findirect-inlining -fipa-sra -foptimize-sibling-calls -fpartial-inlining -fpeephole2 -fregmove -freorder-blocks  -freorder-functions -frerun-cse-after-loop -fsched-interblock  -fsched-spec -fschedule-insns -fschedule-insns2 -fstrict-aliasing -fstrict-overflow -ftree-switch-conversion -ftree-pre -ftree-vrp" -f Vtop.mk)
+$(HEADLESS_DIR)/joystick/Vjoystick_tb: tests/joystick_tb.sv ../rtl/x1_joystick_map.v
+	$(V) --binary --timing --assert --top-module joystick_tb --Mdir $(HEADLESS_DIR)/joystick \
+		-j 4 ../rtl/x1_joystick_map.v tests/joystick_tb.sv -Wno-fatal
+
+test-sdl: obj_dir_fast/sdl_tb
+	SDL_VIDEODRIVER=dummy ./obj_dir_fast/sdl_tb
+
+obj_dir_fast/sdl_tb: tests/sdl_tb.cpp sdl_frontend.h
+	mkdir -p obj_dir_fast
+	$(CXX) -std=c++20 $(shell sdl2-config --cflags) tests/sdl_tb.cpp $(shell sdl2-config --libs) -o $@
+
+test-loader: $(HEADLESS_DIR)/loader/Vloader_tb
+	./$(HEADLESS_DIR)/loader/Vloader_tb
+
+$(HEADLESS_DIR)/loader/Vloader_tb: tests/loader_tb.sv $(MACHINE_SRC) $(MACHINE_MANIFEST)
+	$(V) --binary --timing --assert --top-module loader_tb --Mdir $(HEADLESS_DIR)/loader \
+		-j 4 $(MACHINE_SRC) tests/loader_tb.sv -Wno-fatal
+
+lint:
+	$(V) --lint-only --timing --assert --top-module top $(V_SRC) -Wno-fatal
+
+lint-wrapper:
+	$(V) --lint-only --timing --top-module emu -Itests ../sharpx1.sv ../sys/hps_io.sv \
+		tests/board_pll_lint.v ../rtl/x1_joystick_map.v $(MACHINE_SRC) -Wno-fatal
 
 clean:
-	rm -f obj_dir/*
+	# obj_dir is a tracked legacy GUI build artifact; preserve it.
+	rm -rf obj_dir_headless
+
+.PHONY: all headless interactive fast boot-game test-game play run test test-fast test-sdl test-loader test-joystick test-pcg-access lint lint-wrapper clean

@@ -1,49 +1,203 @@
 # Sharp X1 for MiSTer
 
-## General description
-This core contains the latest version of framework and will be updated when framework is updated. There will be no releases. This core is only for developers. Besides the framework, core demonstrates the basic usage. New or ported cores should use it as a template.
+An experimental Sharp X1 FPGA core for MiSTer, with machine RTL, inherited
+Nise X1 hardware, firmware sources, and a Verilator simulation harness.
+The project is in bring-up. CROSS Chase now boots from D88 through the native
+IPL and is playable in Verilator. This does not establish full X1 compatibility
+or a working FPGA release.
 
-It's highly recommended to follow the notes to keep it standardized for easier maintenance and collaboration with other developers.
+## Current status
 
-## Source structure
+See the [chip-by-chip implementation survey](docs/CORE_STATUS.md) for the
+current wiring audit and [downloaded hardware manuals](references/manuals/README.md)
+for schematics and machine documentation.
+The [summary table](docs/CHIP_IMPLEMENTATION_TABLE.md) and
+[chip reuse survey](docs/CHIP_REUSE.md) describe available replacement sources
+and the remaining integration work.
+The [implementation and test plan](docs/IMPLEMENTATION_PLAN.md) defines the
+base-X1 milestones, architecture decisions, and acceptance gates.
 
-### Legend:
-* `<core_name>` - you have to use the same name where you see this in this manual. Basically it's your core name.
+There are two machine implementations in this tree:
 
-### Standard MiSTer core should have following folders:
-* `sys` - the framework. Basically it's prohibited to change any files in this folder. Framework updates may erase any customization in this folder. All MiSTer cores have to include sys folder as is from this core.
-* `rtl` - the actual source of core. It's up to the developer how to organize the inner structure of this folder. Exception is pll folder/files (see below).
-* `releases` - the folder where rbf files should be placed. format of each rbf is: <core_name>_YYYYMMDD.rbf (YYYYMMDD is date code of release).
+| Path | Role today |
+| --- | --- |
+| `rtl/sharpx1.v` | Shared machine instantiated by MiSTer and the headless simulator. |
+| `rtl/sharpx1_legacy.v` | Inherited Nise X1 implementation retained as a reference. |
 
-### Other standard files:
-* `<core_name>.qpf`- quartus project file. Copy it as is and then modify the line `PROJECT_REVISION = "<core_name>"` according to your core name.
-* `<core_name>.qsf` - quartus settings file. In most cases you don't need to modify anything inside (although you may wont to adjust some settings in quartus - this is fine, but keep changes minimal). You also need to watch this file before you make a commit. Quartus in some conditions may "spit" all settings from different files into this file so it will become large. If you see this, then simply revert it to original file.
-* `<core_name>.srf` - optional file to disable some warnings which are safe to disable and make message list more clean, so you will have less chance to miss some important warnings. You are free to modify it.
-* `<core_name>.sdc` - optional file for constraints in case if core require some special constraints. You are free to modify it.
-* `<core_name>.sv` - glue logic between framework and core. This is where you adapt core specific signals to framework.
-* `files.qip` - list of all core files. You need to edit it manually to add/remove files. Quartus will use this file but can't edit it. If you add files in Quartus IDE, then they will be added to `<core_name>.qsf` which is recommended manually move them to `files.qip`.
-* `clean.bat` - windows batch file to clean the whole project from temporary files. In most cases you don't need to modify it.
-* `.gitignore` - list of files should be ignored by git, so temporary files wont be included in commits.
-* `jtag.cdf` - it will be produced when you compile the core. By clicking it in Quartus IDE, you will launch programmer where you can send the core to MiSTer over USB blaster cable (see manual for DE10-nano how to connect it). This file normally is not present on cleaned project and not included in commits.
+Both builds now use the machine sources in `rtl/machine.qip`.
+The legacy implementation enables an X1 Turbo subset and FZ80 CPU through
+source macros; its presence does not imply complete Turbo compatibility.
 
-### PLL:
-Framework implies use of at least one PLL in the core. Framework doesn't contain this PLL but requires it to be placed in `rtl` folder, so `pll` folder and `pll.v`, `pll.qip` files must be present, however PLL settings are up to the core.
+The headless simulator has been compiled with Verilator 5.044 on macOS.
+The timing/reset regression passes. A 200,000-system-cycle run reports:
 
-### Verilog Macros
+```text
+time_ps=6250000000 sys_edges=200000 video_edges=178571
+reset_edges=64 cpu_enables=24992 delayed_sys_edges=200000
+```
 
-The following macros can be defined and will affect the framework features:
+This verifies clock scheduling, reset/divider phase, delayed events, and
+repeatability. Additional diagnostics now verify Z80 fetch, RAM patterns,
+writes beneath IPL, overlay switching and loader bounds. The shared renderer
+produces native IPL and game rasters. Native floppy boot, keyboard interrupts,
+repeatable player movement, and a deterministic PSG tone are verified.
+Focused regressions also cover PPI mode-0 behavior, both joystick inputs,
+all three PSG tones, noise and all 16 envelope shapes. MiSTer joystick bit
+order is corrected; physical controller behavior is still untested.
+ANK/PCG readback and single-write transactions now have CPU and asynchronous
+clock tests. CPU WAIT covers the synchronized transaction; exact native
+scanline waits and PCG raster compatibility remain unverified.
+See [bring-up progress](docs/BRINGUP_PROGRESS.md) for changes and remaining gates.
 
-Macro                    |   Effect
--------------------------|---------------------------------
-MISTER_DEBUG_NOHDMI      | Disable HDMI-related modules. Speeds up compilation but only analogue/direct video is available
-MISTER_DUAL_SDRAM        | Changes configuration of FPGA pins to work with dual SDRAM I/O boards
-MISTER_FB                | Allows to use framebuffer from the core
-MISTER_SMALL_VBUF        | Sets a smaller video buffer for the ASCAL
-MISTER_DOWNSCALE_NN      | Ascal's downscale mode
-MISTER_DISABLE_ADAPTIVE  | Disables adaptive scan lines
-MISTER_FB_PALETTE        | Framebuffer palette
+MiSTer now wires keyboard, joystick, read-only disk, RGB and audio paths and
+offers IPL/D88 OSD entries. Wrapper lint passes with warnings, but synthesis
+and hardware operation are unverified. The checked-in PLL specifies 28.571428 MHz,
+not the 28.636 MHz in comments; correcting and verifying that clock remains
+open. No FPGA release or hardware boot is established by simulation results.
 
+## Play CROSS Chase locally
 
-# Quartus version
-Cores must be developed in **Quartus v17.0.x**. It's recommended to have updates, so it will be **v17.0.2**. Newer versions won't give any benefits to FPGA used in MiSTer, however they will introduce incompatibilities in project settings and it will make harder to maintain the core and collaborate with others. **So please stick to good old 17.0.x version.** You may use either Lite or Standard license.
+The acquired game disk and a native-booted checkpoint are present locally,
+but are ignored testing assets, not bundled redistributable files. With SDL2
+installed:
 
+```sh
+make -C verilator play
+```
+
+Use **I/K/J/L** to move up/down/left/right and **Space** to fire. Close the
+window to quit. The checkpoint has Caps Lock off, as the game expects lowercase
+letters. Simulation runs roughly ten times slower than real time on this host.
+The new SDL frontend displays real core RGB; live audio playback is not provided
+(WAV capture is available). See [play and verification instructions](docs/PLAYING.md)
+for checkpoint regeneration, asset permissions, and the gameplay regression.
+
+## Build and run the headless simulator
+
+Install Verilator 5.x, GNU Make, and a C++ compiler supporting the timing runtime
+(C++20). The tested build uses the installed Verilator runtime; SDL and OpenGL
+are not required for the headless target.
+
+Run these commands from the repository root:
+
+```sh
+verilator --version
+make -C verilator headless
+make -C verilator run CYCLES=200000
+make -C verilator test
+```
+
+The executable is `verilator/obj_dir_headless/Vtop`. `make -C verilator` builds
+the same target. `CYCLES` counts 32 MHz system-clock cycles; omitting
+it runs 2,000,000 cycles. Run from the `verilator` directory if invoking the
+executable directly, since existing RTL asset paths may be relative.
+
+The event scheduler advances time in picoseconds and drives independent system
+and video clocks. Reset lasts 64 system cycles by default. The final JSON result
+reports clock/reset/CPU-enable counts, sync transitions, and a provisional video
+hash. Examples:
+
+```sh
+cd verilator
+./obj_dir_headless/Vtop --cycles 4096 --reset-cycles 17 --trace /tmp/x1.fst
+./obj_dir_headless/Vtop --cycles 4096 --video-hz 28636360
+```
+
+The default video frequency matches the current board PLL (28,571,428 Hz).
+FST tracing is optional. `--rom` loads raw binary or whitespace-separated hex
+through ioctl; `--ram`, `--load-address` and `--entry` offer explicit debug
+execution. `--disk` attaches read-only D88 media, `--keys` supplies timestamped
+PS/2 set-2 bytes, `--frame` captures actual RGB pixels to PPM, `--bus-trace`
+writes CSV and `--dump` saves main/text/attribute RAM. `--audio` captures mono
+48 kHz WAV. `--joya`/`--joyb` set raw active-low X1 joystick pin bytes (default
+`0xff`); explicit values override saved inputs when restoring a snapshot.
+`make interactive` builds the delay-aware SDL frontend; `make fast`
+builds a clocked, savable SDL model. Example early native boot capture:
+
+```sh
+./obj_dir_headless/Vtop --cycles 64000000 --rom ../bios/ipl_x1.hex \
+  --disk ../references/software/private-downloads/cross-chase/Xchase_x1.d88 \
+  --keys tests/cross_boot.keys --frame obj_dir_headless/native.ppm
+```
+
+The game image is an ignored local testing asset, not a bundled release;
+see [software provenance](references/software/README.md). A raster of
+“IPL is under preparing” is not a successful disk/game boot.
+`make -C verilator lint` exposes inherited warnings;
+`-Wno-fatal` allows bring-up but does not certify correct wiring.
+
+```sh
+make -C verilator clean
+```
+
+This removes only the headless build directory. The old `verilator/obj_dir`
+contains tracked generated sources and must be preserved.
+
+The old GUI sources and Visual Studio project remain for reference. Their
+Makefile path references missing SDL/OpenGL ImGui backends and requires further
+repair before it is usable.
+
+## FPGA project
+
+The target is MiSTer's DE10-Nano Cyclone V. The main project records Quartus
+17.0/17.0.2; `sharpx1_Q13.qpf` is a historical Quartus 13.1 project.
+With the appropriate Quartus tools installed, the main compile invocation is:
+
+```sh
+quartus_sh --flow compile sharpx1
+```
+
+This command is provided as the project entry point; a successful synthesis,
+timing closure, and hardware boot have not been verified here. The FPGA top is
+`sys_top`; core integration is in `sharpx1.sv`. Add machine dependencies to
+`rtl/machine.qip`, shared with simulation; board dependencies belong in `files.qip`.
+Quartus output goes into `output_files/`.
+
+## Repository layout
+
+| Location | Contents |
+| --- | --- |
+| `sharpx1.sv` | MiSTer HPS, reset, clock, OSD, and video integration. |
+| `rtl/` | Machine, CPU, memory, address decode, and sub-CPU RTL. |
+| `rtl/legacy/` | Inherited Nise X1 peripherals and original platform code. |
+| `rtl/tv80/` | TV80 Z80 implementation used by the newer machine path. |
+| `sys/` | MiSTer framework and board support. |
+| `bios/` | Existing ROM assets and firmware/reference assembly sources. |
+| `verilator/` | Simulation wrapper, headless runner, and historical GUI sources. |
+| `docs/SHARP_X1_TODO.md` | Phased bring-up and compatibility checklist. |
+| `references/README.md` | Emulator reference locations and retrieval status. |
+
+## Bring-up priorities and references
+
+The simulator timing, memory, loader, graphics bus, firmware keyboard/IRQ and
+PSG paths have focused coverage; one native game boots and responds to input.
+Next broaden compatibility, verify exact PCG raster/wait timing and floppy edge cases,
+and synthesize/test on MiSTer. The
+[base machine contract](docs/BASE_X1_CONTRACT.md) records connected interfaces
+and current limits.
+Turbo features need separate coverage. See the [bring-up checklist](docs/SHARP_X1_TODO.md)
+for the remaining work and [AGENTS.md](AGENTS.md) for development guidance.
+
+The existing local MAME checkout is at
+`../FM-7_MiSTer_alanswx/refs/mame`; its X1 driver is
+`src/mame/sharp/x1.cpp`. It provides a useful behavior reference, with its own
+known limitations. X Millennium and neetan are additional candidate references;
+their sources have not been cloned into this repository. See
+[reference notes](references/README.md) for links and status.
+
+The sibling `../SharpMZ_MiSTer/verilator/` demonstrates a headless simulation
+workflow. Its machine RTL is VHDL and uses GHDL synthesis before Verilator;
+this X1 project's Verilog/SystemVerilog sources do not need that conversion.
+
+## Attribution and licensing
+
+The root [LICENSE](LICENSE) contains GPL version 2. Individual inherited files
+also carry their own notices. In particular, `rtl/sharpx1_legacy.v` credits
+Tatsuyuki Satoh and includes non-commercial and redistribution restrictions.
+The root license alone does not resolve those conflicting inherited notices;
+their status needs clarification before distributing derived releases.
+Preserve file-level attribution and notices when changing source.
+
+Existing BIOS and firmware assets require their own provenance review. Use
+appropriately authorized machine images for bring-up and record their origin
+and hashes when creating reproducible tests.

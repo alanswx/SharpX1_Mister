@@ -1,6 +1,5 @@
-`define X1TURBO
-`define X1TURBOZ
-`define FMBOARD
+// Optional models are selected by the build/top, not by the decoder itself.
+// Defining them here made the interface depend on source compilation order.
 
 /****************************************************************************
 	X1 address decoder

@@ -1,4 +1,4 @@
-`define X1TURBO
+// X1TURBO is selected by the machine/build, never locally.
 `define BORDER_BLACK /* neecesary for VGA(analog RGB) */
 
 `define FAST_SQUE  /* 8dot left sque,save some circuit */
@@ -77,7 +77,8 @@ module x1_vid(
   I_CG_D  , I_PCGB_D , I_PCGR_D , I_PCGG_D,
 // VIDEO OUTPUT
   O_R     , O_G     , O_B,
-  O_HSYNC , O_VSYNC , O_VDISP
+  O_HSYNC , O_VSYNC , O_VDISP,
+  O_HBLANK, O_VBLANK, O_CE_PIXEL
 );
 
 input I_RESET;
@@ -142,6 +143,7 @@ output O_R , O_G , O_B;
 output O_HSYNC;
 output O_VSYNC;
 output O_VDISP;
+output O_HBLANK, O_VBLANK, O_CE_PIXEL;
 /////////////////////////////////////////////////////////////////////////////
 // video timming generator
 /////////////////////////////////////////////////////////////////////////////
@@ -149,11 +151,13 @@ reg ppres;
 reg [3:0] pris;
 reg vid_reset;
 
-always @(posedge I_VCLK)
+always @(posedge I_VCLK or posedge I_RESET)
 begin
-  ppres <= ~ppres & I_W40;
-  if(~ppres)
-    pris <= pris + 1;
+  if(I_RESET) begin ppres <= 0; pris <= 0; end
+  else begin
+    ppres <= ~ppres & I_W40;
+    if(~ppres) pris <= pris + 1;
+  end
 end
 
 always @(posedge I_VCLK or posedge I_RESET)
@@ -483,6 +487,9 @@ assign O_HSYNC = hsync_d;
 assign O_VSYNC = vsync_d;
 `endif
 assign O_VDISP = vdisp;
+assign O_HBLANK = ~disp_d;
+assign O_VBLANK = ~vdisp;
+assign O_CE_PIXEL = ~QP & QA;
 
 /****************************************************************************
   CPU read data

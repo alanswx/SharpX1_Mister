@@ -550,22 +550,22 @@ end
 
 
 ///////////////////////////////   PS2   ///////////////////////////////
+// Used by the module-level HPS command process as well as the generated
+// serializers. Keep them at module scope, not as unrelated implicit nets.
+reg [7:0] kbd_data = 0, mouse_data = 0;
+reg kbd_we = 0, kbd_rd = 0, mouse_we = 0, mouse_rd = 0;
+wire [8:0] kbd_data_host, mouse_data_host;
 generate
 	if(PS2DIV) begin
-		reg clk_ps2;
+		reg clk_ps2 = 0;
 		always @(posedge clk_sys) begin
-			integer cnt;
+			integer cnt = 0;
 			cnt <= cnt + 1'd1;
 			if(cnt == PS2DIV) begin
 				clk_ps2 <= ~clk_ps2;
 				cnt <= 0;
 			end
 		end
-
-		reg  [7:0] kbd_data;
-		reg        kbd_we;
-		wire [8:0] kbd_data_host;
-		reg        kbd_rd;
 
 		ps2_device keyboard
 		(
@@ -584,11 +584,6 @@ generate
 			.rdata(kbd_data_host),
 			.rd(kbd_rd)
 		);
-
-		reg  [7:0] mouse_data;
-		reg        mouse_we;
-		wire [8:0] mouse_data_host;
-		reg        mouse_rd;
 
 		ps2_device mouse
 		(
@@ -609,6 +604,8 @@ generate
 		);
 	end
 	else begin
+		assign kbd_data_host = 0;
+		assign mouse_data_host = 0;
 		assign ps2_kbd_clk_out = 0;
 		assign ps2_kbd_data_out = 0;
 		assign ps2_mouse_clk_out = 0;
@@ -1000,7 +997,7 @@ module confstr_rom #(parameter CONF_STR, STRLEN)
 	output reg [7:0] conf_byte
 );
 
-wire [7:0] rom[STRLEN];
+reg [7:0] rom[STRLEN];
 initial for(int i = 0; i < STRLEN; i++) rom[i] = CONF_STR[((STRLEN-i)*8)-1 -:8];
 always @ (posedge clk_sys) conf_byte <= rom[conf_addr];
 

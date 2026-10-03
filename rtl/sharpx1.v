@@ -1,632 +1,229 @@
-module sharpx1
-(
-	input         clk_sys,
-	input         clk_28636,	
-	input         reset,
-	
-	input         pal,
-	input         scandouble,
-
-	input wire         ioctl_download,
-	input wire   [7:0] ioctl_index,
-	input wire         ioctl_wr,
-	input       [24:0] ioctl_addr,
-	input        [7:0] ioctl_dout,
-
-	output reg    ce_pix,
-
-	output reg    HBlank,
-	output reg    HSync,
-	output reg    VBlank,
-	output reg    VSync,
-
-	output  [7:0] video
-
-/*
-// DEBUG
-
-// System RESET , System CLOCKs
-  input 	I_RESET,
-  input 	I_CLK32M,
-  input 	I_CLK28M636,
-//  I_CLK4M,
-
-// External CPU Bus (Main RAM)
-  output 	O_CBUS_BANK,
-  output 	O_CBUS_ADDRESS,
-  output 	O_CBUS_DATA,
-  input 	I_CBUS_DATA,
-  output 	O_CBUS_RD_n,
-  output 	O_CBUS_WR_n,
-  input 	I_CBUS_WAIT_n,
-  output	O_CBUS_CS_IPL,
-  output 	O_CBUS_CS_MRAM,
-  output 	O_CBUS_CS_GRAMB,
-  output 	O_CBUS_CS_GRAMR,
-  output 	O_CBUS_CS_GRAMG,
-  output 	O_CBUS_BANK_GRAM_R,
-  output 	O_CBUS_BANK_GRAM_W,
-
-// External VIDEO Bus
-  output 	O_GRAM_A,
-  input 	I_GRAM_D_R,
-  input 	I_GRAM_D_G,
-  input 	I_GRAM_D_B,
-
-// Xilinx Config ROM
-  output 	O_XCF_CCLK,
-  output 	O_XCF_RESET,
-  input 	I_XCF_DIN,
-
-// SD / MMC Card
-   output 	O_MMC_CLK,
-   output 	O_MMC_CS,
-   output 	O_MMC_DOUT,
-   input 	I_MMC_DIN,
-
-// PS2
-   input 	I_PS2_CLK,
-   input 	I_PS2_DAT,
-   output 	O_PS2_CLK_T,
-   output 	O_PS2_DAT_T,
-
-// sound
-   PCM_L,
-   PCM_R,
-
-// NTSC S1 Video out
-`ifdef NTSC_S2
-  output 	O_VY,
-  output 	O_VC,
-`endif
-
-// Front / Back Panel Switches
-  output 	O_LED_FDD_RED,
-  output 	O_LED_FDD_GREEN,
-
-  input 	I_NMI_n,
-  output 	O_LED_POWER,
-  output 	O_LED_TIMER,
-`ifdef X1TURBO
-  input 	I_IPL_n,
-  input 	I_DEFCHR_SW,
-  output 	O_LED_HIRESO,
-  input 	I_DSW,
- `ifdef X1TURBOZ
-  output 	O_LED_ANALOG,
- `endif
-`endif
-
-// DIP SW.
-
-// JOYSTICK
-  input 	I_JOYA,
-  input 	I_JOYB,
-  output 	O_JOYA,
-  output 	O_JOYB,
-  T_JOYA,
-  T_JOYB,
-
-// VGA / SCART RGB output
-  output	O_VGA_R,
-  output 	O_VGA_G,
-  output 	O_VGA_B,
-  output 	O_VGA_HS,
-  output 	O_VGA_VS,
-
-// debug port : SUB CPU firmware download
-  input 	I_FIRMWARE_EN,
-
-// debug port : SUB CPU number monitor
-  output 	O_DBG_NUM4,
-  output 	O_DBG_DOT4,
-  output 	O_DBG_LED8,
-
-// debug port : USART
-  input 	I_USART_CLK,
-  input 	I_USART_CLKEN16,
-  input 	I_USART_RX,
-  output 	O_USART_TX	
-*/
+// Sharp X1 base-machine integration. Shared by MiSTer and simulation.
+// See docs/BASE_X1_CONTRACT.md for address-map sources and limitations.
+module sharpx1 (
+    input clk_sys, clk_28636, reset,
+    input pal, scandouble,
+    input ioctl_download,
+    input [7:0] ioctl_index,
+    input ioctl_wr,
+    input [24:0] ioctl_addr,
+    input [7:0] ioctl_dout,
+    input ps2_clk_in, ps2_data_in,
+    input [7:0] joya_n, joyb_n,
+    input disk_ready, img_mounted, disk_wp,
+    input [23:0] img_size,
+    output [31:0] sd_lba,
+    output sd_rd, sd_wr,
+    input sd_ack,
+    input [8:0] sd_buff_addr,
+    input [7:0] sd_buff_dout,
+    output [7:0] sd_buff_din,
+    input sd_buff_wr,
+    output ce_pix,
+    output HBlank, HSync, VBlank, VSync,
+    output [7:0] video,
+    output [2:0] rgb,
+    output [15:0] audio
 );
+    reg [4:0] ce;
+    always @(negedge clk_sys or posedge reset)
+        if (reset) ce <= 0;
+        else ce <= ce + 1'b1;
+    wire pe4M4 = ce[2:0] == 3'b100;
+    wire ne4M4 = ce[2:0] == 3'b000;
 
-/****************************************************************************
-  IPL ROM
-****************************************************************************/
+    wire [15:0] a;
+    wire [7:0] di, data_out;
+    // cpu.v exposes TV80 active-low strobes despite the historical names.
+    wire mreq, iorq, rd, wr, m1, halt_n;
+    cpu Cpu (
+        .reset_n(~reset), .clock(clk_sys), .cep(pe4M4), .cen(ne4M4),
+        .int_n(sub_int_n), .wait_n(cg_wait_n), .halt_n(halt_n),
+        .mreq(mreq), .iorq(iorq), .rd(rd), .wr(wr), .m1(m1),
+        .di(di), .data_out(data_out), .a(a), .dir(16'd0), .dirset(1'b0)
+    );
 
-// ROM IPL 4KB
-wire  [7:0]  romDo_SharpX1;
-wire [13:0]  romA;
+    wire mem_read = !mreq && !rd;
+    wire mem_write = !reset && !mreq && !wr;
+    // M1 low with IORQ is interrupt acknowledge, not an ordinary I/O cycle.
+    wire io_read = !reset && !iorq && !rd && m1;
+    wire io_write = !reset && !iorq && !wr && m1;
+    wire io_cycle = io_read || io_write;
+    wire sub_cs = io_cycle && !dam && a[15:8] == 8'h19;
+    wire ppi_cs = io_cycle && !dam && a[15:8] == 8'h1a;
+    wire ipl_set_cs = io_write && !dam && a[15:8] == 8'h1d;
+    wire ipl_clear_cs = io_write && !dam && a[15:8] == 8'h1e;
 
-/*
-//rom #(.AW(13), .FN("../bios/reference/fw_bios_spi/boot.hex")) IPL
-rom #(.AW(13), .FN("../bios/ipl_x1.hex")) IPL
-//rom #(.AW(13), .FN("../bios/ipl_x1.hex")) IPL
-(
-	.clock      (clk_sys       ),
-	.ce         (1'b1          ),
-	.data_out   (romDo_SharpX1 ),
-	.a          (romA          )
-);
-*/
+    reg ipl_enabled;
+    always @(posedge clk_sys or posedge reset)
+        if (reset) ipl_enabled <= 1'b1;
+        else if (ipl_set_cs) ipl_enabled <= 1'b1;
+        else if (ipl_clear_cs) ipl_enabled <= 1'b0;
 
-/*
-always @(posedge clk_sys) begin
-  if (ioctl_download) begin
-    $display("ioctl_download %h ioctl_index %h ioctl_addr %h ioctl_wr %h ioctl_dout %h", ioctl_download, ioctl_index, ioctl_addr[12:0], ioctl_wr, ioctl_dout);
-  end
-end
-*/
+    // Index 0: base IPL (4 KiB); index 2: explicit debug/program RAM download.
+    // Loader does not wrap invalid addresses and cannot write without download.
+    wire ipl_load = ioctl_download && ioctl_wr && ioctl_index == 0
+                    && ioctl_addr < 25'd4096;
+    wire ram_load = reset && ioctl_download && ioctl_wr && ioctl_index == 2
+                    && ioctl_addr < 25'd65536;
+    wire [7:0] ipl_data, ram_data;
+    dpram #(8,12) IPL (
+        .clock(clk_sys), .ram_cs(1'b1), .address_a(ioctl_addr[11:0]),
+        .wren_a(ipl_load), .data_a(ioctl_dout), .q_a(),
+        .ram_cs_b(1'b1), .address_b(a[11:0]), .wren_b(1'b0),
+        .data_b(8'd0), .q_b(ipl_data)
+    );
+    dpram #(8,16) RAM (
+        .clock(clk_sys), .ram_cs(1'b1),
+        .address_a(ram_load ? ioctl_addr[15:0] : a),
+        .wren_a(ram_load || mem_write),
+        .data_a(ram_load ? ioctl_dout : data_out), .q_a(ram_data),
+        .ram_cs_b(1'b1), .address_b(16'd0), .wren_b(1'b0),
+        .data_b(8'd0), .q_b()
+    );
 
-dpram #(8, 13) IPL  // (4KB)
-(
-	.clock     (clk_sys          ),
-	.address_a (ioctl_addr       ),
-	.wren_a    (ioctl_wr         ),
-	.data_a    (ioctl_dout       ),
-	.q_a       (                 ),
+    // Host protocol uses the inherited MR16 firmware for now; no DMA/FDC
+    // bus ownership is advertised until those devices have their own tests.
+    wire [7:0] sub_data;
+    wire sub_tx_busy, sub_rx_busy, sub_int_n, clk1;
+    x1_sub subCPU (
+        .I_reset(reset), .I_clk(clk_sys), .I_cs(sub_cs),
+        .I_rd(io_read), .I_wr(io_write), .I_M1_n(m1),
+        .I_D(data_out), .O_D(sub_data), .O_DOE(), .O_clk1(clk1),
+        .O_FDC_DRQ_n(), .I_FDCS(1'b0), .I_RFSH_n(1'b1),
+        .I_RFSH_STB_n(1'b1), .I_DMA_CS(1'b0),
+        .O_DMA_BANK(), .O_DMA_A(), .I_DMA_D(8'hff), .O_DMA_D(),
+        .O_DMA_MREQ_n(), .O_DMA_IORQ_n(), .O_DMA_RD_n(), .O_DMA_WR_n(),
+        .O_DMA_BUSRQ_n(), .I_DMA_BUSAK_n(1'b1), .I_DMA_RDY(1'b0),
+        .I_DMA_WAIT_n(1'b1), .I_DMA_IEI(1'b1),
+        .O_DMA_INT_n(), .O_DMA_IEO(), .O_PCM(), .O_FD_LAMP(),
+        .I_fa(13'd0), .I_fcs(1'b0), .I_PS2C(ps2_clk_in), .I_PS2D(ps2_data_in),
+        .O_PS2CT(), .O_PS2DT(), .O_TX_BSY(sub_tx_busy), .O_RX_BSY(sub_rx_busy),
+        .O_KEY_BRK_n(), .I_SPM1(!m1 && !iorq), .I_RETI(1'b0),
+        .I_IEI(1'b1), .O_INT_n(sub_int_n), .O_JOY_A(), .O_JOY_B(),
+        .dot_7seg(), .num_7seg()
+    );
 
-	.wren_b    (                 ), 
-	.address_b (romA             ), 
-	.data_b    (                 ),
-	.q_b       (romDo_SharpX1    ) 
-);
+    // Base IPL occupies a 32 KiB read aperture, with only 4 KiB populated.
+    // Writes always reach underlying RAM, including when IPL reads are enabled.
+    wire rom_selected = ipl_enabled && !a[15];
+    assign di = mem_read ? (rom_selected ? (a < 16'h1000 ? ipl_data : 8'hff)
+                                         : ram_data)
+              : !m1 && !iorq ? sub_data
+              : sub_cs && io_read && !dam ? sub_data
+              : ppi_cs && io_read ? ppi_data
+              : io_read && !dam && a[15:2] == 14'h03fe ? fdc_data
+              : io_read && !dam && a[15:8] == 8'h1b ? psg_data
+              : cg_access && io_read ? cg_cpu_data
+              : io_read && !dam && a[15:12] == 4'h2 ? attr_cpu
+              : io_read && !dam && a[15:12] == 4'h3 ? text_cpu
+              : io_read && a[15:14] == 2'b01 ? grb_cpu
+              : io_read && a[15:14] == 2'b10 ? grr_cpu
+              : io_read && a[15:14] == 2'b11 ? grg_cpu
+              : 8'hff;
 
-// ROM 2KB CHARACTER GENERATOR
+    wire [7:0] ppi_data, mode_c;
+    wire vdisp;
+    i8255 ppi (
+        .reset(reset), .clk_sys(clk_sys), .addr(a[1:0]), .idata(data_out),
+        .odata(ppi_data), .cs(ppi_cs), .we(io_write), .oe(io_read),
+        .ipa(8'hff), .opa(), .ipb({vdisp,sub_tx_busy,sub_rx_busy,!ipl_enabled,1'b0,VSync,1'b0,1'b1}),
+        .opb(), .ipc(8'hff), .opc(mode_c),
+        .sna_load(1'b0), .sna_opa(8'd0), .sna_opb(8'd0), .sna_opc(8'd0), .sna_control(8'd0)
+    );
+    reg old_mode5, dam;
+    always @(posedge clk_sys or posedge reset)
+        if (reset) begin old_mode5 <= 1; dam <= 0; end
+        else begin
+            old_mode5 <= mode_c[5];
+            if (io_read) dam <= 0;
+            else if (old_mode5 && !mode_c[5]) dam <= 1;
+        end
 
-/****************************************************************************
-  RAM
-****************************************************************************/
+    wire [7:0] psg_data;
+    wire [9:0] psg_sound;
+    wire psg_address = !dam && a[15:8] == 8'h1c;
+    wire psg_access = !dam && a[15:8] == 8'h1b;
+    jt49_bus psg (
+        .rst_n(~reset), .clk(clk_sys), .clk_en(ce[3:0] == 4'b1000),
+        .bdir(io_write && (psg_address || psg_access)),
+        .bc1((io_write && psg_address) || (io_read && psg_access)),
+        .din(data_out), .sel(1'b1), .dout(psg_data), .sound(psg_sound),
+        .A(), .B(), .C(), .sample(), .IOA_in(joya_n), .IOB_in(joyb_n),
+        .IOA_out(), .IOB_out(), .IOA_oe(), .IOB_oe()
+    );
+    assign audio = {psg_sound,6'd0};
 
-/*
-    X1 (CZ-800C) - November, 1982
-     * CPU: z80A @ 4MHz, 80C49 x 2 (one for key scan, the other for TV & Cas Ctrl)
-     * ROM: IPL (4KB) + chargen (2KB)
-     * RAM: Main memory (64KB) + VRAM (4KB) + RAM for PCG (6KB) + GRAM (48KB, Option)
-     * Text Mode: 80x25 or 40x25
-     * Graphic Mode: 640x200 or 320x200, 8 colors
-     * Sound: PSG 8 octave
-     * I/O Ports: Centronic ports, 2 Joystick ports, Cassette port (2700 baud)
-*/
+    wire [7:0] fdc_data;
+    wire fdc_prepare, fdc_fmt_wp;
+    reg [7:0] drive_control;
+    always @(posedge clk_sys or posedge reset)
+        if(reset) drive_control <= 0;
+        else if(io_write && !dam && a == 16'h0ffc) drive_control <= data_out;
+    wd1793 #(.RWMODE(1), .EDSK(1)) fdc (
+        .clk_sys(clk_sys), .ce(pe4M4), .reset(reset),
+        .io_en(!dam && a[15:2] == 14'h03fe), .rd(io_read), .wr(io_write),
+        .addr(a[1:0]), .din(data_out), .dout(fdc_data),
+        .drq(), .intrq(), .busy(), .wp(disk_wp || fdc_fmt_wp), .fmt_wp(fdc_fmt_wp),
+        .size_code(3'd1), .layout(1'b0), .side(drive_control[4]),
+        .ready(disk_ready && drive_control[1:0] == 0 && !fdc_prepare),
+        .img_mounted(img_mounted), .img_size(img_size[19:0]), .img_size_id(img_size),
+        .disk_index(3'd0), .prepare(fdc_prepare),
+        .sd_lba(sd_lba), .sd_rd(sd_rd), .sd_wr(sd_wr), .sd_ack(sd_ack),
+        .sd_buff_addr(sd_buff_addr), .sd_buff_dout(sd_buff_dout),
+        .sd_buff_din(sd_buff_din), .sd_buff_wr(sd_buff_wr),
+        .input_active(1'b0), .input_addr(20'd0), .input_data(8'd0), .input_wr(1'b0),
+        .buff_addr(), .buff_read(), .buff_din(8'd0)
+    );
 
-// RAM 64KB
-reg  [ 7:0] ramDi;
-reg  [ 7:0] ramDo;
-reg  [15:0] ramA;
-reg         ramWe;
-dpram #(8, 16) RAM  // (64KB)
-(
-	.clock      (clk_sys  ),
-	.address_a  (ramA     ),
-	.wren_a     (ramWe    ),
-	.data_a     (ramDi    ),
-	.q_a        (ramDo    ),
-
-	.wren_b     (         ),
-	.address_b  (         ),
-	.data_b     (         ),
-	.q_b        (         )
-);
-
-// VRAM 4KB
-reg  [ 7:0] vramDi;
-reg  [ 7:0] vramDo;
-reg  [15:0] vramA;
-reg         vramWe;
-dpram #(8, 12) VRAM  // (4KB)
-(
-	.clock      (clk_sys  ),
-	.address_a  (vramA    ),
-	.wren_a     (vramWe   ),
-	.data_a     (vramDi   ),
-	.q_a        (vramDo   ),
-
-	.wren_b     (         ),
-	.address_b  (         ),
-	.data_b     (         ),
-	.q_b        (         )
-);
-
-// PSG RAM 6KB
-reg  [ 7:0] psgramDi;
-reg  [ 7:0] psgramDo;
-reg  [15:0] psgramA;
-reg         psgramWe;
-dpram #(8, 13) PSGRAM  // (8KB)
-(
-	.clock      (clk_sys  ),
-	.address_a  (psgramA  ),
-	.wren_a     (psgramWe ),
-	.data_a     (psgramDi ),
-	.q_a        (psgramDo ),
-
-	.wren_b     (         ),
-	.address_b  (         ),
-	.data_b     (         ),
-	.q_b        (         )
-);
-
-// GRAM 48KB
-reg  [ 7:0] gramDi;
-reg  [ 7:0] gramDo;
-reg  [15:0] gramA;
-reg         gramWe;
-dpram #(8, 16) GRAM  // (64KB)
-(
-	.clock      (clk_sys  ),
-	.address_a  (gramA    ),
-	.wren_a     (gramWe   ),
-	.data_a     (gramDi   ),
-	.q_a        (gramDo   ),
-
-	.wren_b     (         ),
-	.address_b  (         ),
-	.data_b     (         ),
-	.q_b        (         )
-);
-
-/****************************************************************************
-  Z80A CPU
-****************************************************************************/
-
-always @(negedge clk_sys) ce <= ce+1'd1;
-
-`ifdef VERILATOR
-reg [ 3:0] ce;
-assign ce_pix = pe8M8;
-wire pe8M8 =  ce[0];
-wire ne8M8 = ~ce[0];
-
-wire pe4M4 = ~ce[0] &  ce[1];
-wire ne4M4 = ~ce[0] & ~ce[1];
-
-wire pe2M2 = ~ce[0] & ~ce[1] &  ce[2];
-wire ne2M2 = ~ce[0] & ~ce[1] & ~ce[2];
-
-wire pe1M1 = ~ce[0] & ~ce[1] & ~ce[2] &  ce[3];
-wire ne1M1 = ~ce[0] & ~ce[1] & ~ce[2] & ~ce[3];
-`else
-reg [ 4:0] ce;
-assign ce_pix = pe8M8;
-wire pe8M8 = ~ce[0] &  ce[1];
-wire ne8M8 = ~ce[0] & ~ce[1];
-
-wire pe4M4 = ~ce[0] & ~ce[1] &  ce[2];
-wire ne4M4 = ~ce[0] & ~ce[1] & ~ce[2];
-
-wire pe2M2 = ~ce[0] & ~ce[1] & ~ce[2] &  ce[3];
-wire ne2M2 = ~ce[0] & ~ce[1] & ~ce[2] & ~ce[3];
-
-wire pe1M1 = ~ce[0] & ~ce[1] & ~ce[2] & ~ce[3] &  ce[4];
-wire ne1M1 = ~ce[0] & ~ce[1] & ~ce[2] & ~ce[3] & ~ce[4];
-`endif
-
-reg   [ 7:0] di;
-reg   [ 7:0] data_out;
-reg   [15:0] a;
-wire         mreq;
-wire         iorq;
-wire         wr;
-wire         rd;
-reg   [15:0] dir;
-reg          dirset;
-wire         halt_n;
-
-cpu Cpu
-(
-	.reset_n  (reset    ), // I
-	.clock    (clk_sys  ), // I 
-	.cep      (pe4M4    ), // I 
-	.cen      (ne4M4    ), // I 
-	.int_n    (1        ), // I
-
-	.di       (di       ), // I 7:0
-	.dir 	    (dir	    ), // I
-	.dirset   (dirset	  ), // I
-
-	.halt_n   (halt_n   ), // O
-	.mreq     (mreq     ), // O
-	.iorq     (iorq     ), // O
-	.wr       (wr       ), // O
-	.rd       (rd       ), // O
-	.m1       (m1       ), // O
-
-	.data_out (data_out ), // O 7:0
-	.a        (a        )  // O 15:0
-);
-
-/****************************************************************************
-  Sub CPU 80C49
-****************************************************************************/
-
-reg  [ 7:0] subDo;
-reg  [ 7:0] subDi;
-reg sub_rd;
-reg sub_wr;
-
-x1_sub subCPU
-(
-  .I_reset(~reset),
-  .I_clk(clk_sys),  // 32MHz
-  // MAIN-SUB communication port
-  .I_cs(sub_cs),
-  .I_rd(sub_rd),
-  .I_wr(sub_wr),
-  .I_M1_n(~m1),
-  .I_D(subDi),
-  .O_D(subDo),
-  .O_DOE(),
-  // Timer IC Timming Port
-  .O_clk1(),
-  // FDC emulation
-  .O_FDC_DRQ_n(),
-  // O_FDC_INT_n,
-  .I_FDCS(),
-  .I_RFSH_n(),
-  .I_RFSH_STB_n(),
-  // Z80DMA / FDD memory access
-  .I_DMA_CS(dma_cs),
-  .O_DMA_BANK(dma_bank),
-  .O_DMA_A(dma_a),
-  .I_DMA_D(dma_di),
-  .O_DMA_D(dma_do),
-  .O_DMA_MREQ_n(dma_mreq_n),
-  .O_DMA_IORQ_n(dma_iorq_n),
-  .O_DMA_RD_n(dma_rd_n),
-  .O_DMA_WR_n(dma_wr_n),
-  .O_DMA_BUSRQ_n(),
-  .I_DMA_BUSAK_n(),
-  .I_DMA_RDY(),
-  .I_DMA_WAIT_n(halt_n),
-  .I_DMA_IEI(dma_iei),
-  .O_DMA_INT_n(dma_int_n),
-  .O_DMA_IEO(dma_ieo),
-  //
-  .O_PCM(),
-  .O_FD_LAMP(),
-  // SUBCPU Firmware Access Port
-  .I_fa(),
-  .I_fcs(),
-  // PS2 keyboard
-  .I_PS2C(),
-  .I_PS2D(),
-  .O_PS2CT(),
-  .O_PS2DT(),
-  // communication handshake signal 
-  .O_TX_BSY(),
-  .O_RX_BSY(),
-  .O_KEY_BRK_n(),
-  // subcpu int controll
-  .I_SPM1(),
-  .I_RETI(),
-  .I_IEI(),
-  .O_INT_n(),
-  // JOYSTICK EMULATION PORT
-  .O_JOY_A(),
-  .O_JOY_B()
-);
-
-/****************************************************************************
-  Address Decoder
-****************************************************************************/
-
-// chip selects
-wire ipl_cs;
-wire ram_cs;
-wire sub_cs;
-wire miocs;
-wire psgram_cs;
-wire gram_cs;
-
-x1_adec x1_adec(
-  .I_RESET(~reset),
-  .I_CLK(clk_sys),
-  .I_A(a),
-  .I_MREQ_n(~mreq),
-  .I_IORQ_n(~iorq),
-  .I_RD_n(),
-  .I_WR_n(),
-  // mode select
-  .I_IPL_SEL(),
-  .I_DAM(),
-  .I_DEFCHR(),
-  // memory CS
-  .O_IPL_CS(ipl_cs),
-  .O_RAM_CS(ram_cs),
-  //
-  .O_MIOCS(miocs),
-  // I/O CS
-  .O_EMM_CS(),
-  .O_EXTROM_CS(),
-  .O_KANROM_CS(),
-  .O_FD5_CS(),
-  .O_PAL_CS(),
-  .O_CG_CS(),
-  .O_CRTC_CS(),
-  .O_SUB_CS(sub_cs),
-  .O_PIA_CS(),
-  .O_PSG_CS(psgram_cs),
-  .O_IPL_SET_CS(),
-  .O_IPL_RES_CS(),
-  //
-  .O_ATTR_CS(),
-  .O_TEXT_CS(),
-  .O_GRB_CS(gram_cs),
-  .O_GRR_CS(gram_cs),
-  .O_GRG_CS(gram_cs),
-  // option board
-`ifdef FMBOARD
-  .O_FM_CS(),
-  .O_FMO_CTC_CS(),
-`endif
-  .O_HDD_CS(),
-  .O_FD8_CS(),
-// X1turbo
-`ifdef X1TURBO
-  .O_KANJI_CS(), // 3800-3fff
-  .O_BMEM_CS(),  // 0b00
-  .O_DMA_CS(),   // 1f8x
-  .O_SIO_CS(),   // 1f90-1f93
-  .O_CTC_CS(),   // 1fa0-1fa3
-  .O_P1FDX_CS(),
-  .O_BLACK_CS(), // 1fe0
-  .O_DIPSW_CS(), // 1ff0
-`endif
-  .O_DAM_CLR()  
-);
-
-//wire [15:0] ZA;
-//wire [7:0] ZDO;
-//wire ZMREQ_n, ZIORQ_n, ZRD_n, ZWR_n;
-wire [3:0] ice_bank;
-/****************************************************************************
-  system bus MUX
-
-  master
-  Z80DMA  (with RFSH hack access for FDD data)
-  Z80 CPU (with Z80 DEBUGGER)
-****************************************************************************/
-wire [3:0]  dma_bank;
-wire [15:0] dma_a;
-wire [7:0] dma_do,dma_di;
-wire dma_mreq_n,dma_iorq_n,dma_rd_n,dma_wr_n;
-wire dma_sel;
-
-wire [7:0] sdi;
-
-// SYNC / ASYNC BUS SIGNAL SELECTOR
-`define SYNC_Z80_BUS
-
-`ifdef  SYNC_Z80_BUS
-// SYNC / LATCHED Z80 BUS
-reg [7:0] sdo;
-reg  [3:0]  sbank;
-reg [15:0] sa;
-reg sm1_n,smreq_n,sireq_n,srd_n,swr_n;
-
-always @(posedge clk_sys or negedge reset)
-begin
-  if(reset)
-  begin
-  sbank <= 0;
-  sa    <= 16'h0000;
-  sdo   <= 8'h00;
-  smreq_n <= 1'b1;
-  sireq_n <= 1'b1;
-  srd_n <= 1'b1;
-  swr_n <= 1'b1;
-  end else begin
-  sbank <= dma_sel ? dma_bank : ice_bank;
-  sa    <= dma_sel ? dma_a    : a; // ZA
-  sdo   <= dma_sel ? dma_do   : data_out;  // ZDO
-  smreq_n <= dma_sel ? dma_mreq_n : ~mreq;  // ZMREQ_n
-  sireq_n <= dma_sel ? dma_iorq_n : ~iorq; // ZIORQ_n
-  srd_n <= dma_sel ? dma_rd_n : ~rd;  // ZRD_n
-  swr_n <= dma_sel ? dma_wr_n : ~wr; // ZWR_n
-  end
-end
-`else
-// ASYNC / NON LATCHED Z80 BUS
-wire [3:0]  sbank;
-wire [15:0] sa;
-wire sm1_n,smreq_n,siorq_n,srd_n,swr_n;
-
-assign sbank   = dma_sel ? dma_bank   : ice_bank;
-assign sa    = dma_sel ? dma_a    : a;  // ZA
-assign smreq_n = dma_sel ? dma_mreq_n : ~mreq; // ZMREQ_n
-assign sireq_n = dma_sel ? dma_iorq_n : ~iorq; // ZIORQ_n
-assign srd_n   = dma_sel ? dma_rd_n   : ~rd; // ZRD_n
-assign swr_n   = dma_sel ? dma_wr_n   : ~wr; // ZWR_n
-
-assign sdo     = dma_sel ? dma_do   : data_out;  // ZDO
-
-`endif
-
-assign ZDI    = sdi;
-assign dma_di = sdi;
-
-/****************************************************************************
-  Data & Address Buses
-****************************************************************************/
-
-always @(posedge clk_sys) begin
-  
-  /*
-  if(ioctl_download == 1'b0) begin
-    $display("A=%h, D=%h wr=%h halt_n=%h mreq=%h iorq=%h rd=%h m1=%h ram_cs=%h sub_cs=%h psgram_cs=%h gram_cs=%h", a, data_out, wr, halt_n, mreq, iorq, rd, m1, ram_cs, sub_cs, psgram_cs, gram_cs);
-  end
-  */
-
-  if(ram_cs) begin
-    if(wr) begin
-      ramDi <= data_out;    
-      ramWe <= 1;
-      //$display("RAM write %h %h", a, data_out);
-    end
-    else if (rd) begin
-      ramWe <= 0;
-      $display("RAM read %h %h", a, ramDo);      
-    end
-    ramA <= a;
-  end
-  else if (gram_cs) begin
-    if(wr) begin
-      gramDi <= data_out;    
-      gramWe <= 1;
-      //$display("GRAM write %h %h", a, data_out);
-    end
-    else if (rd) begin
-      gramWe <= 0;
-      //$display("GRAM read %h %h", a, gramDo);            
-    end
-    gramA <= a;
-  end
-  else if (psgram_cs) begin
-    if(wr) begin
-      psgramDi <= data_out;    
-      psgramWe <= 1;
-      //$display("PSGRAM write %h %h", a, data_out);
-    end
-    else if (rd) begin
-      psgramWe <= 0;
-      //$display("PSGRAM read %h %h", a, psgramDo);         
-    end
-    psgramA <= a;
-  end
-  else if (sub_cs) begin
-    if(wr) begin
-      subDi <= data_out;    
-      sub_wr <= 1;
-      sub_rd <= 0;
-      //$display("SUB CPU write %h %h", a, data_out);
-    end
-    else if (rd) begin
-      sub_wr <= 0;
-      sub_rd <= 1;
-      //$display("SUB CPU read %h %h", a, subDo);         
-    end
-  end
-end
-
-assign romA = a;
-
-//assign ramWe = !(!mreq && !wr);
-//assign ramDi = data_out;
-//assign ramA  = a;
-
-//assign gramWe = !(!mreq && !wr);
-//assign gramDi = data_out; 
-//assign gramA  = a;
-
-//assign psgramWe = !(!mreq && !wr);
-//assign psgramDi = data_out; 
-//assign psgramA  = a;
-
-assign di = ram_cs ? ramDo : 
-            ipl_cs ? romDo_SharpX1 :
-            sub_cs ? subDo :
-            gram_cs ? gramDo :
-            psgram_cs ? psgramDo :            
-            8'hff;
-
+    wire [13:0] vaddr;
+    wire [10:0] cgaddr;
+    wire [7:0] text_cpu, text_vid, attr_cpu, attr_vid, cg_data;
+    wire [7:0] grb_cpu, grr_cpu, grg_cpu, grb_vid, grr_vid, grg_vid;
+    wire [7:0] pcgb_vid, pcgr_vid, pcgg_vid;
+    wire [7:0] pcgb_cpu, pcgr_cpu, pcgg_cpu, cg_rom_cpu, cg_cpu_data;
+    wire [10:0] cg_access_addr;
+    wire [7:0] cg_access_data;
+    wire [2:0] cg_access_write;
+    wire cg_wait_n;
+    wire text_write = io_write && !dam && a[15:12] == 4'h3;
+    wire attr_write = io_write && !dam && a[15:12] == 4'h2;
+    wire cg_access = io_cycle && !dam && a[15:10] == 6'b000101;
+    x1_pcg_access cg_bus (
+        .reset(reset), .cpu_clk(clk_sys), .video_clk(clk_28636),
+        .cpu_select(cg_access), .cpu_write(io_write), .cpu_plane(a[9:8]), .cpu_data(data_out),
+        .wait_n(cg_wait_n), .cpu_q(cg_cpu_data), .beam_addr(cgaddr),
+        .access_addr(cg_access_addr), .access_data(cg_access_data), .access_write(cg_access_write),
+        .rom_q(cg_rom_cpu), .blue_q(pcgb_cpu), .red_q(pcgr_cpu), .green_q(pcgg_cpu)
+    );
+    x1_video_ram #(11) text_ram(clk_sys,a[10:0],data_out,text_write,text_cpu,clk_28636,vaddr[10:0],text_vid);
+    x1_video_ram #(11) attr_ram(clk_sys,a[10:0],data_out,attr_write,attr_cpu,clk_28636,vaddr[10:0],attr_vid);
+    x1_video_ram #(14) gram_b(clk_sys,a[13:0],data_out,io_write && ((a[15:14] == 1) ^ dam),grb_cpu,clk_28636,vaddr,grb_vid);
+    x1_video_ram #(14) gram_r(clk_sys,a[13:0],data_out,io_write && ((a[15:14] == 2) ^ dam),grr_cpu,clk_28636,vaddr,grr_vid);
+    x1_video_ram #(14) gram_g(clk_sys,a[13:0],data_out,io_write && ((a[15:14] == 3) ^ dam),grg_cpu,clk_28636,vaddr,grg_vid);
+    x1_video_ram #(11) pcg_b(clk_28636,cg_access_addr,cg_access_data,cg_access_write[0],pcgb_cpu,clk_28636,cgaddr,pcgb_vid);
+    x1_video_ram #(11) pcg_r(clk_28636,cg_access_addr,cg_access_data,cg_access_write[1],pcgr_cpu,clk_28636,cgaddr,pcgr_vid);
+    x1_video_ram #(11) pcg_g(clk_28636,cg_access_addr,cg_access_data,cg_access_write[2],pcgg_cpu,clk_28636,cgaddr,pcgg_vid);
+    x1_cg8 access_font(clk_28636,cg_access_addr,cg_rom_cpu);
+    x1_cg8 font(clk_28636,cgaddr,cg_data);
+    wire r,g,b;
+    x1_vid display (
+        .I_RESET(reset), .I_CCLK(clk_sys), .I_A(a), .I_D(data_out), .O_D(), .O_DE(),
+        .I_WR(io_write && !dam), .I_RD(io_read), .O_VWAIT(),
+        .I_CRTC_CS(io_cycle && a[15:8] == 8'h18), .I_CG_CS(cg_access),
+        .I_PAL_CS(io_cycle && a[15:10] == 6'b000100),
+        .I_TXT_CS(1'b0), .I_ATT_CS(1'b0), .I_KAN_CS(1'b0),
+        .I_GRB_CS(1'b0), .I_GRR_CS(1'b0), .I_GRG_CS(1'b0),
+        .I_VCLK(clk_28636), .I_CLK1(clk1), .O_VQ(), .I_W40(mode_c[6]),
+        .O_VA(vaddr), .O_TXT_WE(), .O_ATT_WE(), .O_KAN_WE(),
+        .I_TXT_D(text_vid), .I_ATT_D(attr_vid), .I_KAN_D(8'd0),
+        .O_GRB_WE(), .O_GRR_WE(), .O_GRG_WE(),
+        .I_GRB_D(grb_vid), .I_GRR_D(grr_vid), .I_GRG_D(grg_vid),
+        .O_CGA(cgaddr), .I_CG_D(cg_data),
+        .I_PCGB_D(pcgb_vid), .I_PCGR_D(pcgr_vid), .I_PCGG_D(pcgg_vid),
+        .O_R(r), .O_G(g), .O_B(b), .O_HSYNC(HSync), .O_VSYNC(VSync), .O_VDISP(vdisp),
+        .O_HBLANK(HBlank), .O_VBLANK(VBlank), .O_CE_PIXEL(ce_pix)
+    );
+    assign rgb = {g,r,b};
+    assign video = {8{r || g || b}}; // Historical mono output; RGB is authoritative.
 endmodule

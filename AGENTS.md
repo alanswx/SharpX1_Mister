@@ -1,0 +1,125 @@
+# Working on Sharp X1 for MiSTer
+
+## Scope and working tree
+
+This is an experimental FPGA core under bring-up. Read `Readme.md` and
+`docs/SHARP_X1_TODO.md` before changing machine behavior. Inspect `git status`
+and preserve changes belonging to the user or earlier work. Keep documentation
+honest about what has been built, executed, booted, and verified on hardware.
+
+## Architecture
+
+- `sharpx1.sv` is the MiSTer integration wrapper and instantiates
+  `rtl/sharpx1.v`.
+- `verilator/sim.v` instantiates the same `rtl/sharpx1.v` machine as MiSTer.
+  Legacy RTL is reference-only in the headless build.
+- `rtl/sharpx1_legacy.v` defines feature and CPU macros in source, including
+  an X1 Turbo subset and FZ80. Source ordering and macro visibility matter.
+- `rtl/sub_cpu.v`, `rtl/mr16_x1.v`, and `rtl/mr16core.v` implement the
+  replacement sub-CPU path. Firmware references live under `bios/reference/`.
+- `rtl/x1_pcg_access.v` transfers beam-addressed CG/PCG transactions to the
+  video domain; CPU WAIT is CDC latency, not a validated native scanline trap.
+  Preserve bundled-data stability and one-write-per-transaction semantics.
+- `sys/` is inherited MiSTer framework code. Prefer implementing core-specific
+  changes in the wrapper or `rtl/`; explain any required framework edits.
+
+Track machine dependencies in `rtl/machine.qip`, read by Quartus through
+`files.qip` and by the Verilator Makefile. Keep board-only dependencies separate. The FPGA
+top is `sys_top`; the simulator top is `top`.
+
+## Simulation and verification
+
+From the repository root:
+
+```sh
+make -C verilator headless
+make -C verilator run CYCLES=200000
+make -C verilator test
+git diff --check
+```
+
+The headless target uses Verilator 5.x and a C++20-capable compiler. It does not
+need SDL. The historical GUI path is incomplete; do not advertise it as working.
+
+The timing regression checks independent clocks, deterministic reset/divider
+phase, delayed events, repeatability, and FST output. The video clock defaults
+to the checked-in PLL's 28.571428 MHz, not the intended 28.636 MHz; the PLL
+needs hardware review. A run without an IPL-programmed CRTC can still have
+zero HS/VS. Native IPL frames are captured from real RGB signals; record the
+ROM and initialization before comparing images. The runner now loads IPL
+through ioctl. Successful execution alone does not establish game boot.
+
+Optional `interactive` and `fast` targets require SDL2. `fast` uses
+`--no-timing`, ignoring inherited intra-assignment delays like synthesis;
+it is not the delay-aware timing reference. Compare functional diagnostics
+and native boot evidence against `headless` before relying on fast results.
+`make -C verilator test-fast` covers snapshots and the SDL adapter;
+`test-game` checks CROSS Chase movement from a native-booted local state.
+See `docs/PLAYING.md` for `boot-game` and `play`. Regenerate snapshots after
+RTL changes; they contain ROM/game bytes and must not be bundled or committed.
+The disk's non-commercial use grant is not binary redistribution permission.
+`lint-wrapper` uses a PLL interface stand-in, not Intel PLL simulation or a
+Quartus/hardware validation. The narrow `sys/hps_io.sv` edits move shared PS/2
+registers out of generate scope and correct an initialized ROM's variable
+declaration; avoid unrelated framework changes.
+
+For functional changes, choose checks that demonstrate the affected behavior:
+CPU/bus traces for ROM mapping and wait states, memory readback for RAM banking,
+frame timing and images for video, and waveforms for audio. Record the active
+machine configuration, clock frequencies, reset sequence, asset hashes, and
+simulation duration. Do not mark a TODO complete solely because it compiles.
+
+Keep new simulation interfaces deterministic. Check memory address/data widths,
+write enables, inactive input values, reset polarity, clock domains, and delayed
+events. Replace implicit nets with explicit declarations when touching relevant
+wiring. Review warnings before adding suppressions; the inherited broad
+suppressions are build accommodations, not correctness guarantees.
+
+For FPGA changes, use the main Quartus 17.0 project as the baseline:
+
+```sh
+quartus_sh --flow compile sharpx1
+```
+
+Report unavailable tools and unverified synthesis or hardware behavior clearly.
+The historical Q13 project is not evidence of current build compatibility.
+
+## Generated files and cleanup
+
+`verilator/obj_dir_headless/` is ignored build output. `make -C verilator clean`
+removes that directory only. `verilator/obj_dir/` contains tracked historical
+generated sources despite its ignore entry. Do not remove or regenerate those
+tracked artifacts as routine cleanup. Inspect tracked files before deleting
+any build directory. Keep new build outputs outside source and firmware trees.
+`obj_dir_interactive/` and `obj_dir_fast/` are also ignored, separate outputs;
+the existing clean target intentionally does not remove them.
+
+## Local references
+
+Use the existing MAME checkout at `../FM-7_MiSTer_alanswx/refs/mame`, especially
+`src/mame/sharp/x1.cpp` and related X1 files. The user requested reuse of local
+MAME; do not download another checkout. Preserve unrelated changes there.
+Reference emulators have limitations, so compare uncertain behavior with
+hardware documentation or a second implementation when available.
+
+`../SharpMZ_MiSTer/verilator/` is a useful example for headless runners and
+regression artifacts. Its GHDL conversion is specific to its VHDL core and is
+not required here. Treat sibling repositories as read-only references unless
+the task explicitly includes changes to them.
+
+Additional emulator links and retrieval status are in `references/README.md`.
+Distinguish references actually inspected locally from candidates identified
+through repository metadata. Do not claim an emulator was cloned, built, or
+compared unless that work was done.
+
+## Attribution and handoff
+
+Preserve source-level copyright and license notices. The root GPLv2 file and
+restrictive notices in inherited Nise X1 sources need reconciliation before
+release distribution; do not remove notices to imply resolution. Record the
+provenance of new code and firmware assets.
+
+When handing off changes, state what changed, the active RTL path tested,
+the verification result, and any remaining functional limits. Update the README
+and bring-up checklist when status changes, while keeping proposed work
+distinct from confirmed defects and completed behavior.

@@ -187,8 +187,8 @@ assign VGA_DISABLE = 0;
 assign HDMI_FREEZE = 0;
 
 assign AUDIO_S = 0;
-assign AUDIO_L = 0;
-assign AUDIO_R = 0;
+assign AUDIO_L = machine_audio;
+assign AUDIO_R = machine_audio;
 assign AUDIO_MIX = 0;
 
 assign LED_DISK = 0;
@@ -199,32 +199,16 @@ assign BUTTONS = 0;
 
 wire [1:0] ar = status[122:121];
 
-assign VIDEO_ARX = (!ar) ? 12'd4 : (ar - 1'd1);
-assign VIDEO_ARY = (!ar) ? 12'd3 : 12'd0;
+assign VIDEO_ARX = (!ar) ? 13'd4 : ({11'd0, ar} - 13'd1);
+assign VIDEO_ARY = (!ar) ? 13'd3 : 13'd0;
 
 `include "build_id.v" 
 localparam CONF_STR = {
 	"SharpX1;;",
 	"-;",
 	"O[122:121],Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
-	"O[2],TV Mode,NTSC,PAL;",
-	"O[4:3],Noise,White,Red,Green,Blue;",
-	"-;",
-	"P1,Test Page 1;",
-	"P1-;",
-	"P1-, -= Options in page 1 =-;",
-	"P1-;",
-	"P1O[5],Option 1-1,Off,On;",
-	"d0P1F1,BIN;",
-	"H0P1O[10],Option 1-2,Off,On;",
-	"-;",
-	"P2,Test Page 2;",
-	"P2-;",
-	"P2-, -= Options in page 2 =-;",
-	"P2-;",
-	"P2S0,DSK;",
-	"P2O[7:6],Option 2,1,2,3,4;",
-	"-;",
+	"F0,ROM,Load IPL;",
+	"S0,D88,Drive A (read only);",
 	"-;",
 	"T[0],Reset;",
 	"R[0],Reset and close OSD;",
@@ -237,12 +221,30 @@ wire [127:0] status;
 wire  [10:0] ps2_key;
 
 wire        ioctl_download;
-wire  [7:0] ioctl_index;
+wire [15:0] ioctl_index;
 wire        ioctl_wr;
-wire [24:0] ioctl_addr;
+wire [26:0] ioctl_addr;
 wire  [7:0] ioctl_data;
+wire ps2_clk, ps2_data;
+wire [31:0] joy0, joy1;
+wire [7:0] joya_n, joyb_n;
+x1_joystick_map joya_map (.joystick(joy0), .pins_n(joya_n));
+x1_joystick_map joyb_map (.joystick(joy1), .pins_n(joyb_n));
+wire [31:0] sd_lba[1];
+wire [7:0] sd_buff_din[1];
+wire sd_rd, sd_wr, sd_ack, sd_buff_wr;
+wire [13:0] sd_buff_addr;
+wire [7:0] sd_buff_dout;
+wire img_mounted, img_readonly;
+wire [63:0] img_size;
+reg media_present = 0;
+reg [23:0] media_size = 0;
+always @(posedge clk_sys) if(img_mounted) begin
+	media_present <= img_size != 0 && img_size <= 64'd1048575;
+	media_size <= img_size[23:0];
+end
 
-hps_io #(.CONF_STR(CONF_STR)) hps_io
+hps_io #(.CONF_STR(CONF_STR), .PS2DIV(1600)) hps_io
 (
 	.clk_sys(clk_sys),
 	.HPS_BUS(HPS_BUS),
@@ -257,10 +259,25 @@ hps_io #(.CONF_STR(CONF_STR)) hps_io
 	.ioctl_wr(ioctl_wr),
 	.ioctl_addr(ioctl_addr),
 	.ioctl_dout(ioctl_data),
+	.ioctl_upload_req(1'b0), .ioctl_upload_index(8'd0),
+	.ioctl_din(8'd0), .ioctl_wait(1'b0),
 
 	.buttons(buttons),
 	.status(status),
-	.status_menumask({status[5]}),
+	.status_menumask(16'd0), .status_in(128'd0), .status_set(1'b0),
+	.info_req(1'b0), .info(8'd0), .video_rotated(1'b0), .new_vmode(1'b0),
+	.joystick_0(joy0), .joystick_1(joy1),
+	.joystick_0_rumble(16'd0), .joystick_1_rumble(16'd0),
+	.joystick_2_rumble(16'd0), .joystick_3_rumble(16'd0),
+	.joystick_4_rumble(16'd0), .joystick_5_rumble(16'd0),
+	.ps2_kbd_clk_out(ps2_clk), .ps2_kbd_data_out(ps2_data),
+	.ps2_kbd_clk_in(1'b1), .ps2_kbd_data_in(1'b1),
+	.ps2_kbd_led_status(3'd0), .ps2_kbd_led_use(3'd0),
+	.ps2_mouse_clk_in(1'b1), .ps2_mouse_data_in(1'b1),
+	.img_mounted(img_mounted), .img_readonly(img_readonly), .img_size(img_size),
+	.sd_lba(sd_lba), .sd_blk_cnt('{6'd0}), .sd_rd(sd_rd), .sd_wr(sd_wr), .sd_ack(sd_ack),
+	.sd_buff_addr(sd_buff_addr), .sd_buff_dout(sd_buff_dout),
+	.sd_buff_din(sd_buff_din), .sd_buff_wr(sd_buff_wr),
 	
 	.ps2_key(ps2_key)
 );
@@ -271,16 +288,14 @@ wire clk_sys, clk_28636;
 pll pll
 (
 	.refclk(CLK_50M),
-	.rst(0),
+	.rst(1'b0),
 	.outclk_0(clk_sys),   // 32 MHz
-	.outclk_1(clk_28636)  // 28.636 MHz
+	.outclk_1(clk_28636)  // Checked-in PLL: 28.571428 MHz; crystal target needs review.
 );
 
-wire reset = RESET | status[0] | buttons[1];
+wire reset = RESET | status[0] | buttons[1] | ioctl_download;
 
 //////////////////////////////////////////////////////////////////
-
-wire [1:0] col = status[4:3];
 
 wire HBlank;
 wire HSync;
@@ -288,42 +303,49 @@ wire VBlank;
 wire VSync;
 wire ce_pix;
 wire [7:0] video;
+wire [2:0] machine_rgb;
+wire [15:0] machine_audio;
 
 sharpx1 sharpx1
 (
 	.clk_sys(clk_sys),
+	.clk_28636(clk_28636),
 	.reset(reset),
 
-	//.pal(status[2]),
-	//.scandouble(forced_scandoubler),
-	//.ce_pix(ce_pix),
+	.pal(1'b0),
+	.scandouble(forced_scandoubler),
+	.ce_pix(ce_pix),
 
 	.ioctl_download(ioctl_download),
-	.ioctl_index(ioctl_index),
-	.ioctl_wr(ioctl_wr),
-	.ioctl_addr(ioctl_addr),
+	.ioctl_index(ioctl_index[7:0]),
+	.ioctl_wr(ioctl_wr && ioctl_index == 0 && ioctl_addr < 27'd4096),
+	.ioctl_addr(ioctl_addr[24:0]),
 	.ioctl_dout(ioctl_data),
+	.ps2_clk_in(ps2_clk), .ps2_data_in(ps2_data),
+	.joya_n(joya_n), .joyb_n(joyb_n),
+	.disk_ready(media_present), .img_mounted(img_mounted), .disk_wp(1'b1), .img_size(media_size),
+	.sd_lba(sd_lba[0]), .sd_rd(sd_rd), .sd_wr(sd_wr), .sd_ack(sd_ack),
+	.sd_buff_addr(sd_buff_addr[8:0]), .sd_buff_dout(sd_buff_dout),
+	.sd_buff_din(sd_buff_din[0]), .sd_buff_wr(sd_buff_wr),
 
 	.HBlank(HBlank),
 	.HSync(HSync),
 	.VBlank(VBlank),
 	.VSync(VSync),
 
-	.video(video)
+	.video(video), .rgb(machine_rgb), .audio(machine_audio)
 );
 
-assign CLK_VIDEO = clk_sys;
+assign CLK_VIDEO = clk_28636;
 assign CE_PIXEL = ce_pix;
 
 assign VGA_DE = ~(HBlank | VBlank);
 assign VGA_HS = HSync;
 assign VGA_VS = VSync;
-assign VGA_G  = (!col || col == 2) ? video : 8'd0;
-assign VGA_R  = (!col || col == 1) ? video : 8'd0;
-assign VGA_B  = (!col || col == 3) ? video : 8'd0;
+assign VGA_G  = {8{machine_rgb[2]}};
+assign VGA_R  = {8{machine_rgb[1]}};
+assign VGA_B  = {8{machine_rgb[0]}};
 
-reg  [26:0] act_cnt;
-always @(posedge clk_sys) act_cnt <= act_cnt + 1'd1; 
-assign LED_USER    = act_cnt[26]  ? act_cnt[25:18]  > act_cnt[7:0]  : act_cnt[25:18]  <= act_cnt[7:0];
+assign LED_USER = ioctl_download | sd_rd | sd_wr;
 
 endmodule

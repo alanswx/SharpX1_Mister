@@ -243,7 +243,7 @@ wire fdc_irq , fdc_ack;
 wire dma_irq , dma_ack;
 
 // mux 2 RAM area
-wire mem_cs , pgm_cs , wwam_cs;
+wire mem_cs , pgm_cs , wram_cs;
 reg msel;
 always @(posedge I_clk)
   msel <= pgm_cs;
@@ -350,15 +350,17 @@ dpram1k16 sub_w_ram(
   .AWE(wram_wr),     .BWE(mem_we)
 );
 */
-dpram #(8, 10) sub_w_ram  // (1KB)
+dpram #(16, 10) sub_w_ram  // 1024 words (2 KiB), shared host/sub-CPU
 (
 	.clock      (I_clk         ),
 	.address_a  (h_wram_a      ),
-	.wren_a     (wram_wr       ),
-	.data_a     (h_wram_rd     ),
+	.ram_cs     (h_wram_cs     ),
+	.wren_a     (h_wram_cs && wram_wr),
+	.data_a     (h_wram_wd     ),
 	.q_a        (h_wram_rd     ),
 
-	.wren_b     (mem_we        ),
+	.ram_cs_b   (wram_cs       ),
+	.wren_b     (wram_cs && mem_we),
 	.address_b  (mem_addr[9:0] ),
 	.data_b     (wdata         ),
 	.q_b        (wram_data     )

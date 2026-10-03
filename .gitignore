@@ -40,4 +40,12 @@ c5_pin_model_dump.txt
 **/.DS_Store
 verilator/x64/Release
 verilator/obj_dir
+verilator/obj_dir_headless
+verilator/obj_dir_interactive
+verilator/obj_dir_fast
+__pycache__/
+*.pyc
+references/manuals/*.pdf
+references/chips/
+references/chip-src/build/
 verilator/.vs/sim/v17/Browse.VC.db
