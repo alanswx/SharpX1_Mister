@@ -42,6 +42,13 @@ for index in range(2):
     p.word(0x3A, 0xF010 + index)
     p.word(0x32, 0xF020 + index)
 p.label("count")
+# Preserve every two-byte response, not just the first and last interrupt.
+# HL = F100 + 2*event_count; ISR saves/restores the main program's registers.
+p.word(0x3A, 0xF000)
+p.emit(0x87, 0x6F, 0x26, 0xF1)
+for index in range(2):
+    p.word(0x3A, 0xF010 + index)
+    p.emit(0x77, 0x23)
 p.word(0x3A, 0xF000)
 p.emit(0x3C)
 p.word(0x32, 0xF000)
@@ -52,15 +59,22 @@ with tempfile.TemporaryDirectory(prefix="x1-irq-") as folder:
     ram = pathlib.Path(folder) / "irq.bin"
     ram.write_bytes(p.finish())
     script = pathlib.Path(folder) / "keys.txt"
-    script.write_text("25 2b\n45 f0\n47 2b\n")
+    # Retain the original F make/break timing, then exercise two more keys.
+    # Cold-start firmware/PS2 turnaround with I at 60 ms loses that pair in
+    # both models; tracked separately in SHARP_X1_TODO.md, not compatibility.
+    script.write_text("25 2b\n45 f0\n47 2b\n100 43\n120 f0\n122 43\n175 3b\n195 f0\n197 3b\n")
     dump = pathlib.Path(folder) / "irq"
-    result = subprocess.run([exe, "--cycles", "3000000", "--ram", str(ram),
+    result = subprocess.run([exe, "--cycles", "8000000", "--ram", str(ram),
                              "--keys", str(script), "--dump", str(dump)],
                             check=True, capture_output=True, text=True)
     report = json.loads(result.stdout.splitlines()[-1])
     memory = dump.with_suffix(".ram").read_bytes()
-    assert memory[0xF000] == 2, (memory[0xF000], report)
+    assert memory[0xF000] == 6, (memory[0xF000], memory[0xF100:0xF10C].hex(), report)
     assert memory[0xF021] == 0x46, (memory[0xF020:0xF022].hex(), report)
     assert memory[0xF011] == 0, (memory[0xF010:0xF012].hex(), report)
+    events = [memory[0xF100 + 2*i:0xF102 + 2*i] for i in range(6)]
+    assert events == [bytes.fromhex(value) for value in
+                      ("b746", "f700", "b749", "f700", "b74a", "f700")], (
+                          [event.hex() for event in events], report)
     print("IRQ make", memory[0xF020:0xF022].hex(), "break", memory[0xF010:0xF012].hex())
-print("PASS: IM 1 interrupt acknowledge, modifier/ASCII ordering, make/break and RETI return")
+print("PASS: six consecutive IM 1 make/break responses, modifier/ASCII ordering and RETI return")

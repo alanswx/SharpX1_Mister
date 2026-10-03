@@ -54,8 +54,10 @@ Baseline defaults stay unchanged. In both runners `--cycles` measures physical
 duration in 32 MHz reference units; single JSON reports actual 28,636,364 Hz
 edges. Do not confuse reference units with edge counts. The board single
 revision uses the existing actual 28,571,428 Hz PLL output instead. See
-`docs/CLOCK_EXPERIMENT.md`, including the short gameplay failure and slower
-MR16 timer. Never claim compatibility or timing closure from a boot screenshot.
+`docs/CLOCK_EXPERIMENT.md`: the compensated MR16 timer restores the short
+gameplay regression, but its instruction clock remains slower. Preserve the
+timer's inherited N+1-tick period and test both actual master frequencies.
+Never claim compatibility or timing closure from a boot screenshot.
 Simulator disk writes require `--disk-output NEW_COPY`; private originals and
 snapshots remain ignored. See `docs/DISK_STATUS.md` for tested and missing cases.
 

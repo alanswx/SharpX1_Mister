@@ -77,7 +77,7 @@
 	+---+------------------------------+------------+------------------------+
 
 ****************************************************************************/
-module x1_sub(
+module x1_sub #(parameter CLOCK_HZ = 32000000)(
   I_reset,
   I_clk,  // 32MHz
 // MAIN-SUB communication port
@@ -254,7 +254,7 @@ assign rdata   = msel ? pgm_data : wram_data;
 
 assign scpu_wait_n = ~(~O_DMA_BUSRQ_n && I_DMA_BUSAK_n);
 
-mr16_x1 sub_cpu
+mr16_x1 #(.CLOCK_HZ(CLOCK_HZ)) sub_cpu
 (
   .I_RESET(I_reset),.I_CLK(I_clk),.I_CLKEN(scpu_wait_n),
 // Address Bus

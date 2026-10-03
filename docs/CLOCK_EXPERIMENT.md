@@ -39,8 +39,12 @@ now includes the system frequency; older baseline snapshots need regeneration.
 - Motor hold time scales with the master frequency. FDC index/byte timing
   remains expressed in 4 MHz enable ticks.
 
-**MR16 is not frequency-compensated.** The inherited replacement sub-CPU and
-its timer formerly ran at 32 MHz, now approximately 10.5% slower in the simulator.
+The MR16 **timer now preserves its 32 MHz reference tick rate**, using one or
+two virtual ticks per master edge and carrying overshoot across reloads.
+The inherited interval is N+1 ticks (256 gives 257 ticks), not exactly the
+firmware comment's 8 us. Independent timer-model tests cover both single-clock
+frequencies and the unchanged 32 MHz baseline, including gating, reload and IRQ.
+The MR16 instruction clock itself remains approximately 10.5% slower.
 Passing mailbox/PS2/game tests does not prove every firmware delay, repeat,
 cassette or RTC operation is correct. Fractional CPU edge jitter can also
 affect raster-sensitive software. Keep the baseline while broadening coverage.
@@ -81,15 +85,19 @@ in both 40/80 modes; these are digital tests, not physical timing signoff.
 Native boot: 13 simulated seconds, 4,095 IPL bytes, 4,159 actual reset edges,
 372,272,732 system/video edges, 763 disk reads, 805 frames, 320x200 RGB,
 frame hash `18dfa7a7557b20fb`. Assets are the existing IPL and ignored CROSS
-Chase disk identified in `PLAYING.md`. The standard 200 ms gameplay test
-**fails**: idle player (22,14), controlled player (22,13), with up but not
-left movement. A 300 ms replay with extra key spacing also missed left;
-a 400 ms endpoint sampled a transient erased player text cell. Do not relax
-the default regression or mark full gameplay equivalence complete.
-Bus tracing observed the up-key response but no subsequent left-key response;
-the cause has not been established. The known slower MR16 timer is a candidate,
-not a proven diagnosis. Firmware `fw_subcpu/x1sub.asm` explicitly specifies
-`CPU_MHZ=32` and a 256-clock/8-us interrupt interval.
+Chase disk identified in `PLAYING.md`. After timer compensation, the unchanged
+200 ms gameplay test **passes**: idle player (22,14), controlled player (21,13),
+with both up and left movement. Idle/controlled frame hashes are
+`2917b1d92124ea6c` / `16f792d1d2c74a8c`, matching the baseline and repeatable.
+Before compensation, the same test missed left movement. This controlled
+change supports the timer-rate mismatch as the cause of that regression,
+not a claim of complete keyboard or game compatibility. Firmware
+`fw_subcpu/x1sub.asm` specifies `CPU_MHZ=32`; the original regression was
+retained rather than relaxing its duration or input spacing.
+
+The positive Quartus results above describe the earlier snapshot. A new frozen
+build of the timer compensation and normalized enable accumulators is in
+progress; consult `QUARTUS_BUILD.md` before attributing those results to it.
 
 An interleaved three-run IPL-wait benchmark used equal 1-second durations and
 28,636,364 Hz video in both fast models, without frame/bus capture:

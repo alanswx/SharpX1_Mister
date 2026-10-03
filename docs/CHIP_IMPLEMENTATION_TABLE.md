@@ -12,7 +12,7 @@ changes and runtime evidence.
 | --- | --- | --- |
 | Z80 CPU | TV80; fetch/memory diagnostic passes | FZ80 present |
 | IPL and main RAM | 4 KiB/64 KiB; overlay, patterns and loader bounds tested | External interfaces; broken historical simulation memory |
-| 80C49 functions | MR16; E7/E8, PS/2 ASCII, IM1 make/break IRQ and game movement tested; full command set incomplete | Partial MR16 replacement |
+| 80C49 functions | MR16; E7/E8, PS/2 ASCII, IM1 make/break IRQ and game movement tested; timer preserves 32 MHz tick rate in one-clock mode, but instruction rate differs; full command set incomplete | Partial MR16 replacement |
 | 8255 PPI | Mode-0 reset/directions/latches/split C/BSR tested; other modes/printer/cassette incomplete | Partial; handshake limitations |
 | 6845-family CRTC | Native IPL/game 320×200 raster verified; other modes/timings pending | Present |
 | Text/attribute RAM | Two connected 2 KiB dual-clock banks | Present |

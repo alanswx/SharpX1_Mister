@@ -19,7 +19,7 @@ fast: obj_dir_fast/Vtop
 single: obj_dir_single/Vtop
 single-fast: obj_dir_single_fast/Vtop
 
-test-single: single test-clock-enables
+test-single: single test-clock-enables test-sub-timer
 	python3 tests/test_single_clock.py ./obj_dir_single/Vtop
 	python3 tests/test_memory.py ./obj_dir_single/Vtop
 	python3 tests/test_subcpu.py ./obj_dir_single/Vtop
@@ -42,6 +42,23 @@ test-game-single: single-fast
 test-clock-enables: obj_dir_single/enable/Vclock_enables_tb obj_dir_single/crtc/Vcrtc_enable_tb
 	./obj_dir_single/enable/Vclock_enables_tb
 	./obj_dir_single/crtc/Vcrtc_enable_tb
+
+test-sub-timer: obj_dir_single/subtimer/Vsub_timer_tb obj_dir_single/subtimer_board/Vsub_timer_tb obj_dir_single/subtimer_base/Vsub_timer_tb
+	./obj_dir_single/subtimer/Vsub_timer_tb
+	./obj_dir_single/subtimer_board/Vsub_timer_tb
+	./obj_dir_single/subtimer_base/Vsub_timer_tb
+
+obj_dir_single/subtimer/Vsub_timer_tb: tests/sub_timer_tb.sv ../rtl/mr16_x1.v ../rtl/mr16core.v
+	$(V) --binary --timing --assert --top-module sub_timer_tb --Mdir obj_dir_single/subtimer \
+		-j 4 ../rtl/mr16core.v ../rtl/mr16_x1.v tests/sub_timer_tb.sv -Wno-fatal
+
+obj_dir_single/subtimer_board/Vsub_timer_tb: tests/sub_timer_tb.sv ../rtl/mr16_x1.v ../rtl/mr16core.v
+	$(V) --binary --timing --assert --top-module sub_timer_tb --Mdir obj_dir_single/subtimer_board \
+		-GCLOCK_HZ=28571428 -j 4 ../rtl/mr16core.v ../rtl/mr16_x1.v tests/sub_timer_tb.sv -Wno-fatal
+
+obj_dir_single/subtimer_base/Vsub_timer_tb: tests/sub_timer_tb.sv ../rtl/mr16_x1.v ../rtl/mr16core.v
+	$(V) --binary --timing --assert --top-module sub_timer_tb --Mdir obj_dir_single/subtimer_base \
+		-GCLOCK_HZ=32000000 -j 4 ../rtl/mr16core.v ../rtl/mr16_x1.v tests/sub_timer_tb.sv -Wno-fatal
 
 obj_dir_single/enable/Vclock_enables_tb: tests/clock_enables_tb.sv ../rtl/x1_clock_enables.v
 	$(V) --binary --timing --assert --top-module clock_enables_tb --Mdir obj_dir_single/enable \
@@ -96,7 +113,7 @@ $(HEADLESS_EXE): $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h Makef
 run: headless
 	./$(HEADLESS_EXE) $(CYCLES)
 
-test: headless
+test: headless test-sub-timer
 	python3 tests/test_timing.py ./$(HEADLESS_EXE)
 	python3 tests/test_memory.py ./$(HEADLESS_EXE)
 	python3 tests/test_subcpu.py ./$(HEADLESS_EXE)
@@ -112,7 +129,7 @@ test: headless
 	$(MAKE) test-pcg-access
 	$(MAKE) test-disk-control
 
-test-fast: fast
+test-fast: fast test-sub-timer
 	python3 tests/test_memory.py ./obj_dir_fast/Vtop
 	python3 tests/test_subcpu.py ./obj_dir_fast/Vtop
 	python3 tests/test_graphics_bus.py ./obj_dir_fast/Vtop
@@ -183,3 +200,4 @@ clean:
 
 .PHONY: all headless interactive fast boot-game test-game play run test test-fast test-sdl test-loader test-joystick test-pcg-access test-disk-control lint lint-wrapper clean
 .PHONY: single single-fast test-single test-clock-enables boot-game-single test-game-single
+.PHONY: test-sub-timer

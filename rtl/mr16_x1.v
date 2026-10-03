@@ -14,7 +14,7 @@
 `define TIMER_MODULE // TIMER MODULE
 //`define ADDR_DEPTH 10 // Memory size
 
-module mr16_x1
+module mr16_x1 #(parameter CLOCK_HZ = 32000000)
 (
   I_RESET,I_CLK,I_CLKEN,
 // Address Bus
@@ -100,7 +100,7 @@ wire timer_irq;
 
 `ifdef TIMER_MODULE
 
-timer #(16) timer (
+timer #(.TIMER_WIDTH(16), .CLOCK_HZ(CLOCK_HZ)) timer (
   .I_RESET(I_RESET),
   .I_CLK(I_CLK),
   .I_GATE(I_TMRG),
@@ -254,6 +254,7 @@ endmodule
 module timer(I_RESET,I_CLK,I_GATE,I_A,I_CS,I_WR,I_D,O_D,O_INT,I_IACK);
 
 parameter TIMER_WIDTH = 16;
+parameter CLOCK_HZ = 32000000;
 
 input I_RESET;
 input I_CLK;
@@ -269,11 +270,38 @@ input I_IACK;
 reg [TIMER_WIDTH-1:0] timer_cnt , timer_int;
 reg [2:0] timer_ctrl; // bit0=IRQ,1=RUN,2=INT EN,3=reset counter
 
-wire [TIMER_WIDTH-1:0] next_timer = timer_cnt-(timer_ctrl[1]&I_GATE);
+// Firmware timer counts are in 32 MHz units, independent of the master rate.
+// Supported machine clocks are 16..32 MHz, requiring one or two virtual ticks.
+// Carry overshoot across reloads so a fractional tick is not lost each period.
+// All supported clock/rate values are divisible by four; omit constant low
+// accumulator bits rather than leave reset-only storage for synthesis.
+localparam [23:0] CLOCK_UNITS = CLOCK_HZ / 4;
+localparam [23:0] EXTRA_UNITS = (32000000 - CLOCK_HZ) / 4;
+localparam [23:0] EXTRA_THRESHOLD = CLOCK_UNITS - EXTRA_UNITS;
+wire [23:0] tick_phase;
+wire extra_tick = EXTRA_UNITS != 0 && tick_phase >= EXTRA_THRESHOLD;
+generate
+    if (CLOCK_HZ == 32000000) begin : native_timer_rate
+        assign tick_phase = 24'd0;
+    end else begin : fractional_timer_rate
+        reg [23:0] phase;
+        assign tick_phase = phase;
+        always @(posedge I_CLK or posedge I_RESET)
+            if (I_RESET) phase <= 0;
+            else phase <= extra_tick ? phase + EXTRA_UNITS - CLOCK_UNITS
+                                     : phase + EXTRA_UNITS;
+    end
+endgenerate
+wire timer_run = timer_ctrl[1] && I_GATE;
+wire [TIMER_WIDTH-1:0] timer_step = timer_run ? (extra_tick ? 2 : 1) : 0;
+wire [TIMER_WIDTH-1:0] next_timer = timer_cnt - timer_step;
 wire timer_overflow = ~timer_cnt[TIMER_WIDTH-1] & next_timer[TIMER_WIDTH-1];
 wire timer_ctr_load = (I_CS & I_WR &  I_A);
 wire timer_int_load = (I_CS & I_WR & ~I_A);
 wire timer_cnt_load = (timer_ctr_load & I_D[3]) | timer_overflow;
+wire [TIMER_WIDTH-1:0] reload_timer =
+    timer_overflow && extra_tick && timer_cnt == 0 && timer_int != 0
+    && !(timer_ctr_load && I_D[3]) ? timer_int - 1'b1 : timer_int;
 
 always @(posedge I_CLK or posedge I_RESET)
 begin
@@ -285,7 +313,7 @@ begin
   end else begin
 
     // timer reload / countup
-    timer_cnt <= timer_cnt_load ? timer_int : next_timer;
+    timer_cnt <= timer_cnt_load ? reload_timer : next_timer;
 
     // interval register
     if(timer_int_load)
@@ -308,4 +336,3 @@ assign O_INT = timer_ctrl[0];
 assign O_D   = 16'h00;//timer_cnt;
 
 endmodule
-

@@ -1,5 +1,28 @@
 # Implementation progress
 
+## 2026-10-03 — preserve MR16 timer rate in one-clock mode
+
+Forwarded the actual master frequency through the replacement sub-CPU and
+compensated its timer with 32 MHz virtual ticks, preserving reload overshoot
+and the inherited N+1-tick interval. An independent timer-model regression
+passes at 32 MHz, 28,636,364 Hz and the board's 28,571,428 Hz; it covers IRQ,
+acknowledgement, gating, forced reload and short intervals. CPU/PSG fractional
+accumulators are normalized by four without changing their enable sequences.
+
+Both delay-aware diagnostic suites pass. A freshly booted single-clock CROSS
+Chase state passes the unchanged 200 ms movement regression: (22,14) becomes
+(21,13), with baseline-equivalent frame hashes and repeatable execution.
+This supersedes the failed game test in the historical entry below. The MR16
+instruction rate is still slower; broader compatibility remains open and the
+baseline remains default. Quartus is building this frozen increment separately.
+No MiSTer deployment was attempted: it is running a SharpMZ hardware test.
+
+Extended the IM1 fixture to preserve all response bytes and verify six F/I/J
+make/break events, retaining the original F timing. It passes both models.
+A separate closer-spaced cold-start sequence loses the I pair in both models;
+the exact event times and open investigation are recorded in the TODO rather
+than treating the extended fixture as exhaustive keyboard compatibility.
+
 ## 2026-10-03 — disk tests and optional one-clock experiment
 
 Added original generated D88/Z80 tests covering variable/multi-sector reads,

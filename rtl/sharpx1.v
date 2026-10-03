@@ -91,7 +91,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364) (
     // bus ownership is advertised until those devices have their own tests.
     wire [7:0] sub_data;
     wire sub_tx_busy, sub_rx_busy, sub_int_n, clk1;
-    x1_sub subCPU (
+    x1_sub #(.CLOCK_HZ(SINGLE_CLOCK ? MASTER_HZ : 32000000)) subCPU (
         .I_reset(reset), .I_clk(clk_sys), .I_cs(sub_cs),
         .I_rd(io_read), .I_wr(io_write), .I_M1_n(m1),
         .I_D(data_out), .O_D(sub_data), .O_DOE(), .O_clk1(clk1),

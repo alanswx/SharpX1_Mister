@@ -17,8 +17,15 @@ support before optional Turbo extensions.
 - [ ] Correct/verify the board PLL video frequency (currently 28.571428 MHz).
 - [x] Add opt-in one-clock simulation, fractional enables and enabled CRTC;
   prove CRTC 40/80 phase equivalence and focused diagnostics.
-- [ ] Resolve single-clock short gameplay-input regression and MR16 timer-rate
-  differences; obtain timing signoff before changing the default configuration.
+- [x] Resolve single-clock short gameplay-input regression by preserving the
+  MR16 timer's 32 MHz virtual tick rate; retain the original movement test.
+- [ ] Audit slower MR16 instruction timing, broaden software compatibility and
+  obtain timing/hardware signoff before changing the default configuration.
+- [ ] Investigate cold-start PS/2 receive/firmware turnaround: F make at 25 ms,
+  break at 45/47 ms, I at 60 ms and break at 80/82 ms, then J at 100 ms and
+  break at 120/122 ms gives only F/J responses in both baseline and single.
+  The extended IM1 fixture passes six responses with I/J at 100/175 ms;
+  distinguish startup/keyboard-command handling from steady-state buffering.
 - [x] Build opt-in single revision with positive analyzed setup/hold/recovery
   and no unconstrained clocks; external I/O constraints/hardware remain open.
 - [x] Make the simulator load `bios/ipl_x1.hex` through the shared ioctl path.

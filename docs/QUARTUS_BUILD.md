@@ -239,3 +239,31 @@ input manifest, RBF and the four generated report hashes. It ran Quartus 17.0.0
 Build 595 at 12:22:29–12:22:35 UTC on 2026-10-03, using the same installed
 runtime image, with 4 requested CPUs and 8 GiB memory. No additional builds,
 constraint edits, core copies, core loads or reboots were made for these reports.
+
+## Compensated MR16 timer increment
+
+Frozen single-clock snapshot `output_files/quartus-qOsoLktO/` records source
+commit `9098c3366decbe8f4fc9c9673975176ea62cc58d` plus the parent's uncommitted
+clock-path changes. Input manifest SHA-256:
+`5c13db814bc609f7cccdd5ac03bc272f7c679166fdaa7fe180b164cf5f44547c`.
+Against the earlier single-clock manifest, machine-source differences are
+limited to `rtl/mr16_x1.v`, `rtl/sub_cpu.v`, `rtl/sharpx1.v` and
+`rtl/x1_clock_enables.v`; `AGENTS.md` also differs. The timer synthesizes
+32 MHz virtual ticks, carrying reload overshoot at the slower master rate;
+`CLOCK_HZ` is forwarded through the machine/sub-CPU path. Fractional enable
+accumulators are normalized by four to remove constant low-bit storage.
+The board still uses 28,571,428 Hz, not the simulator's 28,636,364 Hz.
+
+The parent reports the original 200 ms single-clock game test now passes both
+movements and matches baseline frame hashes. This supersedes the earlier
+software gameplay failure for that diagnostic; it does not retroactively change
+the old RBF's behavior or establish broader software/hardware compatibility.
+This sidecar verifies synthesis/timing for the frozen increment, not a fresh
+execution of the parent's gameplay regression. Stage results are pending.
+
+A fresh **read-only** SSH check at **12:48:00 UTC, 2026-10-03** succeeded.
+MiSTer was running `/media/fat/_Computer/SharpMZ-std_20261003.rbf` with
+`/media/fat/games/SharpMZ/HWTest/mgl/V05.mgl`, kernel `5.15.1-MiSTer`, uptime
+2 days 13:05, load average `1.00, 0.00, 1.00`. `/media/fat/_Computer` was
+accessible. Availability means SSH connectivity, **not** permission to interrupt
+the active hardware-test session. Nothing was copied, loaded, stopped or rebooted.
