@@ -61,6 +61,17 @@ Frames 8/9 SHA-256 are
 `b5e8cc5f07ec7e69dd385245dbe4887b370174cd51665912a4438e4b41d0ce32` /
 `228d5cd431914e3f2bb09ca269bcadb5efccefeca8eae08977d4de7cb5de9808`.
 
+## Transport-fix hardware follow-up
+
+The shared transport changes in `4d22dc3` pass synthetic pending-read/write
+abort/reset tests and fresh baseline/single-clock native gameplay in simulation.
+On 2026-10-03 at approximately 14:20 UTC, a follow-up SSH check could no longer
+resolve `mister.local`; an mDNS lookup also produced no address. No new RBF,
+config or disk copy was deployed in that attempt. The conditional-interrupt
+hardware evidence above remains evidence of the earlier checkpoint only.
+The transport revision still needs a new native board boot and, separately,
+fault-injection verification during host I/O. Do not infer either from synthesis.
+
 ## Repeating a test
 
 ```sh

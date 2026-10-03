@@ -80,6 +80,9 @@ still prevent full signoff. A source-bound build including the silent-abort fix
 has the same RBF because INTRQ has no board-visible fanout. The later conditional
 interrupt revision has its own successful fit and native hardware boot. Check
 the source-bound report before testing an RBF.
+The later SD-transport abort/reset checkpoint also builds with positive analyzed
+core timing; its hardware retest is pending because `mister.local` stopped
+resolving. Earlier hardware observations do not validate this new RBF.
 
 ## Play CROSS Chase locally
 

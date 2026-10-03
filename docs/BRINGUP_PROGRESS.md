@@ -17,8 +17,18 @@ images from valid but unsupported scanner layouts. These checks do not protect
 arbitrary direct MiSTer mounts; equivalent RTL rejection remains a separate TODO.
 Baseline delay-aware, opt-in single-clock and baseline fast diagnostic suites
 pass, including generated disk read/write tests and 18 D88 preflight cases.
-The final held-reset fixture passes all 12 transport cases. Fresh native-game
-and source-bound Quartus verification are tracked separately below.
+The final held-reset fixture passes all 12 transport cases. Fresh 13-second
+native IPL game boots and the unchanged 200 ms two-direction movement test pass
+in baseline (32 MHz/28,571,428 Hz) and single-clock (28,636,364 Hz) modes. Both
+regenerated private checkpoints give idle/control frame hashes
+`2917b1d92124ea6c` / `16f792d1d2c74a8c`, matching prior results. The checked-in
+4095-byte IPL uses 4159 reset/download edges; disk SHA-256 remains
+`2fb70389737a7d54bff5a746b581343385ebde115cefb77ded32c473dcde97ec`, with
+763 read requests and zero writes in each boot. Source-bound Quartus evidence
+is separate in `QUARTUS_BUILD.md`: all stages pass with core setup/hold/recovery
++9.952/+0.244/+11.473 ns and no unconstrained clocks. External I/O remains
+incompletely constrained. The new RBF is not yet hardware-tested: `mister.local`
+stopped resolving during the follow-up check; no deployment was attempted.
 
 ## 2026-10-03 — first MiSTer boot and conditional floppy interrupts
 

@@ -443,3 +443,84 @@ are parent observations, not sidecar hardware tests or an integrated FDC IRQ
 gate. The sidecar performed no hardware access/deployment and starts no further
 build for this checkpoint. The earlier `AtFLTCqB` source identity/result remain
 separate; baseline defaults are unchanged.
+
+## Host-transport abort/reset snapshot
+
+The isolated opt-in `sharpx1_single` build in
+`output_files/quartus-4celr5Kr/` was captured from
+`9716cc0fda072d2a5dca33d8d8c6236a1443f89f` plus the uncommitted
+`rtl/vendor/wd1793.sv` transport fix. Its vendor SHA-256 is
+`5a2b21563fabd66dbce7f6963cf6132961cae09abf9367fb029d175e3108dc60`;
+input-manifest SHA-256 is
+`7a633c160cfccfa6692382714b1605d2b0ecdc9da13f3334a70a1007b57e693f`.
+The snapshot retains notices and relative synthesis/IP/firmware paths, excludes
+host C++/test changes and private software downloads, and is independent of
+subsequent working-tree edits or commits.
+
+The parent subsequently committed this increment as
+**`4d22dc3acf2eaf17bc343e03c8a0a1ad22db77f3`**. Comparing a SHA-256 manifest
+generated directly from every commit blob listed in `input-files.txt` with
+the original `input.sha256` passes byte-for-byte: **all snapshot inputs match**,
+including machine/board RTL, project/IP/firmware and included metadata. The
+original base-plus-dirty snapshot manifest is preserved, with this later
+commit binding recorded separately.
+
+This increment latches each published host request's LBA, drains its ACK
+handshake through controller reset/abort, and prevents a new ordinary command
+from reusing an outstanding transfer. An already accepted host write cannot be
+undone by abort/reset. The parent reports all twelve pending read/write D0/reset
+before/during-ACK fixture cases passing, including held-reset-through-completion
+and sampled pending-write buffer-data stability; the sidecar does not rerun that suite
+or infer software correctness from synthesis.
+
+The unchanged installed Quartus 17.0.0 Build 595 flow runs map(1), fit(8), asm
+and STA on the existing Apple runtime, 16 CPUs/16 GiB, device
+`5CSEBA6U23I7`, seed 1. Start: **14:11:31 UTC, 2026-10-03**.
+All stages and sidecar exited **0**. Map/fit/asm/STA took
+**2:17 / 6:39 / 0:15 / 0:10**, wall time **9:30**
+(14:11:31–14:21:01 UTC, 2026-10-03). Logs, complete reports, original
+source/runtime manifests and `commit-binding.txt` remain in the snapshot.
+The artifact is `source/output_files/sharpx1_single.rbf`, SHA-256:
+`7e9e3afe86c0dfb5172ee76d83e34f3db9909a4edfb7d229d2ff16554671185c`.
+It differs from `atzbOrkj`. The generated build-date file is unchanged
+(SHA-256 `84139c764f503782b8e01951d8b6ea26b6356c6f3569a213b74ec6acdf56c4f6`).
+
+| Reported metric | Transport single revision `4celr5Kr` |
+| --- | ---: |
+| Core setup / hold / recovery (ns) | +9.952 / +0.244 / +11.473 |
+| Global worst setup / hold / recovery (ns) | +0.572 / +0.244 / +4.370 |
+| Global removal / pulse-width slack (ns) | +0.963 / +1.122 |
+| ALMs / registers | 19,885 (47%) / 31,643 |
+| Memory bits / RAM blocks | 2,071,408 (37%) / 263 |
+| DSP blocks / PLLs | 32 / 3 |
+| Map / fit / asm / STA errors | 0 / 0 / 0 / 0 |
+| Map / fit / asm / STA warnings | 81 / 9 / 0 / 0 |
+| Unconstrained clocks | 0 |
+| Unconstrained input / output ports | 3 / 44 |
+
+All reported constrained paths pass; settings and constraints were unchanged.
+Relative to `atzbOrkj`, core setup/recovery improve by 1.191/1.299 ns and global
+setup/recovery by 0.035/0.478 ns; hold is unchanged. Separately placed builds
+are not a controlled demonstration of any individual path optimization.
+Normalized synthesis warning messages match the prior build (ignoring shifted
+WD1793 source line numbers). Inherited width/truncation and dual-clock RAM
+warnings, fitter PLL reset/lock, incomplete I/O and ignored-assignment warnings
+remain unresolved; no suppressions or broad false paths were added.
+
+There are still **7 unconstrained input paths / 50 output paths**. Input ports
+are `HDMI_I2C_SDA`, `IO_SDA` and partially constrained `VGA_EN`; the full output
+list is in the STA report. Inherited single-corner analysis, external I/O
+constraints, reset/PLL review and hardware validation remain open. The
+metastability report could not calculate MTBF for 99.2% of detected chains;
+its headline estimate must not be treated as CDC signoff. Base-X1 FDC INTRQ/DRQ
+remain intentionally unconnected, so this does not validate an integrated
+hardware interrupt path.
+
+The parent reports all three full diagnostic suites passing and fresh native
+baseline/single-clock game boot and original movement passing with the previous
+hashes; both local private checkpoints were regenerated. No deployment
+or hardware verification of this increment is claimed; the parent reports a
+MiSTer hostname-resolution problem and owns any subsequent hardware testing.
+No tool installation, license acceptance, constraint/RTL change or MiSTer
+access/deployment was performed by this sidecar. Earlier source-bound results
+remain separate, and the main-project defaults remain unchanged.
