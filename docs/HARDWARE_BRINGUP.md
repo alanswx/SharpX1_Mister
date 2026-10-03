@@ -35,6 +35,32 @@ FAT mount still reports executable/writable mode bits; do not claim filesystem
 read-only protection from chmod. Neither the input image nor the remote copy
 changed. Private media, derived IPL and screenshots stay ignored locally.
 
+## Latest source-bound revision
+
+The conditional-interrupt machine in commit `658e27f` was separately fitted as
+`output_files/quartus-atzbOrkj/` and loaded under
+`X1HW_20261003T134207Z_9126a87a`. RBF SHA-256:
+`9126a87ab79ce45c7875bc110c316b20fc7c0e2b5e47c3e0e48781abf46b2851`.
+Its native title screenshot is byte-identical to the first hardware title;
+remote input reaches `LEVEL 01`. A delayed screenshot labelled `playfield`
+actually shows the post-death `Press key` prompt; filenames are requests, not
+proof of screenshot contents. The latest disk hash remains unchanged and the
+16-byte per-test config is confirmed zero. Core setup/hold/recovery are
++8.761/+0.244/+10.174 ns; external timing and hardware limits still apply.
+
+The subsequent `burst_134828536471` sequence captures a live playfield.
+It sends shifted I/J/K/L through mrext in a short on-device loop. Frames 8 and
+9 show the cyan player at 8x8 text cells (23,17) and (21,14), respectively;
+the life/level display remains unchanged. Positions were checked from actual
+PNG pixels (11 cyan glyph pixels in each cell), not inferred from key dispatch.
+This establishes directional remote-input response on the latest hardware
+revision. It is not the simulation's exact one-up/one-left timing gate:
+inputs can repeat/overlap and the player blinks. Unshifted Caps Lock behavior,
+physical keyboards and a controlled single-event displacement test remain open.
+Frames 8/9 SHA-256 are
+`b5e8cc5f07ec7e69dd385245dbe4887b370174cd51665912a4438e4b41d0ce32` /
+`228d5cd431914e3f2bb09ca269bcadb5efccefeca8eae08977d4de7cb5de9808`.
+
 ## Repeating a test
 
 ```sh

@@ -19,8 +19,13 @@ Fresh 13-second native game boots and the unchanged 200 ms two-direction test
 pass in baseline and single-clock mode, with identical frame hashes; both local
 private checkpoints were regenerated after RTL changes. Source-bound
 Quartus build `AtFLTCqB` passes the committed D0 checkpoint, but its RBF matches
-the timer build exactly because INTRQ is unconnected. A separate conditional
-interrupt build is in progress. Do not add a CPU FDC IRQ just to keep that logic;
+the timer build exactly because INTRQ is unconnected. The separate conditional
+interrupt build passes with core setup/hold/recovery +8.761/+0.244/+10.174 ns
+and no unconstrained clocks; it is loaded on MiSTer and reaches the native title
+and a live playfield via remote keys. A short shifted I/J burst moves the cyan
+player from (23,17) to (21,14) with the same life/level display; directional
+response is observed, but exact single-key cadence/physical inputs remain open.
+Do not add a CPU FDC IRQ just to keep that logic;
 the base MAME configuration also has no FDC IRQ/DRQ callback wiring.
 
 ## 2026-10-03 — silent floppy abort

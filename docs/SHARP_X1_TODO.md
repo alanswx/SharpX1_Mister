@@ -114,8 +114,10 @@ support before optional Turbo extensions.
 - [x] Load the source-bound single-clock timer checkpoint on MiSTer, observe
   native CROSS Chase title/playfield and remote-key start; retain hardware PNGs
   and unchanged disposable disk hashes. This is not full hardware validation.
-- [ ] Verify controlled two-direction movement, physical inputs and audio on
-  hardware, beyond remote-key start and changing playfield screenshots.
+- [x] Observe directional remote-input response on the latest hardware build:
+  live cyan player moves (23,17) to (21,14) with unchanged life/level display.
+- [ ] Verify exact single-event two-direction movement, unshifted Caps Lock
+  behavior, physical inputs and audio on hardware, beyond rapid remote bursts.
 
 - [x] Wire MiSTer HPS keyboard, joystick, read-only floppy and IPL/reset OSD;
   route actual RGB/audio and elaborate the wrapper with lint.

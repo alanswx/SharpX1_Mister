@@ -391,6 +391,55 @@ the next accepted command/reset. The parent reports focused controller tests
 passing; this sidecar is verifying synthesis/timing, not rerunning those tests.
 The FPGA machine still leaves FDC INTRQ unconnected, so a successful build or
 game boot cannot validate hardware consumption of those interrupt conditions.
-Stage results are pending. The earlier committed `AtFLTCqB` source identity
-and result remain separate. No hardware access/deployment is performed by
-the sidecar; the parent owns artifact loading and hardware observations.
+
+### Completed conditional-checkpoint result and commit binding
+
+After the build, every snapshotted input hash was compared with commit
+**`658e27fd5363236f941092621d6cd1f0382199da`**. All machine RTL, board RTL,
+project/IP files and other included assets match that commit exactly. The
+**only** input difference is the non-synthesis `AGENTS.md` document. Thus this
+artifact is source-bound to the machine implementation in `658e27f`, without
+rewriting the original pre-commit snapshot identity or claiming a byte-identical
+whole-tree snapshot. The commit-derived comparison manifest is retained as
+`commit-658e27f-input.sha256` (SHA-256
+`e380d75f2f58731e31b9684270d698f7dff19b2dca3b864f320ba923f0c5be61`).
+
+All stages and sidecar exited **0**. Map/fit/asm/STA took
+**2:21 / 6:39 / 0:15 / 0:09**, wall time **9:34**
+(13:31:40–13:41:14 UTC, 2026-10-03; STA finished 13:41:13).
+Complete logs, input/runtime manifests and reports remain in the snapshot.
+Output is `source/output_files/sharpx1_single.rbf`, SHA-256:
+`9126a87ab79ce45c7875bc110c316b20fc7c0e2b5e47c3e0e48781abf46b2851`.
+Unlike the earlier D0-only checkpoint, this RBF differs from `AtFLTCqB`;
+that does not establish hardware consumption of the unconnected INTRQ output.
+
+| Reported metric | Conditional single revision `atzbOrkj` |
+| --- | ---: |
+| Core setup / hold / recovery (ns) | +8.761 / +0.244 / +10.174 |
+| Global worst setup / hold / recovery (ns) | +0.537 / +0.244 / +3.892 |
+| Global removal / pulse-width slack (ns) | +0.959 / +1.122 |
+| ALMs / registers | 19,961 (48%) / 31,554 |
+| Memory bits / RAM blocks | 2,071,408 (37%) / 263 |
+| DSP blocks / PLLs | 32 / 3 |
+| Map / fit / asm / STA warnings | 81 / 9 / 0 / 0 |
+| Unconstrained clocks | 0 |
+| Unconstrained input / output ports | 3 / 44 |
+
+All reported constrained paths pass with the unchanged single-clock settings
+and constraints. The 7 unconstrained input paths / 50 output paths, inherited
+single-corner analysis, PLL/reset handling and full hardware/I/O signoff remain
+open. Positive slack is not full hardware validation. Compared with `AtFLTCqB`,
+core setup/recovery slack is lower but positive; global worst setup/recovery is
+higher. These are separately placed builds, not evidence that the FDC interrupt
+output is retained or connected.
+
+The parent reports all three software suites and native baseline/single game
+tests passing for `658e27f`. It also reports deploying this exact RBF and
+capturing the native CROSS Chase title matching the earlier build. The parent
+subsequently confirmed a live playfield and directional remote-key response,
+unchanged test-disk hashes and zero write-protected config; evidence belongs
+in `HARDWARE_BRINGUP.md`. Those
+are parent observations, not sidecar hardware tests or an integrated FDC IRQ
+gate. The sidecar performed no hardware access/deployment and starts no further
+build for this checkpoint. The earlier `AtFLTCqB` source identity/result remain
+separate; baseline defaults are unchanged.

@@ -5,7 +5,7 @@ Nise X1 hardware, firmware sources, and a Verilator simulation harness.
 The project is in bring-up. CROSS Chase now boots from D88 through the native
 IPL and is playable in Verilator. This does not establish full X1 compatibility
 or a release-ready FPGA core. An optional single-clock checkpoint also boots
-the game on MiSTer and responds to remote start input; see
+the game on MiSTer and responds to remote start/directional input; see
 [hardware bring-up evidence](docs/HARDWARE_BRINGUP.md) for the limited scope.
 
 ## Current status
@@ -74,8 +74,9 @@ The frozen single-clock timer checkpoint builds an RBF with positive analyzed
 core timing and no
 unconstrained clocks; incomplete external I/O constraints and hardware testing
 still prevent full signoff. A source-bound build including the silent-abort fix
-has the same RBF because INTRQ has no board-visible fanout; further conditional
-interrupt changes need their own build. Check the report before testing an RBF.
+has the same RBF because INTRQ has no board-visible fanout. The later conditional
+interrupt revision has its own successful fit and native hardware boot. Check
+the source-bound report before testing an RBF.
 
 ## Play CROSS Chase locally
 
