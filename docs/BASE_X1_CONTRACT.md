@@ -3,7 +3,9 @@
 The active machine is `rtl/sharpx1.v`, shared with the headless simulator.
 This increment targets the original X1: 4 MHz Z80, 64 KiB main RAM, 4 KiB IPL,
 three 16 KiB graphics planes, 2 KiB each of text/attributes and three PCG planes,
-HD46505-compatible CRTC, 8255, AY-compatible PSG and read-only 2D floppy boot.
+HD46505-compatible CRTC, 8255, AY-compatible PSG and base MFM/2D floppy boot.
+Generated-media write/readback tests pass with explicit protection controls;
+see `DISK_STATUS.md` for the remaining controller/image limitations.
 Turbo DMA, CTC, SIO, 400-line modes and cassette transport are not acceptance
 claims. A base game running does not establish full machine compatibility.
 
@@ -21,8 +23,8 @@ a native IPL/media boot.
 
 | Range | Connected device | Important remaining limits |
 | --- | --- | --- |
-| 0FF8–0FFB | WD1793-family register interface | MB8877 equivalence, errors and disk writes unverified |
-| 0FFC | Drive selection and side | Density, motor and additional status ports incomplete |
+| 0FF8–0FFB | WD1793-family register interface | Generated reads/writes/status tested; exact MB8877 timing/format/metadata incomplete |
+| 0FFC/0FFD | Drive/side/motor write; FM/MFM read selection | Drive A/MFM only; motor hold tested; additional density/status ports incomplete |
 | 1000–13FF | Graphics palette | Legacy implementation, needs focused coverage |
 | 1400–17FF | ANK/PCG beam-addressed access | ROM/three-plane readback and CDC WAIT tested; exact scanline timing/Turbo incomplete |
 | 18xx | CRTC registers | Native IPL raster observed; other timings unverified |
@@ -87,7 +89,9 @@ FM-7 candidate snapshot, with an instance/module rename to avoid RAM-name
 collisions. See `rtl/vendor/` for retained notices.
 
 The PLL-derived video frequency remains 28,571,428 Hz; intended crystal timing
-is not yet verified on hardware. No Quartus build or hardware validation has
-been established. MiSTer now wires these interfaces and lint elaborates with
+is not yet verified on hardware. The initial Quartus build generated an RBF
+but failed timing; hardware validation has not been established. MiSTer wires these interfaces and lint elaborates with
 warnings using an interface-only PLL stand-in. Native read-only D88 boot and
 CROSS Chase movement are verified only in simulation; see `PLAYING.md`.
+The opt-in one-clock experiment is not the default contract; its short
+two-direction gameplay failure is recorded in `CLOCK_EXPERIMENT.md`.

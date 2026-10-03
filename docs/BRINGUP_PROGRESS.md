@@ -1,5 +1,34 @@
 # Implementation progress
 
+## 2026-10-03 — disk tests and optional one-clock experiment
+
+Added original generated D88/Z80 tests covering variable/multi-sector reads,
+seeking/sides, RNF/not-ready/CRC flags, sticky lost-data and byte-exact writes
+across host block boundaries. Inputs remain unchanged; writes require a new
+output copy. Added drive/density/motor decode and index/head-load unit tests.
+Baseline delay-aware and fast suites pass; single-clock diagnostics pass too.
+See `DISK_STATUS.md` for the substantial remaining MB8877/format edge cases.
+
+Optional shared machine parameters support one video-rate master, fractional
+CPU/PSG enables and an enabled CRTC. Digital rate/reset tests and 40/80-column
+CRTC phase equivalence pass. Single native IPL boot produces 805 320x200 frames
+and reads 763 blocks in 13 simulated seconds. The standard two-direction game
+regression fails (up works, left missed); baseline remains default. The MR16
+timer still assumes 32 MHz, and the failure's exact cause is not established.
+The initial interleaved IPL benchmark measured 1.63x speedup under concurrent
+load. See `CLOCK_EXPERIMENT.md` for commands, evidence and limitations.
+
+Initial Quartus 17 synthesis/fit/assembly succeeded but timing failed. A later
+disk snapshot failed on a SystemVerilog cast listed as Verilog; replaced it
+with a width-qualified localparam, without changing motor behavior. The
+optional single revision is being fitted separately. No hardware core was
+loaded, and no timing signoff is claimed. See `QUARTUS_BUILD.md` for per-build
+source identities and results; this entry is not a final timing report.
+
+Forked to `alanswx/SharpX1_Mister`, preserved `origin`, and selected `alanswx`
+as the push destination. Private game assets, snapshots and generated outputs
+remain excluded from Git.
+
 ## 2026-10-03 — beam-addressed PCG readback and transaction WAIT
 
 Added original `rtl/x1_pcg_access.v` to the shared machine manifest. The

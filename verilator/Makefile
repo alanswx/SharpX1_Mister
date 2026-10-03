@@ -15,6 +15,52 @@ interactive: obj_dir_interactive/Vtop
 # ignored. Keep the headless --timing build as the scheduling reference.
 fast: obj_dir_fast/Vtop
 
+# Experimental shared-clock model; baseline builds and board default stay intact.
+single: obj_dir_single/Vtop
+single-fast: obj_dir_single_fast/Vtop
+
+test-single: single test-clock-enables
+	python3 tests/test_single_clock.py ./obj_dir_single/Vtop
+	python3 tests/test_memory.py ./obj_dir_single/Vtop
+	python3 tests/test_subcpu.py ./obj_dir_single/Vtop
+	python3 tests/test_graphics_bus.py ./obj_dir_single/Vtop
+	python3 tests/test_keyboard_irq.py ./obj_dir_single/Vtop
+	python3 tests/test_audio.py ./obj_dir_single/Vtop
+	python3 tests/test_psg_modes.py ./obj_dir_single/Vtop
+	python3 tests/test_system_ports.py ./obj_dir_single/Vtop
+	python3 tests/test_pcg.py ./obj_dir_single/Vtop 28636364
+	python3 tests/test_disk.py ./obj_dir_single/Vtop
+
+boot-game-single: single-fast
+	./obj_dir_single_fast/Vtop --cycles 416000000 --rom ../bios/ipl_x1.hex --disk $(GAME_DISK) \
+		--keys tests/cross_start.keys --save-state obj_dir_single_fast/cross-start.state \
+		--frame obj_dir_single_fast/cross-start.ppm --dump obj_dir_single_fast/cross-start --progress
+
+test-game-single: single-fast
+	python3 tests/test_gameplay.py ./obj_dir_single_fast/Vtop obj_dir_single_fast/cross-start.state $(GAME_DISK)
+
+test-clock-enables: obj_dir_single/enable/Vclock_enables_tb obj_dir_single/crtc/Vcrtc_enable_tb
+	./obj_dir_single/enable/Vclock_enables_tb
+	./obj_dir_single/crtc/Vcrtc_enable_tb
+
+obj_dir_single/enable/Vclock_enables_tb: tests/clock_enables_tb.sv ../rtl/x1_clock_enables.v
+	$(V) --binary --timing --assert --top-module clock_enables_tb --Mdir obj_dir_single/enable \
+		-j 4 ../rtl/x1_clock_enables.v tests/clock_enables_tb.sv -Wno-fatal
+
+obj_dir_single/crtc/Vcrtc_enable_tb: tests/crtc_enable_tb.sv ../rtl/legacy/crtc/crtc6845s.v
+	$(V) --binary --timing --assert --top-module crtc_enable_tb --Mdir obj_dir_single/crtc \
+		-j 4 ../rtl/legacy/crtc/crtc6845s.v tests/crtc_enable_tb.sv -Wno-fatal
+
+obj_dir_single/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h Makefile $(MACHINE_MANIFEST)
+	$(V) -cc --timing --assert --trace-fst --exe --build -j 4 --Mdir obj_dir_single --top-module top \
+		-GSINGLE_CLOCK=1 -GMASTER_HZ=28636364 -CFLAGS "-std=c++20 -DX1_SINGLE_CLOCK" \
+		-MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
+
+obj_dir_single_fast/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h sdl_frontend.h Makefile $(MACHINE_MANIFEST)
+	$(V) -cc --no-timing --savable --assert --trace-fst --exe --build -j 4 --Mdir obj_dir_single_fast --top-module top \
+		-GSINGLE_CLOCK=1 -GMASTER_HZ=28636364 -CFLAGS "-std=c++20 -DX1_SINGLE_CLOCK -DX1_SDL -DX1_SAVABLE $(shell sdl2-config --cflags)" \
+		-MAKEFLAGS "OPT_FAST=-O3" -LDFLAGS "$(shell sdl2-config --libs)" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
+
 GAME_DISK ?= ../references/software/private-downloads/cross-chase/Xchase_x1.d88
 GAME_STATE ?= obj_dir_fast/cross-start.state
 PLAY_CYCLES ?= 32000000000
@@ -60,9 +106,11 @@ test: headless
 	python3 tests/test_psg_modes.py ./$(HEADLESS_EXE)
 	python3 tests/test_system_ports.py ./$(HEADLESS_EXE)
 	python3 tests/test_pcg.py ./$(HEADLESS_EXE)
+	python3 tests/test_disk.py ./$(HEADLESS_EXE)
 	$(MAKE) test-loader
 	$(MAKE) test-joystick
 	$(MAKE) test-pcg-access
+	$(MAKE) test-disk-control
 
 test-fast: fast
 	python3 tests/test_memory.py ./obj_dir_fast/Vtop
@@ -73,10 +121,24 @@ test-fast: fast
 	python3 tests/test_psg_modes.py ./obj_dir_fast/Vtop
 	python3 tests/test_system_ports.py ./obj_dir_fast/Vtop
 	python3 tests/test_pcg.py ./obj_dir_fast/Vtop
+	python3 tests/test_disk.py ./obj_dir_fast/Vtop
 	python3 tests/test_snapshot.py ./obj_dir_fast/Vtop
 	$(MAKE) test-sdl
 	$(MAKE) test-joystick
 	$(MAKE) test-pcg-access
+	$(MAKE) test-disk-control
+
+test-disk-control: $(HEADLESS_DIR)/disk/Vdisk_control_tb $(HEADLESS_DIR)/index/Vfdc_index_tb
+	./$(HEADLESS_DIR)/disk/Vdisk_control_tb
+	./$(HEADLESS_DIR)/index/Vfdc_index_tb
+
+$(HEADLESS_DIR)/disk/Vdisk_control_tb: tests/disk_control_tb.sv ../rtl/x1_disk_control.v
+	$(V) --binary --timing --assert --top-module disk_control_tb --Mdir $(HEADLESS_DIR)/disk \
+		-j 4 ../rtl/x1_disk_control.v tests/disk_control_tb.sv -Wno-fatal
+
+$(HEADLESS_DIR)/index/Vfdc_index_tb: tests/fdc_index_tb.sv ../rtl/vendor/wd1793.sv ../rtl/vendor/x1_fdc_index_ram.v
+	$(V) --binary --timing --assert --top-module fdc_index_tb --Mdir $(HEADLESS_DIR)/index \
+		-j 4 ../rtl/vendor/wd1793.sv ../rtl/vendor/x1_fdc_index_ram.v tests/fdc_index_tb.sv -Wno-fatal
 
 test-pcg-access: $(HEADLESS_DIR)/pcg/Vpcg_access_tb
 	./$(HEADLESS_DIR)/pcg/Vpcg_access_tb
@@ -119,4 +181,5 @@ clean:
 	# obj_dir is a tracked legacy GUI build artifact; preserve it.
 	rm -rf obj_dir_headless
 
-.PHONY: all headless interactive fast boot-game test-game play run test test-fast test-sdl test-loader test-joystick test-pcg-access lint lint-wrapper clean
+.PHONY: all headless interactive fast boot-game test-game play run test test-fast test-sdl test-loader test-joystick test-pcg-access test-disk-control lint lint-wrapper clean
+.PHONY: single single-fast test-single test-clock-enables boot-game-single test-game-single

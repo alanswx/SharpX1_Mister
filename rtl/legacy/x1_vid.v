@@ -27,7 +27,7 @@
     VIDEO / GRAPHIC RAM read is not supported
 
 ****************************************************************************/
-module x1_vid(
+module x1_vid #(parameter ENABLE_CRTC = 0)(
   I_RESET,
 // CPU I/F
   I_CCLK,
@@ -188,13 +188,14 @@ wire crtc_hsync;
 wire crtc_vsync;
 wire crtc_disptmg;
 
-crtc6845s crtc6845s(
+crtc6845s #(.ENABLE_MODE(ENABLE_CRTC)) crtc6845s(
   .I_E(~I_CCLK),
   .I_DI(I_D),
   .I_RS(I_A[0]),
   .I_RWn(~I_WR),
   .I_CSn(~I_CRTC_CS),
-  .I_CLK(~QD),
+  .I_CLK(ENABLE_CRTC ? I_VCLK : ~QD),
+  .I_CE(~ppres && pris == 4'b1111),
   .I_RSTn(~vid_reset),
   .O_RA(crtc_ra),
   .O_MA(crtc_ma),

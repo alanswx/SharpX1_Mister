@@ -23,8 +23,8 @@ changes and runtime evidence.
 | Z80 CTC | Missing | Present |
 | Z80 DMA | Disconnected scaffolding | Partial firmware emulation |
 | Z80 SIO | Missing | Stub |
-| MB8877 floppy controller | WD1793-family replacement boots one native D88 game; exact MB8877 timing/errors/writes pending | Partial firmware emulation |
-| Disk-image backend | Read-only D88/512-byte simulator host verified; MiSTer HPS host wired/linted, hardware pending | Missing from historical harness |
+| MB8877 floppy controller | WD1793-family replacement boots D88; generated read/write/protection/drive/index tests pass; exact MB8877 timing/format/errors remain open | Partial firmware emulation |
+| Disk-image backend | D88/512-byte simulator reads and safe copy-only writes verified; MiSTer protection/host wired, hardware pending | Missing from historical harness |
 | RTC | Partial firmware state | Partial firmware state |
 | Cassette/APSS | Missing | Command-state stub |
 | Kanji | Missing | Fake register |

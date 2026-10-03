@@ -1,0 +1,4 @@
+# Optional one-clock bring-up experiment. Default sharpx1 revision is unchanged.
+# Preserve the baseline settings, sources, device, seed and constraints.
+source sharpx1.qsf
+set_global_assignment -name VERILOG_MACRO "X1_SINGLE_CLOCK=1"

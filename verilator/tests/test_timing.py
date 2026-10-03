@@ -17,7 +17,7 @@ assert all((root / source).is_file() for source in sources)
 assert "source rtl/machine.qip" in (root / "files.qip").read_text()
 assert "MACHINE_MANIFEST = ../rtl/machine.qip" in (root / "verilator/Makefile").read_text()
 for wrapper in ("sharpx1.sv", "verilator/sim.v"):
-    assert re.search(r"\bsharpx1\s+\w+\s*\(", (root / wrapper).read_text())
+    assert re.search(r"\bsharpx1\s+(?:#\([^;]*?\)\s+)?\w+\s*\(", (root / wrapper).read_text())
 pll = (root / "rtl/pll/pll_0002.v").read_text()
 assert '.output_clock_frequency0("32.000000 MHz")' in pll
 assert '.output_clock_frequency1("28.571428 MHz")' in pll

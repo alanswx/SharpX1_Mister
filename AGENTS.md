@@ -49,6 +49,16 @@ zero HS/VS. Native IPL frames are captured from real RGB signals; record the
 ROM and initialization before comparing images. The runner now loads IPL
 through ioctl. Successful execution alone does not establish game boot.
 
+`single`/`single-fast` and `test-single` are opt-in one-clock experiments.
+Baseline defaults stay unchanged. In both runners `--cycles` measures physical
+duration in 32 MHz reference units; single JSON reports actual 28,636,364 Hz
+edges. Do not confuse reference units with edge counts. The board single
+revision uses the existing actual 28,571,428 Hz PLL output instead. See
+`docs/CLOCK_EXPERIMENT.md`, including the short gameplay failure and slower
+MR16 timer. Never claim compatibility or timing closure from a boot screenshot.
+Simulator disk writes require `--disk-output NEW_COPY`; private originals and
+snapshots remain ignored. See `docs/DISK_STATUS.md` for tested and missing cases.
+
 Optional `interactive` and `fast` targets require SDL2. `fast` uses
 `--no-timing`, ignoring inherited intra-assignment delays like synthesis;
 it is not the delay-aware timing reference. Compare functional diagnostics

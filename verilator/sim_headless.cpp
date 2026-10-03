@@ -6,6 +6,9 @@
 #include <cstring>
 #include <memory>
 #include <fstream>
+#include <filesystem>
+#include <fcntl.h>
+#include <unistd.h>
 #include <sstream>
 #include <vector>
 #include <deque>
@@ -59,7 +62,13 @@ int main(int argc, char **argv) {
     try {
         uint64_t cycles = 2000000, reset_cycles = 64;
         // Match the checked-in board PLL; the intended X1 crystal is different.
+#ifdef X1_SINGLE_CLOCK
+        constexpr uint64_t sys_hz = 28636364;
+        uint64_t video_hz = sys_hz;
+#else
+        constexpr uint64_t sys_hz = 32000000;
         uint64_t video_hz = 28571428;
+#endif
         uint64_t joya = 0xff, joyb = 0xff;
         bool joya_override = false, joyb_override = false;
         const char *trace_path = nullptr;
@@ -67,6 +76,7 @@ int main(int argc, char **argv) {
         uint64_t load_address = 0x8000, entry = 0x8000, peek_address = 0xf000;
         const char *bus_path = nullptr;
         const char *disk_path = nullptr, *keys_path = nullptr, *dump_path = nullptr;
+        const char *disk_output = nullptr;
         const char *save_path = nullptr, *restore_path = nullptr;
         bool progress = false, io_only = false, interactive = false;
         FrameCapture frame;
@@ -85,6 +95,7 @@ int main(int argc, char **argv) {
             else if (!std::strcmp(argv[i], "--peek") && i + 1 < argc) peek_address = number(argv[++i]);
             else if (!std::strcmp(argv[i], "--bus-trace") && i + 1 < argc) bus_path = argv[++i];
             else if (!std::strcmp(argv[i], "--disk") && i + 1 < argc) disk_path = argv[++i];
+            else if (!std::strcmp(argv[i], "--disk-output") && i + 1 < argc) disk_output = argv[++i];
             else if (!std::strcmp(argv[i], "--keys") && i + 1 < argc) keys_path = argv[++i];
             else if (!std::strcmp(argv[i], "--frame") && i + 1 < argc) frame.path = argv[++i];
             else if (!std::strcmp(argv[i], "--audio") && i + 1 < argc) audio.path = argv[++i];
@@ -95,13 +106,16 @@ int main(int argc, char **argv) {
             else if (!std::strcmp(argv[i], "--save-state") && i + 1 < argc) save_path = argv[++i];
             else if (!std::strcmp(argv[i], "--restore-state") && i + 1 < argc) restore_path = argv[++i];
             else if (argv[i][0] != '-') cycles = number(argv[i]);
-            else throw std::runtime_error("usage: Vtop [cycles] [--cycles N] [--reset-cycles N] [--video-hz N] [--trace output.fst] [--rom IMAGE] [--ram IMAGE --load-address A --entry A] [--disk IMAGE] [--keys SCRIPT] [--frame IMAGE.ppm] [--audio OUTPUT.wav] [--dump PREFIX] [--peek A] [--bus-trace CSV --io-only] [--progress] [--interactive] [--save-state FILE] [--restore-state FILE] [--joya BYTE --joyb BYTE]");
+            else throw std::runtime_error("usage: Vtop [cycles] [--cycles N] [--reset-cycles N] [--video-hz N] [--trace output.fst] [--rom IMAGE] [--ram IMAGE --load-address A --entry A] [--disk IMAGE --disk-output NEW_COPY] [--keys SCRIPT] [--frame IMAGE.ppm] [--audio OUTPUT.wav] [--dump PREFIX] [--peek A] [--bus-trace CSV --io-only] [--progress] [--interactive] [--save-state FILE] [--restore-state FILE] [--joya BYTE --joyb BYTE]");
         }
         // Bound time arithmetic and avoid an entirely reset-only smoke run.
         if (cycles <= reset_cycles || reset_cycles == 0 || cycles > 1000000000000ULL)
             throw std::runtime_error("require 0 < reset-cycles < cycles <= 1000000000000");
         if (video_hz == 0 || video_hz > 100000000)
             throw std::runtime_error("require 0 < video-hz <= 100000000");
+#ifdef X1_SINGLE_CLOCK
+        if (video_hz != sys_hz) throw std::runtime_error("single-clock model requires video-hz = 28636364");
+#endif
         if (load_address > 65535 || entry > 65535 || peek_address > 65520)
             throw std::runtime_error("load/entry/peek address out of range");
         if (joya > 255 || joyb > 255)
@@ -126,10 +140,18 @@ int main(int argc, char **argv) {
             enqueue(2, 0xfff0, boot, 65536);
         }
         if (!downloads.empty())
-            reset_cycles = std::max(reset_cycles, static_cast<uint64_t>(downloads.size()) + 64);
+            reset_cycles = std::max(reset_cycles,
+                ((static_cast<uint64_t>(downloads.size()) + 64) * 32000000 + sys_hz - 1) / sys_hz);
         if (cycles <= reset_cycles) throw std::runtime_error("cycles must exceed download plus reset duration");
         std::ofstream bus;
         std::vector<uint8_t> disk = disk_path ? image(disk_path) : std::vector<uint8_t>();
+        if (disk_output) {
+            if (!disk_path) throw std::runtime_error("--disk-output requires --disk");
+            if (std::filesystem::exists(disk_output))
+                throw std::runtime_error("disk output already exists; choose a new copy path");
+            if (std::filesystem::weakly_canonical(disk_output) == std::filesystem::canonical(disk_path))
+                throw std::runtime_error("disk output must not overwrite input media");
+        }
         if (disk.size() > 1048575) throw std::runtime_error("disk exceeds current FDC addressing");
         uint64_t disk_fingerprint = 14695981039346656037ULL;
         for (auto byte : disk) { disk_fingerprint ^= byte; disk_fingerprint *= 1099511628211ULL; }
@@ -186,7 +208,7 @@ int main(int argc, char **argv) {
         top.joyb_n = joyb;
         top.disk_ready = !disk.empty();
         top.img_mounted = !disk.empty();
-        top.disk_wp = 1; // Explicitly read-only media for initial boot testing.
+        top.disk_wp = disk_output ? 0 : 1; // Writes only to an explicit new copy.
         top.img_size = disk.size();
         top.sd_ack = 0;
         top.sd_buff_addr = 0;
@@ -216,7 +238,7 @@ int main(int argc, char **argv) {
         // a reconstructed RAM bootstrap. Only quiescent host interfaces are
         // supported; disk contents must match and clocks keep absolute phase.
         uint64_t resume_time = 0;
-        constexpr uint64_t snapshot_magic = 0x5831534e41503031ULL;
+        constexpr uint64_t snapshot_magic = 0x5831534e41503031ULL ^ sys_hz;
 #ifdef X1_SAVABLE
         if (restore_path) {
             if (rom_path || ram_path) throw std::runtime_error("snapshot restore cannot also download ROM/RAM");
@@ -234,10 +256,10 @@ int main(int argc, char **argv) {
             // Retain saved pins unless an explicit new external input is given.
             if (joya_override) top.joya_n = joya;
             if (joyb_override) top.joyb_n = joyb;
-            if (top.sys_edges != resume_time / 31250 || top.clk_sys || top.reset)
-                throw std::runtime_error("snapshot is not a running falling-clock boundary");
-            cycles += top.sys_edges;
-            reset_cycles = top.reset_edges;
+            top.disk_wp = disk_output ? 0 : 1;
+            if (top.reset) throw std::runtime_error("snapshot is still in reset");
+            cycles += resume_time / 31250;
+            reset_cycles = 0; // Restored RTL retains reset counters and clock phase.
             context.time(resume_time);
             for (auto &event : keys) event.time += resume_time;
             evaluate();
@@ -248,31 +270,36 @@ int main(int argc, char **argv) {
 
         // All times are picoseconds. 32 MHz is exactly 31,250 ps/cycle.
         // Round each video edge from its absolute rational time, avoiding drift.
-        constexpr uint64_t sys_half_ps = 15625;
+        auto sys_time = [](uint64_t edge) -> uint64_t {
+            return (static_cast<unsigned __int128>(edge) * 1000000000000ULL + sys_hz) / (2 * sys_hz);
+        };
         auto video_time = [video_hz](uint64_t edge) -> uint64_t {
             // Wide intermediate prevents overflow on long simulations.
             return (static_cast<unsigned __int128>(edge) * 1000000000000ULL + video_hz) / (2 * video_hz);
         };
-        uint64_t sys_edge = resume_time / sys_half_ps + 1;
+        uint64_t sys_edge = (static_cast<unsigned __int128>(resume_time) * 2 * sys_hz) / 1000000000000ULL + 1;
+        while (sys_time(sys_edge) <= resume_time) ++sys_edge;
         uint64_t vid_edge = (static_cast<unsigned __int128>(resume_time) * 2 * video_hz) / 1000000000000ULL + 1;
         while (video_time(vid_edge) <= resume_time) ++vid_edge;
         audio.edge = (static_cast<unsigned __int128>(resume_time) * AudioCapture::rate) / 1000000000000ULL + 1;
         while (audio.next_time() <= resume_time) ++audio.edge;
-        const uint64_t end_ps = cycles * 2 * sys_half_ps;
-        const uint64_t reset_end_ps = reset_cycles * 2 * sys_half_ps;
+        // --cycles remains a 32 MHz reference-duration unit for A/B comparisons.
+        const uint64_t end_ps = cycles * 31250;
+        const uint64_t reset_end_ps = reset_cycles * 31250;
         uint64_t hs_edges = 0, vs_edges = 0;
         uint64_t hash = 14695981039346656037ULL;
         bool old_hs = top.HSync, old_vs = top.VSync;
         unsigned disk_byte = 0, disk_cooldown = 0;
-        uint64_t disk_offset = 0, disk_requests = 0;
-        bool disk_active = false;
+        uint64_t disk_offset = 0, disk_requests = 0, disk_writes = 0;
+        bool disk_active = false, disk_writing = false;
         uint16_t key_packet = 0;
         unsigned key_bit = 0;
         bool key_active = false;
         uint64_t key_edge = 0;
         uint64_t progress_time = resume_time + 100000000000ULL;
+        uint64_t expected_reset_edges = top.reset_edges;
         while (context.time() < end_ps && !context.gotFinish()) {
-            uint64_t next = std::min({sys_edge * sys_half_ps, video_time(vid_edge), end_ps});
+            uint64_t next = std::min({sys_time(sys_edge), video_time(vid_edge), end_ps});
             if (context.time() < reset_end_ps) next = std::min(next, reset_end_ps);
             if (!audio.path.empty()) next = std::min(next, audio.next_time());
 #if VM_TIMING
@@ -287,9 +314,10 @@ int main(int argc, char **argv) {
             bool sys_rise = false;
             bool video_rise = false;
             bool pixel_enable = top.ce_pix;
-            if (next == sys_edge * sys_half_ps) {
+            if (next == sys_time(sys_edge)) {
                 top.clk_sys = !top.clk_sys;
                 sys_rise = top.clk_sys;
+                if (sys_rise && top.reset) ++expected_reset_edges;
                 if (!sys_rise && download_pos < downloads.size()) {
                     ++download_pos;
                     set_download();
@@ -298,11 +326,13 @@ int main(int argc, char **argv) {
                     if (sys_edge >= 10) top.img_mounted = 0;
                     top.sd_buff_wr = 0;
                     if (disk_active) {
+                        if (disk_writing && disk_offset + disk_byte < disk.size())
+                            disk[disk_offset + disk_byte] = top.sd_buff_din;
                         if (++disk_byte == 512) {
                             disk_active = false;
                             top.sd_ack = 0;
                             disk_cooldown = 8;
-                        } else {
+                        } else if (!disk_writing) {
                             top.sd_buff_addr = disk_byte;
                             top.sd_buff_dout = disk_offset + disk_byte < disk.size() ? disk[disk_offset + disk_byte] : 0;
                             top.sd_buff_wr = 1;
@@ -312,12 +342,24 @@ int main(int argc, char **argv) {
                         disk_offset = uint64_t(top.sd_lba) * 512;
                         disk_byte = 0;
                         disk_active = true;
+                        disk_writing = false;
                         ++disk_requests;
                         top.sd_ack = 1;
                         top.sd_buff_wr = 1;
                         top.sd_buff_addr = 0;
                         top.sd_buff_dout = disk_offset < disk.size() ? disk[disk_offset] : 0;
-                    } else if (top.sd_wr) throw std::runtime_error("unexpected write to read-only disk");
+                    } else if (top.sd_wr) {
+                        if (!disk_output) throw std::runtime_error("unexpected write to read-only disk");
+                        disk_offset = uint64_t(top.sd_lba) * 512;
+                        if (disk_offset >= disk.size()) throw std::runtime_error("disk write outside image");
+                        disk_byte = 0;
+                        disk_active = true;
+                        disk_writing = true;
+                        ++disk_requests; ++disk_writes;
+                        top.sd_ack = 1;
+                        top.sd_buff_addr = 0;
+                    }
+                    if (disk_active && disk_writing) top.sd_buff_addr = disk_byte;
                 }
                 ++sys_edge;
             }
@@ -392,6 +434,8 @@ int main(int argc, char **argv) {
                     || key_active || !keys.empty() || top.sd_rd || top.sd_wr || top.ioctl_download)
                 throw std::runtime_error("snapshot requires a running falling edge and quiescent disk/keyboard/download host");
             VerilatedSave state;
+            disk_fingerprint = 14695981039346656037ULL;
+            for (auto byte : disk) { disk_fingerprint ^= byte; disk_fingerprint *= 1099511628211ULL; }
             state.open(save_path);
             if (!state.isOpen()) throw std::runtime_error("cannot create snapshot");
             state << snapshot_magic << context.time() << video_hz << disk_fingerprint << top;
@@ -400,6 +444,25 @@ int main(int argc, char **argv) {
 #endif
         std::string peek;
         audio.finish();
+        if (disk_output) {
+            if ((disk_active && disk_writing) || top.sd_wr)
+                throw std::runtime_error("cannot export disk during a pending write");
+            // Recheck atomically at export: never truncate a path created while
+            // the simulation ran, including a newly introduced symlink.
+            const int copy_fd = ::open(disk_output, O_WRONLY | O_CREAT | O_EXCL, 0666);
+            if (copy_fd < 0) throw std::runtime_error("cannot exclusively create disk output");
+            size_t exported = 0;
+            while (exported < disk.size()) {
+                const ssize_t count = ::write(copy_fd, disk.data() + exported, disk.size() - exported);
+                if (count < 0 && errno == EINTR) continue;
+                if (count <= 0) {
+                    ::close(copy_fd);
+                    throw std::runtime_error("disk export failed; partial new copy may remain");
+                }
+                exported += static_cast<size_t>(count);
+            }
+            if (::close(copy_fd) != 0) throw std::runtime_error("disk output close failed");
+        }
         if (dump_path) {
             std::ofstream memory(std::string(dump_path) + ".ram", std::ios::binary);
             std::ofstream text(std::string(dump_path) + ".text", std::ios::binary);
@@ -419,25 +482,29 @@ int main(int argc, char **argv) {
             std::snprintf(byte, sizeof(byte), "%02x", top.debug_ram);
             peek += byte;
         }
-        std::printf("{\"machine\":\"sharpx1\",\"intra_assignment_delays\":%s,\"sys_hz\":32000000,\"video_hz\":%llu,"
+        std::printf("{\"machine\":\"sharpx1\",\"intra_assignment_delays\":%s,\"sys_hz\":%llu,\"video_hz\":%llu,"
                     "\"time_ps\":%llu,\"sys_edges\":%llu,\"video_edges\":%llu,"
                     "\"reset_edges\":%llu,\"cpu_enables\":%llu,\"delayed_sys_edges\":%llu,"
                     "\"hs_edges\":%llu,\"vs_edges\":%llu,\"video_hash\":\"%016llx\","
                     "\"download_bytes\":%llu,\"cpu_address\":%u,\"halted\":%s,\"peek\":\"%s\","
-                    "\"disk_requests\":%llu,\"frames\":%llu,\"frame_width\":%u,\"frame_height\":%u,\"frame_hash\":\"%016llx\","
+                    "\"disk_requests\":%llu,\"disk_writes\":%llu,\"frames\":%llu,\"frame_width\":%u,\"frame_height\":%u,\"frame_hash\":\"%016llx\","
                     "\"sub_pc\":%u,\"sub_address\":%u,\"sub_control\":%u,\"sub_running\":%s,\"sub_tx_busy\":%s,\"sub_rx_empty\":%s}\n",
                     VM_TIMING ? "true" : "false",
+                    (unsigned long long)sys_hz,
                     (unsigned long long)video_hz, (unsigned long long)context.time(), (unsigned long long)top.sys_edges,
                     (unsigned long long)top.video_edges, (unsigned long long)top.reset_edges,
                     (unsigned long long)top.cpu_enables, (unsigned long long)top.delayed_sys_edges,
                     (unsigned long long)hs_edges, (unsigned long long)vs_edges, (unsigned long long)hash,
                     (unsigned long long)downloads.size(), top.cpu_address, top.cpu_halt_n ? "false" : "true", peek.c_str(),
-                    (unsigned long long)disk_requests,(unsigned long long)frame.frames,frame.width,frame.height,
+                    (unsigned long long)disk_requests,(unsigned long long)disk_writes,(unsigned long long)frame.frames,frame.width,frame.height,
                     (unsigned long long)frame.hash,
                     top.sub_pc,top.sub_address,top.sub_control,
                     top.sub_wait ? "true" : "false",top.sub_tx ? "true" : "false",top.sub_rx ? "true" : "false");
-        const bool passed = (interactive && context.gotFinish()) || (context.time() == end_ps && top.sys_edges == cycles
-            && top.reset_edges == reset_cycles && top.delayed_sys_edges == cycles);
+        const uint64_t expected_edges = sys_edge / 2;
+        const uint64_t expected_delayed = expected_edges -
+            (expected_edges && sys_time(expected_edges * 2 - 1) + 1000 > end_ps ? 1 : 0);
+        const bool passed = (interactive && context.gotFinish()) || (context.time() == end_ps && top.sys_edges == expected_edges
+            && top.reset_edges == expected_reset_edges && top.delayed_sys_edges == (VM_TIMING ? expected_delayed : expected_edges));
         top.final();
         if (trace) trace->close();
         return passed ? 0 : 1;

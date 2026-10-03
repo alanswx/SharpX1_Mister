@@ -49,11 +49,22 @@ clock tests. CPU WAIT covers the synchronized transaction; exact native
 scanline waits and PCG raster compatibility remain unverified.
 See [bring-up progress](docs/BRINGUP_PROGRESS.md) for changes and remaining gates.
 
-MiSTer now wires keyboard, joystick, read-only disk, RGB and audio paths and
-offers IPL/D88 OSD entries. Wrapper lint passes with warnings, but synthesis
-and hardware operation are unverified. The checked-in PLL specifies 28.571428 MHz,
+MiSTer now wires keyboard, joystick, disk, RGB and audio paths and
+offers IPL/D88 OSD entries. Disk writes default to protected; enabling them
+does not override read-only media. Generated D88 tests cover reads, safe writes,
+protection, variable sector sizes, seeking, sides and error/status cases.
+See [disk verification and limits](docs/DISK_STATUS.md).
+The initial Quartus 17 build produced an RBF, but **timing does not close**;
+hardware operation remains unverified. See [build evidence](docs/QUARTUS_BUILD.md).
+The checked-in PLL specifies 28.571428 MHz,
 not the 28.636 MHz in comments; correcting and verifying that clock remains
 open. No FPGA release or hardware boot is established by simulation results.
+
+An opt-in [single-clock experiment](docs/CLOCK_EXPERIMENT.md) replaces the
+CRTC fabric clock with an enable and derives average CPU/PSG rates from one
+video-rate master. It boots the game and passes focused diagnostics, but the
+short two-direction gameplay regression currently fails. The baseline remains
+the default; do not advertise the experiment as fully compatible.
 
 ## Play CROSS Chase locally
 
@@ -106,7 +117,9 @@ cd verilator
 The default video frequency matches the current board PLL (28,571,428 Hz).
 FST tracing is optional. `--rom` loads raw binary or whitespace-separated hex
 through ioctl; `--ram`, `--load-address` and `--entry` offer explicit debug
-execution. `--disk` attaches read-only D88 media, `--keys` supplies timestamped
+execution. `--disk` attaches protected D88 media; `--disk-output NEW_COPY`
+explicitly enables simulator writes and exports a new file without modifying
+the input. Existing output paths are rejected. `--keys` supplies timestamped
 PS/2 set-2 bytes, `--frame` captures actual RGB pixels to PPM, `--bus-trace`
 writes CSV and `--dump` saves main/text/attribute RAM. `--audio` captures mono
 48 kHz WAV. `--joya`/`--joyb` set raw active-low X1 joystick pin bytes (default
@@ -147,11 +160,18 @@ With the appropriate Quartus tools installed, the main compile invocation is:
 quartus_sh --flow compile sharpx1
 ```
 
-This command is provided as the project entry point; a successful synthesis,
-timing closure, and hardware boot have not been verified here. The FPGA top is
+The installed Apple-container build is available through
+`bash scripts/build_quartus.sh`; the initial main-project build completed
+synthesis/fitting/assembly but failed timing. Timing closure and hardware boot
+have not been established. The FPGA top is
 `sys_top`; core integration is in `sharpx1.sv`. Add machine dependencies to
 `rtl/machine.qip`, shared with simulation; board dependencies belong in `files.qip`.
 Quartus output goes into `output_files/`.
+
+Development checkpoints are pushed to
+[alanswx/SharpX1_Mister](https://github.com/alanswx/SharpX1_Mister).
+The local `alanswx` remote is the default push destination; `origin` retains
+the original upstream repository. Private test disks and snapshots are not pushed.
 
 ## Repository layout
 

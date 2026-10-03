@@ -15,6 +15,10 @@ support before optional Turbo extensions.
 - [x] Add a headless Verilator target that does not require SDL/OpenGL.
 - [x] Advance simulation time and independently schedule the checked-in board clocks.
 - [ ] Correct/verify the board PLL video frequency (currently 28.571428 MHz).
+- [x] Add opt-in one-clock simulation, fractional enables and enabled CRTC;
+  prove CRTC 40/80 phase equivalence and focused diagnostics.
+- [ ] Resolve single-clock short gameplay-input regression and MR16 timer-rate
+  differences; obtain timing signoff before changing the default configuration.
 - [x] Make the simulator load `bios/ipl_x1.hex` through the shared ioctl path.
 - [ ] Add deterministic reset, clock, and frame-count command-line options.
 - [x] Add cycle/reset-duration/video-frequency options and a timing/reset regression.
@@ -76,6 +80,11 @@ support before optional Turbo extensions.
 - [x] Integrate WD1793-family replacement and read-only base 2D D88 adapter;
   verify native IPL loads CROSS Chase byte-exactly through the controller.
 - [ ] Verify exact MB8877 errors/status/timing, density/motor behavior and writes.
+- [x] Verify generated D88 variable/multi-sector reads, seek/side/RNF/not-ready,
+  sticky lost-data, write protection and byte-exact cross-block write/readback.
+- [x] Add drive/density decode, motor hold and 300 rpm index/head-load tests.
+- [ ] Validate deleted-data/format/force-interrupt/metadata/CRC edge cases,
+  malformed/eject/reset transfers, drive B and applicable 2HD/2DD media.
 - [ ] Implement DMA bus arbitration and verify Z80 DMA transfers.
 - [ ] Add CTC/SIO behavior and interrupt priority/acknowledgement tests.
 - [ ] Implement X1 Turbo high-resolution/400-line behavior.
@@ -84,6 +93,9 @@ support before optional Turbo extensions.
   promises Turbo/TurboZ compatibility.
 
 ## Phase 4 — MiSTer integration and validation
+
+- [x] Produce an initial main-project Quartus 17 RBF; record failed timing,
+  utilization and source hashes. This is not timing closure or hardware proof.
 
 - [x] Wire MiSTer HPS keyboard, joystick, read-only floppy and IPL/reset OSD;
   route actual RGB/audio and elaborate the wrapper with lint.

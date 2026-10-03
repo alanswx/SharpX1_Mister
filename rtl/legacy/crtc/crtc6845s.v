@@ -38,7 +38,7 @@
 //--------------------------------------------------------------------------------------
 
 
-module crtc6845s(
+module crtc6845s #(parameter ENABLE_MODE = 0)(
 // INPUT
 I_E,
 I_DI,
@@ -46,6 +46,7 @@ I_RS,
 I_RWn,
 I_CSn,
 I_CLK,
+I_CE,
 I_RSTn,
 
 // OUTPUT
@@ -64,6 +65,7 @@ input  I_RWn;
 input  I_CSn;
 
 input  I_CLK;
+input  I_CE;
 input  I_RSTn;
 
 output [4:0]O_RA;
@@ -116,9 +118,10 @@ mpu_if mpu_if(
 .O_CScue(W_CScue)
 );
 
-crtc_gen crtc_gen(
+crtc_gen #(.ENABLE_MODE(ENABLE_MODE)) crtc_gen(
 
 .I_CLK(I_CLK),
+.I_CE(I_CE),
 .I_RSTn(I_RSTn),
 .I_Nht(W_Nht),
 .I_Nhd(W_Nhd),
@@ -253,9 +256,10 @@ end
 
 endmodule
 
-module crtc_gen(
+module crtc_gen #(parameter ENABLE_MODE = 0)(
 
 I_CLK,
+I_CE,
 I_RSTn,
 I_Nht,
 I_Nhd,
@@ -278,6 +282,7 @@ O_DISPTMG
 );
 
 input  I_CLK;
+input  I_CE;
 input  I_RSTn;
 input  [7:0]I_Nht;
 input  [7:0]I_Nhd;
@@ -340,7 +345,9 @@ assign O_DISPTMG = R_DISPTMG;
 
 //  MA   MAX = 14'h3FFF  ---------------------
 reg    [13:0] R_MA_C;
-always@(negedge I_CLK or negedge I_RSTn)
+// ENABLE_MODE uses the master rising edge; legacy mode retains its falling edge.
+wire count_clock = ENABLE_MODE ? ~I_CLK : I_CLK;
+always@(negedge count_clock or negedge I_RSTn)
 begin
   if(! I_RSTn)begin
     R_MA   <= 14'h0000;
@@ -356,7 +363,7 @@ begin
     R_V_DISPTMG <= 1'b0;
     R_DISPTMG   <= 1'b0;
   end
-  else begin
+  else if(!ENABLE_MODE || I_CE) begin
     // H CNT
     R_H_CNT <= W_HD ? 8'h00 : NEXT_R_H_CNT;
 

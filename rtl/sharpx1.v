@@ -1,6 +1,6 @@
 // Sharp X1 base-machine integration. Shared by MiSTer and simulation.
 // See docs/BASE_X1_CONTRACT.md for address-map sources and limitations.
-module sharpx1 (
+module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364) (
     input clk_sys, clk_28636, reset,
     input pal, scandouble,
     input ioctl_download,
@@ -29,7 +29,12 @@ module sharpx1 (
     always @(negedge clk_sys or posedge reset)
         if (reset) ce <= 0;
         else ce <= ce + 1'b1;
-    wire pe4M4 = ce[2:0] == 3'b100;
+    wire fractional_cpu, fractional_psg;
+    x1_clock_enables #(.MASTER_HZ(MASTER_HZ)) clock_enables (
+        .clk(clk_sys), .reset(reset), .cpu_ce(fractional_cpu), .psg_ce(fractional_psg)
+    );
+    wire pe4M4 = SINGLE_CLOCK ? fractional_cpu : ce[2:0] == 3'b100;
+    wire psg_ce = SINGLE_CLOCK ? fractional_psg : ce[3:0] == 4'b1000;
     wire ne4M4 = ce[2:0] == 3'b000;
 
     wire [15:0] a;
@@ -145,7 +150,7 @@ module sharpx1 (
     wire psg_address = !dam && a[15:8] == 8'h1c;
     wire psg_access = !dam && a[15:8] == 8'h1b;
     jt49_bus psg (
-        .rst_n(~reset), .clk(clk_sys), .clk_en(ce[3:0] == 4'b1000),
+        .rst_n(~reset), .clk(clk_sys), .clk_en(psg_ce),
         .bdir(io_write && (psg_address || psg_access)),
         .bc1((io_write && psg_address) || (io_read && psg_access)),
         .din(data_out), .sel(1'b1), .dout(psg_data), .sound(psg_sound),
@@ -156,17 +161,19 @@ module sharpx1 (
 
     wire [7:0] fdc_data;
     wire fdc_prepare, fdc_fmt_wp;
-    reg [7:0] drive_control;
-    always @(posedge clk_sys or posedge reset)
-        if(reset) drive_control <= 0;
-        else if(io_write && !dam && a == 16'h0ffc) drive_control <= data_out;
-    wd1793 #(.RWMODE(1), .EDSK(1)) fdc (
+    wire [1:0] drive;
+    wire disk_side, disk_motor, disk_fm;
+    x1_disk_control #(.MOTOR_HOLD_CYCLES(SINGLE_CLOCK ? MASTER_HZ * 6 / 5 : 38400000)) disk_control (
+        .clk(clk_sys), .reset(reset), .io_read(io_read && !dam), .io_write(io_write && !dam),
+        .address(a), .data(data_out), .drive(drive), .side(disk_side), .motor_on(disk_motor), .fm_mode(disk_fm)
+    );
+    wd1793 #(.RWMODE(1), .EDSK(1), .HEADLOAD_STATUS(1), .INDEX_CYCLES(800000)) fdc (
         .clk_sys(clk_sys), .ce(pe4M4), .reset(reset),
         .io_en(!dam && a[15:2] == 14'h03fe), .rd(io_read), .wr(io_write),
         .addr(a[1:0]), .din(data_out), .dout(fdc_data),
         .drq(), .intrq(), .busy(), .wp(disk_wp || fdc_fmt_wp), .fmt_wp(fdc_fmt_wp),
-        .size_code(3'd1), .layout(1'b0), .side(drive_control[4]),
-        .ready(disk_ready && drive_control[1:0] == 0 && !fdc_prepare),
+        .size_code(3'd1), .layout(1'b0), .side(disk_side), .fm_mode(disk_fm),
+        .ready(disk_ready && drive == 0 && disk_motor && !fdc_prepare),
         .img_mounted(img_mounted), .img_size(img_size[19:0]), .img_size_id(img_size),
         .disk_index(3'd0), .prepare(fdc_prepare),
         .sd_lba(sd_lba), .sd_rd(sd_rd), .sd_wr(sd_wr), .sd_ack(sd_ack),
@@ -207,7 +214,7 @@ module sharpx1 (
     x1_cg8 access_font(clk_28636,cg_access_addr,cg_rom_cpu);
     x1_cg8 font(clk_28636,cgaddr,cg_data);
     wire r,g,b;
-    x1_vid display (
+    x1_vid #(.ENABLE_CRTC(SINGLE_CLOCK)) display (
         .I_RESET(reset), .I_CCLK(clk_sys), .I_A(a), .I_D(data_out), .O_D(), .O_DE(),
         .I_WR(io_write && !dam), .I_RD(io_read), .O_VWAIT(),
         .I_CRTC_CS(io_cycle && a[15:8] == 8'h18), .I_CG_CS(cg_access),

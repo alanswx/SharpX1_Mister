@@ -10,7 +10,12 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("executable", type=pathlib.Path)
 parser.add_argument("snapshot", type=pathlib.Path)
 parser.add_argument("disk", type=pathlib.Path)
+parser.add_argument("--duration-ms", type=int, default=200)
+parser.add_argument("--key-spacing-ms", type=int, default=0,
+                    help="extra spacing before the second key; default keeps the original regression")
 args = parser.parse_args()
+assert args.duration_ms >= 200 and args.key_spacing_ms >= 0
+assert args.duration_ms > 122 + args.key_spacing_ms
 exe, state, disk = (str(path.resolve()) for path in (args.executable, args.snapshot, args.disk))
 
 
@@ -30,11 +35,12 @@ def player(memory, text):
 with tempfile.TemporaryDirectory(prefix="x1-gameplay-") as folder:
     folder = pathlib.Path(folder)
     keys = folder / "move.keys"
-    keys.write_text("10 43\n50 f0\n52 43\n70 3b\n120 f0\n122 3b\n")
+    gap = args.key_spacing_ms
+    keys.write_text(f"10 43\n50 f0\n52 43\n{70+gap} 3b\n{120+gap} f0\n{122+gap} 3b\n")
 
     def run(name, controlled):
         prefix = folder / name
-        command = [exe, "--cycles", "6400000", "--restore-state", state,
+        command = [exe, "--cycles", str(args.duration_ms * 32000), "--restore-state", state,
                    "--disk", disk, "--dump", str(prefix), "--frame", str(prefix) + ".ppm"]
         if controlled:
             command += ["--keys", str(keys)]
@@ -54,5 +60,6 @@ with tempfile.TemporaryDirectory(prefix="x1-gameplay-") as folder:
     assert baseline["frames"] > 5 and baseline["frame_width"] == 320 and baseline["frame_height"] == 200
     print(json.dumps({"idle_player": idle, "controlled_player": moved,
                       "idle_frame_hash": baseline["frame_hash"], "controlled_frame_hash": controlled["frame_hash"],
-                      "duration_ms": 200, "native_snapshot": state, "repeatable": True}))
+                      "duration_ms": args.duration_ms, "key_spacing_ms": gap,
+                      "native_snapshot": state, "repeatable": True}))
 print("PASS: native game responds to PS/2 I/J movement with changed player coordinates and real RGB frames")

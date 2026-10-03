@@ -22,7 +22,9 @@
 //
 //============================================================================
 
-module wd1793 #(parameter RWMODE=0, EDSK=1)
+// X1 integration: configurable head-load status/index period; MFM-only adapter
+// rejects selected FM access rather than silently reading an MFM sector.
+module wd1793 #(parameter RWMODE=0, EDSK=1, HEADLOAD_STATUS=0, INDEX_CYCLES=35001)
 (
 	input        clk_sys,     // sys clock
 	input        ce,          // ce at CPU clock rate
@@ -48,6 +50,7 @@ module wd1793 #(parameter RWMODE=0, EDSK=1)
 	input        layout,      // 0 = Track-Side-Sector, 1 - Side-Track-Sector
 	input        side,
 	input        ready,
+	input        fm_mode,
 
 	// SD access (RWMODE == 1)
 	input        img_mounted, // signaling that new image has been mounted
@@ -295,7 +298,7 @@ reg   [7:0] wdreg_data;
 // An empty drive is not a seek failure, and software that probes drives before
 // deciding what it can load reads the difference.
 wire  [7:0] wdreg_status = cmd_mode == 0 ?
-	{~ready, s_readonly & s_wpe, 1'b0,      s_seekerr, s_crcerr, !disk_track, s_index, s_busy}:
+	{~ready, s_readonly & s_wpe, (HEADLOAD_STATUS != 0) && s_headloaded, s_seekerr, s_crcerr, !disk_track, s_index, s_busy}:
 	{~ready, s_readonly & s_wpe, s_wrfault, s_seekerr, s_crcerr, s_lostdata,  s_drq,   s_busy};
 
 reg   [7:0] read_addr[6];
@@ -343,8 +346,8 @@ always @(posedge clk_sys) begin
 	end
 end
 
+reg [31:0] index_count = 0;
 always @(posedge clk_sys) begin
-	integer cnt;
 	if(ce) begin
 		// INDEX free-runs, and is NOT qualified on `ready`.
 		//
@@ -367,9 +370,12 @@ always @(posedge clk_sys) begin
 		//
 		// Letting cnt free-run cannot bring back the stuck-at-0 case, because
 		// it is never reset to 0.
-		if(cnt) cnt <= cnt - 1;
-			else cnt <= 35000;
-		s_index <= (cnt < 100);
+		if(reset) begin index_count <= INDEX_CYCLES - 1; s_index <= 0; end
+		else begin
+			if(index_count) index_count <= index_count - 1;
+			else index_count <= INDEX_CYCLES - 1;
+			s_index <= (index_count < (INDEX_CYCLES / 100));
+		end
 	end
 end
 
@@ -574,6 +580,9 @@ always @(posedge clk_sys) begin
 					// find its track, which is a different and worse answer.
 					if(!ready) begin
 						state <= STATE_ENDCOMMAND;
+					end else if(fm_mode) begin
+						s_seekerr <= 1;
+						state <= STATE_ENDCOMMAND;
 					end else begin
 						seektimer <= seektimer - 1'b1;
 						if(!seektimer) begin
@@ -688,7 +697,6 @@ always @(posedge clk_sys) begin
 					if(!read_timer) begin
 						read_data <= 0;
 						watchdog_set <= 0;
-						s_lostdata <= 0;
 						s_drq_busy <= 2'b11;
 						state <= STATE_READ_2;
 					end
@@ -707,7 +715,7 @@ always @(posedge clk_sys) begin
 					if(watchdog_bark | (read_data & s_drq)) begin
 						// reset drq until next byte is read, nothing is lost
 						s_drq_busy <= 2'b01;
-						s_lostdata <= watchdog_bark;
+						s_lostdata <= s_lostdata | watchdog_bark;
 
 						// EVERY byte handed to the CPU passes THROUGH the Data
 						// Register on a WD1793 -- it is the single path for read
@@ -797,7 +805,6 @@ always @(posedge clk_sys) begin
 					if(!read_timer) begin
 						write_data <= 0;
 						watchdog_set <= 0;
-						s_lostdata <= 0;
 						s_drq_busy <= 2'b11;
 						state <= STATE_WRITE_2;
 					end
@@ -806,7 +813,7 @@ always @(posedge clk_sys) begin
 				begin
 					if(watchdog_bark | (write_data & s_drq)) begin
 						s_drq_busy <= 2'b01;
-						s_lostdata <= watchdog_bark;
+						s_lostdata <= s_lostdata | watchdog_bark;
 
 						if(!next_length) state <= STATE_WAIT_WRITE;
 						else begin

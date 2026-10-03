@@ -208,7 +208,8 @@ localparam CONF_STR = {
 	"-;",
 	"O[122:121],Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
 	"F0,ROM,Load IPL;",
-	"S0,D88,Drive A (read only);",
+	"S0,D88,Drive A;",
+	"O[1],Disk writes,Protected,Enabled;",
 	"-;",
 	"T[0],Reset;",
 	"R[0],Reset and close OSD;",
@@ -238,10 +239,12 @@ wire [7:0] sd_buff_dout;
 wire img_mounted, img_readonly;
 wire [63:0] img_size;
 reg media_present = 0;
+reg media_readonly = 1;
 reg [23:0] media_size = 0;
 always @(posedge clk_sys) if(img_mounted) begin
 	media_present <= img_size != 0 && img_size <= 64'd1048575;
 	media_size <= img_size[23:0];
+	media_readonly <= img_readonly;
 end
 
 hps_io #(.CONF_STR(CONF_STR), .PS2DIV(1600)) hps_io
@@ -284,12 +287,22 @@ hps_io #(.CONF_STR(CONF_STR), .PS2DIV(1600)) hps_io
 
 ///////////////////////   CLOCKS   ///////////////////////////////
 
-wire clk_sys, clk_28636;
+wire clk_sys, clk_28636, clk_sys_pll;
+`ifdef X1_SINGLE_CLOCK
+// Opt-in experiment uses the existing video's actual PLL frequency.
+assign clk_sys = clk_28636;
+localparam SINGLE_CLOCK = 1;
+localparam MASTER_HZ = 28571428;
+`else
+assign clk_sys = clk_sys_pll;
+localparam SINGLE_CLOCK = 0;
+localparam MASTER_HZ = 28636364;
+`endif
 pll pll
 (
 	.refclk(CLK_50M),
 	.rst(1'b0),
-	.outclk_0(clk_sys),   // 32 MHz
+	.outclk_0(clk_sys_pll),   // 32 MHz baseline; unused in one-clock mode.
 	.outclk_1(clk_28636)  // Checked-in PLL: 28.571428 MHz; crystal target needs review.
 );
 
@@ -306,7 +319,7 @@ wire [7:0] video;
 wire [2:0] machine_rgb;
 wire [15:0] machine_audio;
 
-sharpx1 sharpx1
+sharpx1 #(.SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ)) sharpx1
 (
 	.clk_sys(clk_sys),
 	.clk_28636(clk_28636),
@@ -323,7 +336,8 @@ sharpx1 sharpx1
 	.ioctl_dout(ioctl_data),
 	.ps2_clk_in(ps2_clk), .ps2_data_in(ps2_data),
 	.joya_n(joya_n), .joyb_n(joyb_n),
-	.disk_ready(media_present), .img_mounted(img_mounted), .disk_wp(1'b1), .img_size(media_size),
+	.disk_ready(media_present), .img_mounted(img_mounted),
+	.disk_wp(!status[1] || media_readonly), .img_size(media_size),
 	.sd_lba(sd_lba[0]), .sd_rd(sd_rd), .sd_wr(sd_wr), .sd_ack(sd_ack),
 	.sd_buff_addr(sd_buff_addr[8:0]), .sd_buff_dout(sd_buff_dout),
 	.sd_buff_din(sd_buff_din[0]), .sd_buff_wr(sd_buff_wr),

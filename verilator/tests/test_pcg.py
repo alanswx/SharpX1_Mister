@@ -86,14 +86,16 @@ with tempfile.TemporaryDirectory(prefix="x1-pcg-") as directory:
         for row in csv.DictReader(stream):
             now = int(row["time_ps"])
             key = (int(row["address"]), int(row["rd_n"]), int(row["wr_n"]))
-            if current is None or key != current[0] or now - previous_time != 31250:
+            if current is None or key != current[0] or abs(now - previous_time - 10**12/report["sys_hz"]) > 1:
                 current = [key, 0]
                 runs.append(current)
             current[1] += 1
             previous_time = now
     ordinary = [count for (port, rd, wr), count in runs if port == 0x1A02 and rd == 0]
     pcg_reads = [count for (port, rd, wr), count in runs if 0x1400 <= port <= 0x17FF and rd == 0]
-    assert ordinary and pcg_reads and min(pcg_reads) >= max(ordinary), (ordinary, pcg_reads)
+    # Fractional enables can vary the ordinary bus duration by one master tick.
+    tolerance = 0 if report["sys_hz"] == 32000000 else 1
+    assert ordinary and pcg_reads and min(pcg_reads) + tolerance >= max(ordinary), (ordinary, pcg_reads)
     if video_hz == 4000000:
         assert min(pcg_reads) > max(ordinary), (ordinary, pcg_reads)
     print(json.dumps({"video_hz": report["video_hz"], "ordinary_read_sys_edges": ordinary,
