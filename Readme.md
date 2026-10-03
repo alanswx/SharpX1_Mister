@@ -65,6 +65,9 @@ CRTC fabric clock with an enable and derives average CPU/PSG rates from one
 video-rate master. It boots the game and passes focused diagnostics, but the
 short two-direction gameplay regression currently fails. The baseline remains
 the default; do not advertise the experiment as fully compatible.
+The single revision builds an RBF with positive analyzed core timing and no
+unconstrained clocks; incomplete external I/O constraints and hardware testing
+still prevent full signoff.
 
 ## Play CROSS Chase locally
 

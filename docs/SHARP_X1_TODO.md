@@ -19,6 +19,8 @@ support before optional Turbo extensions.
   prove CRTC 40/80 phase equivalence and focused diagnostics.
 - [ ] Resolve single-clock short gameplay-input regression and MR16 timer-rate
   differences; obtain timing signoff before changing the default configuration.
+- [x] Build opt-in single revision with positive analyzed setup/hold/recovery
+  and no unconstrained clocks; external I/O constraints/hardware remain open.
 - [x] Make the simulator load `bios/ipl_x1.hex` through the shared ioctl path.
 - [ ] Add deterministic reset, clock, and frame-count command-line options.
 - [x] Add cycle/reset-duration/video-frequency options and a timing/reset regression.

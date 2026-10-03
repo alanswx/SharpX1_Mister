@@ -21,9 +21,11 @@ load. See `CLOCK_EXPERIMENT.md` for commands, evidence and limitations.
 Initial Quartus 17 synthesis/fit/assembly succeeded but timing failed. A later
 disk snapshot failed on a SystemVerilog cast listed as Verilog; replaced it
 with a width-qualified localparam, without changing motor behavior. The
-optional single revision is being fitted separately. No hardware core was
-loaded, and no timing signoff is claimed. See `QUARTUS_BUILD.md` for per-build
-source identities and results; this entry is not a final timing report.
+optional single revision completed all stages with positive analyzed timing:
+core setup +10.397 ns, hold +0.245 ns, recovery +12.244 ns, and no unconstrained
+clocks. Three input/44 output ports remain incompletely constrained. No hardware
+core was loaded, and full board timing signoff is not claimed. See
+`QUARTUS_BUILD.md` for per-build source identities and results.
 
 Forked to `alanswx/SharpX1_Mister`, preserved `origin`, and selected `alanswx`
 as the push destination. Private game assets, snapshots and generated outputs

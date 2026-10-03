@@ -159,5 +159,83 @@ Input manifest SHA-256:
 Unlike the reconstructed disk baseline, this includes optional fractional
 clock-enable/CRTC-enable RTL and the single-clock QSF. The main revision remains
 the default. These two snapshots are a development comparison, not a controlled
-same-input synthesis run with only one macro changed. Both builds are underway;
-stage results and timing must be recorded separately on completion.
+same-input synthesis run with only one macro changed.
+
+### Single-clock completed result
+
+`quartus-Rc7U8tGG` completed with sidecar exit status **0**. Map/fit/asm/STA
+took **3:48 / 11:48 / 0:16 / 0:11**; wall time including snapshot/runtime
+startup was **16:34**, with the disk-baseline build concurrently active.
+RBF SHA-256:
+`cf0b0e0e754bed2e6a7d9233f25d8163f714b6277111fe2b8c504eba411095d7`.
+Final utilization: **19,927 ALMs (48%)**, 31,566 registers, 2,071,408 memory
+bits (37%), 263 RAM blocks, 32 DSP blocks and 3 PLLs.
+
+Reported constrained-path timing passes: worst setup **+0.401 ns**, hold
+**+0.173 ns**, recovery **+3.698 ns**, removal **+0.967 ns**, minimum pulse
+width **+1.122 ns**. Machine-domain setup/hold/recovery are
+**+10.397 / +0.245 / +12.244 ns**, respectively. There are **zero
+unconstrained clocks**, removing the legacy CRTC fabric-clock gap, but **3
+input ports / 44 output ports** remain unconstrained (7 input and 50 output
+paths). This is not complete I/O timing or hardware signoff. No new false-path
+exceptions were added. The project's inherited single-corner timing setting
+also remains unchanged.
+
+Supplemental read-only reports from `scripts/quartus_timing_paths.tcl` show
+PCG register-path setup **+26.820 ns** and MR16 CPU endpoint setup
+**+15.449 ns** at the reported slow 1100 mV / 100 C corner. These establish
+timing margin for the selected paths, not cycle-accurate firmware behavior.
+MR16 firmware/timers still follow the reduced master clock, reset/device
+protocol and real-time scaling require further review, and the parent reports
+single-clock native gameplay equivalence is **not yet passing**. Native boot
+and diagnostic passes must not be promoted to full gameplay compatibility.
+PLL lock/reset handling, PCG reset-release/placement, physical inputs/audio
+and hardware storage remain unverified.
+
+Synthesis reports ignored `async_reg` attributes and inferred-latch warnings
+for fractional accumulator low bits 0–1, plus existing width/connectivity
+warnings. The low bits are mathematically constant for this board rate;
+the warnings remain explicitly recorded, not suppressed as signoff.
+
+### Corrected disk baseline completed result
+
+`quartus-disk-fixed-BRaJxFnN` also completed with exit status **0**. Map/fit/
+asm/STA took **3:44 / 11:28 / 0:15 / 0:11**, wall time **16:16**. RBF SHA-256:
+`16b464cfcdecc53899344062c5956a7af56516be40a18e7cd328a3f89cf114cd`.
+It uses **20,195 ALMs (48%)**, 31,533 registers and 2,071,408 memory bits
+(37%). Timing still **fails**, with worst setup **−3.261 ns** and recovery
+**−2.450 ns**; hold is **+0.254 ns**. One clock remains unconstrained, as do
+3 input and 44 output ports. No hardware deployment was performed.
+
+| Reported metric | Initial bring-up, older RTL | Corrected frozen disk baseline | Optional single-clock snapshot |
+| --- | ---: | ---: | ---: |
+| ALMs | 20,258 | 20,195 | 19,927 |
+| Worst setup (ns) | −3.391 | −3.261 | +0.401 |
+| Worst recovery (ns) | −2.575 | −2.450 | +3.698 |
+| Unconstrained clocks | 1 | 1 | 0 |
+| Unconstrained input/output ports | 3 / 44 | 3 / 44 | 3 / 44 |
+
+The initial bring-up snapshot is **older RTL**, not a controlled same-source
+A/B. The reconstructed disk baseline and single-clock snapshot also have
+different source sets as documented above. These results support continued
+development of the optional revision; they do not isolate every timing/resource
+change to one macro, prove complete constraints, or establish hardware/gameplay
+compatibility. The default revision is unchanged.
+
+### Supplemental-report provenance
+
+`scripts/quartus_timing_paths.tcl` is read-only timing analysis against an
+existing fitted database; it does not rebuild the FPGA. Select either supported
+revision as its argument from the corresponding snapshot working directory:
+
+```sh
+quartus_sta -t /path/to/scripts/quartus_timing_paths.tcl sharpx1_single
+```
+
+For the reported single-clock supplemental run, script SHA-256 is
+`e0dc080aa4bebce8faf938bf6c76cbbeb17379c7d77a21456ddf66beed0a6437`.
+The ignored `quartus-Rc7U8tGG/supplemental-manifest.txt` binds that script,
+input manifest, RBF and the four generated report hashes. It ran Quartus 17.0.0
+Build 595 at 12:22:29–12:22:35 UTC on 2026-10-03, using the same installed
+runtime image, with 4 requested CPUs and 8 GiB memory. No additional builds,
+constraint edits, core copies, core loads or reboots were made for these reports.

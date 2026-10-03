@@ -59,6 +59,15 @@ External framework/PS2 crossings remain. One internal clock does not itself
 prove safe asynchronous reset release, physical RAM collision behavior or
 hardware correctness. Quartus comparison evidence belongs in `QUARTUS_BUILD.md`.
 
+The single revision completed synthesis, fitting, assembly and TimeQuest on
+2026-10-03. Core setup/hold/recovery slack is **+10.397 / +0.245 / +12.244 ns**;
+there are **zero unconstrained clocks**, eliminating the legacy CRTC gap.
+Whole-design worst setup slack is +0.401 ns (HDMI domain). Three input and
+44 output ports remain incompletely constrained, and hardware has not been
+tested. These positive analyzed results are not full board timing signoff.
+The initial failing baseline build predates disk changes, so it is not an
+identical-source controlled A/B fit; inspect actual path reports and manifests.
+
 ## Simulation results (2026-10-03)
 
 Verilator 5.044: delay-aware `test-single` passes timing/FST/reset/rate,
@@ -94,6 +103,10 @@ Measured speedup: **1.63x**. Other tests/builds were active; this is a prelimina
 workload-specific comparison, not an isolated benchmark or guaranteed gameplay
 speedup. `benchmark_clocks.py` retains deterministic reports and checks equal
 physical duration. A cleaner repeated comparison remains useful.
+
+A second interleaved five-run comparison at 250 ms duration measured median
+3.544 s baseline versus 2.254 s single (1.57x). Concurrent tests/Quartus were
+still active; both comparisons suggest approximately 1.6x for this workload.
 
 ## Original clock sources
 
