@@ -68,8 +68,10 @@ and TimeQuest on 2026-10-03. Core setup/hold/recovery slack is
 **+10.144 / +0.247 / +13.106 ns**;
 there are **zero unconstrained clocks**, eliminating the legacy CRTC gap.
 Whole-design worst setup slack is +0.513 ns (HDMI domain). Three input and
-44 output ports remain incompletely constrained, and hardware has not been
-tested. These positive analyzed results are not full board timing signoff.
+44 output ports remain incompletely constrained. The timer checkpoint now boots
+CROSS Chase on MiSTer and reaches its playfield through remote keys; physical
+clock/video/audio/input/write validation remains open. See `HARDWARE_BRINGUP.md`.
+These positive analyzed results are not full board timing signoff.
 The initial failing baseline build predates disk changes, so it is not an
 identical-source controlled A/B fit; inspect actual path reports and manifests.
 

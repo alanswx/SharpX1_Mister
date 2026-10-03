@@ -315,3 +315,82 @@ MiSTer was running `/media/fat/_Computer/SharpMZ-std_20261003.rbf` with
 2 days 13:05, load average `1.00, 0.00, 1.00`. `/media/fat/_Computer` was
 accessible. Availability means SSH connectivity, **not** permission to interrupt
 the active hardware-test session. Nothing was copied, loaded, stopped or rebooted.
+
+## Committed D0 silent-abort checkpoint
+
+The `sharpx1_single` snapshot in `output_files/quartus-AtFLTCqB/` was captured
+from committed HEAD **`7831f81a8eaeff2cfa0725eea92c0a153c299fe7`** with no
+dirty RTL. Input manifest SHA-256:
+`57095c0a5ba813b1d0e0146ad27b0e82cec135ab2331acc4445f01b9b564081d`.
+Relative to the timer snapshot `qOsoLktO`, the only machine-source difference is
+`rtl/vendor/wd1793.sv`; `AGENTS.md` also changed. The included WD1793-family
+source hash is
+`4a251706b566e99ad795796d9c825a66c499fe2c258803fb4e5ba97e24799d40`.
+It contains the busy D0 silent-abort fix. This supersedes the earlier RBF's
+exclusion of that fix, **only for this new artifact**.
+
+The installed Quartus 17.0.0 Build 595 stepwise flow remains map(1), fit(8),
+asm, STA with unchanged settings/constraints. Private software and simulation
+assets are excluded. The build is isolated from subsequent parent edits;
+later FDC implementations are not covered by this source identity. The sidecar
+made no hardware connection or deployment
+for this checkpoint: the parent owns the separately authorized MiSTer test.
+
+### Completed committed-checkpoint result
+
+All stages and sidecar exited **0**. Map/fit/asm/STA took
+**2:11 / 6:27 / 0:15 / 0:10**, wall time **9:13**
+(13:20:16–13:29:29 UTC, 2026-10-03). Complete stage logs, source/runtime
+manifest and map/fit/asm/STA reports are retained in the snapshot directory.
+Output is `source/output_files/sharpx1_single.rbf`, SHA-256:
+`b2ca0708fc679a7babb52bd29dfec994839f5f429dac7b5c67a2b2799866886b`.
+
+This RBF is **byte-identical** (`cmp` verified) to the compensated timer
+snapshot `qOsoLktO`, despite the separately hashed D0 source fix. The machine's
+FDC instance explicitly leaves `.intrq()` unconnected (`rtl/sharpx1.v` line
+174 in this snapshot); Quartus's connectivity report confirms this. The fix
+changes that output only, so its logic has no board-visible fanout in the current
+machine. This is not proof of an integrated hardware FDC interrupt path or a
+hardware execution of the controller's D0 regression. The new source-bound build
+is still necessary to establish compilation of the committed checkpoint.
+
+| Reported metric | Committed single revision `AtFLTCqB` |
+| --- | ---: |
+| Core setup / hold / recovery (ns) | +10.144 / +0.247 / +13.106 |
+| Global worst setup / hold / recovery (ns) | +0.513 / +0.178 / +3.446 |
+| Global removal / pulse-width slack (ns) | +1.011 / +1.122 |
+| ALMs / registers | 20,023 (48%) / 31,569 |
+| Memory bits / RAM blocks | 2,071,408 (37%) / 263 |
+| DSP blocks / PLLs | 32 / 3 |
+| Map / fit / STA warnings | 81 / 9 / 0 |
+| Unconstrained clocks | 0 |
+| Unconstrained input / output ports | 3 / 44 |
+
+Timing, utilization and warning counts match the timer build. Reported
+constrained paths pass, but the 7 unconstrained input paths / 50 output paths,
+inherited single-corner timing, PLL/reset handling and hardware validation
+remain open. Baseline defaults remain unchanged. No further build, source/
+constraint edit, installation, license acceptance or hardware operation was
+performed by the sidecar for this checkpoint; later parent changes require
+their own source-bound build evidence.
+
+## Conditional Type IV interrupt snapshot
+
+A second, independently frozen `sharpx1_single` build is in
+`output_files/quartus-atzbOrkj/`. It records base commit
+`7831f81a8eaeff2cfa0725eea92c0a153c299fe7` **plus uncommitted conditional
+interrupt RTL**, not committed `7831f81` alone. Input manifest SHA-256:
+`7eb2b4b9eacf95a1c27d21cce54f92febf26c748b55fe1d5d8acca8a9b49a9b7`.
+Its per-file input manifest differs from `AtFLTCqB` in exactly one file,
+`rtl/vendor/wd1793.sv`, now hashed as
+`7230919cdc6415ad7972477ae18581da6c193e76f889fdb60dc94042d2768549`.
+
+The included change arms Type IV interrupt conditions for ready transitions
+and index, retains immediate D8 INTRQ over status reads, and cancels masks on
+the next accepted command/reset. The parent reports focused controller tests
+passing; this sidecar is verifying synthesis/timing, not rerunning those tests.
+The FPGA machine still leaves FDC INTRQ unconnected, so a successful build or
+game boot cannot validate hardware consumption of those interrupt conditions.
+Stage results are pending. The earlier committed `AtFLTCqB` source identity
+and result remain separate. No hardware access/deployment is performed by
+the sidecar; the parent owns artifact loading and hardware observations.

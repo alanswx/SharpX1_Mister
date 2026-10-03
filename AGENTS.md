@@ -60,6 +60,12 @@ timer's inherited N+1-tick period and test both actual master frequencies.
 Never claim compatibility or timing closure from a boot screenshot.
 Simulator disk writes require `--disk-output NEW_COPY`; private originals and
 snapshots remain ignored. See `docs/DISK_STATUS.md` for tested and missing cases.
+`scripts/mister_x1.py` deploys source-bound hardware tests under unique names
+with disposable protected disk copies. Coordinate availability before loading
+a core; preserve other cores/config/media. Record RBF hashes and actual PNGs
+in ignored outputs, and scope hardware claims as in `HARDWARE_BRINGUP.md`.
+Base-X1 FDC INTRQ/DRQ are unconnected, as in local MAME; do not invent a CPU
+interrupt connection to prevent Quartus from optimizing a diagnostic output.
 
 Optional `interactive` and `fast` targets require SDL2. `fast` uses
 `--no-timing`, ignoring inherited intra-assignment delays like synthesis;

@@ -276,9 +276,11 @@ reg	[1:0]	s_drq_busy;
 wire			s_drq  = s_drq_busy[1];
 wire			s_busy = s_drq_busy[0];
 reg         s_intrq;
-// X1: D0 abort must not inherit the ordinary command-completion interrupt.
-// Keep this latched until the next accepted command, including while busy.
-reg         silent_abort;
+// X1 Type IV conditions: Fujitsu MB8876A/MB8877A datasheet pp. 5-6;
+// immediate-mask status-read persistence cross-checked with local MAME.
+reg         force_command;
+reg [3:0]   force_mask;
+reg         previous_ready, previous_index;
 
 reg   [7:0] wdreg_track;
 reg   [7:0] wdreg_sector;
@@ -510,7 +512,10 @@ always @(posedge clk_sys) begin
 		buff_rd <= 0;
 		if(RWMODE) buff_wr <= 0;
 		state <= STATE_IDLE;
-		silent_abort <= 0;
+		force_command <= 0;
+		force_mask <= 0;
+		previous_ready <= ready;
+		previous_index <= 0;
 		cmd_mode <= 0;
 		s_wpe <= 1;
 		{s_headloaded, s_seekerr, s_crcerr, s_intrq} <= 0;
@@ -521,6 +526,11 @@ always @(posedge clk_sys) begin
 		{ack, sd_wr, sd_rd, sd_busy} <= 0;
 		ra_sector <= 1;
 	end else if(ce) begin
+		previous_ready <= ready;
+		previous_index <= s_index;
+		if(force_mask[3] || (force_mask[2] && s_index && !previous_index)
+		   || (force_mask[1] && previous_ready && !ready)
+		   || (force_mask[0] && !previous_ready && ready)) s_intrq <= 1;
 
 		ack <= {ack[4:0], sd_ack};
 		if(ack[5:4] == 'b01) {sd_rd,sd_wr} <= 0;
@@ -564,7 +574,7 @@ always @(posedge clk_sys) begin
 		if((!old_rd && rde) || (!old_wr && wre)) cur_addr <= addr;
 
 		//Register read operations
-		if(old_rd && !rde && (cur_addr == A_STATUS)) s_intrq <= 0;
+		if(old_rd && !rde && (cur_addr == A_STATUS) && !force_mask[3]) s_intrq <= 0;
 
 		//end of data reading
 		if(old_rd && !rde && (cur_addr == A_DATA)) read_data <=1;
@@ -874,7 +884,10 @@ always @(posedge clk_sys) begin
 					state <= STATE_IDLE;
 					s_drq_busy <= 2'b00;
 					seektimer <= 'h3FF;
-					s_intrq <= !silent_abort;
+					// Conditional Type IV commands arm a source; terminating the
+					// old transfer must not itself invent an interrupt or erase
+					// an edge observed while the abort was finishing.
+					if(!force_command || force_mask[3]) s_intrq <= 1;
 				end
 		endcase
 
@@ -888,7 +901,8 @@ always @(posedge clk_sys) begin
 `endif
 						s_intrq <= 0;
 						if((state == STATE_IDLE) | (din[7:4] == 'hD)) begin
-							silent_abort <= (din == 8'hD0);
+							force_command <= (din[7:4] == 4'hD);
+							force_mask <= (din[7:4] == 4'hD) ? din[3:0] : 4'd0;
 							cmd_mode <= din[7];
 							s_wpe    <= ~din[7];
 
@@ -1034,56 +1048,10 @@ always @(posedge clk_sys) begin
 									if(state != STATE_IDLE) state <= STATE_ABORT;
 									else begin
 										{s_wrfault,s_seekerr,s_crcerr,s_lostdata, s_drq_busy} <= 0;
-										// ANY of I0-I3 raises INTRQ, not just I3.
-										// On an IDLE controller this used to clear the
-										// error bits and stop, so INTRQ was never raised
-										// -- the command write above has already done
-										// `s_intrq <= 0` and nothing set it again,
-										// because only STATE_ENDCOMMAND does.
-										//
-										// CSP is explicit and is the primary authority
-										// here: `// force interrupt if bit0-bit3 is high
-										// / if(cmdreg & 0x0f) { set_irq(true); }`
-										// (mb8877.cpp:1191 cmd_forceint). 77AVEMU agrees
-										// and goes further -- FM77AVFDC::IOWrite raises
-										// it for ANY $Dx, bits or no bits, and routes it
-										// to MAIN_IRQ_SOURCE_FDC as well
-										// (fdc/fm77avfdc.cpp:626-630).
-										//
-										// WHERE THEY DISAGREE, and which we follow: on a
-										// bare $D0 (no I bits) CSP does NOT interrupt and
-										// 77AVEMU does. We follow CSP, which is also what
-										// the WD1793 datasheet specifies -- $D0 is
-										// "terminate with no interrupt".
-										//
-										// Two titles found this, one bit apart. Xanadu
-										// (Disk A) writes $D8 -- I3, interrupt
-										// immediately -- at pc=$035D with the FDC idle
-										// and polls $FD1F at $035F for b6; this core
-										// answered $3F 2159554 times and never drew a
-										// pixel. Xanadu Scenario II (Disk D) writes $D4
-										// -- I2, interrupt on the next INDEX PULSE -- and
-										// waits on an IRQ handler to set bit 6 of $001F,
-										// spinning at $01b7 forever. `din[3]` fixed the
-										// first and left the second: both machines' main
-										// CPU I/O writes are identical for 37 writes,
-										// ours stops dead on the $D4 and the reference
-										// goes on to issue 3566 Read Address commands.
-										//
-										// The conditional sources are not modelled as
-										// conditions -- I0 (not-ready to ready), I1
-										// (ready to not-ready) and I2 (index pulse) all
-										// interrupt at once here, as they do in both
-										// references. The index pulse in particular is
-										// only ever 200 ms away (s_index above), so the
-										// difference is a latency no title has been
-										// observed to depend on.
-										//
-										// Route through ENDCOMMAND rather than setting
-										// s_intrq here, so the raise happens on the
-										// following cycle and shares the one path that
-										// ends a command.
-										if(|din[3:0]) state <= STATE_ENDCOMMAND;
+										// Only I3 interrupts immediately. I0/I1 wait for
+										// READY transitions; I2 waits for an index edge.
+										// D0 has no armed source and remains silent.
+										if(din[3]) state <= STATE_ENDCOMMAND;
 									end
 								end
 							'hF:  // WRITE TRACK

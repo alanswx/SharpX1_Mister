@@ -4,7 +4,9 @@ An experimental Sharp X1 FPGA core for MiSTer, with machine RTL, inherited
 Nise X1 hardware, firmware sources, and a Verilator simulation harness.
 The project is in bring-up. CROSS Chase now boots from D88 through the native
 IPL and is playable in Verilator. This does not establish full X1 compatibility
-or a working FPGA release.
+or a release-ready FPGA core. An optional single-clock checkpoint also boots
+the game on MiSTer and responds to remote start input; see
+[hardware bring-up evidence](docs/HARDWARE_BRINGUP.md) for the limited scope.
 
 ## Current status
 
@@ -55,10 +57,12 @@ does not override read-only media. Generated D88 tests cover reads, safe writes,
 protection, variable sector sizes, seeking, sides and error/status cases.
 See [disk verification and limits](docs/DISK_STATUS.md).
 The initial Quartus 17 build produced an RBF, but **timing does not close**;
-hardware operation remains unverified. See [build evidence](docs/QUARTUS_BUILD.md).
+The optional single-clock checkpoint has positive analyzed timing and a native
+hardware game boot. See [build evidence](docs/QUARTUS_BUILD.md) and
+[hardware observations](docs/HARDWARE_BRINGUP.md); neither is full signoff.
 The checked-in PLL specifies 28.571428 MHz,
 not the 28.636 MHz in comments; correcting and verifying that clock remains
-open. No FPGA release or hardware boot is established by simulation results.
+open. Hardware boot is separately observed, not inferred from simulation.
 
 An opt-in [single-clock experiment](docs/CLOCK_EXPERIMENT.md) replaces the
 CRTC fabric clock with an enable and derives average CPU/PSG rates from one
@@ -69,8 +73,9 @@ the default; do not advertise the experiment as fully compatible.
 The frozen single-clock timer checkpoint builds an RBF with positive analyzed
 core timing and no
 unconstrained clocks; incomplete external I/O constraints and hardware testing
-still prevent full signoff. That FPGA build excludes the subsequent floppy
-silent-abort fix; see the source-bound build report before testing an RBF.
+still prevent full signoff. A source-bound build including the silent-abort fix
+has the same RBF because INTRQ has no board-visible fanout; further conditional
+interrupt changes need their own build. Check the report before testing an RBF.
 
 ## Play CROSS Chase locally
 
@@ -168,8 +173,9 @@ quartus_sh --flow compile sharpx1
 
 The installed Apple-container build is available through
 `bash scripts/build_quartus.sh`; the initial main-project build completed
-synthesis/fitting/assembly but failed timing. Timing closure and hardware boot
-have not been established. The FPGA top is
+synthesis/fitting/assembly but failed timing. Optional single-clock checkpoints
+have positive constrained-path timing and a separately observed native hardware
+game boot; full timing/hardware signoff remains open. The FPGA top is
 `sys_top`; core integration is in `sharpx1.sv`. Add machine dependencies to
 `rtl/machine.qip`, shared with simulation; board dependencies belong in `files.qip`.
 Quartus output goes into `output_files/`.

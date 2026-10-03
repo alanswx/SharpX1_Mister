@@ -29,10 +29,14 @@ selects the X1 index/head-load configuration without changing upstream snapshots
 the ordinary completion interrupt. Idle/busy `$D0` now clears BUSY/DRQ silently;
 `$D8` still interrupts. The register-level fixture also verifies a subsequent
 normal completion, status-read acknowledgement and reset. This does not cover
-aborting an outstanding host SD request or conditional `$D1/$D2/$D4` semantics.
-The inherited controller also clears INTRQ on every status read, whereas local
-MAME retains it when the immediate force-interrupt mask is active; verify that
-distinction against MB8877 documentation before claiming exact `$D8` behavior.
+aborting an outstanding host SD request. The fixture now also verifies
+`$D1/$D2` only trigger on the selected READY transition, `$D4` waits for an index
+rising edge, conditional sources stay armed after acknowledgement, and a normal
+command or `$D0` cancels the mask. `$D8` remains asserted across status reads,
+following Fujitsu's Type IV exception and local MAME's immediate-mask handling.
+The test's index period is accelerated to 1000 enables; the separate index bench
+still checks the actual 800,000-enable period. Pin-level command timing and
+simultaneous event/read edge priorities are not established by these fixtures.
 The local MAME `src/devices/machine/wd_fdc.cpp` `interrupt_start()` provides the
 cross-check for a zero force-interrupt mask. Imported source notices and sibling
 reference snapshots remain unchanged.
@@ -55,7 +59,7 @@ not been verified on hardware; use disposable media copies for bring-up.
 ## Remaining limits
 
 Only drive A and the base MFM/2D path are covered. Exact command/byte/seek timing,
-conditional force interrupts, deleted-data marks, metadata updates after writes,
+exact force-interrupt pin timing, deleted-data marks, metadata updates after writes,
 per-sector density, format/write-track, malformed-image rejection, eject/reset
 during transfers, drive B and Turbo 2HD/2DD remain unvalidated or incomplete.
 Image addressing is limited to less than 1 MiB. Synthetic CRC flags do not
@@ -65,3 +69,6 @@ storage milestone complete from these tests or a successful FPGA compile.
 Both baseline delay-aware simulation and the optional single-clock simulation
 passed the generated-media suite. FPGA validation is separate; see
 [Quartus build evidence](QUARTUS_BUILD.md).
+Native read-only CROSS Chase boot and remote-key start are now observed on
+MiSTer; see [hardware scope](HARDWARE_BRINGUP.md). INTRQ is not exposed by the
+base machine, so hardware game boot cannot validate the force-interrupt output.

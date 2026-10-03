@@ -1,5 +1,28 @@
 # Implementation progress
 
+## 2026-10-03 — first MiSTer boot and conditional floppy interrupts
+
+With explicit user permission, loaded the compensated single-clock timer RBF
+on MiSTer using a unique test setname and disposable protected disk copy.
+Native CROSS Chase title and playfield appear in actual Main-captured 320x200
+PNGs; remote keyboard starts a game. The disk copy's before/after SHA-256 is
+unchanged. Neither installed SharpMZ files nor original media were overwritten.
+`HARDWARE_BRINGUP.md` records source/asset identities and unverified physical
+video/audio/input/write behavior. Delayed screenshots include game deaths and
+blinking, so exact hardware I/J displacement is not yet a passed gate.
+
+Downloaded Fujitsu's original MB8876A/MB8877A datasheet and cross-checked local
+MAME. Implemented READY rising/falling and index rising force-interrupt sources,
+mask cancellation/re-arming, and immediate `$D8` status-read persistence.
+Expanded the original FDC fixture; baseline, fast and single-clock suites pass.
+Fresh 13-second native game boots and the unchanged 200 ms two-direction test
+pass in baseline and single-clock mode, with identical frame hashes; both local
+private checkpoints were regenerated after RTL changes. Source-bound
+Quartus build `AtFLTCqB` passes the committed D0 checkpoint, but its RBF matches
+the timer build exactly because INTRQ is unconnected. A separate conditional
+interrupt build is in progress. Do not add a CPU FDC IRQ just to keep that logic;
+the base MAME configuration also has no FDC IRQ/DRQ callback wiring.
+
 ## 2026-10-03 — silent floppy abort
 
 An original register-level fixture reproduced busy `$D0` incorrectly raising

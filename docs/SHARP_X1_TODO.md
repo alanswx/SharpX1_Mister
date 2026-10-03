@@ -97,9 +97,9 @@ support before optional Turbo extensions.
   malformed/eject/reset transfers, drive B and applicable 2HD/2DD media.
 - [x] Fix busy `$D0` falsely raising completion INTRQ; add idle/busy `$D0/$D8`,
   subsequent normal completion, status acknowledgement and reset regression.
-- [ ] Cross-check `$D8` INTRQ persistence across status reads against MB8877
-  documentation: current RTL clears all status reads; local MAME preserves
-  INTRQ while the immediate force-interrupt mask is active.
+- [x] Cross-check Fujitsu MB8877A Type IV bits and status acknowledgement;
+  implement `$D1/$D2` ready edges, `$D4` index edges and `$D8` persistence,
+  with mask cancellation/re-arming and reset tests. Exact pin timing remains open.
 - [ ] Implement DMA bus arbitration and verify Z80 DMA transfers.
 - [ ] Add CTC/SIO behavior and interrupt priority/acknowledgement tests.
 - [ ] Implement X1 Turbo high-resolution/400-line behavior.
@@ -111,6 +111,11 @@ support before optional Turbo extensions.
 
 - [x] Produce an initial main-project Quartus 17 RBF; record failed timing,
   utilization and source hashes. This is not timing closure or hardware proof.
+- [x] Load the source-bound single-clock timer checkpoint on MiSTer, observe
+  native CROSS Chase title/playfield and remote-key start; retain hardware PNGs
+  and unchanged disposable disk hashes. This is not full hardware validation.
+- [ ] Verify controlled two-direction movement, physical inputs and audio on
+  hardware, beyond remote-key start and changing playfield screenshots.
 
 - [x] Wire MiSTer HPS keyboard, joystick, read-only floppy and IPL/reset OSD;
   route actual RGB/audio and elaborate the wrapper with lint.

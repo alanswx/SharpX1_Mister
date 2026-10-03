@@ -43,3 +43,14 @@ dc00c3ae4dbf1ef7ce2bcc6e3aa3e1cec2126521014c5e34ddc4314668e12d5c  cz8rl1_schemat
 
 Retain original attribution and treat these archival documents separately
 from the repository's code license.
+
+## Floppy controller datasheet
+
+Retrieved 2026-10-03: [Fujitsu MB8876A/MB8877A datasheet](https://knetonator.de/dashboard/PPG/Manuals/WT-A%20MB8876A_FujitsuMediaDevices.pdf),
+saved locally as `MB8876A_MB8877A_Datasheet.pdf` (ignored, 17 pages).
+SHA-256: `3358e0cefabb858261177d3f658c63db3f4142f9bfb826339135d5c19ab1b91b`.
+This is Fujitsu's original document hosted by an archive, not a new emulator
+description. PDF pages 5-6 cover status-read interrupt acknowledgement and
+Type IV ready/index/immediate condition bits; compare local MAME's
+`src/devices/machine/wd_fdc.cpp` for immediate-mask persistence and re-arming.
+Physical pin timing and exact Fujitsu silicon equivalence remain unvalidated.
