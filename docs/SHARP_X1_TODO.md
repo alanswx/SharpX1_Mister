@@ -73,9 +73,9 @@ support before optional Turbo extensions.
   mode transitions and hardware acceptance remain separate gates.
 - [x] Add CPU-programmed color/reverse/address-wrap, double-width/height and
   three-plane PCG pixel fixtures at both widths; delay-aware baseline/single
-  and fast runs pass. Both live width switches pass in baseline and fast;
-  single-clock switching, blink/exact scanline timing and hardware acceptance
-  remain open. See `VIDEO_STATUS.md`.
+  and fast runs pass. Both live width switches and firmware-driven blink
+  phases pass in baseline/single and fast; exact scanline timing, character
+  ROM authenticity and hardware acceptance remain open. See `VIDEO_STATUS.md`.
 - [x] Test individual GRAM planes, all DAM write masks, read-clear and ordinary
   port isolation; observe native 320×200 game colors.
 - [ ] Validate PCG writes/readback and the documented PCG wait behavior.

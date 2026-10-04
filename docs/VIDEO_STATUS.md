@@ -64,8 +64,7 @@ actual beam-addressed CPU ports, then checks all pixels after HALT. It does
 not establish exact native scanline trapping. Pattern/stretch run for 200 ms;
 PCG runs for 300 ms. All twelve static cases passed together in the
 delay-aware baseline and single-clock models on October 4. Both mixed-width
-transitions passed in baseline; single-clock transitions are still being
-checked.
+transitions also passed in both configurations.
 
 | Additional raster | 40 columns | 80 columns |
 |---|---|---|
@@ -84,7 +83,10 @@ Blink-phase fixtures now use attribute `0x17` and the actual MR16 firmware's
 captures at 200 ms match ordinary text; 700 ms captures reverse every
 three-bit text color. Both widths pass: reversed hashes are
 `aa3e96f84b15d4f5` (40) and `a8c19af3abc716c5` (80). Delay-aware baseline
-and single-clock phase checks are running. This verifies the implemented
+and single-clock phase checks also pass at both widths. Together, sixteen
+static cases and two live width transitions now pass in each configuration.
+Post-change warm-reset, baseline clock/FST, keyboard-poll, memory and graphics
+bus checks pass as well. This verifies the implemented
 firmware cadence, not the real keyboard controller's timing against hardware.
 
 ## Reproduction
@@ -104,10 +106,8 @@ transition checks. On a busy host use `VIDEO_TEST_FLAGS='--timeout 600'`.
 
 ## Remaining acceptance
 
-- Finish the additional pattern/transition checks in all relevant models.
-- Finish blink-phase checks across clock models; PCG raster/readback does not
-  prove exact native scanline timing. Independently verify the character ROM
-  and blink cadence against hardware.
+- PCG raster/readback does not prove exact native scanline timing.
+  Independently verify the character ROM and blink cadence against hardware.
 - Check measured line/frame timing and mode-change transients against hardware.
 - Demonstrate reproducible controls in five distinct commercial games. Druaga
   and Xevious plus Mappy have live player-movement checks (3/5); other titles/boards are
