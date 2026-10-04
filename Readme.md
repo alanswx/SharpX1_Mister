@@ -54,10 +54,10 @@ See [bring-up progress](docs/BRINGUP_PROGRESS.md) for changes and remaining gate
 Private commercial-game test preparation and the top-32 shortlist are documented
 in [test media](docs/TEST_MEDIA.md). Locally extracted disks remain ignored
 assets; their presence is not proof of compatibility or gameplay.
-Four commercial titles now have repeatable native gameplay-control evidence
-in fast baseline simulation: Druaga, Xevious, Mappy and Shanghai. See the
+Five commercial titles now have repeatable native gameplay-control evidence
+in fast baseline simulation: Druaga, Xevious, Mappy, Shanghai and Galaga. See the
 [commercial compatibility matrix](docs/COMMERCIAL_COMPATIBILITY.md) for the
-bounded checks and remaining one-game gate; this is not hardware signoff.
+bounded checks and remaining compatibility gates; this is not hardware signoff.
 The simulator window now offers optional [live joystick keys](docs/PLAYING.md):
 arrows, Space (button 1) and Ctrl (button 2), through `--joystick-keys`.
 Independent CPU-programmed 40/80-column text and 320/640 graphics rasters now

@@ -321,6 +321,9 @@ int main(int argc, char **argv) {
         }
         size_t reset_cursor = 0;
         uint64_t hs_edges = 0, vs_edges = 0;
+        // Settled rising-edge periods sampled on clk_sys. Quantization is
+        // one system period; these are not sub-cycle pin/CDC measurements.
+        uint64_t last_hs_rise = 0, last_vs_rise = 0, hs_period_ps = 0, vs_period_ps = 0;
         uint64_t hash = 14695981039346656037ULL;
         bool old_hs = top.HSync, old_vs = top.VSync;
         unsigned disk_byte = 0, disk_cooldown = 0;
@@ -466,8 +469,20 @@ int main(int argc, char **argv) {
                 }
                 hash ^= static_cast<uint8_t>(top.video);
                 hash *= 1099511628211ULL;
-                if (static_cast<bool>(top.HSync) != old_hs) ++hs_edges;
-                if (static_cast<bool>(top.VSync) != old_vs) ++vs_edges;
+                if (static_cast<bool>(top.HSync) != old_hs) {
+                    ++hs_edges;
+                    if (top.HSync) {
+                        if (last_hs_rise) hs_period_ps = next - last_hs_rise;
+                        last_hs_rise = next;
+                    }
+                }
+                if (static_cast<bool>(top.VSync) != old_vs) {
+                    ++vs_edges;
+                    if (top.VSync) {
+                        if (last_vs_rise) vs_period_ps = next - last_vs_rise;
+                        last_vs_rise = next;
+                    }
+                }
                 old_hs = top.HSync;
                 old_vs = top.VSync;
             }
@@ -554,7 +569,7 @@ int main(int argc, char **argv) {
         std::printf("{\"machine\":\"sharpx1\",\"intra_assignment_delays\":%s,\"sys_hz\":%llu,\"video_hz\":%llu,"
                     "\"time_ps\":%llu,\"sys_edges\":%llu,\"video_edges\":%llu,"
                     "\"reset_edges\":%llu,\"cpu_enables\":%llu,\"delayed_sys_edges\":%llu,"
-                    "\"hs_edges\":%llu,\"vs_edges\":%llu,\"video_hash\":\"%016llx\","
+                    "\"hs_edges\":%llu,\"vs_edges\":%llu,\"hs_period_ps\":%llu,\"vs_period_ps\":%llu,\"video_hash\":\"%016llx\","
                     "\"download_bytes\":%llu,\"cpu_address\":%u,\"halted\":%s,\"peek\":\"%s\","
                     "\"ps2_bytes_sent\":%llu,\"disk_requests\":%llu,\"disk_writes\":%llu,\"frames\":%llu,\"frame_width\":%u,\"frame_height\":%u,\"frame_hash\":\"%016llx\","
                     "\"sub_pc\":%u,\"sub_address\":%u,\"sub_control\":%u,\"sub_running\":%s,\"sub_tx_busy\":%s,\"sub_rx_empty\":%s}\n",
@@ -563,7 +578,8 @@ int main(int argc, char **argv) {
                     (unsigned long long)video_hz, (unsigned long long)context.time(), (unsigned long long)top.sys_edges,
                     (unsigned long long)top.video_edges, (unsigned long long)top.reset_edges,
                     (unsigned long long)top.cpu_enables, (unsigned long long)top.delayed_sys_edges,
-                    (unsigned long long)hs_edges, (unsigned long long)vs_edges, (unsigned long long)hash,
+                    (unsigned long long)hs_edges, (unsigned long long)vs_edges,
+                    (unsigned long long)hs_period_ps, (unsigned long long)vs_period_ps, (unsigned long long)hash,
                     (unsigned long long)downloads.size(), top.cpu_address, top.cpu_halt_n ? "false" : "true", peek.c_str(),
                     (unsigned long long)ps2_bytes_sent,
                     (unsigned long long)disk_requests,(unsigned long long)disk_writes,(unsigned long long)frame.frames,frame.width,frame.height,

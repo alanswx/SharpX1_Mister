@@ -89,6 +89,17 @@ Post-change warm-reset, baseline clock/FST, keyboard-poll, memory and graphics
 bus checks pass as well. This verifies the implemented
 firmware cadence, not the real keyboard controller's timing against hardware.
 
+The runner also reports the last settled rising-edge HS/VS periods, sampled
+on `clk_sys`. Independent fixture totals are 1792 video-master edges per line
+at either width and `(32*8+2)=258` lines per frame (462336 master edges).
+Period assertions allow only one system-clock sampling interval plus 1 ps,
+not a broad percentage tolerance. Text at both widths passes in baseline,
+single-clock and fast models: baseline line ~62.72 µs/frame ~16.18176 ms;
+single line ~62.57778 µs/frame ~16.14507 ms. These are the fixture's programmed
+CRTC totals, not a claim of authentic hardware refresh. The final expanded
+matrix passes all sixteen cases and both mixed-width switches in each
+delay-aware configuration with these period assertions enabled.
+
 ## Reproduction
 
 From `verilator/`:
@@ -109,10 +120,11 @@ transition checks. On a busy host use `VIDEO_TEST_FLAGS='--timeout 600'`.
 - PCG raster/readback does not prove exact native scanline timing.
   Independently verify the character ROM and blink cadence against hardware.
 - Check measured line/frame timing and mode-change transients against hardware.
-- Demonstrate reproducible controls in five distinct commercial games. Druaga
-  and Xevious plus Mappy have live player-movement checks; Shanghai has native
-  cursor/selection and matching-pair removal (4/5). Other titles/boards are
-  still bring-up evidence, not verified gameplay.
+- The five-game bounded control gate is reached: Druaga, Xevious, Mappy and
+  Galaga have live player-movement checks; Shanghai has native cursor/selection
+  and matching-pair removal. Other titles/boards remain bring-up evidence,
+  not verified gameplay. Broader actions, music and level compatibility remain
+  separate gates; see `COMMERCIAL_COMPATIBILITY.md`.
 - The current pixel-qualification change has a successful source-bound
   single-clock Quartus fit with positive analyzed timing; see `QUARTUS_BUILD.md`.
   Full constraints/CDC and actual MiSTer acceptance remain open. Previous

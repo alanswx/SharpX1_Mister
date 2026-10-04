@@ -12,7 +12,7 @@ import tempfile
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("executable", type=pathlib.Path)
-parser.add_argument("title", choices=("druaga", "xevious", "mappy"))
+parser.add_argument("title", choices=("druaga", "xevious", "mappy", "galaga"))
 parser.add_argument("snapshot", type=pathlib.Path)
 parser.add_argument("disk", type=pathlib.Path)
 parser.add_argument("--output", type=pathlib.Path)
@@ -23,6 +23,7 @@ media_hashes = {
     "druaga": "bb8556981f0910f33d7129f82de620a232e61b0fc41a61ed565366b5de4560b9",
     "xevious": "3670f283005c90b09a53e1b2dd1164c45c6a997eafbc0ca9c20248b9f7e19903",
     "mappy": "297e89aa7a8d9feb72651823bab210e66c09fdc1863bb6e4a9528c8ca652325b",
+    "galaga": "d0cdeb8275fbbdd2226851266a7bbf3d5e4ff77c268e331a81083c8eac3c342c",
 }
 original_disk = disk.read_bytes()
 disk_sha = hashlib.sha256(original_disk).hexdigest()
@@ -31,6 +32,13 @@ state_sha = hashlib.sha256(state.read_bytes()).hexdigest()
 
 
 def player(memory):
+    if args.title == "galaga":
+        # 1A13/1A2B select X at 2311 and decrement/increment; 1937/1947
+        # render X/Y from 2311/2313. DD3=1 chooses native PSG port A.
+        x, y = memory[0x2311], memory[0x2313]
+        assert memory[0xDD3] == 1 and memory[0x230F] == 1
+        assert 0 < x < 64 and 0 < y < 32, (x, y)
+        return (x, y)
     if args.title == "mappy":
         # 03CD selects IX=F800; 0992/09B8 increment/decrement +0B.
         # 0973 checks Y at +09 against floor heights. Joystick bit2 is left.
@@ -54,7 +62,7 @@ def player(memory):
 
 def run(folder, name, controlled):
     prefix = folder / name
-    joy = "0xf7" if args.title == "xevious" else "0xfb"
+    joy = "0xf7" if args.title in ("xevious", "galaga") else "0xfb"
     command = [str(exe), "--cycles", "9600000", "--restore-state", str(state),
                "--disk", str(disk), "--joya", joy if controlled else "0xff",
                "--dump", str(prefix), "--frame", str(prefix) + ".ppm"]
@@ -65,7 +73,7 @@ def run(folder, name, controlled):
     assert report["disk_requests"] == report["disk_writes"] == 0, report
     assert report["ps2_bytes_sent"] == 0, "joystick-only trial sent keyboard bytes"
     assert report["frames"] >= 15 and report["frame_height"] == 200, report
-    assert report["frame_width"] == (320 if args.title == "xevious" else 640), report
+    assert report["frame_width"] == (320 if args.title in ("xevious", "galaga") else 640), report
     if controlled and args.title == "druaga": assert memory[0xF82A] == 3
     return player(memory), report, memory, frame
 
@@ -78,12 +86,13 @@ def check(folder):
     assert moved == repeated, "input/result/RAM/RGB not deterministic"
     ix, iy = idle[0]
     mx, my = moved[0]
-    assert my == iy and (mx > ix if args.title == "xevious" else mx < ix), (idle[0], moved[0])
+    right = args.title in ("xevious", "galaga")
+    assert my == iy and (mx > ix if right else mx < ix), (idle[0], moved[0])
     assert idle[3] != moved[3], "player RAM changed without a real RGB frame change"
     assert disk.read_bytes() == original_disk, "disk modified"
     assert hashlib.sha256(state.read_bytes()).hexdigest() == state_sha, "source snapshot modified"
     print(json.dumps({"title": args.title, "duration_ms": 300, "idle_player": idle[0],
-                      "controlled_player": moved[0], "direction": "right" if args.title == "xevious" else "left",
+                      "controlled_player": moved[0], "direction": "right" if right else "left",
                       "idle_frame_hash": idle[1]["frame_hash"], "controlled_frame_hash": moved[1]["frame_hash"],
                       "disk_sha256": disk_sha, "snapshot_sha256": state_sha,
                       "sys_hz": moved[1]["sys_hz"], "video_hz": moved[1]["video_hz"],

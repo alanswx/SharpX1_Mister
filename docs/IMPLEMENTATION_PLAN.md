@@ -21,6 +21,15 @@ See [runtime evidence](BRINGUP_PROGRESS.md) and [playing instructions](PLAYING.m
 This satisfies the first playable-game checkpoint, not all milestone gates:
 full peripheral compatibility and Quartus/MiSTer hardware validation remain open.
 
+October 4 simulation milestone: independent 40/80 text and 320/640 graphics
+pixel/period checks, attributes/PCG/blink and live width switches pass in both
+clock configurations. Five commercial titles have native gameplay-control
+regressions; Shanghai removes a legal pair and Galaga also runs an enemy wave
+and fires a moving projectile. See `VIDEO_STATUS.md` and
+`COMMERCIAL_COMPATIBILITY.md`. The current single-clock RBF builds with positive
+analyzed timing, but this does not close all display timing/CDC, full chip
+compatibility, hardware acceptance or licensing/release gates below.
+
 ## Architecture and decisions
 
 - Use one machine implementation beneath both MiSTer and Verilator. Start

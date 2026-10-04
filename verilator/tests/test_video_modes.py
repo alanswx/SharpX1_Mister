@@ -126,6 +126,14 @@ def run(folder, columns, kind):
     report = json.loads(result.stdout.splitlines()[-1])
     assert report["halted"] and report["peek"].startswith(b"VID!".hex()), (name, report)
     assert report["frames"] >= 3, (name, "too few completed frames", report)
+    # R0+1 = 56/112 characters, 8 dots and /4 or /2 pixel rate: both
+    # widths have 1792 video-master edges per line. R4=31, R9=7, R5=2
+    # produce 32*8+2 = 258 scanlines per frame. Periods are measured on
+    # clk_sys, so allow one system sampling edge, not arbitrary percentage.
+    tolerance = (10**12 + report["sys_hz"] - 1) // report["sys_hz"] + 1
+    for field, master_edges in (("hs_period_ps", 1792), ("vs_period_ps", 1792 * 258)):
+        expected = round(master_edges * 10**12 / report["video_hz"])
+        assert abs(report[field] - expected) <= tolerance, (name, field, expected, report[field], tolerance)
     header, dimensions, maximum, pixels = frame.read_bytes().split(b"\n", 3)
     width, height = map(int, dimensions.split())
     assert (header, maximum, width, height) == (b"P6", b"255", columns * 8, 200), (name, report)
@@ -161,6 +169,7 @@ def run(folder, columns, kind):
                       "font_source_sha256": hashlib.sha256(font_source.encode()).hexdigest(),
                       "sys_hz": report["sys_hz"], "video_hz": report["video_hz"],
                       "reset_edges": report["reset_edges"], "reference_cycles": cycles,
+                      "hs_period_ps": report["hs_period_ps"], "vs_period_ps": report["vs_period_ps"],
                       "intra_assignment_delays": report["intra_assignment_delays"]}), flush=True)
 
 
