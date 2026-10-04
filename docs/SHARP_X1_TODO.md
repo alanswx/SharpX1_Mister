@@ -141,6 +141,8 @@ support before optional Turbo extensions.
   release with Quartus timing tools; simulation does not verify metastability.
 - [ ] Add keyboard, joystick, cassette, floppy, and reset OSD controls.
 - [x] Add new SDL gameplay frontend and native-booted checkpoint regression.
+- [x] Warm-reboot a running native game without ROM reload or disk remount in
+  baseline and single-clock simulation; retain the original movement regression.
 - [ ] Build a reference test matrix: IPL, BASIC, text, graphics, PSG, tape,
   floppy, and representative commercial software.
 - [ ] Record known deviations from MAME/X Millennium and gate regressions on

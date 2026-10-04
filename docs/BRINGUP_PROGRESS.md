@@ -23,9 +23,13 @@ It passes baseline, single-clock and fast modes. All three diagnostic suites
 pass; the wrapper also passes its stand-in-PLL lint (inherited warnings remain).
 Generated-media reset during scanning/after scanning passes in all three modes,
 with byte-exact subsequent reads. Fresh baseline/single game boots and original
-movement pass; single warm game reboot also passes with retained IPL, 81 reads,
-zero writes/download bytes and unchanged movement frame hashes. Baseline warm
-game reboot and local source-bound Quartus evidence are being checked separately.
+movement pass; both warm game reboots also pass with retained IPL, 81 reads,
+zero writes/download bytes and unchanged movement frame hashes. Both cold and
+warm local private checkpoints are regenerated. Local source-bound Quartus
+snapshot `t0E46Vme` passes all stages with core setup/hold/recovery
++10.050/+0.241/+12.561 ns and no unconstrained clocks. External I/O/CDC
+constraints and physical OSD/reset validation remain open; this RBF has not
+been deployed. Full identities and warnings are in `QUARTUS_BUILD.md`.
 See `RESET_STATUS.md` for scope and future
 hardware acceptance; no remote hardware access was attempted.
 

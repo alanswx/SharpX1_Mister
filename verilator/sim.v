@@ -74,7 +74,8 @@ module top #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364) (
             else $fatal(1, "CPU reset polarity mismatch");
         assert (machine.subCPU.I_reset == reset)
             else $fatal(1, "Sub-CPU reset polarity mismatch");
-        // Skip the initial edge; allow the CPU's delayed reset assignments.
+        // Skip the first sampled edge of each reset pulse; allow the CPU's
+        // delayed reset assignments before checking the idle bus/address.
         if (reset && was_reset) begin
             assert (machine.a == 16'h0000)
                 else $fatal(1, "CPU reset address is not zero");

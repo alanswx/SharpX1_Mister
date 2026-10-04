@@ -59,18 +59,29 @@ rebooted game passes the original keyboard movement regression. Generated
 states/images contain private assets and remain ignored. Successful machine
 tests do not substitute for physical OSD-button testing.
 
-The single-clock fresh boot and warm reboot pass, with 81 warm-boot disk reads,
+Baseline and single-clock fresh boot and warm reboot pass, with 81 warm-boot disk reads,
 zero writes and zero download bytes. The unchanged 200 ms movement test returns
 idle/control player cells (22,14)/(21,13) and frame hashes
 `2917b1d92124ea6c` / `16f792d1d2c74a8c`. These are real core RGB frames,
-not reconstructed emulator screenshots. Baseline warm reboot is recorded below
-when complete. Both fresh boot checkpoints are regenerated after the RTL fix.
+not reconstructed emulator screenshots. Baseline uses 32 MHz system and
+28,571,428 Hz video; single uses 28,636,364 Hz for both. Both fresh boot and warm
+reboot checkpoints are regenerated after the RTL fix. The retained IPL is the
+checked-in 4095-byte image; private disk SHA-256 is
+`2fb70389737a7d54bff5a746b581343385ebde115cefb77ded32c473dcde97ec`.
 
 The generated-media machine test also resets during mount scanning (1 ms) and
 again after scanning (50 ms), each for 1 ms. Baseline, single-clock and fast
 variants complete actual register-driven disk reads with byte-exact sector
 readback and unchanged original media. This exercises scanner continuation,
 not cancellation/replacement of the mounted image or every parser-state phase.
+
+The local Quartus single-clock build is bound to source checkpoint `5721df5`:
+all stages pass, core setup/hold/recovery +10.050/+0.241/+12.561 ns, zero
+unconstrained clocks. It still has 3 unconstrained input/44 output ports and
+incomplete CDC/I/O signoff. RBF SHA-256:
+`bf408a3927b0fa14768f7cc3cb7badd9094d364b814fa19712eca4bb498cb053`.
+See `QUARTUS_BUILD.md`; no hardware deployment or physical reset validation
+of this artifact is claimed.
 
 ## Hardware acceptance still open
 

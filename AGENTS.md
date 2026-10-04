@@ -60,6 +60,12 @@ timer's inherited N+1-tick period and test both actual master frequencies.
 Never claim compatibility or timing closure from a boot screenshot.
 Simulator disk writes require `--disk-output NEW_COPY`; private originals and
 snapshots remain ignored. See `docs/DISK_STATUS.md` for tested and missing cases.
+Warm reset events use repeated `--reset-at MS` and `--reset-for-us US`, relative
+to the invocation/restore. See `docs/RESET_STATUS.md`: CPU/FDC enables stop during
+reset, but host SD ACK processing must continue on `clk_sys`. Transport fixtures
+must cover stopped enables, not just constant CE. Check retained IPL overlay,
+HALT recovery, disk continuity and game input without reloading assets. Direct
+machine reset simulation does not verify Main's OSD reset-command dispatch.
 `scripts/mister_x1.py` deploys source-bound hardware tests under unique names
 with disposable protected disk copies. Coordinate availability before loading
 a core; preserve other cores/config/media. Record RBF hashes and actual PNGs

@@ -524,3 +524,80 @@ MiSTer hostname-resolution problem and owns any subsequent hardware testing.
 No tool installation, license acceptance, constraint/RTL change or MiSTer
 access/deployment was performed by this sidecar. Earlier source-bound results
 remain separate, and the main-project defaults remain unchanged.
+
+## Ungated host ACK / held-reset checkpoint
+
+Local-only snapshot `output_files/quartus-t0E46Vme/` records base commit
+`9baee0c9f4add5194e7c65262510cffd9c4fd156` plus the uncommitted
+`rtl/vendor/wd1793.sv` ACK-pipeline fix. Vendor SHA-256:
+`b7482c893a7aa818ce0192b72623feb1c9389765ece1b4f64f5351e850b1b4fd`.
+Original input-manifest SHA-256:
+`48e6845e61dfbc4afd5421e7167f3c668e5574c66998b02c422c7c1918026242`.
+
+Every original snapshot input was subsequently hashed directly from commit
+**`5721df5e8395a576567a75cac79374fa7e91c4b5`** and the resulting manifest
+compared byte-for-byte with `input.sha256`: **all inputs match**, not just the
+vendor RTL. The original pre-commit build identity remains preserved.
+
+The host ACK pipeline now runs on every `clk_sys` edge, rather than being
+gated by the emulated FDC enable, which the shared machine disables during
+reset. The parent reproduced an unreleased request with `ce = !reset` before
+the fix and reports the corrected twelve-case transport fixture passing.
+Parent warm-reset runner/test changes are excluded from the synthesis inputs;
+this build does not independently execute those regressions.
+
+The unchanged installed Apple-container Quartus 17.0.0 Build 595 single
+revision flow is map(1), fit(8), asm, STA, device `5CSEBA6U23I7`, seed 1,
+16 CPUs/16 GiB. Recorded start: **2026-10-04 03:00:20 UTC** (October 3
+locally). All stages and sidecar exited **0**, finishing **03:10:31 UTC**;
+wall time **10:11**. Map/fit/asm/STA took **2:25 / 7:11 / 0:16 / 0:10**.
+The RBF is `source/output_files/sharpx1_single.rbf`, SHA-256:
+`bf408a3927b0fa14768f7cc3cb7badd9094d364b814fa19712eca4bb498cb053`.
+Original inputs/runtime identity, complete reports/logs and `commit-binding.txt`
+are retained. Generated `build_id.v` now uses UTC date `261004`, SHA-256
+`b0621fcb81a99f5e97e67d3681c4ff0888baa6d54f43aa9ddc69753d04ffa3e4`.
+This also differs from the earlier October 3 artifact's date, so RBF differences
+cannot be attributed exclusively to the ACK change.
+
+| Reported metric | Ungated ACK single revision `t0E46Vme` |
+| --- | ---: |
+| Core setup / hold / recovery (ns) | +10.050 / +0.241 / +12.561 |
+| Global worst setup / hold / recovery (ns) | +0.447 / +0.241 / +4.333 |
+| Global removal / pulse-width slack (ns) | +0.734 / +1.122 |
+| ALMs / registers | 20,229 (48%) / 31,569 |
+| Memory bits / RAM blocks | 2,071,408 (37%) / 263 |
+| DSP blocks / PLLs | 32 / 3 |
+| Map / fit / asm / STA errors | 0 / 0 / 0 / 0 |
+| Map / fit / asm / STA warnings | 81 / 9 / 0 / 0 |
+| Unconstrained clocks | 0 |
+| Unconstrained input / output ports | 3 / 44 |
+
+All reported constrained paths pass with unchanged constraints/settings.
+Compared with `4celr5Kr`, core setup/recovery improve by 0.098/1.088 ns,
+core hold drops 0.003 ns; global setup/recovery drop 0.125/0.037 ns and remain
+positive. These separately placed builds are not a controlled path experiment.
+Normalized synthesis warning messages match the previous build, ignoring
+shifted source lines. Inherited width/truncation/dual-clock RAM warnings and
+fitter PLL reset/lock, incomplete I/O and ignored-assignment warnings remain.
+No new suppressions, RTL edits or broad false paths were added by the sidecar.
+
+Constraint gaps remain **7 input paths / 50 output paths**, with input ports
+`HDMI_I2C_SDA`, `IO_SDA`, and partially constrained `VGA_EN`; full output lists
+are in STA. Inherited single-corner analysis, external I/O, reset/PLL and CDC
+review still prevent full signoff. MTBF is not calculated for 99.2% of detected
+chains, so its headline estimate is not CDC validation. FDC INTRQ/DRQ remain
+unconnected as in the base-X1 integration; transport compilation does not
+establish a hardware interrupt path.
+
+The parent reports all three diagnostic suites, twelve raw transport cases,
+shared HALT/IPL warm reset at 1/100/1000 microseconds, generated disk reset
+during/after scanning, and wrapper lint passing. Fresh baseline/single native
+boot and original movement pass. Both running-game warm resets/reboots pass
+with **81 disk reads, zero writes, zero IPL downloads** and unchanged movement
+hashes. A final integrated full-suite rerun is still underway at this handoff;
+these are parent software observations, not sidecar tests or hardware evidence.
+
+Existing evidence is preserved. No installation/download/license acceptance,
+git commit/push or MiSTer/cottage host access was performed. The main-project
+defaults are unchanged. This increment has **no hardware retest** and is not
+full timing signoff.
