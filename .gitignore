@@ -51,3 +51,5 @@ references/chip-src/build/
 verilator/.vs/sim/v17/Browse.VC.db
 verilator/obj_dir_single/
 verilator/obj_dir_single_fast/
+software/
+references/software/private-downloads/

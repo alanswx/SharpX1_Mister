@@ -51,6 +51,10 @@ clock tests. CPU WAIT covers the synchronized transaction; exact native
 scanline waits and PCG raster compatibility remain unverified.
 See [bring-up progress](docs/BRINGUP_PROGRESS.md) for changes and remaining gates.
 
+Private commercial-game test preparation and the top-32 shortlist are documented
+in [test media](docs/TEST_MEDIA.md). Locally extracted disks remain ignored
+assets; their presence is not proof of compatibility or gameplay.
+
 MiSTer now wires keyboard, joystick, disk, RGB and audio paths and
 offers IPL/D88 OSD entries. Disk writes default to protected; enabling them
 does not override read-only media. Generated D88 tests cover reads, safe writes,
