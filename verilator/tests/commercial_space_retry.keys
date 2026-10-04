@@ -1,0 +1,5 @@
+# Retry after firmware/PS2 turnaround, without changing machine memory.
+25 29
+150 f0
+152 29
+300 29

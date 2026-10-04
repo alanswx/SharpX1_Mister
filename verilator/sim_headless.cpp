@@ -169,11 +169,22 @@ int main(int argc, char **argv) {
         if (keys_path) {
             std::ifstream input(keys_path);
             if (!input) throw std::runtime_error("cannot open key script");
-            uint64_t ms;
-            std::string byte;
-            while (input >> ms >> byte) {
+            std::string line;
+            while (std::getline(input, line)) {
+                line.resize(line.find('#') == std::string::npos ? line.size() : line.find('#'));
+                std::istringstream fields(line);
+                fields >> std::ws;
+                if (fields.eof()) continue;
+                uint64_t ms;
+                std::string byte, extra;
+                if (!(fields >> ms >> byte) || (fields >> extra))
+                    throw std::runtime_error("invalid key script (milliseconds, PS/2 hex byte)");
                 size_t used;
-                auto value = std::stoul(byte, &used, 16);
+                unsigned long value;
+                try { value = std::stoul(byte, &used, 16); }
+                catch (const std::exception &) {
+                    throw std::runtime_error("invalid key script (milliseconds, PS/2 hex byte)");
+                }
                 if (value > 255 || used != byte.size() || ms > 1000000)
                     throw std::runtime_error("invalid key script (milliseconds, PS/2 hex byte)");
                 if (!keys.empty() && ms * 1000000000ULL < keys.back().time)
@@ -314,6 +325,7 @@ int main(int argc, char **argv) {
         bool disk_active = false, disk_writing = false;
         uint16_t key_packet = 0;
         unsigned key_bit = 0;
+        uint64_t ps2_bytes_sent = 0;
         bool key_active = false;
         uint64_t key_edge = 0;
         uint64_t progress_time = resume_time + 100000000000ULL;
@@ -410,6 +422,7 @@ int main(int argc, char **argv) {
                 top.ps2_clk_in = !top.ps2_clk_in;
                 if (top.ps2_clk_in) {
                     if (++key_bit == 11) {
+                        ++ps2_bytes_sent;
                         key_active = false;
                         top.ps2_data_in = 1;
                         if (!keys.empty()) keys.front().time = std::max(keys.front().time, next + 200000000);
@@ -504,6 +517,8 @@ int main(int argc, char **argv) {
             std::ofstream registers(std::string(dump_path) + ".cpu", std::ios::binary);
             if (!registers) throw std::runtime_error("cannot open CPU register dump");
             auto *root = top.rootp;
+            registers << "FWJOY=" << std::hex
+                      << root->top__DOT__machine__DOT__subCPU__DOT__OP6 << '\n';
             registers << "PC=" << std::hex << root->top__DOT__machine__DOT__Cpu__DOT__Z80CPU__DOT__i_tv80_core__DOT__PC
                       << " SP=" << root->top__DOT__machine__DOT__Cpu__DOT__Z80CPU__DOT__i_tv80_core__DOT__SP
                       << " AF=" << ((unsigned(root->top__DOT__machine__DOT__Cpu__DOT__Z80CPU__DOT__i_tv80_core__DOT__ACC) << 8)
@@ -537,7 +552,7 @@ int main(int argc, char **argv) {
                     "\"reset_edges\":%llu,\"cpu_enables\":%llu,\"delayed_sys_edges\":%llu,"
                     "\"hs_edges\":%llu,\"vs_edges\":%llu,\"video_hash\":\"%016llx\","
                     "\"download_bytes\":%llu,\"cpu_address\":%u,\"halted\":%s,\"peek\":\"%s\","
-                    "\"disk_requests\":%llu,\"disk_writes\":%llu,\"frames\":%llu,\"frame_width\":%u,\"frame_height\":%u,\"frame_hash\":\"%016llx\","
+                    "\"ps2_bytes_sent\":%llu,\"disk_requests\":%llu,\"disk_writes\":%llu,\"frames\":%llu,\"frame_width\":%u,\"frame_height\":%u,\"frame_hash\":\"%016llx\","
                     "\"sub_pc\":%u,\"sub_address\":%u,\"sub_control\":%u,\"sub_running\":%s,\"sub_tx_busy\":%s,\"sub_rx_empty\":%s}\n",
                     VM_TIMING ? "true" : "false",
                     (unsigned long long)sys_hz,
@@ -546,6 +561,7 @@ int main(int argc, char **argv) {
                     (unsigned long long)top.cpu_enables, (unsigned long long)top.delayed_sys_edges,
                     (unsigned long long)hs_edges, (unsigned long long)vs_edges, (unsigned long long)hash,
                     (unsigned long long)downloads.size(), top.cpu_address, top.cpu_halt_n ? "false" : "true", peek.c_str(),
+                    (unsigned long long)ps2_bytes_sent,
                     (unsigned long long)disk_requests,(unsigned long long)disk_writes,(unsigned long long)frame.frames,frame.width,frame.height,
                     (unsigned long long)frame.hash,
                     top.sub_pc,top.sub_address,top.sub_control,

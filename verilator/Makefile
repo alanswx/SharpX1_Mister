@@ -21,6 +21,7 @@ single: obj_dir_single/Vtop
 single-fast: obj_dir_single_fast/Vtop
 
 test-single: single test-clock-enables test-sub-timer test-fdc-abort test-fdc-sd-abort
+	python3 tests/test_key_script.py ./obj_dir_single/Vtop $(VIDEO_TEST_FLAGS)
 	python3 tests/test_video_modes.py ./obj_dir_single/Vtop $(VIDEO_TEST_FLAGS)
 	python3 tests/test_video_modes.py ./obj_dir_single/Vtop --kind mixed --transition $(VIDEO_TEST_FLAGS)
 	python3 tests/test_keyboard_poll.py ./obj_dir_single/Vtop $(VIDEO_TEST_FLAGS)
@@ -126,6 +127,7 @@ run: headless
 	./$(HEADLESS_EXE) $(CYCLES)
 
 test: headless test-sub-timer test-fdc-abort test-fdc-sd-abort
+	python3 tests/test_key_script.py ./$(HEADLESS_EXE) $(VIDEO_TEST_FLAGS)
 	python3 tests/test_video_modes.py ./$(HEADLESS_EXE) $(VIDEO_TEST_FLAGS)
 	python3 tests/test_video_modes.py ./$(HEADLESS_EXE) --kind mixed --transition $(VIDEO_TEST_FLAGS)
 	python3 tests/test_keyboard_poll.py ./$(HEADLESS_EXE) $(VIDEO_TEST_FLAGS)
@@ -147,6 +149,7 @@ test: headless test-sub-timer test-fdc-abort test-fdc-sd-abort
 	$(MAKE) test-disk-control
 
 test-fast: fast test-sub-timer test-fdc-abort test-fdc-sd-abort
+	python3 tests/test_key_script.py ./obj_dir_fast/Vtop $(VIDEO_TEST_FLAGS)
 	python3 tests/test_video_modes.py ./obj_dir_fast/Vtop $(VIDEO_TEST_FLAGS)
 	python3 tests/test_video_modes.py ./obj_dir_fast/Vtop --kind mixed --transition $(VIDEO_TEST_FLAGS)
 	python3 tests/test_keyboard_poll.py ./obj_dir_fast/Vtop $(VIDEO_TEST_FLAGS)

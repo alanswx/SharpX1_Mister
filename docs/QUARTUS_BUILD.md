@@ -589,6 +589,44 @@ chains, so its headline estimate is not CDC validation. FDC INTRQ/DRQ remain
 unconnected as in the base-X1 integration; transport compilation does not
 establish a hardware interrupt path.
 
+## RGB/blanking alignment checkpoint, October 4
+
+The newer local build is
+`output_files/quartus-IwtYVtRu/source/output_files/sharpx1_single.rbf`.
+RBF SHA-256:
+`1e25c3aae0933b04fb95cba2a45a6db10bd4ca0aebed6f3900033142b0640c7b`.
+It includes the renderer's registered `out_disp` correction, unlike the
+earlier reset checkpoint above. The frozen snapshot records commit
+`83936b0ec56f0f124abfa0288c6daca972d3f2f0`; its input-manifest SHA-256 is
+`a8036a084590bb44d7d6e078001d455e564d2702a54adbdd20a84a192bf9d95e`.
+The parent compared the snapshot renderer byte-for-byte with current RTL and
+independently checked the RBF hash. Subsequent key-script changes are
+simulation-only and do not affect this build's machine RTL.
+
+Installed Quartus Lite 17.0.0 Build 595 completed the single revision, exit 0,
+from 2026-10-04 14:50:15 to 15:07:03 UTC (16:48), device
+`5CSEBA6U23I7`, seed 1. At the analyzed Slow 1100 mV / 100°C corner:
+
+| Slack | Worst overall | Machine domain |
+|---|---:|---:|
+| Setup | +0.448 ns | +9.459 ns |
+| Hold | +0.176 ns | +0.176 ns |
+| Recovery | +4.094 ns | +12.390 ns |
+| Removal | +0.661 ns | +0.661 ns |
+| Minimum pulse width | +1.122 ns | +16.057 ns |
+
+Machine clock is 35.000 ns / 28.571428 MHz; reported same-clock Fmax is
+39.15 MHz. Reported TNS is zero. Fit uses 19,850 ALMs (47%), 31,578
+registers and 2,071,408 memory bits. Synthesis/fit warnings remain 81/9,
+including inherited PCG attribute, implicit-net, RAM collision and PLL
+connectivity warnings.
+
+There are zero unconstrained clocks, but 3 input ports/7 paths and 44 output
+ports/50 paths remain unconstrained for setup/hold. This is single-corner,
+positive analyzed timing, **not full timing signoff**. No MiSTer deployment
+or hardware test was performed; previous hardware screenshots do not validate
+this renderer change. The separate default baseline timing result is unchanged.
+
 The parent reports all three diagnostic suites, twelve raw transport cases,
 shared HALT/IPL warm reset at 1/100/1000 microseconds, generated disk reset
 during/after scanning, and wrapper lint passing. Fresh baseline/single native

@@ -61,6 +61,10 @@ bounded checks and remaining two-game gate; this is not hardware signoff.
 Independent CPU-programmed 40/80-column text and 320/640 graphics rasters now
 pass after correcting a one-edge HBlank/RGB qualification offset; see
 [video coverage and remaining gates](docs/VIDEO_STATUS.md).
+The current video-alignment single-clock RBF is locally available at
+`output_files/quartus-IwtYVtRu/source/output_files/sharpx1_single.rbf`.
+It builds with positive analyzed timing, but has not been tested on MiSTer;
+see [source-bound build evidence](docs/QUARTUS_BUILD.md).
 
 MiSTer now wires keyboard, joystick, disk, RGB and audio paths and
 offers IPL/D88 OSD entries. Disk writes default to protected; enabling them
@@ -158,6 +162,11 @@ writes CSV and `--dump` saves main/text/attribute RAM. `--audio` captures mono
 `0xff`); explicit values override saved inputs when restoring a snapshot.
 Repeated `--reset-at MS` with `--reset-for-us US` inject warm machine resets,
 relative to this run/restore, without reloading the core or assets.
+Key scripts contain `milliseconds hex-byte` lines and now support `#` full-line
+and inline comments; malformed non-comment lines are rejected. JSON
+`ps2_bytes_sent` counts completed simulated serial bytes during this invocation,
+not game-accepted keys. The old parser silently stopped at comments, invalidating
+several commented-script probes; this was a runner bug, not a proven firmware bug.
 `make interactive` builds the delay-aware SDL frontend; `make fast`
 builds a clocked, savable SDL model. Example early native boot capture:
 

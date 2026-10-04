@@ -87,7 +87,12 @@ dumps byte-for-byte; the shared regression also passed separately.
 - Two further commercial titles with real start and live control proof;
   title screens, loading counters and static boards do not qualify.
 - Broader directions/actions and continued gameplay; reference audio fidelity.
-- Explain Shanghai's title keyboard probe before changing firmware: fresh
-  CPU E4/E6 poll diagnostics accept F, Space and Enter in baseline/fast/single.
+- Rerun earlier comment-bearing key scripts: the runner previously stopped
+  parsing silently on `#`, so the commented Space probe delivered no events.
+  The parser now accepts full-line/inline comments and rejects malformed
+  lines. Battle City's native IM2 handler receives held Enter (`0x0d`) and
+  Space (`0x20`) after this simulation-only fix; neither proves gameplay.
+  Fresh CPU E4/E6 diagnostics also accept these keys. No firmware fix is
+  inferred from the invalid earlier probes.
 - Reproduce native gameplay in delay-aware and single-clock configurations.
 - Build current RTL and validate on MiSTer when hardware is available.
