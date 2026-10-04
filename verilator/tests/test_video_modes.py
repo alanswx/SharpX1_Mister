@@ -12,7 +12,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("executable", type=pathlib.Path)
 parser.add_argument("--output", type=pathlib.Path)
 parser.add_argument("--columns", type=int, choices=(40, 80))
-parser.add_argument("--kind", choices=("graphics", "text", "mixed", "pattern", "stretch", "pcg"))
+parser.add_argument("--kind", choices=("graphics", "text", "mixed", "pattern", "stretch", "pcg", "blink-off", "blink-on"))
 parser.add_argument("--timeout", type=float, default=180,
                     help="per-case wall-clock timeout; raise on a busy host")
 parser.add_argument("--transition", action="store_true",
@@ -55,7 +55,7 @@ def program(columns, kind):
         patterned(0x2000, attributes=True)
         patterned(0x3000)
     else:
-        fill(0x2000, 2048, 0x27 if kind == "pcg" else 0xC7 if kind == "stretch" else 7 if kind == "text" else 15 if kind == "mixed" else 0)
+        fill(0x2000, 2048, 0x17 if kind.startswith("blink-") else 0x27 if kind == "pcg" else 0xC7 if kind == "stretch" else 7 if kind == "text" else 15 if kind == "mixed" else 0)
         fill(0x3000, 2048, ord("A"))
     if kind in ("graphics", "mixed"):
         for plane, base in enumerate((0x4000, 0x8000, 0xC000)):
@@ -115,7 +115,10 @@ def run(folder, columns, kind):
     name = f"{kind}-{columns}" + ("-transition" if args.transition else "")
     code, frame = folder / (name + ".bin"), folder / (name + ".ppm")
     code.write_bytes(program(columns, kind))
-    duration_ms = 1000 if kind in ("graphics", "mixed") else 300 if kind == "pcg" else 200
+    # The inherited MR16 firmware clears CLK_1HZ at boot and toggles it every
+    # 500 ms. Capture away from an edge, testing real firmware-driven reversal
+    # rather than forcing the renderer's blink input.
+    duration_ms = 700 if kind == "blink-on" else 1000 if kind in ("graphics", "mixed") else 300 if kind == "pcg" else 200
     cycles = duration_ms * 32000
     result = subprocess.run([exe, "--cycles", str(cycles), "--ram", str(code),
                              "--frame", str(frame)], capture_output=True, text=True, timeout=args.timeout)
@@ -141,6 +144,7 @@ def run(folder, columns, kind):
             if kind == "stretch":
                 color = 7 if font[ord("A") * 8 + (y // 2) % 8] & (128 >> ((x // 2) % 8)) else 0
             if kind == "pcg": color = 7 - x % 8
+            if kind == "blink-on": color ^= 7
             if kind == "mixed":
                 raw = (7 - x % 8) ^ (y % 8)
                 text = color ^ 7  # Reverse attribute precedes transparency.
@@ -163,7 +167,7 @@ def run(folder, columns, kind):
 def cases(folder):
     folder.mkdir(parents=True, exist_ok=True)
     for columns in ((args.columns,) if args.columns else (40, 80)):
-        for kind in ((args.kind,) if args.kind else ("graphics", "text", "mixed", "pattern", "stretch", "pcg")):
+        for kind in ((args.kind,) if args.kind else ("graphics", "text", "mixed", "pattern", "stretch", "pcg", "blink-off", "blink-on")):
             run(folder, columns, kind)
     print("PASS: CPU-programmed base video modes match independently calculated RGB pixels")
 

@@ -72,9 +72,10 @@ support before optional Turbo extensions.
   baseline and single-clock models. See `VIDEO_STATUS.md`; attributes, PCG,
   mode transitions and hardware acceptance remain separate gates.
 - [x] Add CPU-programmed color/reverse/address-wrap, double-width/height and
-  three-plane PCG pixel fixtures at both widths; delay-aware baseline and fast
-  runs pass. Both live width switches pass there; blink/exact scanline timing
-  and expanded single-clock acceptance remain open. See `VIDEO_STATUS.md`.
+  three-plane PCG pixel fixtures at both widths; delay-aware baseline/single
+  and fast runs pass. Both live width switches pass in baseline and fast;
+  single-clock switching, blink/exact scanline timing and hardware acceptance
+  remain open. See `VIDEO_STATUS.md`.
 - [x] Test individual GRAM planes, all DAM write masks, read-clear and ordinary
   port isolation; observe native 320×200 game colors.
 - [ ] Validate PCG writes/readback and the documented PCG wait behavior.

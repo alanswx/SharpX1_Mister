@@ -63,8 +63,9 @@ fixture uses attribute `0x27`, repeatedly writes `0xaa/0xcc/0xf0` through
 actual beam-addressed CPU ports, then checks all pixels after HALT. It does
 not establish exact native scanline trapping. Pattern/stretch run for 200 ms;
 PCG runs for 300 ms. All twelve static cases passed together in the
-delay-aware baseline on October 4, as did both mixed-width transitions;
-expanded single-clock runs are still being checked.
+delay-aware baseline and single-clock models on October 4. Both mixed-width
+transitions passed in baseline; single-clock transitions are still being
+checked.
 
 | Additional raster | 40 columns | 80 columns |
 |---|---|---|
@@ -77,6 +78,14 @@ The fixture font-source SHA-256 is
 Matching this checked-in font does not authenticate it against hardware ROMs.
 Commercial gameplay evidence is recorded separately in
 [the compatibility matrix](COMMERCIAL_COMPATIBILITY.md).
+
+Blink-phase fixtures now use attribute `0x17` and the actual MR16 firmware's
+500 ms output toggle, without forcing a simulation input. Fast baseline
+captures at 200 ms match ordinary text; 700 ms captures reverse every
+three-bit text color. Both widths pass: reversed hashes are
+`aa3e96f84b15d4f5` (40) and `a8c19af3abc716c5` (80). Delay-aware baseline
+and single-clock phase checks are running. This verifies the implemented
+firmware cadence, not the real keyboard controller's timing against hardware.
 
 ## Reproduction
 
@@ -96,8 +105,9 @@ transition checks. On a busy host use `VIDEO_TEST_FLAGS='--timeout 600'`.
 ## Remaining acceptance
 
 - Finish the additional pattern/transition checks in all relevant models.
-- Add a blink-phase fixture; PCG raster/readback does not prove exact native
-  scanline timing. Independently verify the character ROM against hardware.
+- Finish blink-phase checks across clock models; PCG raster/readback does not
+  prove exact native scanline timing. Independently verify the character ROM
+  and blink cadence against hardware.
 - Check measured line/frame timing and mode-change transients against hardware.
 - Demonstrate reproducible controls in five distinct commercial games. Druaga
   and Xevious plus Mappy have live player-movement checks (3/5); other titles/boards are
