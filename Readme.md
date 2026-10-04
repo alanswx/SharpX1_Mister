@@ -73,6 +73,11 @@ The previous video-alignment single-clock RBF is locally available at
 `output_files/quartus-IwtYVtRu/source/output_files/sharpx1_single.rbf`.
 It predates the new disk/keyboard/Turbo work and has not been tested on MiSTer;
 see [source-bound build evidence](docs/QUARTUS_BUILD.md).
+The new experimental foundation RBF is
+`output_files/quartus-t7wQxGHo/source/output_files/sharpx1_turbo_single.rbf`.
+It fits with positive constrained-path timing at eight analyzed corners;
+external I/O, CDC and hardware acceptance remain open. See the
+[Turbo build report](docs/TURBO_QUARTUS_BUILD.md); it is not full Turbo support.
 
 MiSTer now wires keyboard, joystick, disk, RGB and audio paths and
 offers IPL/D88 OSD entries. Disk writes default to protected; enabling them

@@ -133,8 +133,9 @@ after initialization, and the one-word ROM profile. The actual board-frequency
 check is a focused MR16 test, not a full-machine/hardware clock validation.
 
 Verilator 5.044 builds retain inherited width, unused-pin, timescale and
-`casex` warnings; no new suppression was added. Quartus was unavailable in
-this environment and no hardware deployment was performed. LED output,
+`casex` warnings; no new suppression was added. Standalone verification did
+not invoke Quartus. The later [Turbo foundation build](TURBO_QUARTUS_BUILD.md)
+synthesizes this receive-only profile; no hardware deployment was performed. LED output,
 physical keyboard behavior, typematic repeat, exhaustive modifiers, E0/E1
 sequences, malformed packets, full interrupt interactions and game/hardware
 acceptance remain unverified by this change. Regenerate game snapshots before

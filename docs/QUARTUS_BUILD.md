@@ -1,5 +1,11 @@
 # Isolated Quartus 17 build sidecar
 
+Latest experimental artifact: the source-bound `sharpx1_turbo_single`
+foundation build includes D88 guards and the receive-only keyboard fix.
+It fits with positive constrained timing at all eight analyzed corners; see
+[the Turbo build report](TURBO_QUARTUS_BUILD.md) for hashes, resources and
+remaining I/O/CDC/hardware gates. Older checkpoints below remain historical.
+
 Use the already-installed Apple container runtime from
 `/Users/alans/dev2/apple-containers-example`. No installer, image build,
 license acceptance, service startup, or source download is performed here.

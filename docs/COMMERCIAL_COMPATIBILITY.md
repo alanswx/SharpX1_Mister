@@ -1,7 +1,9 @@
 # Private commercial-game bring-up
 
-October 4, 2026: **5 of the required 5 commercial games have reproducible
-native gameplay-control evidence**. This is bounded simulation gameplay, not
+October 4, 2026: **5 of the required 5 commercial games reached reproducible
+native gameplay-control evidence at the earlier checkpoint**. That five-title
+set has not yet been requalified after the D88/keyboard/Turbo foundation changes.
+This is bounded simulation gameplay, not
 complete software compatibility, level completion, or hardware acceptance.
 CROSS Chase is a separate homebrew regression and does not count toward five.
 All game media and native snapshots remain ignored private testing assets.
@@ -22,7 +24,7 @@ delay-aware gameplay and MiSTer verification remain open.
 | Mappy | IPL/D88 → title → live stage at 21 simulated seconds | Left moves player `(129,84)` → `(126,84)`; actual RGB changes; main RAM/report/RGB repeat identically | Yes |
 | Woody Poco | IPL/D88 loading observed | No live gameplay/control evidence yet | No |
 | Galaga | IPL/D88 → title → selection → Stage 1 and active enemy wave | Repeatable left/right ship movement plus firing and upward projectile travel; actual RGB agrees | Yes |
-| Arcus (X1turbo) | Fresh native IPL/Disk 1 probe; loading message observed through 16 seconds | No gameplay or disk-change evidence; experimental Turbo work pending | No |
+| Arcus (X1turbo) | Fresh native IPL/Disk 1 probe; loading message observed through 16 seconds | No gameplay or disk-change evidence; Turbo foundation exists but full compatibility remains open | No |
 | Bastard Special | Fresh native IPL/D88 probe; actual RGB title observed through 16 seconds | No start/playfield/control acceptance yet | No |
 
 ## Arcus and Bastard Special: private native probes
@@ -92,6 +94,20 @@ Both pairs passed byte-identical native report/RAM/register/RGB comparisons
 and unchanged-input checks. Build identity is recorded by executable hash;
 these probes do not establish that subsequent concurrent RTL edits were
 incorporated into that executable.
+
+Final base-core confirmation after the D88 and receive-only keyboard changes
+uses executable SHA-256
+`31586f55cfb5cad068bb962bff621ca2a2048c87fb6b7a4e00193cdfe74ed515`.
+Both titles again passed two fresh 16-second cold boots, with byte-identical
+report/RAM/register/PPM repeats and unchanged original assets. The configuration
+is explicitly `turbo_foundation=false`, 32 MHz system / 28.571428 MHz video,
+512,000,000 reference cycles and 4159 reset edges. Frame hashes, dimensions and
+disk-request counts match the table above; both have zero disk writes and six
+transmitted PS/2 bytes. Evidence is retained under
+`verilator/obj_dir_fast/special-probes/arcus-final-d88-keyboard/` and
+`verilator/obj_dir_fast/special-probes/bastard-final-d88-keyboard/`.
+The unchanged images confirm the same loading/title observations, not gameplay
+or execution on the experimental Turbo model.
 
 The historical Arcus 8-second I/O trace includes ordinary writes of `47` and
 `5A` hex to CTC port `1FA0` and a read returning `FF`. This identifies a real

@@ -141,6 +141,22 @@ module d88_scanner_tb;
         finish_scan(1,"reset while scanner ACK drains");
         size=0; mount_image(); finish_scan(0,"eject");
         valid_image(); mount_image(); finish_scan(1,"remount after eject");
+        // Stop CE at byte replay points across header, table, sector header
+        // and payload. A held scan_wr must not consume the byte twice.
+        for(int phase=0;phase<9;phase++) begin
+            int target;
+            case(phase)
+              0: target=0; 1: target=31; 2: target=32; 3: target=687;
+              4: target=688; 5: target=692; 6: target=703; 7: target=704;
+              default: target=975;
+            endcase
+            valid_image(); mount_image();
+            wait(dut.scan_addr==target && dut.scan_wr);
+            @(negedge clk); reset=1;
+            repeat(11) @(negedge clk); reset=0;
+            finish_scan(1,$sformatf("reset at parser byte %0d",target));
+            assert(dut.edsk_size==2) else $fatal(1,"reset duplicated/dropped indexed record");
+        end
         // Media changes during a controller (not scanner) SD read also drain
         // the old published LBA before indexing or exposing the new disk.
         service=0; send(2,1); send(0,8'h80); wait(sd_rd);

@@ -104,7 +104,9 @@ main RAM are not reloaded to recover these tests.
 `make -C verilator test-d88-scanner` deliberately bypasses C++ preflight. It
 tests seventeen ordinary valid/malformed/oversize mounts, a concatenated first
 volume, valid 33-sector track, index overflow, stalled pre-ACK replacement,
-reset during scanner ACK, eject/remount, and replacement during a pending
+reset during scanner ACK, nine replay points across volume header/table/sector
+header/payload (including held `scan_wr` without duplicate indexed records),
+eject/remount, and replacement during a pending
 controller read with CE stopped during reset. Requests never write media or
 index beyond capacity; rejected images report not-ready. Existing Type IV and
 twelve read/write reset/abort transport cases also pass. Generated machine

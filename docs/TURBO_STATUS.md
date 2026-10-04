@@ -52,8 +52,10 @@ Pixel fixtures switch before settled captures, not exact live-write timing.
 Optional FPGA revision `sharpx1_turbo_single` sources the single-clock project
 and enables `X1_TURBO_FOUNDATION`; neither default revision changes model.
 MiSTer IPL upload bounds follow the same 32/4 KiB choice. No OSD label promises
-Turbo compatibility. Extra RAM/ROM resources and timing require a source-bound
-Quartus build; hardware remains unavailable while travelling. Earlier RBFs
+Turbo compatibility. The [source-bound Quartus build](TURBO_QUARTUS_BUILD.md)
+fits at 48% ALMs / 54% memory bits (69% RAM blocks), with positive constrained
+timing at all eight analyzed corners. External I/O, CDC/reset and hardware
+remain unverified. Hardware is unavailable while travelling; earlier RBFs
 predate this increment.
 
 ## Reference disagreements and next gates
