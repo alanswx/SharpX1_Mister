@@ -68,19 +68,21 @@ module top #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364) (
     assign cpu_wr_n = machine.wr;
     assign cpu_halt_n = machine.halt_n;
     // Simulation instrumentation, not substitute machine behavior.
+    reg was_reset = 0;
     always @(posedge clk_sys) begin
         assert (machine.Cpu.reset_n == !reset)
             else $fatal(1, "CPU reset polarity mismatch");
         assert (machine.subCPU.I_reset == reset)
             else $fatal(1, "Sub-CPU reset polarity mismatch");
         // Skip the initial edge; allow the CPU's delayed reset assignments.
-        if (reset && sys_edges != 0) begin
+        if (reset && was_reset) begin
             assert (machine.a == 16'h0000)
                 else $fatal(1, "CPU reset address is not zero");
             assert (machine.mreq && machine.iorq && machine.rd && machine.wr)
                 else $fatal(1, "CPU bus strobes active during reset");
         end
         sys_edges <= sys_edges + 1;
+        was_reset <= reset;
         if (reset) reset_edges <= reset_edges + 1;
         if (!reset && machine.pe4M4) cpu_enables <= cpu_enables + 1;
         // Exercise --timing: must settle one ns after each rising edge.

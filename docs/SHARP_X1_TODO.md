@@ -31,6 +31,8 @@ support before optional Turbo extensions.
 - [x] Make the simulator load `bios/ipl_x1.hex` through the shared ioctl path.
 - [ ] Add deterministic reset, clock, and frame-count command-line options.
 - [x] Add cycle/reset-duration/video-frequency options and a timing/reset regression.
+- [x] Add deterministic warm-reset pulses and repeated IPL-overlay/HALT recovery
+  tests with retained ROM/RAM; keep physical Main/OSD dispatch validation separate.
 - [x] Add optional FST traces and JSON results.
 - [ ] Add VCD/FST trace selection and a small smoke-test script.
 - [x] Establish nonzero HS/VS with an actual renderer and IPL-programmed CRTC.
@@ -104,6 +106,8 @@ support before optional Turbo extensions.
   test before/during ACK, stable LBA/write-buffer samples and fresh commands.
   Already accepted writes can commit; stalled-host/eject/remount/scanner reset
   and hardware fault injection remain open.
+- [x] Correct ACK draining when CPU/FDC enables stop during reset; reproduce
+  the missed-handshake regression with CE stopped in the transport fixture.
 - [x] Add simulator D88 structural preflight and original malformed-media CLI
   tests; reject unsupported scanner layouts separately from corrupt images.
 - [ ] Add equivalent safe bounds/rejection in the FPGA image scanner and test
@@ -129,6 +133,9 @@ support before optional Turbo extensions.
 
 - [x] Wire MiSTer HPS keyboard, joystick, read-only floppy and IPL/reset OSD;
   route actual RGB/audio and elaborate the wrapper with lint.
+- [ ] Reproduce/close the reported Reset/Reset-and-close needing core reload
+  on hardware; test both actions from title, gameplay and disk loading. See
+  `RESET_STATUS.md`; MiSTer is unavailable while travelling.
 - [ ] Verify SDRAM/GRAM bandwidth and video timing on hardware.
 - [ ] Review PCG bundled-data CDC placement/max-delay constraints and reset
   release with Quartus timing tools; simulation does not verify metastability.

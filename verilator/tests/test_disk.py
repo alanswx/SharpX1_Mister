@@ -184,12 +184,14 @@ with tempfile.TemporaryDirectory(prefix="x1-disk-") as directory:
     folder = pathlib.Path(directory)
     disk, rom = folder / "original.d88", folder / "test.bin"
 
-    def run(program, data, name, writable=False):
+    def run(program, data, name, writable=False, resets=()):
         disk.write_bytes(data)
         original_hash = hashlib.sha256(data).hexdigest()
         rom.write_bytes(program)
         output, dump = folder / (name + ".d88"), folder / name
         command = [exe, "--cycles", "8000000", "--rom", str(rom), "--disk", str(disk), "--dump", str(dump)]
+        for when in resets:
+            command += ["--reset-at", str(when), "--reset-for-us", "1000"]
         if writable:
             command += ["--disk-output", str(output)]
         result = subprocess.run(command, check=True, capture_output=True, text=True)
@@ -209,6 +211,12 @@ with tempfile.TemporaryDirectory(prefix="x1-disk-") as directory:
     crc = binascii.crc_hqx(bytes((0xA1, 0xA1, 0xA1, 0xFE)) + identifier[:4], 0xFFFF)
     assert identifier[4:] == crc.to_bytes(2, "big"), identifier.hex()
     assert report["disk_writes"] == 0
+    # Keep the mounted image and host service alive through a reset during
+    # scanning, then reset again after scan completion. No ROM/media reload.
+    recovered, memory, _ = run(basic(), data, "warm-scan-reset", resets=(1, 50))
+    assert recovered["reset_edges"] > report["reset_edges"] and recovered["disk_writes"] == 0
+    for address, sector in ((0x9000, (0, 0, 1)), (0x9100, (0, 1, 3)), (0x9200, (1, 1, 2))):
+        assert memory[address:address + 256] == sectors[sector][1], ("warm reset", address)
     written, memory, output = run(writer(), data, "written", True)
     expected = bytearray(data)
     offset = sectors[0, 0, 2][0]
@@ -253,4 +261,4 @@ with tempfile.TemporaryDirectory(prefix="x1-disk-") as directory:
         result = subprocess.run([exe, "--disk", str(disk), "--disk-output", str(output)], capture_output=True)
         assert result.returncode == 2
     assert subprocess.run([exe, "--disk-output", str(folder / "no-input.d88")], capture_output=True).returncode == 2
-print("PASS: native FDC variable/multi-sector reads, seek/side/ID CRC/RNF/density/not-ready/lost-data, safe cross-block writes, protection and CRC errors")
+print("PASS: native FDC variable/multi-sector reads, warm scanner/controller reset recovery, seek/side/ID CRC/RNF/density/not-ready/lost-data, safe cross-block writes, protection and CRC errors")

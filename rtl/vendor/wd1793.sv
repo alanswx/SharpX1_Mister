@@ -508,11 +508,12 @@ always @(posedge clk_sys) begin
 	// a published request cannot undo an already accepted host write; never reuse
 	// its handshake for a different command. Declaration initialisers above give
 	// deterministic power-up, independently of the controller reset.
-	if(ce) begin
-		ack <= {ack[4:0], sd_ack};
-		if(ack[5:4] == 'b01) {sd_rd,sd_wr} <= 0;
-		if(ack[5:4] == 'b10) sd_busy <= 0;
-	end
+	// SD is a clk_sys transport, not an emulated FDC-rate peripheral. The
+	// shared machine stops ce during reset; sampling ACK only on ce loses a
+	// whole host transfer while reset is held and leaves sd_busy stuck forever.
+	ack <= {ack[4:0], sd_ack};
+	if(ack[5:4] == 'b01) {sd_rd,sd_wr} <= 0;
+	if(ack[5:4] == 'b10) sd_busy <= 0;
 	if(reset & ~scan_active) begin
 		read_data <= 0;
 		write_data <= 0;

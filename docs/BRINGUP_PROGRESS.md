@@ -1,5 +1,34 @@
 # Implementation progress
 
+## 2026-10-03 — warm reset and stopped FDC enables
+
+The user supplied a historical report that both OSD reset actions required a
+core reload, and clarified that MiSTer/cottageubuntu are unavailable while
+travelling. Both wrapper menu actions use status bit 0, which reaches the
+active machine reset. Physical Main/OSD dispatch remains an acceptance item;
+the historical failure has not been reproduced on hardware.
+
+The audit found a regression in the preceding transport fix: the shared machine
+freezes CPU/FDC enables during reset, but ACK sampling still depended on that
+enable. An SD transfer could finish without being observed. The original
+fixture's constant enable masked the problem. CE=`!reset` reproduces an
+unreleased request; running ACK history/completion on `clk_sys` fixes it and
+passes all twelve pending-read/write abort/reset cases with stopped enables.
+The controller FSM retains FDC-rate enables. No reset-only generated clock,
+new suppressions or broad timing exceptions were introduced.
+
+Added deterministic runtime reset pulses and an original retained-ROM/RAM
+fixture covering repeated IPL-overlay/HALT recovery at 1/100/1000 us widths.
+It passes baseline, single-clock and fast modes. All three diagnostic suites
+pass; the wrapper also passes its stand-in-PLL lint (inherited warnings remain).
+Generated-media reset during scanning/after scanning passes in all three modes,
+with byte-exact subsequent reads. Fresh baseline/single game boots and original
+movement pass; single warm game reboot also passes with retained IPL, 81 reads,
+zero writes/download bytes and unchanged movement frame hashes. Baseline warm
+game reboot and local source-bound Quartus evidence are being checked separately.
+See `RESET_STATUS.md` for scope and future
+hardware acceptance; no remote hardware access was attempted.
+
 ## 2026-10-03 — pending disk transport and D88 preflight
 
 A new original raw-media fixture reproduced `$D0` completing before its SD

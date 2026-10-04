@@ -83,6 +83,9 @@ the source-bound report before testing an RBF.
 The later SD-transport abort/reset checkpoint also builds with positive analyzed
 core timing; its hardware retest is pending because `mister.local` stopped
 resolving. Earlier hardware observations do not validate this new RBF.
+The reported OSD reset/reload-only issue is tracked in
+[reset recovery](docs/RESET_STATUS.md). A current stopped-enable SD handshake
+reset bug is reproduced and fixed; physical OSD reset acceptance remains open.
 
 ## Play CROSS Chase locally
 
@@ -142,6 +145,8 @@ PS/2 set-2 bytes, `--frame` captures actual RGB pixels to PPM, `--bus-trace`
 writes CSV and `--dump` saves main/text/attribute RAM. `--audio` captures mono
 48 kHz WAV. `--joya`/`--joyb` set raw active-low X1 joystick pin bytes (default
 `0xff`); explicit values override saved inputs when restoring a snapshot.
+Repeated `--reset-at MS` with `--reset-for-us US` inject warm machine resets,
+relative to this run/restore, without reloading the core or assets.
 `make interactive` builds the delay-aware SDL frontend; `make fast`
 builds a clocked, savable SDL model. Example early native boot capture:
 

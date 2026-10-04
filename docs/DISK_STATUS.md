@@ -54,6 +54,17 @@ ordinary commands while transport drains. An already accepted host write can
 still commit; abort/reset cannot roll it back. No ACK timeout or media-change
 recovery is implemented by this change.
 
+The stopped-enable reset regression is detailed in `RESET_STATUS.md`. ACK
+history/completion now runs on every system-clock edge, not the emulated FDC
+enable. The fixture stops CE during reset to match the shared machine; all
+twelve cases still pass. Earlier constant-CE fixture results did not cover
+that integration condition.
+The generated-media machine suite now checks a 1 ms reset during scanning at
+1 ms, then another at 50 ms after scanning: the mounted image is retained and
+the original register-driven read/seek test still completes with byte-exact
+data. All three simulator modes pass. This is scan continuation, not a proof
+of safe eject/replacement or every scanner/host timing phase.
+
 ## Simulator media preflight
 
 The headless/SDL runner validates D88 before constructing the machine or opening

@@ -10,7 +10,9 @@ module fdc_sd_abort_tb;
     wire [31:0] lba;
     wire [7:0] host_data;
     wd1793 #(.RWMODE(1), .EDSK(0)) dut (
-        .clk_sys(clk), .ce(1'b1), .reset(reset), .io_en(1'b1), .rd(rd), .wr(wr),
+        // Shared machine freezes CPU/FDC enables during reset. Host ACK still
+        // runs on clk_sys and must not disappear while the enable is stopped.
+        .clk_sys(clk), .ce(!reset), .reset(reset), .io_en(1'b1), .rd(rd), .wr(wr),
         .addr(address), .din(data), .dout(), .busy(busy), .drq(drq), .intrq(irq),
         .wp(1'b0), .fmt_wp(), .size_code(3'd1), .layout(1'b0), .side(1'b0),
         .ready(1'b1), .fm_mode(1'b0), .img_mounted(1'b0), .img_size(20'd8192),
@@ -80,6 +82,7 @@ module fdc_sd_abort_tb;
         assert(lba == 0 && (ack_high || (writing ? sd_wr : sd_rd))) else $fatal(1, "new command reused pending transport");
         if (!ack_high) host_complete();
         else begin ack = 0; repeat (15) @(negedge clk); end
+        if (held_reset) assert(!dut.transport_active) else $fatal(1, "ACK did not drain with CE stopped during reset");
         assert(!busy && !drq && !irq) else $fatal(1, "aborted transfer did not finish silently");
         reset = 0;
         repeat (15) @(negedge clk);

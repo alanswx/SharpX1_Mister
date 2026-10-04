@@ -62,6 +62,8 @@ static uint64_t number(const char *value) {
 int main(int argc, char **argv) {
     try {
         uint64_t cycles = 2000000, reset_cycles = 64;
+        std::vector<uint64_t> reset_at_ms;
+        uint64_t reset_for_us = 1000;
         // Match the checked-in board PLL; the intended X1 crystal is different.
 #ifdef X1_SINGLE_CLOCK
         constexpr uint64_t sys_hz = 28636364;
@@ -86,6 +88,8 @@ int main(int argc, char **argv) {
             if (!std::strcmp(argv[i], "--trace") && i + 1 < argc) trace_path = argv[++i];
             else if (!std::strcmp(argv[i], "--cycles") && i + 1 < argc) cycles = number(argv[++i]);
             else if (!std::strcmp(argv[i], "--reset-cycles") && i + 1 < argc) reset_cycles = number(argv[++i]);
+            else if (!std::strcmp(argv[i], "--reset-at") && i + 1 < argc) reset_at_ms.push_back(number(argv[++i]));
+            else if (!std::strcmp(argv[i], "--reset-for-us") && i + 1 < argc) reset_for_us = number(argv[++i]);
             else if (!std::strcmp(argv[i], "--video-hz") && i + 1 < argc) video_hz = number(argv[++i]);
             else if (!std::strcmp(argv[i], "--joya") && i + 1 < argc) { joya = number(argv[++i]); joya_override = true; }
             else if (!std::strcmp(argv[i], "--joyb") && i + 1 < argc) { joyb = number(argv[++i]); joyb_override = true; }
@@ -107,13 +111,15 @@ int main(int argc, char **argv) {
             else if (!std::strcmp(argv[i], "--save-state") && i + 1 < argc) save_path = argv[++i];
             else if (!std::strcmp(argv[i], "--restore-state") && i + 1 < argc) restore_path = argv[++i];
             else if (argv[i][0] != '-') cycles = number(argv[i]);
-            else throw std::runtime_error("usage: Vtop [cycles] [--cycles N] [--reset-cycles N] [--video-hz N] [--trace output.fst] [--rom IMAGE] [--ram IMAGE --load-address A --entry A] [--disk IMAGE --disk-output NEW_COPY] [--keys SCRIPT] [--frame IMAGE.ppm] [--audio OUTPUT.wav] [--dump PREFIX] [--peek A] [--bus-trace CSV --io-only] [--progress] [--interactive] [--save-state FILE] [--restore-state FILE] [--joya BYTE --joyb BYTE]");
+            else throw std::runtime_error("usage: Vtop [cycles] [--cycles N] [--reset-cycles N] [--reset-at MS (repeatable) --reset-for-us US] [--video-hz N] [--trace output.fst] [--rom IMAGE] [--ram IMAGE --load-address A --entry A] [--disk IMAGE --disk-output NEW_COPY] [--keys SCRIPT] [--frame IMAGE.ppm] [--audio OUTPUT.wav] [--dump PREFIX] [--peek A] [--bus-trace CSV --io-only] [--progress] [--interactive] [--save-state FILE] [--restore-state FILE] [--joya BYTE --joyb BYTE]");
         }
         // Bound time arithmetic and avoid an entirely reset-only smoke run.
         if (cycles <= reset_cycles || reset_cycles == 0 || cycles > 1000000000000ULL)
             throw std::runtime_error("require 0 < reset-cycles < cycles <= 1000000000000");
         if (video_hz == 0 || video_hz > 100000000)
             throw std::runtime_error("require 0 < video-hz <= 100000000");
+        if (!reset_for_us || reset_for_us > 1000000)
+            throw std::runtime_error("require 0 < reset-for-us <= 1000000");
 #ifdef X1_SINGLE_CLOCK
         if (video_hz != sys_hz) throw std::runtime_error("single-clock model requires video-hz = 28636364");
 #endif
@@ -288,6 +294,17 @@ int main(int argc, char **argv) {
         // --cycles remains a 32 MHz reference-duration unit for A/B comparisons.
         const uint64_t end_ps = cycles * 31250;
         const uint64_t reset_end_ps = reset_cycles * 31250;
+        std::vector<std::pair<uint64_t, uint64_t>> resets;
+        for (auto ms : reset_at_ms) {
+            if (ms > 1000000) throw std::runtime_error("reset-at exceeds 1000000 ms");
+            uint64_t start = resume_time + ms * 1000000000ULL;
+            uint64_t finish = start + reset_for_us * 1000000ULL;
+            if (start <= std::max(resume_time, reset_end_ps) || finish >= end_ps
+                || (!resets.empty() && start <= resets.back().second))
+                throw std::runtime_error("reset pulses must be ordered, non-overlapping and inside the run after startup reset");
+            resets.emplace_back(start, finish);
+        }
+        size_t reset_cursor = 0;
         uint64_t hs_edges = 0, vs_edges = 0;
         uint64_t hash = 14695981039346656037ULL;
         bool old_hs = top.HSync, old_vs = top.VSync;
@@ -303,6 +320,10 @@ int main(int argc, char **argv) {
         while (context.time() < end_ps && !context.gotFinish()) {
             uint64_t next = std::min({sys_time(sys_edge), video_time(vid_edge), end_ps});
             if (context.time() < reset_end_ps) next = std::min(next, reset_end_ps);
+            if (reset_cursor < resets.size()) {
+                auto [start, finish] = resets[reset_cursor];
+                next = std::min(next, context.time() < start ? start : finish);
+            }
             if (!audio.path.empty()) next = std::min(next, audio.next_time());
 #if VM_TIMING
             if (top.eventsPending()) next = std::min(next, top.nextTimeSlot());
@@ -311,8 +332,11 @@ int main(int argc, char **argv) {
             else if (!keys.empty()) next = std::min(next, std::max(context.time() + 1, keys.front().time));
             if (next <= context.time()) throw std::runtime_error("scheduler did not advance");
             context.timeInc(next - context.time());
-            // Release at a falling system edge, away from a CPU sampling edge.
-            top.reset = next < reset_end_ps;
+            // Warm resets are relative to this run/restore, with deterministic
+            // boundaries. Host disk/PS2 interfaces keep running during reset.
+            while (reset_cursor < resets.size() && next >= resets[reset_cursor].second) ++reset_cursor;
+            top.reset = next < reset_end_ps || (reset_cursor < resets.size()
+                         && next >= resets[reset_cursor].first);
             bool sys_rise = false;
             bool video_rise = false;
             bool pixel_enable = top.ce_pix;

@@ -63,6 +63,10 @@ Frames 8/9 SHA-256 are
 
 ## Transport-fix hardware follow-up
 
+Current availability: the user is travelling and explicitly reports no MiSTer
+or cottageubuntu access. Hardware acceptance is deferred until released again;
+the reset report and local verification are tracked in `RESET_STATUS.md`.
+
 The shared transport changes in `4d22dc3` pass synthetic pending-read/write
 abort/reset tests and fresh baseline/single-clock native gameplay in simulation.
 On 2026-10-03 at approximately 14:20 UTC, a follow-up SSH check could no longer

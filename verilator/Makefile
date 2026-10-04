@@ -20,6 +20,7 @@ single: obj_dir_single/Vtop
 single-fast: obj_dir_single_fast/Vtop
 
 test-single: single test-clock-enables test-sub-timer test-fdc-abort test-fdc-sd-abort
+	python3 tests/test_warm_reset.py ./obj_dir_single/Vtop
 	python3 tests/test_d88_bounds.py ./obj_dir_single/Vtop
 	python3 tests/test_single_clock.py ./obj_dir_single/Vtop
 	python3 tests/test_memory.py ./obj_dir_single/Vtop
@@ -39,6 +40,9 @@ boot-game-single: single-fast
 
 test-game-single: single-fast
 	python3 tests/test_gameplay.py ./obj_dir_single_fast/Vtop obj_dir_single_fast/cross-start.state $(GAME_DISK)
+
+test-game-reset-single: single-fast
+	python3 tests/test_game_reset.py ./obj_dir_single_fast/Vtop obj_dir_single_fast/cross-start.state $(GAME_DISK)
 
 test-clock-enables: obj_dir_single/enable/Vclock_enables_tb obj_dir_single/crtc/Vcrtc_enable_tb
 	./obj_dir_single/enable/Vclock_enables_tb
@@ -92,6 +96,9 @@ boot-game: fast
 test-game: fast
 	python3 tests/test_gameplay.py ./obj_dir_fast/Vtop $(GAME_STATE) $(GAME_DISK)
 
+test-game-reset: fast
+	python3 tests/test_game_reset.py ./obj_dir_fast/Vtop $(GAME_STATE) $(GAME_DISK)
+
 play: fast
 	./obj_dir_fast/Vtop --interactive --cycles $(PLAY_CYCLES) \
 		--restore-state $(GAME_STATE) --disk $(GAME_DISK)
@@ -115,6 +122,7 @@ run: headless
 	./$(HEADLESS_EXE) $(CYCLES)
 
 test: headless test-sub-timer test-fdc-abort test-fdc-sd-abort
+	python3 tests/test_warm_reset.py ./$(HEADLESS_EXE)
 	python3 tests/test_d88_bounds.py ./$(HEADLESS_EXE)
 	python3 tests/test_timing.py ./$(HEADLESS_EXE)
 	python3 tests/test_memory.py ./$(HEADLESS_EXE)
@@ -132,6 +140,7 @@ test: headless test-sub-timer test-fdc-abort test-fdc-sd-abort
 	$(MAKE) test-disk-control
 
 test-fast: fast test-sub-timer test-fdc-abort test-fdc-sd-abort
+	python3 tests/test_warm_reset.py ./obj_dir_fast/Vtop
 	python3 tests/test_d88_bounds.py ./obj_dir_fast/Vtop
 	python3 tests/test_memory.py ./obj_dir_fast/Vtop
 	python3 tests/test_subcpu.py ./obj_dir_fast/Vtop
@@ -222,3 +231,4 @@ clean:
 .PHONY: all headless interactive fast boot-game test-game play run test test-fast test-sdl test-loader test-joystick test-pcg-access test-disk-control lint lint-wrapper clean
 .PHONY: single single-fast test-single test-clock-enables boot-game-single test-game-single
 .PHONY: test-sub-timer
+.PHONY: test-game-reset test-game-reset-single
