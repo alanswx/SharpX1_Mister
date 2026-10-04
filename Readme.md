@@ -54,6 +54,13 @@ See [bring-up progress](docs/BRINGUP_PROGRESS.md) for changes and remaining gate
 Private commercial-game test preparation and the top-32 shortlist are documented
 in [test media](docs/TEST_MEDIA.md). Locally extracted disks remain ignored
 assets; their presence is not proof of compatibility or gameplay.
+Three commercial titles now have repeatable native player-control evidence
+in fast baseline simulation: Druaga, Xevious and Mappy. See the
+[commercial compatibility matrix](docs/COMMERCIAL_COMPATIBILITY.md) for the
+bounded checks and remaining two-game gate; this is not hardware signoff.
+Independent CPU-programmed 40/80-column text and 320/640 graphics rasters now
+pass after correcting a one-edge HBlank/RGB qualification offset; see
+[video coverage and remaining gates](docs/VIDEO_STATUS.md).
 
 MiSTer now wires keyboard, joystick, disk, RGB and audio paths and
 offers IPL/D88 OSD entries. Disk writes default to protected; enabling them

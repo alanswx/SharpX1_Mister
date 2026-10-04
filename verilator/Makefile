@@ -5,6 +5,7 @@ MACHINE_SRC = $(addprefix ../,$(shell awk '/^set_global_assignment -name (SYSTEM
 V_SRC = sim.v $(MACHINE_SRC)
 HEADLESS_DIR = obj_dir_headless
 HEADLESS_EXE = $(HEADLESS_DIR)/Vtop
+VIDEO_TEST_FLAGS ?=
 
 all: headless
 headless: $(HEADLESS_EXE)
@@ -20,6 +21,9 @@ single: obj_dir_single/Vtop
 single-fast: obj_dir_single_fast/Vtop
 
 test-single: single test-clock-enables test-sub-timer test-fdc-abort test-fdc-sd-abort
+	python3 tests/test_video_modes.py ./obj_dir_single/Vtop $(VIDEO_TEST_FLAGS)
+	python3 tests/test_video_modes.py ./obj_dir_single/Vtop --kind mixed --transition $(VIDEO_TEST_FLAGS)
+	python3 tests/test_keyboard_poll.py ./obj_dir_single/Vtop $(VIDEO_TEST_FLAGS)
 	python3 tests/test_warm_reset.py ./obj_dir_single/Vtop
 	python3 tests/test_d88_bounds.py ./obj_dir_single/Vtop
 	python3 tests/test_single_clock.py ./obj_dir_single/Vtop
@@ -122,6 +126,9 @@ run: headless
 	./$(HEADLESS_EXE) $(CYCLES)
 
 test: headless test-sub-timer test-fdc-abort test-fdc-sd-abort
+	python3 tests/test_video_modes.py ./$(HEADLESS_EXE) $(VIDEO_TEST_FLAGS)
+	python3 tests/test_video_modes.py ./$(HEADLESS_EXE) --kind mixed --transition $(VIDEO_TEST_FLAGS)
+	python3 tests/test_keyboard_poll.py ./$(HEADLESS_EXE) $(VIDEO_TEST_FLAGS)
 	python3 tests/test_warm_reset.py ./$(HEADLESS_EXE)
 	python3 tests/test_d88_bounds.py ./$(HEADLESS_EXE)
 	python3 tests/test_timing.py ./$(HEADLESS_EXE)
@@ -140,6 +147,9 @@ test: headless test-sub-timer test-fdc-abort test-fdc-sd-abort
 	$(MAKE) test-disk-control
 
 test-fast: fast test-sub-timer test-fdc-abort test-fdc-sd-abort
+	python3 tests/test_video_modes.py ./obj_dir_fast/Vtop $(VIDEO_TEST_FLAGS)
+	python3 tests/test_video_modes.py ./obj_dir_fast/Vtop --kind mixed --transition $(VIDEO_TEST_FLAGS)
+	python3 tests/test_keyboard_poll.py ./obj_dir_fast/Vtop $(VIDEO_TEST_FLAGS)
 	python3 tests/test_warm_reset.py ./obj_dir_fast/Vtop
 	python3 tests/test_d88_bounds.py ./obj_dir_fast/Vtop
 	python3 tests/test_memory.py ./obj_dir_fast/Vtop

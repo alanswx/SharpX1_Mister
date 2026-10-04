@@ -18,6 +18,7 @@
 #include "verilated.h"
 #include "verilated_fst_c.h"
 #include "Vtop.h"
+#include "Vtop___024root.h"
 #ifdef X1_SAVABLE
 #include "verilated_save.h"
 #endif
@@ -490,6 +491,29 @@ int main(int argc, char **argv) {
             if (::close(copy_fd) != 0) throw std::runtime_error("disk output close failed");
         }
         if (dump_path) {
+            // Read-only simulation instrumentation. Sub-CPU work RAM begins
+            // at 0x1000; write explicit little-endian bytes, not host words.
+            // This does not change RTL or the serialized model layout.
+            std::ofstream subram(std::string(dump_path) + ".subram", std::ios::binary);
+            if (!subram) throw std::runtime_error("cannot open sub-CPU RAM dump");
+            for (unsigned address = 0; address < 1024; ++address) {
+                auto word = top.rootp->top__DOT__machine__DOT__subCPU__DOT__sub_w_ram__DOT__mem[address];
+                subram.put(word & 255);
+                subram.put(word >> 8);
+            }
+            std::ofstream registers(std::string(dump_path) + ".cpu", std::ios::binary);
+            if (!registers) throw std::runtime_error("cannot open CPU register dump");
+            auto *root = top.rootp;
+            registers << "PC=" << std::hex << root->top__DOT__machine__DOT__Cpu__DOT__Z80CPU__DOT__i_tv80_core__DOT__PC
+                      << " SP=" << root->top__DOT__machine__DOT__Cpu__DOT__Z80CPU__DOT__i_tv80_core__DOT__SP
+                      << " AF=" << ((unsigned(root->top__DOT__machine__DOT__Cpu__DOT__Z80CPU__DOT__i_tv80_core__DOT__ACC) << 8)
+                                   | root->top__DOT__machine__DOT__Cpu__DOT__Z80CPU__DOT__i_tv80_core__DOT__F) << '\n';
+            // Raw TV80 register-file slots, including the alternate bank and
+            // index registers; names avoid guessing the active bank mid-cycle.
+            for (unsigned index = 0; index < 8; ++index)
+                registers << "R" << index << '='
+                          << ((unsigned(root->top__DOT__machine__DOT__Cpu__DOT__Z80CPU__DOT__i_tv80_core__DOT__i_reg__DOT__RegsH[index]) << 8)
+                              | root->top__DOT__machine__DOT__Cpu__DOT__Z80CPU__DOT__i_tv80_core__DOT__i_reg__DOT__RegsL[index]) << '\n';
             std::ofstream memory(std::string(dump_path) + ".ram", std::ios::binary);
             std::ofstream text(std::string(dump_path) + ".text", std::ios::binary);
             std::ofstream attr(std::string(dump_path) + ".attr", std::ios::binary);

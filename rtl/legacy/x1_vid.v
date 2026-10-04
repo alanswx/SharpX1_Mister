@@ -463,8 +463,14 @@ reg ym_r;
 `endif
 
 reg [2:0] out_col;
+// RGB is registered one master edge after the shifter/attribute decision.
+// Delay active-display qualification by the same edge; otherwise the first
+// captured/displayed pixel belongs to the preceding blank character.
+reg out_disp;
 always @(posedge I_VCLK)
 begin
+  if(I_RESET) out_disp <= 0;
+  else out_disp <= disp_d;
 `ifdef X1TURBO
   ym_r    <= mx_black;
   out_col <= mx_black ? 3'b000 : gr_sel ? gr_pal : cg_col;
@@ -488,7 +494,7 @@ assign O_HSYNC = hsync_d;
 assign O_VSYNC = vsync_d;
 `endif
 assign O_VDISP = vdisp;
-assign O_HBLANK = ~disp_d;
+assign O_HBLANK = ~out_disp;
 assign O_VBLANK = ~vdisp;
 assign O_CE_PIXEL = ~QP & QA;
 
