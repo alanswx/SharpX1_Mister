@@ -1,8 +1,8 @@
 # Sharp X1 core bring-up TODO
 
 This list is based on the current RTL, the existing Verilator harness, and
-cross-checking against the local MAME Sharp X1 driver. X Millennium is a
-candidate reference; it has not yet been downloaded or compared locally.
+cross-checking against the local MAME Sharp X1 driver. X Millennium is now
+downloaded and its Turbo control code inspected, not built or run.
 See `CORE_STATUS.md` for confirmed device and wiring gaps.
 See [the implementation and test plan](IMPLEMENTATION_PLAN.md) for dependency
 ordering, test coverage, and acceptance gates. These checklist phases are broad
@@ -21,11 +21,13 @@ support before optional Turbo extensions.
   MR16 timer's 32 MHz virtual tick rate; retain the original movement test.
 - [ ] Audit slower MR16 instruction timing, broaden software compatibility and
   obtain timing/hardware signoff before changing the default configuration.
-- [ ] Investigate cold-start PS/2 receive/firmware turnaround: F make at 25 ms,
+- [x] Investigate and fix cold-start PS/2 receive/firmware turnaround: F make at 25 ms,
   break at 45/47 ms, I at 60 ms and break at 80/82 ms, then J at 100 ms and
   break at 120/122 ms gives only F/J responses in both baseline and single.
-  The extended IM1 fixture passes six responses with I/J at 100/175 ms;
-  distinguish startup/keyboard-command handling from steady-state buffering.
+  Firmware LED transmit on disconnected output pins consumed I. Explicit
+  receive-only firmware profile now passes all six cold and steady responses,
+  overlapping keys and Caps/Shift polling in both clock models; original
+  bidirectional failure remains reproduced. See `KEYBOARD_STATUS.md`.
 - [x] Build opt-in single revision with positive analyzed setup/hold/recovery
   and no unconstrained clocks; external I/O constraints/hardware remain open.
 - [x] Make the simulator load `bios/ipl_x1.hex` through the shared ioctl path.
@@ -119,11 +121,20 @@ support before optional Turbo extensions.
   the missed-handshake regression with CE stopped in the transport fixture.
 - [x] Add simulator D88 structural preflight and original malformed-media CLI
   tests; reject unsupported scanner layouts separately from corrupt images.
-- [ ] Add equivalent safe bounds/rejection in the FPGA image scanner and test
-  malformed direct MiSTer mounts, media changes and reset during scanning.
+- [x] Add strict D88-only bounds/rejection to shared RTL; bypass host preflight
+  in direct scanner tests covering header/table/count/payload errors, index
+  overflow, selected-volume bounds, eject/replacement and scanner/controller
+  pending-read reset/ACK draining. Invalid media stay not-ready, no raw fallback.
+- [ ] Verify malformed direct MiSTer mounts and physical media changes; extend
+  replacement during writes and all parser phases. Permanently stalled hosts
+  remain safely quarantined; safe cancellation/timeouts need a transport contract.
 - [ ] Implement DMA bus arbitration and verify Z80 DMA transfers.
 - [ ] Add CTC/SIO behavior and interrupt priority/acknowledgement tests.
 - [ ] Implement X1 Turbo high-resolution/400-line behavior.
+- [x] Add explicit experimental Turbo foundation: independent GRAM access/display
+  pages, 96 KiB GRAM, separate KVRAM, blackclip and 32 KiB IPL. CPU/boundary/DAM/
+  warm-reset and actual RGB tests pass; no complete Turbo model claim.
+  See `TURBO_STATUS.md` and `TURBO_IMPLEMENTATION_PLAN.md`.
 - [ ] Implement Kanji ROM readback and the Turbo/TurboZ extended video paths.
 - [ ] Add optional EMM/expanded RAM and SASI/HDD support if the target core
   promises Turbo/TurboZ compatibility.

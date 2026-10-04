@@ -139,7 +139,14 @@ int main(int argc, char **argv) {
                 downloads.push_back({index, start + static_cast<uint32_t>(i), bytes[i]});
         };
         if (ram_path) enqueue(2, load_address, image(ram_path), 65536);
-        if (rom_path) enqueue(0, 0, image(rom_path), 4096);
+#ifdef X1_TURBO_FOUNDATION
+        constexpr unsigned ipl_capacity = 32768;
+        constexpr const char *turbo_foundation = "true";
+#else
+        constexpr unsigned ipl_capacity = 4096;
+        constexpr const char *turbo_foundation = "false";
+#endif
+        if (rom_path) enqueue(0, 0, image(rom_path), ipl_capacity);
         else if (ram_path) {
             // Explicit debug boot, not an IPL/media boot. Execute the ROM-disable
             // trampoline in high RAM; never overwrite a game's entry at address 0.
@@ -566,14 +573,14 @@ int main(int argc, char **argv) {
             std::snprintf(byte, sizeof(byte), "%02x", top.debug_ram);
             peek += byte;
         }
-        std::printf("{\"machine\":\"sharpx1\",\"intra_assignment_delays\":%s,\"sys_hz\":%llu,\"video_hz\":%llu,"
+        std::printf("{\"machine\":\"sharpx1\",\"turbo_foundation\":%s,\"intra_assignment_delays\":%s,\"sys_hz\":%llu,\"video_hz\":%llu,"
                     "\"time_ps\":%llu,\"sys_edges\":%llu,\"video_edges\":%llu,"
                     "\"reset_edges\":%llu,\"cpu_enables\":%llu,\"delayed_sys_edges\":%llu,"
                     "\"hs_edges\":%llu,\"vs_edges\":%llu,\"hs_period_ps\":%llu,\"vs_period_ps\":%llu,\"video_hash\":\"%016llx\","
                     "\"download_bytes\":%llu,\"cpu_address\":%u,\"halted\":%s,\"peek\":\"%s\","
                     "\"ps2_bytes_sent\":%llu,\"disk_requests\":%llu,\"disk_writes\":%llu,\"frames\":%llu,\"frame_width\":%u,\"frame_height\":%u,\"frame_hash\":\"%016llx\","
                     "\"sub_pc\":%u,\"sub_address\":%u,\"sub_control\":%u,\"sub_running\":%s,\"sub_tx_busy\":%s,\"sub_rx_empty\":%s}\n",
-                    VM_TIMING ? "true" : "false",
+                    turbo_foundation, VM_TIMING ? "true" : "false",
                     (unsigned long long)sys_hz,
                     (unsigned long long)video_hz, (unsigned long long)context.time(), (unsigned long long)top.sys_edges,
                     (unsigned long long)top.video_edges, (unsigned long long)top.reset_edges,

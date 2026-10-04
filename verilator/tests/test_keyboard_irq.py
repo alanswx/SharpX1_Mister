@@ -59,22 +59,32 @@ with tempfile.TemporaryDirectory(prefix="x1-irq-") as folder:
     ram = pathlib.Path(folder) / "irq.bin"
     ram.write_bytes(p.finish())
     script = pathlib.Path(folder) / "keys.txt"
-    # Retain the original F make/break timing, then exercise two more keys.
-    # Cold-start firmware/PS2 turnaround with I at 60 ms loses that pair in
-    # both models; tracked separately in SHARP_X1_TODO.md, not compatibility.
-    script.write_text("25 2b\n45 f0\n47 2b\n100 43\n120 f0\n122 43\n175 3b\n195 f0\n197 3b\n")
-    dump = pathlib.Path(folder) / "irq"
-    result = subprocess.run([exe, "--cycles", "8000000", "--ram", str(ram),
-                             "--keys", str(script), "--dump", str(dump)],
-                            check=True, capture_output=True, text=True)
-    report = json.loads(result.stdout.splitlines()[-1])
-    memory = dump.with_suffix(".ram").read_bytes()
-    assert memory[0xF000] == 6, (memory[0xF000], memory[0xF100:0xF10C].hex(), report)
-    assert memory[0xF021] == 0x46, (memory[0xF020:0xF022].hex(), report)
-    assert memory[0xF011] == 0, (memory[0xF010:0xF012].hex(), report)
-    events = [memory[0xF100 + 2*i:0xF102 + 2*i] for i in range(6)]
-    assert events == [bytes.fromhex(value) for value in
-                      ("b746", "f700", "b749", "f700", "b74a", "f700")], (
-                          [event.hex() for event in events], report)
-    print("IRQ make", memory[0xF020:0xF022].hex(), "break", memory[0xF010:0xF012].hex())
-print("PASS: six consecutive IM 1 make/break responses, modifier/ASCII ordering and RETI return")
+    cases = (
+        # Exact cold fixture: do not move I outside command turnaround.
+        ("cold", "25 2b\n45 f0\n47 2b\n60 43\n80 f0\n82 43\n100 3b\n120 f0\n122 3b\n",
+         ("b746", "f700", "b749", "f700", "b74a", "f700")),
+        # Retain the existing steady-state fixture in addition to the cold one.
+        ("steady", "25 2b\n45 f0\n47 2b\n100 43\n120 f0\n122 43\n175 3b\n195 f0\n197 3b\n",
+         ("b746", "f700", "b749", "f700", "b74a", "f700")),
+        # The inherited last-key policy ignores releases of older held keys.
+        ("overlap", "25 2b\n60 43\n80 f0\n82 2b\n100 3b\n120 f0\n122 43\n140 f0\n142 3b\n",
+         ("b746", "b749", "b74a", "f700")),
+    )
+    for name, keys, expected in cases:
+        script.write_text(keys)
+        dump = pathlib.Path(folder) / name
+        result = subprocess.run([exe, "--cycles", "8000000", "--ram", str(ram),
+                                 "--keys", str(script), "--dump", str(dump)],
+                                check=True, capture_output=True, text=True, timeout=180)
+        report = json.loads(result.stdout.splitlines()[-1])
+        memory = dump.with_suffix(".ram").read_bytes()
+        assert report["ps2_bytes_sent"] == len(keys.splitlines()), report
+        assert memory[0xF000] == len(expected), (
+            name, memory[0xF000], memory[0xF100:0xF110].hex(), report)
+        assert memory[0xF021] == 0x46, (name, memory[0xF020:0xF022].hex(), report)
+        assert memory[0xF011] == 0, (name, memory[0xF010:0xF012].hex(), report)
+        events = [memory[0xF100 + 2*i:0xF102 + 2*i] for i in range(len(expected))]
+        assert events == [bytes.fromhex(value) for value in expected], (
+            name, [event.hex() for event in events], report)
+        print(f"PASS: {name} IM 1 responses", " ".join(event.hex() for event in events), flush=True)
+print("PASS: cold/steady/overlapping make/break ordering, modifier/ASCII bytes and RETI return")

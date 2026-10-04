@@ -77,9 +77,44 @@ cover mixed sizes, concatenated volumes and truncated/out-of-range records,
 checking that source bytes remain unchanged. Successful preflight is not a boot
 or compatibility test. Copy-protected irregular layouts may be valid D88 but
 unsupported here. CRC/deleted-data/density flags are not certified by preflight.
-These are **host checks only**: direct MiSTer mounts still need equivalent RTL
-validation and error/not-ready recovery. The simulator now accepts D88 only for
+These preflight checks cover every concatenated volume. Direct RTL validation
+below covers the selected volume only. The simulator accepts D88 only for
 `--disk`, not the vendor controller's reference EDSK/raw formats.
+
+## Direct shared-RTL validation and media changes
+
+The active machine now selects `wd1793.D88_ONLY=1`; inherited raw/EDSK fixture
+profiles retain their original default. Invalid/unsupported containers never
+fall back to raw geometry. Controller READY/status remain not-ready until the
+selected volume passes the scanner. Guards cover declared volume bounds,
+20-bit address overflow, full-width strictly increasing track offsets outside
+the header, sector counts 1..255 with consistent per-track headers, N=0..3
+matching payload lengths, track/volume payload extents, complete records and
+the 1992-entry index limit. Tracks above the inherited 32-sector cap are no
+longer silently truncated in strict mode. Concatenated trailing volumes are
+not inspected by RTL when selecting disk zero; host preflight still checks all.
+
+Replacement/ejection invalidates READY and cancels controller work, but keeps
+an already published host request and its LBA until ACK drains. Only then may
+the next image scan begin. A rejected image can be followed by a valid remount;
+a stale scanner error cannot kill the new scan. Machine reset pauses scanner
+work while ACK sampling continues every system clock. Mounted media and video/
+main RAM are not reloaded to recover these tests.
+
+`make -C verilator test-d88-scanner` deliberately bypasses C++ preflight. It
+tests seventeen ordinary valid/malformed/oversize mounts, a concatenated first
+volume, valid 33-sector track, index overflow, stalled pre-ACK replacement,
+reset during scanner ACK, eject/remount, and replacement during a pending
+controller read with CE stopped during reset. Requests never write media or
+index beyond capacity; rejected images report not-ready. Existing Type IV and
+twelve read/write reset/abort transport cases also pass. Generated machine
+disk tests pass in delay-aware baseline and single-clock configurations.
+
+This is RTL simulation, not malformed-image testing on MiSTer. Permanently
+missing ACK remains quarantined: without an epoch/cancel contract, timing out
+and reusing its request could alias a late completion or corrupt an accepted
+write. Replacement during writes, exhaustive parser-phase resets, and physical
+host fault injection remain open. Accepted host writes cannot be rolled back.
 
 ## Write safety
 
@@ -100,8 +135,8 @@ not been verified on hardware; use disposable media copies for bring-up.
 
 Only drive A and the base MFM/2D path are covered. Exact command/byte/seek timing,
 exact force-interrupt pin timing, deleted-data marks, metadata updates after writes,
-per-sector density, format/write-track, board malformed-image rejection,
-eject/remount during transfers, reset during scanning, stalled-host recovery,
+per-sector density, format/write-track, hardware malformed-image rejection,
+replacement during writes/all parser phases, permanent stalled-host recovery,
 drive B and Turbo 2HD/2DD remain unvalidated or incomplete. Pending-sector SD
 abort/reset is covered by the focused synthetic fixture, not hardware fault injection.
 Image addressing is limited to less than 1 MiB. Synthetic CRC flags do not

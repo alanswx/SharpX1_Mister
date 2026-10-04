@@ -3,6 +3,9 @@
 Active path: `rtl/sharpx1.v` instantiates `rtl/legacy/x1_vid.v` and the
 enabled/divided-clock `crtc6845s`. The simulator uses that same machine, not
 the reference-only legacy wrapper. Turbo 400-line video is not implemented.
+Experimental Turbo page/blackclip tests now run through the same renderer;
+see `TURBO_STATUS.md`. They do not extend this base 200-line milestone to
+400-line, high-speed PCG or authentic Kanji support.
 
 ## Pixel qualification correction
 

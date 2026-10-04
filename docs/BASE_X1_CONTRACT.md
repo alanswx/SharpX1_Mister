@@ -8,6 +8,9 @@ Generated-media write/readback tests pass with explicit protection controls;
 see `DISK_STATUS.md` for the remaining controller/image limitations.
 Turbo DMA, CTC, SIO, 400-line modes and cassette transport are not acceptance
 claims. A base game running does not establish full machine compatibility.
+This file describes the default `TURBO=0` profile. The explicitly opt-in
+foundation changes IPL size, GRAM pages and the text/KVRAM aperture; its
+separate contract and exclusions are in `TURBO_STATUS.md`.
 
 ## CPU and loading
 

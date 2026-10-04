@@ -1149,7 +1149,14 @@ ps2_rx_en:
 ;r0 = transmit data
 PS2_TX:
 ;----- set TX mode and waiting -----
+.ifdef PS2_RECEIVE_ONLY
+;MiSTer HPS sends a one-way PS/2 stream; transmit pins are not connected.
+;Same-size entry substitution preserves the inherited ROM layout. The active
+;RTL ROM profile applies this one instruction without regenerating binaries.
+	bra	ps2_rx_en
+.else
 	mov	r1,#0:8
+.endif
 	stm	(r12,#ps2_tout-R12_BASE),r1
 	mov	r1,#PS2_TXM1:8
 	stm	(r12,#ps2_scnt-R12_BASE),r1

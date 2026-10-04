@@ -20,7 +20,34 @@ fast: obj_dir_fast/Vtop
 single: obj_dir_single/Vtop
 single-fast: obj_dir_single_fast/Vtop
 
-test-single: single test-clock-enables test-sub-timer test-fdc-abort test-fdc-sd-abort
+# Partial Turbo peripherals behind an explicit experimental model parameter.
+turbo: obj_dir_turbo/Vtop
+turbo-single: obj_dir_turbo_single/Vtop
+
+obj_dir_turbo/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
+	$(V) -cc --timing --assert --trace-fst --exe --build -j 4 --Mdir obj_dir_turbo --top-module top \
+		-GTURBO=1 -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION" -MAKEFLAGS "OPT_FAST=-O3" \
+		$(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
+
+obj_dir_turbo_single/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
+	$(V) -cc --timing --assert --trace-fst --exe --build -j 4 --Mdir obj_dir_turbo_single --top-module top \
+		-GTURBO=1 -GSINGLE_CLOCK=1 -GMASTER_HZ=28636364 -CFLAGS "-std=c++20 -DX1_SINGLE_CLOCK -DX1_TURBO_FOUNDATION" \
+		-MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
+
+.PHONY: turbo turbo-single
+
+test-turbo: turbo $(HEADLESS_DIR)/turbo-video/Vturbo_video_tb
+	python3 tests/test_turbo_banks.py ./obj_dir_turbo/Vtop
+	python3 tests/test_turbo_ipl.py ./obj_dir_turbo/Vtop
+	./$(HEADLESS_DIR)/turbo-video/Vturbo_video_tb
+
+$(HEADLESS_DIR)/turbo-video/Vturbo_video_tb: tests/turbo_video_tb.sv ../rtl/legacy/x1_vid.v ../rtl/legacy/crtc/crtc6845s.v
+	$(V) --binary --timing --assert --top-module turbo_video_tb --Mdir $(HEADLESS_DIR)/turbo-video \
+		-j 4 ../rtl/legacy/x1_vid.v ../rtl/legacy/crtc/crtc6845s.v tests/turbo_video_tb.sv -Wno-fatal
+
+.PHONY: test-turbo
+
+test-single: single test-clock-enables test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner
 	python3 tests/test_key_script.py ./obj_dir_single/Vtop $(VIDEO_TEST_FLAGS)
 	python3 tests/test_video_modes.py ./obj_dir_single/Vtop $(VIDEO_TEST_FLAGS)
 	python3 tests/test_video_modes.py ./obj_dir_single/Vtop --kind mixed --transition $(VIDEO_TEST_FLAGS)
@@ -126,7 +153,7 @@ $(HEADLESS_EXE): $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_i
 run: headless
 	./$(HEADLESS_EXE) $(CYCLES)
 
-test: headless test-sub-timer test-fdc-abort test-fdc-sd-abort
+test: headless test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner
 	python3 tests/test_key_script.py ./$(HEADLESS_EXE) $(VIDEO_TEST_FLAGS)
 	python3 tests/test_video_modes.py ./$(HEADLESS_EXE) $(VIDEO_TEST_FLAGS)
 	python3 tests/test_video_modes.py ./$(HEADLESS_EXE) --kind mixed --transition $(VIDEO_TEST_FLAGS)
@@ -148,7 +175,7 @@ test: headless test-sub-timer test-fdc-abort test-fdc-sd-abort
 	$(MAKE) test-pcg-access
 	$(MAKE) test-disk-control
 
-test-fast: fast test-sub-timer test-fdc-abort test-fdc-sd-abort
+test-fast: fast test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner
 	python3 tests/test_key_script.py ./obj_dir_fast/Vtop $(VIDEO_TEST_FLAGS)
 	python3 tests/test_video_modes.py ./obj_dir_fast/Vtop $(VIDEO_TEST_FLAGS)
 	python3 tests/test_video_modes.py ./obj_dir_fast/Vtop --kind mixed --transition $(VIDEO_TEST_FLAGS)
@@ -191,6 +218,20 @@ $(HEADLESS_DIR)/sd-abort/Vfdc_sd_abort_tb: tests/fdc_sd_abort_tb.sv ../rtl/vendo
 		-j 4 ../rtl/vendor/wd1793.sv ../rtl/vendor/x1_fdc_index_ram.v tests/fdc_sd_abort_tb.sv -Wno-fatal
 
 .PHONY: test-fdc-sd-abort
+
+test-d88-scanner: $(HEADLESS_DIR)/d88/Vd88_scanner_tb
+	./$(HEADLESS_DIR)/d88/Vd88_scanner_tb
+
+$(HEADLESS_DIR)/d88/Vd88_scanner_tb: tests/d88_scanner_tb.sv ../rtl/vendor/wd1793.sv ../rtl/vendor/x1_fdc_index_ram.v
+	$(V) --binary --timing --assert --top-module d88_scanner_tb --Mdir $(HEADLESS_DIR)/d88 \
+		-j 4 ../rtl/vendor/wd1793.sv ../rtl/vendor/x1_fdc_index_ram.v tests/d88_scanner_tb.sv -Wno-fatal
+
+.PHONY: test-d88-scanner
+
+test-keyboard-receiver:
+	python3 tests/test_keyboard_receiver.py
+
+.PHONY: test-keyboard-receiver
 
 $(HEADLESS_DIR)/disk/Vdisk_control_tb: tests/disk_control_tb.sv ../rtl/x1_disk_control.v
 	$(V) --binary --timing --assert --top-module disk_control_tb --Mdir $(HEADLESS_DIR)/disk \

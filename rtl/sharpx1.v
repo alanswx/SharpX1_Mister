@@ -1,6 +1,6 @@
 // Sharp X1 base-machine integration. Shared by MiSTer and simulation.
 // See docs/BASE_X1_CONTRACT.md for address-map sources and limitations.
-module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364) (
+module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0) (
     input clk_sys, clk_28636, reset,
     input pal, scandouble,
     input ioctl_download,
@@ -60,22 +60,46 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364) (
     wire ipl_clear_cs = io_write && !dam && a[15:8] == 8'h1e;
 
     reg ipl_enabled;
+    // Experimental Turbo foundation, not a complete Turbo machine selection.
+    // SCRN: display bank bit 3, CPU access bank bit 4; write-only on Turbo.
+    reg [7:0] turbo_scrn;
+    reg [6:0] turbo_black;
+    always @(posedge clk_sys or posedge reset)
+        if (reset) begin turbo_scrn <= 0; turbo_black <= 0; end
+        else if (TURBO && io_write && !dam) begin
+            if (a[15:4] == 12'h1fd) turbo_scrn <= data_out;
+            if (a == 16'h1fe0) turbo_black <= data_out[6:0];
+        end
+    // Stable control latches cross into the renderer. Phase of live changes
+    // still needs hardware/CDC review; diagnostics switch while masked.
+    (* async_reg = "true" *) reg [7:0] turbo_scrn_meta, turbo_scrn_video;
+    (* async_reg = "true" *) reg [6:0] turbo_black_meta, turbo_black_video;
+    always @(posedge clk_28636 or posedge reset)
+        if (reset) begin
+            turbo_scrn_meta <= 0; turbo_scrn_video <= 0;
+            turbo_black_meta <= 0; turbo_black_video <= 0;
+        end else begin
+            turbo_scrn_meta <= turbo_scrn; turbo_scrn_video <= turbo_scrn_meta;
+            turbo_black_meta <= turbo_black; turbo_black_video <= turbo_black_meta;
+        end
     always @(posedge clk_sys or posedge reset)
         if (reset) ipl_enabled <= 1'b1;
         else if (ipl_set_cs) ipl_enabled <= 1'b1;
         else if (ipl_clear_cs) ipl_enabled <= 1'b0;
 
-    // Index 0: base IPL (4 KiB); index 2: explicit debug/program RAM download.
+    // Index 0: base IPL (4 KiB), experimental Turbo IPL (32 KiB).
+    // Index 2: explicit debug/program RAM download.
     // Loader does not wrap invalid addresses and cannot write without download.
+    localparam IPL_AW = TURBO ? 15 : 12;
     wire ipl_load = ioctl_download && ioctl_wr && ioctl_index == 0
-                    && ioctl_addr < 25'd4096;
+                    && ioctl_addr < (TURBO ? 25'd32768 : 25'd4096);
     wire ram_load = reset && ioctl_download && ioctl_wr && ioctl_index == 2
                     && ioctl_addr < 25'd65536;
     wire [7:0] ipl_data, ram_data;
-    dpram #(8,12) IPL (
-        .clock(clk_sys), .ram_cs(1'b1), .address_a(ioctl_addr[11:0]),
+    dpram #(8,IPL_AW) IPL (
+        .clock(clk_sys), .ram_cs(1'b1), .address_a(ioctl_addr[IPL_AW-1:0]),
         .wren_a(ipl_load), .data_a(ioctl_dout), .q_a(),
-        .ram_cs_b(1'b1), .address_b(a[11:0]), .wren_b(1'b0),
+        .ram_cs_b(1'b1), .address_b(a[IPL_AW-1:0]), .wren_b(1'b0),
         .data_b(8'd0), .q_b(ipl_data)
     );
     dpram #(8,16) RAM (
@@ -91,7 +115,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364) (
     // bus ownership is advertised until those devices have their own tests.
     wire [7:0] sub_data;
     wire sub_tx_busy, sub_rx_busy, sub_int_n, clk1;
-    x1_sub #(.CLOCK_HZ(SINGLE_CLOCK ? MASTER_HZ : 32000000)) subCPU (
+    x1_sub #(.CLOCK_HZ(SINGLE_CLOCK ? MASTER_HZ : 32000000), .PS2_RECEIVE_ONLY(1)) subCPU (
         .I_reset(reset), .I_clk(clk_sys), .I_cs(sub_cs),
         .I_rd(io_read), .I_wr(io_write), .I_M1_n(m1),
         .I_D(data_out), .O_D(sub_data), .O_DOE(), .O_clk1(clk1),
@@ -112,7 +136,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364) (
     // Base IPL occupies a 32 KiB read aperture, with only 4 KiB populated.
     // Writes always reach underlying RAM, including when IPL reads are enabled.
     wire rom_selected = ipl_enabled && !a[15];
-    assign di = mem_read ? (rom_selected ? (a < 16'h1000 ? ipl_data : 8'hff)
+    assign di = mem_read ? (rom_selected ? (TURBO || a < 16'h1000 ? ipl_data : 8'hff)
                                          : ram_data)
               : !m1 && !iorq ? sub_data
               : sub_cs && io_read && !dam ? sub_data
@@ -121,6 +145,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364) (
               : io_read && !dam && a[15:8] == 8'h1b ? psg_data
               : cg_access && io_read ? cg_cpu_data
               : io_read && !dam && a[15:12] == 4'h2 ? attr_cpu
+              : io_read && !dam && TURBO && a[15:11] == 5'b00111 ? kan_cpu
               : io_read && !dam && a[15:12] == 4'h3 ? text_cpu
               : io_read && a[15:14] == 2'b01 ? grb_cpu
               : io_read && a[15:14] == 2'b10 ? grr_cpu
@@ -167,7 +192,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364) (
         .clk(clk_sys), .reset(reset), .io_read(io_read && !dam), .io_write(io_write && !dam),
         .address(a), .data(data_out), .drive(drive), .side(disk_side), .motor_on(disk_motor), .fm_mode(disk_fm)
     );
-    wd1793 #(.RWMODE(1), .EDSK(1), .HEADLOAD_STATUS(1), .INDEX_CYCLES(800000)) fdc (
+    wd1793 #(.RWMODE(1), .EDSK(1), .HEADLOAD_STATUS(1), .INDEX_CYCLES(800000), .D88_ONLY(1)) fdc (
         .clk_sys(clk_sys), .ce(pe4M4), .reset(reset),
         .io_en(!dam && a[15:2] == 14'h03fe), .rd(io_read), .wr(io_write),
         .addr(a[1:0]), .din(data_out), .dout(fdc_data),
@@ -186,6 +211,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364) (
     wire [13:0] vaddr;
     wire [10:0] cgaddr;
     wire [7:0] text_cpu, text_vid, attr_cpu, attr_vid, cg_data;
+    wire [7:0] kan_cpu, kan_vid;
     wire [7:0] grb_cpu, grr_cpu, grg_cpu, grb_vid, grr_vid, grg_vid;
     wire [7:0] pcgb_vid, pcgr_vid, pcgg_vid;
     wire [7:0] pcgb_cpu, pcgr_cpu, pcgg_cpu, cg_rom_cpu, cg_cpu_data;
@@ -193,7 +219,8 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364) (
     wire [7:0] cg_access_data;
     wire [2:0] cg_access_write;
     wire cg_wait_n;
-    wire text_write = io_write && !dam && a[15:12] == 4'h3;
+    wire text_write = io_write && !dam && a[15:12] == 4'h3 && (!TURBO || !a[11]);
+    wire kan_write = TURBO && io_write && !dam && a[15:11] == 5'b00111;
     wire attr_write = io_write && !dam && a[15:12] == 4'h2;
     wire cg_access = io_cycle && !dam && a[15:10] == 6'b000101;
     x1_pcg_access cg_bus (
@@ -205,16 +232,21 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364) (
     );
     x1_video_ram #(11) text_ram(clk_sys,a[10:0],data_out,text_write,text_cpu,clk_28636,vaddr[10:0],text_vid);
     x1_video_ram #(11) attr_ram(clk_sys,a[10:0],data_out,attr_write,attr_cpu,clk_28636,vaddr[10:0],attr_vid);
-    x1_video_ram #(14) gram_b(clk_sys,a[13:0],data_out,io_write && ((a[15:14] == 1) ^ dam),grb_cpu,clk_28636,vaddr,grb_vid);
-    x1_video_ram #(14) gram_r(clk_sys,a[13:0],data_out,io_write && ((a[15:14] == 2) ^ dam),grr_cpu,clk_28636,vaddr,grr_vid);
-    x1_video_ram #(14) gram_g(clk_sys,a[13:0],data_out,io_write && ((a[15:14] == 3) ^ dam),grg_cpu,clk_28636,vaddr,grg_vid);
+    x1_video_ram #(11) kan_ram(clk_sys,a[10:0],data_out,kan_write,kan_cpu,clk_28636,vaddr[10:0],kan_vid);
+    localparam GRAM_AW = TURBO ? 15 : 14;
+    wire [GRAM_AW-1:0] gram_cpu_addr = GRAM_AW'({turbo_scrn[4], a[13:0]});
+    wire [GRAM_AW-1:0] gram_video_addr = GRAM_AW'({turbo_scrn_video[3], vaddr});
+    x1_video_ram #(GRAM_AW) gram_b(clk_sys,gram_cpu_addr,data_out,io_write && ((a[15:14] == 1) ^ dam),grb_cpu,clk_28636,gram_video_addr,grb_vid);
+    x1_video_ram #(GRAM_AW) gram_r(clk_sys,gram_cpu_addr,data_out,io_write && ((a[15:14] == 2) ^ dam),grr_cpu,clk_28636,gram_video_addr,grr_vid);
+    x1_video_ram #(GRAM_AW) gram_g(clk_sys,gram_cpu_addr,data_out,io_write && ((a[15:14] == 3) ^ dam),grg_cpu,clk_28636,gram_video_addr,grg_vid);
     x1_video_ram #(11) pcg_b(clk_28636,cg_access_addr,cg_access_data,cg_access_write[0],pcgb_cpu,clk_28636,cgaddr,pcgb_vid);
     x1_video_ram #(11) pcg_r(clk_28636,cg_access_addr,cg_access_data,cg_access_write[1],pcgr_cpu,clk_28636,cgaddr,pcgr_vid);
     x1_video_ram #(11) pcg_g(clk_28636,cg_access_addr,cg_access_data,cg_access_write[2],pcgg_cpu,clk_28636,cgaddr,pcgg_vid);
     x1_cg8 access_font(clk_28636,cg_access_addr,cg_rom_cpu);
     x1_cg8 font(clk_28636,cgaddr,cg_data);
     wire r,g,b;
-    x1_vid #(.ENABLE_CRTC(SINGLE_CLOCK)) display (
+    x1_vid #(.ENABLE_CRTC(SINGLE_CLOCK), .TURBO_SUPPORT(TURBO)) display (
+        .I_TURBO_BLACK(turbo_black_video),
         .I_RESET(reset), .I_CCLK(clk_sys), .I_A(a), .I_D(data_out), .O_D(), .O_DE(),
         .I_WR(io_write && !dam), .I_RD(io_read), .O_VWAIT(),
         .I_CRTC_CS(io_cycle && a[15:8] == 8'h18), .I_CG_CS(cg_access),

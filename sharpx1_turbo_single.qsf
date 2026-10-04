@@ -1,0 +1,4 @@
+# Experimental Turbo foundation on the opt-in single-clock profile.
+# This is not complete Turbo video/chip support or a release model selection.
+source sharpx1_single.qsf
+set_global_assignment -name VERILOG_MACRO "X1_TURBO_FOUNDATION=1"

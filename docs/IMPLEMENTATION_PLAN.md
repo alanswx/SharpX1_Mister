@@ -262,6 +262,13 @@ release. Keep expensive hardware checks as documented release gates.
 
 ## Execution order and parallel work
 
+October 4 next-increment checkpoint: strict shared-RTL D88 bounds/media
+quarantine and the cold-start receive-only keyboard fix have focused tests.
+An explicit Turbo foundation implements banked GRAM, separate KVRAM, blackclip
+and 32 KiB IPL; see `TURBO_STATUS.md` for evidence and `TURBO_IMPLEMENTATION_PLAN.md`
+for follow-on clock/video/CTC/DMA/SIO order. This does not close milestone 8 or
+outstanding base hardware/release gates.
+
 Critical path: specification → shared simulator → CPU/memory → display and
 control devices → IPL boot → media/software → hardware release gate.
 

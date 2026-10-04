@@ -318,8 +318,13 @@ wire ce_pix;
 wire [7:0] video;
 wire [2:0] machine_rgb;
 wire [15:0] machine_audio;
+`ifdef X1_TURBO_FOUNDATION
+localparam TURBO_FOUNDATION = 1;
+`else
+localparam TURBO_FOUNDATION = 0;
+`endif
 
-sharpx1 #(.SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ)) sharpx1
+sharpx1 #(.SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ), .TURBO(TURBO_FOUNDATION)) sharpx1
 (
 	.clk_sys(clk_sys),
 	.clk_28636(clk_28636),
@@ -331,7 +336,7 @@ sharpx1 #(.SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ)) sharpx1
 
 	.ioctl_download(ioctl_download),
 	.ioctl_index(ioctl_index[7:0]),
-	.ioctl_wr(ioctl_wr && ioctl_index == 0 && ioctl_addr < 27'd4096),
+	.ioctl_wr(ioctl_wr && ioctl_index == 0 && ioctl_addr < (TURBO_FOUNDATION ? 27'd32768 : 27'd4096)),
 	.ioctl_addr(ioctl_addr[24:0]),
 	.ioctl_dout(ioctl_data),
 	.ps2_clk_in(ps2_clk), .ps2_data_in(ps2_data),

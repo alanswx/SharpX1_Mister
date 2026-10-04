@@ -77,7 +77,9 @@
 	+---+------------------------------+------------+------------------------+
 
 ****************************************************************************/
-module x1_sub #(parameter CLOCK_HZ = 32000000)(
+// Preserve the inherited bidirectional profile by default. The shared MiSTer
+// machine explicitly selects receive-only because O_PS2CT/DT are disconnected.
+module x1_sub #(parameter CLOCK_HZ = 32000000, PS2_RECEIVE_ONLY = 0)(
   I_reset,
   I_clk,  // 32MHz
 // MAIN-SUB communication port
@@ -278,7 +280,8 @@ mr16_x1 #(.CLOCK_HZ(CLOCK_HZ)) sub_cpu
 wire [10:0] mem_addr = sub_addr[11:1];
 
 `ifdef SUB_ROM
-sub_rom sub_rom(.CLK(I_clk),.A(mem_addr),.DO(pgm_data));
+sub_rom #(.PS2_RECEIVE_ONLY(PS2_RECEIVE_ONLY)) sub_rom(
+  .CLK(I_clk),.A(mem_addr),.DO(pgm_data));
 `else
 ////////////////////////////////////////////
 // Program RAM 0000-0FFF

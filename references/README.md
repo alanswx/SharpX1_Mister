@@ -18,9 +18,14 @@ Additional open-source references selected for this project:
 - [X Millennium libretro port](https://github.com/r-type/xmil-libretro)
 - [neetan X1 documentation/emulation code](https://github.com/neetandev/neetan)
 
-The shell environment could not resolve GitHub while this work was running,
-so the two GitHub-only references are recorded as source links rather than
-partially cloned working copies. They can be cloned later into this directory
-when network access is available.
+October 4 update: X Millennium was cloned to ignored
+`references/emulators/xmil-libretro`, revision
+`b07506c0cae31d260db28cb079148857d6ca2e93`. Its `io/crtc.c`, `io/crtc.h`,
+`io/iocore.c` and palette paths were inspected for Turbo access/display banks,
+blackclip, mode decoding and clock estimates. It agrees on SCRN bits 3/4 but
+differs from MAME on SCRN readback/mirroring, and uses approximate high-resolution
+timing. Those disagreements remain documentation/hardware review gates, not
+permission to advertise full compatibility. It has not been built or run;
+its source/asset licensing was not reconciled. Neetan has not been cloned.
 
 ROMs, BIOS images, fonts, disks, and tapes are not redistributed here.

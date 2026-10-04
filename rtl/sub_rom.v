@@ -1,7 +1,7 @@
 //
 // 16Bit x 4K synched ROM
 //
-module sub_rom(
+module sub_rom #(parameter PS2_RECEIVE_ONLY = 0)(
   CLK,
   A,
   DO
@@ -2071,8 +2071,12 @@ endfunction
 /////
 always @(posedge CLK)
 begin
-  DO <= rom(A);
+  // Receive-only HPS profile, equivalent to PS2_RECEIVE_ONLY in x1sub.asm.
+  // Inherited listing: PS2_TX=$045c, ps2_rx_en=$0452 (byte addresses).
+  // MR16.MAC encodes BRA as $2f00 | ((target-PC)/2 & $ff): $2ffb.
+  // Tail-call receiver setup rather than waiting for a nonexistent device ACK.
+  // Keep every original ROM word/address intact for the bidirectional profile.
+  DO <= (PS2_RECEIVE_ONLY && A == 11'h22e) ? 16'h2ffb : rom(A);
 end
 
 endmodule
-

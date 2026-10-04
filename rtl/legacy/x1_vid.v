@@ -27,7 +27,8 @@
     VIDEO / GRAPHIC RAM read is not supported
 
 ****************************************************************************/
-module x1_vid #(parameter ENABLE_CRTC = 0)(
+module x1_vid #(parameter ENABLE_CRTC = 0, TURBO_SUPPORT = 0)(
+  I_TURBO_BLACK,
   I_RESET,
 // CPU I/F
   I_CCLK,
@@ -82,6 +83,7 @@ module x1_vid #(parameter ENABLE_CRTC = 0)(
 );
 
 input I_RESET;
+input [6:0] I_TURBO_BLACK;
 // CPU I/F
 input I_CCLK;
 input [15:0] I_A;
@@ -443,6 +445,13 @@ wire [2:0] gr_pal = disp_d ? {PAL_G[gr_col],PAL_R[gr_col],PAL_B[gr_col]} : 3'b00
 wire [2:0] gr_pal = {PAL_G[gr_col],PAL_R[gr_col],PAL_B[gr_col]};
 `endif
 wire gr_sel = PRIO_R[gr_col] | cg_trans | ~disp_d;
+// Original active-path Turbo blackclip integration. SCRN high resolution,
+// Kanji glyph selection and underline are deliberately separate features.
+wire turbo_gr_black = (gr_col[2:1] == 0) &&
+    ((I_TURBO_BLACK[4] && !gr_col[0]) || (I_TURBO_BLACK[5] && gr_col[0]));
+wire turbo_cg_black = I_TURBO_BLACK[3] && cg_col == I_TURBO_BLACK[2:0];
+wire turbo_mx_black = TURBO_SUPPORT &&
+    (!disp_d ? I_TURBO_BLACK[6] : gr_sel ? turbo_gr_black : turbo_cg_black);
 
 // BLACK controll
 `ifdef X1TURBO
@@ -475,7 +484,7 @@ begin
   ym_r    <= mx_black;
   out_col <= mx_black ? 3'b000 : gr_sel ? gr_pal : cg_col;
 `else
-  out_col <= gr_sel ? gr_pal : cg_col;
+  out_col <= turbo_mx_black ? 3'b000 : gr_sel ? gr_pal : cg_col;
 `endif
 end
 

@@ -24,7 +24,8 @@
 
 // X1 integration: configurable head-load status/index period; MFM-only adapter
 // rejects selected FM access rather than silently reading an MFM sector.
-module wd1793 #(parameter RWMODE=0, EDSK=1, HEADLOAD_STATUS=0, INDEX_CYCLES=35001)
+module wd1793 #(parameter RWMODE=0, EDSK=1, HEADLOAD_STATUS=0, INDEX_CYCLES=35001,
+               D88_ONLY=0)
 (
 	input        clk_sys,     // sys clock
 	input        ce,          // ce at CPU clock rate
@@ -116,6 +117,11 @@ assign intrq     = s_intrq;
 reg [31:0] request_lba = 0;
 reg [5:0] ack = 0;
 reg sd_busy = 0;
+// X1 strict container mode never falls back to raw geometry after a bad scan.
+reg d88_bad = 0, d88_valid = 0;
+reg [20:0] d88_end = 0;
+reg mount_pending = 0;
+wire media_ready = ready && (!D88_ONLY || d88_valid);
 wire transport_active = sd_busy || sd_ack || (|ack);
 assign sd_lba = request_lba;
 wire [31:0] next_lba = scan_active ? {21'd0, scan_addr[19:9]}
@@ -268,7 +274,7 @@ typedef enum
 // (refs/TOWNSEMU/src/diskdrive/diskdrive.cpp:1363-1371), so `ready` gates it
 // here. Without that an unmounted slot came back $d4 instead of $84, because
 // FDC.v starts wp_r at 2'b11.
-wire        s_readonly = ready & (wp | !RWMODE);
+wire        s_readonly = media_ready & (wp | !RWMODE);
 reg			s_crcerr;
 reg			s_headloaded, s_seekerr, s_index;  // mode 1
 reg			s_lostdata, s_wrfault; 			     // mode 2,3
@@ -311,8 +317,8 @@ reg   [7:0] wdreg_data;
 // An empty drive is not a seek failure, and software that probes drives before
 // deciding what it can load reads the difference.
 wire  [7:0] wdreg_status = cmd_mode == 0 ?
-	{~ready, s_readonly & s_wpe, (HEADLOAD_STATUS != 0) && s_headloaded, s_seekerr, s_crcerr, !disk_track, s_index, s_busy}:
-	{~ready, s_readonly & s_wpe, s_wrfault, s_seekerr, s_crcerr, s_lostdata,  s_drq,   s_busy};
+	{~media_ready, s_readonly & s_wpe, (HEADLOAD_STATUS != 0) && s_headloaded, s_seekerr, s_crcerr, !disk_track, s_index, s_busy}:
+	{~media_ready, s_readonly & s_wpe, s_wrfault, s_seekerr, s_crcerr, s_lostdata,  s_drq,   s_busy};
 
 reg   [7:0] read_addr[6];
 reg   [7:0] q;
@@ -480,12 +486,21 @@ always @(posedge clk_sys) begin
 		// but the first reported fmt=0 / bytes=0 and the title fell back to the
 		// F-BASIC banner. The render alone could not tell that apart from "this
 		// sub-disk does not boot", which is what it looks like.
-		if(old_mounted && ~img_mounted) have_image <= 1;
+		if(old_mounted && ~img_mounted) have_image <= (img_size_id != 0);
 		old_disk_index <= disk_index;
-		if((old_mounted && ~img_mounted) ||
-		   (have_image && (old_disk_index != disk_index))) begin
+		// Quarantine replacement/ejection until the old host transaction drains.
+		// There is no host request epoch/cancel protocol, so never discard ACK.
+		if(D88_ONLY && (img_mounted || (have_image && old_disk_index != disk_index))) begin
+			mount_pending <= 1;
+			scan_active <= 0;
+			scan_wr <= 0;
+		end
+		if((!D88_ONLY && ((old_mounted && ~img_mounted) ||
+		   (have_image && (old_disk_index != disk_index)))) ||
+		   (D88_ONLY && mount_pending && !img_mounted && !transport_active)) begin
+			mount_pending <= 0;
 			if(EDSK) begin
-				scan_active<= 1;
+				scan_active<= !D88_ONLY || (img_size_id >= 24'h2b0 && img_size_id < 24'h100000);
 				scan_addr  <= 0;
 				scan_state <= 0;
 				scan_wr    <= 0;
@@ -514,7 +529,7 @@ always @(posedge clk_sys) begin
 	ack <= {ack[4:0], sd_ack};
 	if(ack[5:4] == 'b01) {sd_rd,sd_wr} <= 0;
 	if(ack[5:4] == 'b10) sd_busy <= 0;
-	if(reset & ~scan_active) begin
+	if((reset || (D88_ONLY && (img_mounted || mount_pending))) & ~scan_active) begin
 		read_data <= 0;
 		write_data <= 0;
 		multisector <= 0;
@@ -530,7 +545,7 @@ always @(posedge clk_sys) begin
 		state <= STATE_IDLE;
 		force_command <= 0;
 		force_mask <= 0;
-		previous_ready <= ready;
+		previous_ready <= media_ready;
 		previous_index <= 0;
 		cmd_mode <= 0;
 		s_wpe <= 1;
@@ -542,18 +557,22 @@ always @(posedge clk_sys) begin
 		if(!transport_active) {sd_wr, sd_rd, sd_busy} <= 0;
 		ra_sector <= 1;
 	end else if(ce) begin
-		previous_ready <= ready;
+		previous_ready <= media_ready;
 		previous_index <= s_index;
 		if(force_mask[3] || (force_mask[2] && s_index && !previous_index)
-		   || (force_mask[1] && previous_ready && !ready)
-		   || (force_mask[0] && !previous_ready && ready)) s_intrq <= 1;
+		   || (force_mask[1] && previous_ready && !media_ready)
+		   || (force_mask[0] && !previous_ready && media_ready)) s_intrq <= 1;
 
 
-		if(RWMODE & scan_active) begin
-			if(scan_addr >= scan_limit) scan_active <= 0;
+		if(RWMODE & scan_active && !(D88_ONLY && img_mounted)) begin
+			if(scan_addr >= scan_limit || (D88_ONLY &&
+			   ((d88_bad && scan_addr != 0) || (d88_end != 0 && {1'b0, scan_addr} >= d88_end)))) begin
+				scan_active <= 0;
+				scan_wr <= 0;
+			end
 			else begin
 				case(scan_state)
-					0:	begin
+					0: if(!transport_active) begin
 							sd_rd   <= 1;
 							request_lba <= next_lba;
 							sd_busy <= 1;
@@ -606,7 +625,7 @@ always @(posedge clk_sys) begin
 					// see the status comment above. Bit 7 already says "not
 					// ready"; adding bit 4 tells software the head failed to
 					// find its track, which is a different and worse answer.
-					if(!ready) begin
+					if(!media_ready) begin
 						state <= STATE_ENDCOMMAND;
 					end else if(fm_mode) begin
 						s_seekerr <= 1;
@@ -790,7 +809,7 @@ always @(posedge clk_sys) begin
 
 			STATE_WAIT_WRITE:
 				begin
-					if(!ready) begin
+					if(!media_ready) begin
 						s_wrfault <= 1;
 						state <= STATE_ENDCOMMAND;
 					end else begin
@@ -1294,6 +1313,10 @@ generate
 			reg        edsk_bad;               // signature mismatched somewhere
 			reg [23:0] d_tot;                  // header $1c..$1e, total size LE
 			reg [19:0] d_acc;                  // track table entry being built
+			reg d_acc_high;
+			reg [19:0] d_last_off;
+			reg [7:0] d_count;
+			reg [20:0] payload_end, track_end;
 			reg  [7:0] d_max;                  // highest present table index
 			reg        d_wpb;                  // header $1a, before we commit
 			reg  [1:0] d_st;                   // 0 seek track, 1 header, 2 data
@@ -1321,6 +1344,8 @@ generate
 			reg [20:0] next_base;
 			rel       = scan_addr - d_base;
 			next_base = {1'b0, d_base} + {1'b0, d_tot[19:0]};
+			payload_end = {1'b0, scan_addr} + 21'd1 + {5'd0, scan_data, d_llo};
+			track_end = (d77_rd < d77_cnt) ? {1'b0, d_base} + {1'b0, d77_off} : d88_end;
 
 			old_active <= scan_active;
 			edsk_wren <= 0;
@@ -1330,6 +1355,11 @@ generate
 							fmt, scan_addr, d77_cnt, edsk_size, spt_size, d77_wp);
 `endif
 			if(scan_active & ~old_active) begin
+				d88_bad <= 0;
+				d88_valid <= 0;
+				d88_end <= 0;
+				d_last_off <= 0;
+				d_count <= 0;
 				edsk_size <=0;
 				spt_size  <=0;
 				track_pos <=0;
@@ -1360,7 +1390,13 @@ generate
 			end
 
 			old_wr <= scan_wr;
-			if(scan_wr & ~old_wr & scan_active) begin
+			if(D88_ONLY && !scan_active && old_active) begin
+				// No partial sector/index is ever made visible to the controller.
+				d88_valid <= !d88_bad && fmt == FMT_D77 && d_st == 0 &&
+				             d77_rd == d77_cnt && {1'b0, scan_addr} == d88_end;
+			end
+			if(D88_ONLY && (img_mounted || mount_pending)) d88_valid <= 0;
+			if(scan_wr & ~old_wr & scan_active && !(D88_ONLY && d88_bad)) begin
 
 				//---------------------------------------------------------
 				// Format detection, decided at byte $1f
@@ -1398,9 +1434,10 @@ generate
 				if(rel == 20'h1d) d_tot[15:8]<= scan_data;
 				if(rel == 20'h1e) d_tot[23:16]<=scan_data;
 				if(rel == 20'h1f) begin
-					if(!edsk_bad) fmt <= FMT_EDSK;
+					if(!edsk_bad && !D88_ONLY) fmt <= FMT_EDSK;
 					else if(~|scan_data && ~|d_tot[23:20] &&
-					        (d_tot[23:0] <= img_size_id) && (d_tot[19:0] >= 20'h2b0)) begin
+					        (d_tot[23:0] <= img_size_id) && (d_tot[19:0] >= 20'h2b0) &&
+					        (!D88_ONLY || (next_base <= {1'b0, scan_limit}))) begin
 						// This header is sound. If sub-disks remain to be
 						// stepped over, move the base to the next one and keep
 						// scanning WITHOUT committing -- the body below stays
@@ -1426,6 +1463,8 @@ generate
 						else begin
 							fmt    <= FMT_D77;
 							d77_wp <= d_wpb;
+							d88_end <= next_base;
+							if(D88_ONLY && |skip_left) d88_bad <= 1;
 						end
 					end
 					else begin
@@ -1434,6 +1473,7 @@ generate
 						// the fixed geometry selected by size_code.
 						fmt      <= FMT_NONE;
 						var_size <= 0;
+						if(D88_ONLY) d88_bad <= 1;
 					end
 				end
 
@@ -1448,8 +1488,16 @@ generate
 						case(rel[1:0])
 							0: d_acc[7:0]    <= scan_data;
 							1: d_acc[15:8]   <= scan_data;
-							2: d_acc[19:16]  <= scan_data[3:0];
-							3: if(|d_acc && ~|scan_data && (d77_cnt < 8'd164)) begin
+							2: begin
+								d_acc[19:16] <= scan_data[3:0];
+								d_acc_high <= |scan_data[7:4];
+							end
+							3: if(D88_ONLY && (|scan_data || d_acc_high ||
+							           (|d_acc && (d_acc < 20'h2b0 ||
+							            d_acc <= d_last_off || {1'b0, d_acc} + 21'd16 > {1'b0, d_tot[19:0]})))) begin
+									d88_bad <= 1;
+								end else if(|d_acc && ~|scan_data && (d77_cnt < 8'd164)) begin
+									d_last_off <= d_acc;
 									d77_pres[d77_cnt] <= {rel[9:2] - 8'd8, d_acc};
 									d77_cnt <= d77_cnt + 1'd1;
 									d_max   <= rel[9:2] - 8'd8;
@@ -1490,6 +1538,7 @@ generate
 						// lying count can now walk off its own track.
 						//-----------------------------------------------
 						if((d77_rd < d77_cnt) && (rel == d77_off)) begin
+							if(D88_ONLY && d_st != 0) d88_bad <= 1;
 							// this byte is header +0 of the track's first sector
 							d_track <= d77_idx[7:1];
 							d_side  <= d77_idx[0];
@@ -1511,9 +1560,16 @@ generate
 										 0: d_C   <= scan_data;              // C
 										 1: d_H   <= scan_data;              // H
 										 2: d_R   <= scan_data;              // R
-										 3: d_N   <= scan_data[1:0];         // N
+										 3: begin
+											d_N <= scan_data[1:0];
+											if(D88_ONLY && scan_data > 3) d88_bad <= 1;
+										 end
 										 4: d_slo <= scan_data;              // sectors LE lo
-										 5: if(d_first) begin
+										 5: begin
+											if(D88_ONLY && (scan_data != 0 || d_slo == 0 ||
+											   (!d_first && d_slo != d_count))) d88_bad <= 1;
+											if(d_first) begin
+												d_count <= d_slo;
 												// Sector count for the whole track,
 												// and only meaningful in the first
 												// header. Some tools write $1000
@@ -1556,6 +1612,11 @@ generate
 															({scan_data, d_slo} == 16'h1000) ? 8'h10 :
 															(|scan_data | (d_slo > 8'd32))   ? 8'd32 :
 															(|d_slo)                         ? d_slo : 8'h01;
+												if(D88_ONLY) begin
+													d_left <= d_slo;
+													spt[(d_side ? (spt_size >> 1) : 8'd0) + d_track] <= d_slo;
+												end
+											end
 										end
 										 8: begin
 												// Status: $00 normal, $10 deleted but
@@ -1568,6 +1629,9 @@ generate
 										end
 										14: d_llo <= scan_data;              // data length LE lo
 										15: begin
+											if(D88_ONLY && (payload_end > track_end ||
+											    {scan_data, d_llo} != (16'd128 << d_N) || edsk_size >= 11'd1992))
+												d88_bad <= 1;
 												// The data length at +$0e is the real
 												// byte count and is what we advance by;
 												// it is NOT always consistent with N.

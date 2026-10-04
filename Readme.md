@@ -29,6 +29,12 @@ There are two machine implementations in this tree:
 Both builds now use the machine sources in `rtl/machine.qip`.
 The legacy implementation enables an X1 Turbo subset and FZ80 CPU through
 source macros; its presence does not imply complete Turbo compatibility.
+An explicit, opt-in `TURBO=1` foundation now adds two graphics pages, separate
+Kanji attribute RAM, blackclip controls and a 32 KiB IPL aperture to the shared
+machine. CPU diagnostics and actual RGB tests cover these extensions. It is
+**not full Turbo support**: 400-line clocks/addressing, glyph ROMs/high-speed
+PCG, DMA, CTC/SIO and native Turbo firmware acceptance remain open. See the
+[Turbo status](docs/TURBO_STATUS.md) and [implementation plan](docs/TURBO_IMPLEMENTATION_PLAN.md).
 
 The headless simulator has been compiled with Verilator 5.044 on macOS.
 The timing/reset regression passes. A 200,000-system-cycle run reports:
@@ -63,9 +69,9 @@ arrows, Space (button 1) and Ctrl (button 2), through `--joystick-keys`.
 Independent CPU-programmed 40/80-column text and 320/640 graphics rasters now
 pass after correcting a one-edge HBlank/RGB qualification offset; see
 [video coverage and remaining gates](docs/VIDEO_STATUS.md).
-The current video-alignment single-clock RBF is locally available at
+The previous video-alignment single-clock RBF is locally available at
 `output_files/quartus-IwtYVtRu/source/output_files/sharpx1_single.rbf`.
-It builds with positive analyzed timing, but has not been tested on MiSTer;
+It predates the new disk/keyboard/Turbo work and has not been tested on MiSTer;
 see [source-bound build evidence](docs/QUARTUS_BUILD.md).
 
 MiSTer now wires keyboard, joystick, disk, RGB and audio paths and
@@ -73,9 +79,11 @@ offers IPL/D88 OSD entries. Disk writes default to protected; enabling them
 does not override read-only media. Generated D88 tests cover reads, safe writes,
 protection, variable sector sizes, seeking, sides and error/status cases.
 See [disk verification and limits](docs/DISK_STATUS.md).
-Focused tests now cover pending SD read/write abort/reset and stable request
-addresses. Simulator D88 loads receive structural preflight; equivalent FPGA
-scanner guards, eject/remount and stalled-host recovery remain open.
+Focused tests cover pending SD read/write abort/reset and stable request
+addresses. Shared RTL now rejects unsafe D88 header/table/sector layouts and
+quarantines replacement/ejection until outstanding host ACK drains. Direct RTL
+tests bypass simulator preflight and verify not-ready/recovery. A host that
+never completes still remains quarantined; physical mounts/writes are unverified.
 The initial Quartus 17 build produced an RBF, but **timing does not close**;
 The optional single-clock checkpoint has positive analyzed timing and a native
 hardware game boot. See [build evidence](docs/QUARTUS_BUILD.md) and
@@ -100,6 +108,9 @@ the source-bound report before testing an RBF.
 The later SD-transport abort/reset checkpoint also builds with positive analyzed
 core timing; its hardware retest is pending because `mister.local` stopped
 resolving. Earlier hardware observations do not validate this new RBF.
+The cold-start F/I/J keyboard loss is fixed with an explicit receive-only MR16
+firmware profile matching the one-way HPS input path; see
+[cause, original reproducer and tests](docs/KEYBOARD_STATUS.md).
 The reported OSD reset/reload-only issue is tracked in
 [reset recovery](docs/RESET_STATUS.md). A current stopped-enable SD handshake
 reset bug is reproduced and fixed; physical OSD reset acceptance remains open.
@@ -247,8 +258,9 @@ for the remaining work and [AGENTS.md](AGENTS.md) for development guidance.
 The existing local MAME checkout is at
 `../FM-7_MiSTer_alanswx/refs/mame`; its X1 driver is
 `src/mame/sharp/x1.cpp`. It provides a useful behavior reference, with its own
-known limitations. X Millennium and neetan are additional candidate references;
-their sources have not been cloned into this repository. See
+known limitations. X Millennium is now cloned locally under ignored
+`references/emulators/` and its Turbo control code inspected, not built or run.
+Neetan remains a candidate reference. See
 [reference notes](references/README.md) for links and status.
 
 The sibling `../SharpMZ_MiSTer/verilator/` demonstrates a headless simulation

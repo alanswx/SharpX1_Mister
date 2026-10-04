@@ -1,0 +1,52 @@
+`timescale 1ns/1ps
+// Original pipeline comparison: unrelated legacy macro not enabled.
+module turbo_video_tb;
+    reg clk=0,reset=1;
+    reg [6:0] black=0;
+    wire [2:0] color;
+    always #5 clk=!clk;
+    x1_vid #(.TURBO_SUPPORT(1),.ENABLE_CRTC(1)) dut(
+        .I_RESET(reset), .I_TURBO_BLACK(black), .I_CCLK(clk), .I_VCLK(clk),
+        .I_A(16'd0), .I_D(8'd0), .I_WR(1'b0), .I_RD(1'b0),
+        .I_CRTC_CS(1'b0), .I_CG_CS(1'b0), .I_PAL_CS(1'b0),
+        .I_TXT_CS(1'b0), .I_ATT_CS(1'b0), .I_KAN_CS(1'b0),
+        .I_GRB_CS(1'b0), .I_GRR_CS(1'b0), .I_GRG_CS(1'b0),
+        .I_CLK1(1'b0), .I_W40(1'b0), .I_TXT_D(8'd0), .I_ATT_D(8'd0),
+        .I_KAN_D(8'd0), .I_GRB_D(8'd0), .I_GRR_D(8'd0), .I_GRG_D(8'd0),
+        .I_CG_D(8'd0), .I_PCGB_D(8'd0), .I_PCGR_D(8'd0), .I_PCGG_D(8'd0),
+        .O_R(color[1]), .O_G(color[2]), .O_B(color[0]));
+    // Test the registered mixer in isolation, not an invented full raster.
+    initial begin
+        repeat(3) @(negedge clk); reset=0;
+        force dut.disp_d=1;
+        force dut.att_blink=0; force dut.att_rev=0;
+        force dut.att_pcg=0; force dut.att_b=1; force dut.att_r=1; force dut.att_g=1;
+        force dut.PAL_B=8'h55; force dut.PAL_R=8'hcc; force dut.PAL_G=8'hf0;
+        force dut.PRIO_R=8'hff;
+        force dut.cgg_d=8'hff;
+        for(int mask=0;mask<128;mask++) begin
+            black=7'(mask);
+            for(int raw=0;raw<8;raw++) begin
+                force dut.grb_d=8'((raw&1)*128);
+                force dut.grr_d=8'(((raw>>1)&1)*128);
+                force dut.grg_d=8'(((raw>>2)&1)*128);
+                @(posedge clk); #1;
+                assert(color==((raw==0 && (mask&16)) || (raw==1 && (mask&32)) ? 0 : 3'(raw^1)))
+                    else $fatal(1,"graphics raw=%d mask=%d color=%d",raw,mask,color);
+            end
+        end
+        force dut.PRIO_R=0;
+        force dut.grb_d=0; force dut.grr_d=0; force dut.grg_d=0;
+        for(int textcolor=1;textcolor<8;textcolor++) begin
+            force dut.att_b=1'(textcolor); force dut.att_r=1'(textcolor>>1); force dut.att_g=1'(textcolor>>2);
+            for(int mask=0;mask<128;mask++) begin
+                black=7'(mask);
+                @(posedge clk); #1;
+                assert(color==((mask&8) && (mask&7)==textcolor ? 0 : 3'(textcolor)))
+                    else $fatal(1,"text=%d mask=%d color=%d",textcolor,mask,color);
+            end
+        end
+        $display("PASS: Turbo blackclip registered graphics/text mixer, all 128 masks, raw colors before palette");
+        $finish;
+    end
+endmodule

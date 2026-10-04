@@ -43,10 +43,20 @@ def fixture(expected):
 
 with tempfile.TemporaryDirectory(prefix="x1-keyboard-poll-") as temp:
     folder = pathlib.Path(temp)
-    for name, scan, ascii_code in (("F", 0x2B, 0x46), ("Space", 0x29, 0x20), ("Enter", 0x5A, 0x0D)):
+    cases = (
+        ("F", "25 2b\n", 0x46),
+        ("Space", "25 29\n", 0x20),
+        ("Enter", "25 5a\n", 0x0D),
+        # Modifier transitions request LED updates too. Exercise startup and
+        # steady state with the host still continuously sending E4/E6 commands.
+        ("cold-caps-off", "5 58\n10 f0\n12 58\n25 2b\n", 0x66),
+        ("steady-caps-off", "70 58\n75 f0\n77 58\n100 2b\n", 0x66),
+        ("caps-off-shift", "5 58\n10 f0\n12 58\n20 12\n25 2b\n", 0x46),
+    )
+    for name, key_script, ascii_code in cases:
         rom, keys = folder / "poll.bin", folder / "keys.txt"
         rom.write_bytes(fixture(ascii_code))
-        keys.write_text(f"25 {scan:02x}\n")  # Held through the end, no break race.
+        keys.write_text(key_script)  # Final ASCII key held through the end.
         prefix = folder / name
         result = subprocess.run([exe, "--cycles", "4000000", "--rom", str(rom),
                                  "--keys", str(keys), "--dump", str(prefix)],
@@ -54,4 +64,4 @@ with tempfile.TemporaryDirectory(prefix="x1-keyboard-poll-") as temp:
         report = json.loads(result.stdout.splitlines()[-1])
         print(json.dumps({"key": name, "halted": report["halted"], "reply": report["peek"][:4]}), flush=True)
         assert report["halted"] and report["peek"][2:4] == f"{ascii_code:02x}", (name, report)
-print("PASS: held F/Space/Enter decoded while CPU continuously polls E4/E6")
+print("PASS: F/Space/Enter and cold/steady Caps/Shift while CPU continuously polls E4/E6")

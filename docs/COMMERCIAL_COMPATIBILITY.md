@@ -22,6 +22,138 @@ delay-aware gameplay and MiSTer verification remain open.
 | Mappy | IPL/D88 → title → live stage at 21 simulated seconds | Left moves player `(129,84)` → `(126,84)`; actual RGB changes; main RAM/report/RGB repeat identically | Yes |
 | Woody Poco | IPL/D88 loading observed | No live gameplay/control evidence yet | No |
 | Galaga | IPL/D88 → title → selection → Stage 1 and active enemy wave | Repeatable left/right ship movement plus firing and upward projectile travel; actual RGB agrees | Yes |
+| Arcus (X1turbo) | Fresh native IPL/Disk 1 probe; loading message observed through 16 seconds | No gameplay or disk-change evidence; experimental Turbo work pending | No |
+| Bastard Special | Fresh native IPL/D88 probe; actual RGB title observed through 16 seconds | No start/playfield/control acceptance yet | No |
+
+## Arcus and Bastard Special: private native probes
+
+These additional titles are locally supplied archives, outside the top-32
+shortlist. No commercial images were downloaded. Arcus has five preserved D88
+members; Bastard Special has one. Original archive/member hashes are recorded
+in ignored `software/special-unpacked/manifest.json`. Archives carry a 38-byte
+trailer warning from 7z; extraction succeeded and exact member bytes are retained.
+Staging and execution do not infer redistribution rights.
+
+```sh
+# Repository root; idempotent only for identical staged bytes/manifests.
+python3 scripts/stage_special_titles.py
+cd verilator
+python3 tests/probe_special_titles.py ./obj_dir_fast/Vtop arcus \
+  --seconds 16 --output obj_dir_fast/special-probes/arcus-new-build
+python3 tests/probe_special_titles.py ./obj_dir_fast/Vtop bastard-special \
+  --seconds 16 --output obj_dir_fast/special-probes/bastard-new-build
+```
+
+Use new output directories after rebuilding RTL. The fixture freezes/hashes
+the executable and starts **two fresh cold native IPL boots**; no checkpoints,
+RAM injection or patched loader/game are used. It mounts Arcus Disk 1 only.
+It runs the recorded F/Space `tests/commercial_boot.keys` script and retains
+actual PPM, CPU registers, RAM dumps, commands, stdout/stderr and JSON counters.
+PASS means report/RAM/RGB repeatability and unchanged input bytes, not a game
+boot/control pass. `--io-trace` adds potentially large clock-sample CSVs; use
+short diagnostic trials. No write-enabled disk output is passed.
+
+Initial 8-second fast-baseline trials both passed deterministic report/main,
+text, attribute, sub-CPU RAM, CPU-register and native PPM comparisons, with
+zero disk writes. Inspecting the actual PPM showed Arcus's “IPL is loading
+ARCUS X1” message, while Bastard Special showed its illustrated title and
+“PRESENTED BY XAIN”. Arcus's loading message does not establish title boot;
+Bastard's title does not establish gameplay. The probes used 32 MHz system /
+28.571428 MHz video, 256,000,000 reference cycles, 4159 cold reset edges and
+6 completed PS/2 bytes. Key transmission is not game acceptance.
+
+| Initial evidence | Arcus Disk 1 | Bastard Special |
+|---|---|---|
+| D88 SHA-256 | `e1b05c477fc0369238c180db85e33840a27029aae6f417c731ae82e566422ef7` | `5c74588309d5f9a4fa03443bfdd5a0afff1c6e2620be58b63885f2dbdf6c3883` |
+| Actual active raster | 320 × 200 | 640 × 200 |
+| Frame hash | `d505f663fc0ba688` | `22b566650e6207c3` |
+| Disk requests | 958 | 1062 |
+| Ignored evidence directory under `verilator/obj_dir_fast/special-probes/` | `arcus-baseline-8s/` | `bastard-baseline-8s/` |
+
+The initial executable was frozen before the main agent's later D88/keyboard
+rebuild; its exact hash is in each `evidence.json`. Those runs are historical
+evidence only and must not be attributed to the later RTL. Current rebuild
+probes and their separately inspected results are recorded below.
+Delay-aware and single-clock runs, authentic Turbo firmware/video, multi-disk
+continuity, observed controls and hardware testing remain open. See the
+[experimental Turbo foundation and clock plan](TURBO_IMPLEMENTATION_PLAN.md).
+
+The later native cold **16-second** fast-baseline trials use executable
+SHA-256 `5c1326b3b5bfdd72de947000a8aba5a90ab06113f8bb41735f9b35aed7c815db`,
+frozen after the main agent reported the strict-D88 rebuild. Both native PPMs
+were inspected and converted to retained `cold.png` files for convenient
+viewing: Arcus remains on its loading message; Bastard Special remains on
+its title. Frames and disk-request counts match the initial table, with
+512,000,000 reference cycles, 988 frames, 4159 reset edges, six PS/2 bytes
+and zero writes. Evidence directories are
+`verilator/obj_dir_fast/special-probes/arcus-strict-native-16s/` and
+`verilator/obj_dir_fast/special-probes/bastard-strict-native-16s/`.
+Both pairs passed byte-identical native report/RAM/register/RGB comparisons
+and unchanged-input checks. Build identity is recorded by executable hash;
+these probes do not establish that subsequent concurrent RTL edits were
+incorporated into that executable.
+
+The historical Arcus 8-second I/O trace includes ordinary writes of `47` and
+`5A` hex to CTC port `1FA0` and a read returning `FF`. This identifies a real
+chip dependency to investigate with CPU/disassembly/IRQ traces, but does not
+prove the loading stall's cause. Bastard's initial trace includes a sweep of
+zero writes across `1Fxx`; that is not evidence of useful Turbo feature usage.
+
+### Fresh CROSS receiver-profile regression (separate homebrew)
+
+After the special-title probes finished, two fresh 13-second native CROSS
+boots and the original 200 ms PS/2 I/J control test passed on a newly frozen
+baseline fast executable. This does not increase the commercial-game count
+and is not Turbo video, delay-aware or hardware acceptance.
+
+```sh
+cd verilator
+python3 tests/probe_cross_native.py ./obj_dir_fast/Vtop \
+  --output obj_dir_fast/special-probes/cross-new-build
+```
+
+Completed evidence:
+`verilator/obj_dir_fast/special-probes/cross-current-receive-13s/evidence.json`.
+Each cold boot loaded the IPL and original protected D88 afresh, sent the
+recorded `cross_start.keys`, ran 416,000,000 reference cycles and generated
+a **new** private snapshot. Report, main/text/attribute/sub-CPU RAM, registers,
+actual PPM and serialized state hashes matched the repeat. Both retained
+4159 cold reset edges, 763 disk requests, zero writes, 24 sent PS/2 bytes,
+803 frames and a 320 × 200 raster at 32 MHz system / 28.571428 MHz video.
+Original IPL/disk/key bytes stayed unchanged. No earlier snapshot was restored
+to establish this native boot.
+
+The existing `test_gameplay.py` then resumed the newly generated `cold.state`:
+neutral player `(22,14)` versus I/J `(21,13)`, with repeatable coordinates,
+report and actual RGB. Neutral/controlled frame hashes were
+`8a44e9d3762b883e` / `1b2144ae3d2c449e`; the original 200 ms / zero-extra-spacing
+fixture passed. The fixture also checks the cyan player in text RAM and no
+disk requests during controls; state provenance comes from the cold commands
+retained by the new probe wrapper.
+
+Executable identities must remain separate:
+
+| Evidence | Frozen executable SHA-256 |
+|---|---|
+| Initial Arcus/Bastard 8-second probes | `fb095c6cce95d0d9325be76a7b1c9f42050c3271f6443262000f7122fd395c26` |
+| Strict-D88 Arcus/Bastard 16-second probes | `5c1326b3b5bfdd72de947000a8aba5a90ab06113f8bb41735f9b35aed7c815db` |
+| Fresh CROSS cold/repeat/controls | `5dbdb7dfc950f491db380a88c60137e84f2d7c18a8b7f535d788b657d113f20f` |
+
+The shared `obj_dir_fast/Vtop` was rebuilt during CROSS testing and then hashed
+to `31586f55cfb5cad068bb962bff621ca2a2048c87fb6b7a4e00193cdfe74ed515`.
+The parent then repeated fresh cold boots and the original control regression
+on this exact final executable at
+`verilator/obj_dir_fast/special-probes/cross-final-d88-keyboard/evidence.json`.
+Both native 13-second boots and all RAM/register/RGB/state repeats pass, with
+unchanged originals. Controls again move `(22,14)` to `(21,13)` with the same
+idle/controlled RGB hashes. This validates the current base machine's cold
+boot plus bounded PS/2 movement; it does not requalify the five commercial
+titles or any Turbo software.
+The CROSS pass belongs to the frozen `5dbdb7df...` executable, not that later
+build. These hashes bind actual tested executables, not every subsequent
+concurrent source edit. The main agent reports explicit `PS2_RECEIVE_ONLY=1`
+in the shared machine with standalone/legacy default 0; keep receiver profile
+and executable identity explicit when regenerating these states.
 
 ## Reproduce the control checks
 
@@ -194,6 +326,13 @@ through the diagnostic RAM path. Kills, scoring, level completion, audio
 fidelity and hardware behavior are not established by these checks.
 
 ## Final simulation checkpoint
+
+This section records the completed five-title milestone before the subsequent
+D88/receive-only keyboard/Turbo foundation changes. Its hashes bind that earlier
+checkpoint, not the present working tree. Regenerate private snapshots after
+RTL changes; do not restore these historical states into a new model. Fresh
+native CROSS checks and Arcus/Bastard probes above have separate executable
+identities and do not requalify all five commercial titles on current RTL.
 
 All five release-bound gameplay checks passed again together after the final
 runner instrumentation/frontend changes. IPL hex SHA-256:

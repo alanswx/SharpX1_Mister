@@ -17,7 +17,13 @@ parser.add_argument("--timeout", type=float, default=180,
                     help="per-case wall-clock timeout; raise on a busy host")
 parser.add_argument("--transition", action="store_true",
                     help="run the opposite width for two frames before switching")
+parser.add_argument("--turbo-bank", type=int, choices=(0, 1),
+                    help="experimental Turbo: display this page with opposite CPU access page")
+parser.add_argument("--blackclip", type=lambda value: int(value, 0),
+                    help="experimental Turbo blackclip mask, graphics/text fixtures only")
 args = parser.parse_args()
+if args.blackclip is not None and (not 0 <= args.blackclip < 128 or args.kind not in ("graphics", "text")):
+    parser.error("--blackclip needs graphics/text and a 7-bit mask")
 exe = str(args.executable.resolve())
 
 
@@ -51,6 +57,7 @@ def program(columns, kind):
     out(0x1A02, 0x40 if columns == 40 else 0)
     p.word(0x01, 0x1A02)
     p.emit(0xED, 0x78)  # Clear reset/control-write DAM transitions.
+    if args.turbo_bank is not None: out(0x1FD0, args.turbo_bank << 4)
     if kind == "pattern":
         patterned(0x2000, attributes=True)
         patterned(0x3000)
@@ -70,6 +77,9 @@ def program(columns, kind):
     for port, value in ((0x1000, palette[0]), (0x1100, palette[1]), (0x1200, palette[2]),
                         (0x1300, 255 if kind == "graphics" else 0xA5 if kind == "mixed" else 0)):
         out(port, value)
+    if args.turbo_bank is not None:
+        out(0x1FD0, (args.turbo_bank << 3) | ((1 - args.turbo_bank) << 4))
+    if args.blackclip is not None: out(0x1FE0, args.blackclip)
     registers = [55 if columns == 40 else 111, columns,
                  46 if columns == 40 else 92, 0x28, 31, 2, 25, 28, 0, 7,
                  0, 0, 0, 0, 0, 0]
@@ -113,6 +123,8 @@ font = {int(address, 16): int(bits, 2) for address, bits in
 
 def run(folder, columns, kind):
     name = f"{kind}-{columns}" + ("-transition" if args.transition else "")
+    if args.turbo_bank is not None: name += f"-turbo-page{args.turbo_bank}"
+    if args.blackclip is not None: name += f"-clip{args.blackclip:02x}"
     code, frame = folder / (name + ".bin"), folder / (name + ".ppm")
     code.write_bytes(program(columns, kind))
     # The inherited MR16 firmware clears CLK_1HZ at boot and toggles it every
@@ -124,6 +136,8 @@ def run(folder, columns, kind):
                              "--frame", str(frame)], capture_output=True, text=True, timeout=args.timeout)
     assert result.returncode == 0, (name, result.stderr)
     report = json.loads(result.stdout.splitlines()[-1])
+    if args.turbo_bank is not None or args.blackclip is not None:
+        assert report.get("turbo_foundation"), ("Turbo fixture needs the experimental model", report)
     assert report["halted"] and report["peek"].startswith(b"VID!".hex()), (name, report)
     assert report["frames"] >= 3, (name, "too few completed frames", report)
     # R0+1 = 56/112 characters, 8 dots and /4 or /2 pixel rate: both
@@ -153,6 +167,11 @@ def run(folder, columns, kind):
                 color = 7 if font[ord("A") * 8 + (y // 2) % 8] & (128 >> ((x // 2) % 8)) else 0
             if kind == "pcg": color = 7 - x % 8
             if kind == "blink-on": color ^= 7
+            if args.blackclip is not None:
+                if kind == "graphics" and ((color == 0 and args.blackclip & 16) or (color == 1 and args.blackclip & 32)):
+                    color = 0
+                if kind == "text" and args.blackclip & 8 and color == args.blackclip & 7:
+                    color = 0
             if kind == "mixed":
                 raw = (7 - x % 8) ^ (y % 8)
                 text = color ^ 7  # Reverse attribute precedes transparency.
