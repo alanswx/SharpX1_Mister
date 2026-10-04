@@ -62,12 +62,44 @@ sixteen-second scripted run reached a populated level and score 00025.
 Actual SDL windows were exercised for both IPL and the native-booted game;
 dummy-driver tests independently cover SDL make/break/extended-key events.
 
+## Live commercial-game joystick controls
+
+The optional `--interactive --joystick-keys` frontend maps arrows to the X1
+joystick's directions, Space to button 1 and either Ctrl to button 2. Other
+keys still produce PS/2 packets. Captured joystick keys do not also reach the
+keyboard firmware. Losing window focus releases every joystick key. This is
+host input connected to the real PSG pins, not game-memory manipulation.
+Without `--joystick-keys`, the original CROSS Chase PS/2 controls are unchanged.
+
+For example, from `verilator/` with the existing private native checkpoint:
+
+```sh
+make fast
+./obj_dir_fast/Vtop --interactive --joystick-keys --cycles 32000000000 \
+  --restore-state obj_dir_fast/commercial/shanghai-22p5s.state \
+  --disk ../references/software/private-downloads/commercial/shanghai-1987-activision-1457d22f05da/disk-0-648d150e8e36.d88
+```
+
+In Shanghai, Ctrl selects/confirms a tile; Space is the other native mouse
+action. Release between clicks. In Druaga/Xevious/Mappy, use arrows to move
+and Space for the first trigger. Substitute the matching state and media from
+[the commercial matrix](COMMERCIAL_COMPATIBILITY.md). Never restore a state
+with a different disk or after incompatible RTL changes. Hold controls long
+enough for simulated time to advance; this is not real-time emulation.
+
+Joystick-key mode begins with neutral port A rather than retaining a pressed
+button from a snapshot; explicit `--joya` is combined by active-low AND with
+live keys. Port B remains governed by saved/explicit pins. This frontend does
+not implement a real X1 mouse or physical SDL gamepad input.
+
 ## Remaining limits
 
-One playable game is a bring-up milestone, not a compatibility certificate.
-Disk writes, FDC error/density/motor behavior, exact PCG raster/scanline waits, full keyboard
+Playable input is a bring-up milestone, not a compatibility certificate.
+Generated floppy read/write/error and PSG tone/noise/envelope diagnostics now
+exist; exact controller timing, native PCG scanline waits, full keyboard
 commands, cassette, CTC/DMA/SIO and Turbo extensions remain incomplete or
-unverified. PSG has an original 1 kHz waveform regression, not comprehensive
-music/noise/envelope verification. Quartus and MiSTer hardware were not tested;
-the board PLL frequency still needs review. Broad warning cleanup and inherited
-licensing reconciliation remain release blockers.
+unverified. Game music fidelity remains open. The earlier single-clock CROSS
+Chase checkpoint has separate MiSTer observations; the current video-alignment
+RBF builds, but has not been hardware-tested. Neither validates the new live
+host-input frontend on hardware. The board PLL still needs review. Broad
+warning cleanup and inherited licensing reconciliation remain release blockers.

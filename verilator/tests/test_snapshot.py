@@ -1,5 +1,6 @@
 """Verify clock phase and RAM/state continuity across fast-model restore."""
 import json
+import os
 import pathlib
 import subprocess
 import sys
@@ -53,4 +54,19 @@ with tempfile.TemporaryDirectory(prefix="x1-snapshot-") as folder:
     changed = run(["--cycles", "10000", "--restore-state", str(state), "--peek", "0xf100",
                    "--joya", "0xff", "--joyb", "0xfd"])
     assert changed["peek"].startswith("fffd"), changed
+    # Joystick-key mode deliberately neutralizes saved port-A inputs until
+    # SDL keys are held, preserves port B, and combines explicit --joya pins.
+    def ui(extra):
+        result = subprocess.run([exe, "--cycles", "20000", "--restore-state", str(state),
+                                 "--peek", "0xf100", "--interactive", "--joystick-keys", *extra],
+                                env={**os.environ, "SDL_VIDEODRIVER": "dummy"},
+                                check=True, capture_output=True, text=True)
+        return json.loads(result.stdout.splitlines()[-1])
+    neutral = ui([])
+    assert neutral["peek"].startswith("ffb7") and neutral["ps2_bytes_sent"] == 0, neutral
+    held = ui(["--joya", "0xfb"])
+    assert held["peek"].startswith("fbb7") and held["ps2_bytes_sent"] == 0, held
+    invalid = subprocess.run([exe, "--cycles", "128", "--joystick-keys"], capture_output=True)
+    assert invalid.returncode != 0 and b"requires --interactive" in invalid.stderr
 print("PASS: RTL snapshot/clock/RAM continuity, clock mismatch rejection and joystick persistence/override")
+print("PASS: live joystick mode restores neutral A, preserves B, combines explicit pins and rejects non-interactive use")

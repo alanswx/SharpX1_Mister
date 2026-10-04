@@ -1,5 +1,6 @@
 #pragma once
 #include <SDL.h>
+#include <array>
 #include <cstdint>
 #include <stdexcept>
 #include <string>
@@ -12,14 +13,33 @@ class SdlFrontend {
     SDL_Renderer *renderer = nullptr;
     SDL_Texture *texture = nullptr;
     unsigned width = 0, height = 0;
+    bool joystick_keys;
+    std::array<bool, SDL_NUM_SCANCODES> held{};
 public:
-    SdlFrontend() {
+    explicit SdlFrontend(bool use_joystick_keys = false) : joystick_keys(use_joystick_keys) {
         if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS)) throw std::runtime_error(SDL_GetError());
         window = SDL_CreateWindow("Sharp X1 — RTL simulation", SDL_WINDOWPOS_CENTERED,
                                   SDL_WINDOWPOS_CENTERED, 960, 600, SDL_WINDOW_RESIZABLE);
         if (!window) throw std::runtime_error(SDL_GetError());
         renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
         if (!renderer) throw std::runtime_error(SDL_GetError());
+    }
+    static uint8_t joystick_mask(SDL_Scancode key) {
+        switch (key) {
+        case SDL_SCANCODE_UP: return 0x01;
+        case SDL_SCANCODE_DOWN: return 0x02;
+        case SDL_SCANCODE_LEFT: return 0x04;
+        case SDL_SCANCODE_RIGHT: return 0x08;
+        case SDL_SCANCODE_SPACE: return 0x20;
+        case SDL_SCANCODE_LCTRL: case SDL_SCANCODE_RCTRL: return 0x40;
+        default: return 0;
+        }
+    }
+    uint8_t joystick() const {
+        uint8_t pressed = 0;
+        for (unsigned key = 0; key < held.size(); ++key)
+            if (held[key]) pressed |= joystick_mask(static_cast<SDL_Scancode>(key));
+        return static_cast<uint8_t>(~pressed);
     }
     ~SdlFrontend() {
         SDL_DestroyTexture(texture);
@@ -58,9 +78,17 @@ public:
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) return false;
+            if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_FOCUS_LOST) {
+                held.fill(false);
+                continue;
+            }
             if (event.type != SDL_KEYDOWN && event.type != SDL_KEYUP) continue;
             if (event.key.repeat) continue;
             auto key = event.key.keysym.scancode;
+            if (joystick_keys && joystick_mask(key)) {
+                held[key] = event.type == SDL_KEYDOWN;
+                continue; // One input path: captured controls are not also PS/2.
+            }
             auto byte = code(key);
             if (!byte) continue;
             if (key == SDL_SCANCODE_UP || key == SDL_SCANCODE_DOWN ||

@@ -58,6 +58,8 @@ Four commercial titles now have repeatable native gameplay-control evidence
 in fast baseline simulation: Druaga, Xevious, Mappy and Shanghai. See the
 [commercial compatibility matrix](docs/COMMERCIAL_COMPATIBILITY.md) for the
 bounded checks and remaining one-game gate; this is not hardware signoff.
+The simulator window now offers optional [live joystick keys](docs/PLAYING.md):
+arrows, Space (button 1) and Ctrl (button 2), through `--joystick-keys`.
 Independent CPU-programmed 40/80-column text and 320/640 graphics rasters now
 pass after correcting a one-edge HBlank/RGB qualification offset; see
 [video coverage and remaining gates](docs/VIDEO_STATUS.md).

@@ -113,5 +113,7 @@ transition checks. On a busy host use `VIDEO_TEST_FLAGS='--timeout 600'`.
   and Xevious plus Mappy have live player-movement checks; Shanghai has native
   cursor/selection and matching-pair removal (4/5). Other titles/boards are
   still bring-up evidence, not verified gameplay.
-- Obtain Quartus/CDC and actual MiSTer validation for this pixel qualification
-  change; previous RBFs and hardware observations do not validate new RTL.
+- The current pixel-qualification change has a successful source-bound
+  single-clock Quartus fit with positive analyzed timing; see `QUARTUS_BUILD.md`.
+  Full constraints/CDC and actual MiSTer acceptance remain open. Previous
+  hardware observations do not validate this new RBF.

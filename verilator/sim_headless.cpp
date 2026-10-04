@@ -82,7 +82,7 @@ int main(int argc, char **argv) {
         const char *disk_path = nullptr, *keys_path = nullptr, *dump_path = nullptr;
         const char *disk_output = nullptr;
         const char *save_path = nullptr, *restore_path = nullptr;
-        bool progress = false, io_only = false, interactive = false;
+        bool progress = false, io_only = false, interactive = false, joystick_keys = false;
         FrameCapture frame;
         AudioCapture audio;
         for (int i = 1; i < argc; ++i) {
@@ -109,11 +109,14 @@ int main(int argc, char **argv) {
             else if (!std::strcmp(argv[i], "--progress")) progress = true;
             else if (!std::strcmp(argv[i], "--io-only")) io_only = true;
             else if (!std::strcmp(argv[i], "--interactive")) interactive = true;
+            else if (!std::strcmp(argv[i], "--joystick-keys")) joystick_keys = true;
             else if (!std::strcmp(argv[i], "--save-state") && i + 1 < argc) save_path = argv[++i];
             else if (!std::strcmp(argv[i], "--restore-state") && i + 1 < argc) restore_path = argv[++i];
             else if (argv[i][0] != '-') cycles = number(argv[i]);
-            else throw std::runtime_error("usage: Vtop [cycles] [--cycles N] [--reset-cycles N] [--reset-at MS (repeatable) --reset-for-us US] [--video-hz N] [--trace output.fst] [--rom IMAGE] [--ram IMAGE --load-address A --entry A] [--disk IMAGE --disk-output NEW_COPY] [--keys SCRIPT] [--frame IMAGE.ppm] [--audio OUTPUT.wav] [--dump PREFIX] [--peek A] [--bus-trace CSV --io-only] [--progress] [--interactive] [--save-state FILE] [--restore-state FILE] [--joya BYTE --joyb BYTE]");
+            else throw std::runtime_error("usage: Vtop [cycles] [--cycles N] [--reset-cycles N] [--reset-at MS (repeatable) --reset-for-us US] [--video-hz N] [--trace output.fst] [--rom IMAGE] [--ram IMAGE --load-address A --entry A] [--disk IMAGE --disk-output NEW_COPY] [--keys SCRIPT] [--frame IMAGE.ppm] [--audio OUTPUT.wav] [--dump PREFIX] [--peek A] [--bus-trace CSV --io-only] [--progress] [--interactive [--joystick-keys]] [--save-state FILE] [--restore-state FILE] [--joya BYTE --joyb BYTE]");
         }
+        if (joystick_keys && !interactive)
+            throw std::runtime_error("--joystick-keys requires --interactive");
         // Bound time arithmetic and avoid an entirely reset-only smoke run.
         if (cycles <= reset_cycles || reset_cycles == 0 || cycles > 1000000000000ULL)
             throw std::runtime_error("require 0 < reset-cycles < cycles <= 1000000000000");
@@ -200,7 +203,7 @@ int main(int argc, char **argv) {
         VerilatedContext context;
 #ifdef X1_SDL
         std::unique_ptr<SdlFrontend> frontend;
-        if (interactive) frontend = std::make_unique<SdlFrontend>();
+        if (interactive) frontend = std::make_unique<SdlFrontend>(joystick_keys);
         uint64_t shown_frame = 0;
 #else
         if (interactive) throw std::runtime_error("--interactive requires make interactive and obj_dir_interactive/Vtop");
@@ -274,7 +277,7 @@ int main(int argc, char **argv) {
             state >> top;
             state.close();
             // Retain saved pins unless an explicit new external input is given.
-            if (joya_override) top.joya_n = joya;
+            if (joya_override || joystick_keys) top.joya_n = joya;
             if (joyb_override) top.joyb_n = joyb;
             top.disk_wp = disk_output ? 0 : 1;
             if (top.reset) throw std::runtime_error("snapshot is still in reset");
@@ -446,6 +449,7 @@ int main(int argc, char **argv) {
                 if (!frontend->poll([&](uint8_t byte) {
                     keys.push_back({std::max(next, keys.empty() ? next : keys.back().time), byte});
                 })) { context.gotFinish(true); }
+                if (joystick_keys) top.joya_n = joya & frontend->joystick();
                 if (frame.frames != shown_frame) {
                     frontend->show(frame.pixels, frame.width, frame.height, next);
                     shown_frame = frame.frames;

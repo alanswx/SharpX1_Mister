@@ -25,6 +25,10 @@ delay-aware gameplay and MiSTer verification remain open.
 
 ## Reproduce the control checks
 
+For live play, see [joystick-key window controls](PLAYING.md). Automated
+release-bound tests below use the same actual PSG input pins, without SDL
+event scheduling. These tests do not validate physical gamepads or a real mouse.
+
 From `verilator/`, with the locally generated states and disks:
 
 ```sh
