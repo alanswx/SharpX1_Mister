@@ -63,6 +63,7 @@ def run(folder, name, controlled):
     memory = prefix.with_suffix(".ram").read_bytes()
     frame = prefix.with_suffix(".ppm").read_bytes()
     assert report["disk_requests"] == report["disk_writes"] == 0, report
+    assert report["ps2_bytes_sent"] == 0, "joystick-only trial sent keyboard bytes"
     assert report["frames"] >= 15 and report["frame_height"] == 200, report
     assert report["frame_width"] == (320 if args.title == "xevious" else 640), report
     if controlled and args.title == "druaga": assert memory[0xF82A] == 3

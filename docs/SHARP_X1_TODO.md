@@ -155,8 +155,9 @@ support before optional Turbo extensions.
 - [ ] Build a reference test matrix: IPL, BASIC, text, graphics, PSG, tape,
   floppy, and representative commercial software.
 - [x] Establish release-bound repeatable player-control checks for Druaga,
-  Xevious and Mappy after native IPL/D88 boot in fast baseline simulation.
-  See `COMMERCIAL_COMPATIBILITY.md`; 3/5 commercial gameplay gate, not full
+  Xevious and Mappy, plus Shanghai cursor/selection/legal-pair removal, after
+  native IPL/D88 boot in fast baseline simulation.
+  See `COMMERCIAL_COMPATIBILITY.md`; 4/5 commercial gameplay gate, not full
   compatibility, delay-aware gameplay or hardware validation.
 - [ ] Record known deviations from MAME/X Millennium and gate regressions on
   stable screenshots, bus traces, and audio hashes.

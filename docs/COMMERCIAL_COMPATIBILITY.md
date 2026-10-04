@@ -1,6 +1,6 @@
 # Private commercial-game bring-up
 
-October 4, 2026: **3 of the required 5 commercial games have reproducible
+October 4, 2026: **4 of the required 5 commercial games have reproducible
 live-player control evidence**. This is bounded simulation gameplay, not
 complete software compatibility, level completion, or hardware acceptance.
 CROSS Chase is a separate homebrew regression and does not count toward five.
@@ -17,10 +17,11 @@ delay-aware gameplay and MiSTer verification remain open.
 |---|---|---|---|
 | The Tower of Druaga | IPL/D88 → title → floor 1 maze and running timer | Left moves player `(68,32)` → `(67,32)`; repeated run matches main RAM, report and actual RGB | Yes |
 | Xevious | IPL/D88 → title → live playfield/ship | Right moves ship `(30,40)` → `(36,40)`; retained coordinates and actual RGB agree; repeated run matches | Yes |
-| Shanghai | IPL/D88 → title → tile board at 19.5 simulated seconds | Board interaction being tested; title Space probe did not start, joystick trigger did | No |
+| Shanghai | IPL/D88 → title → live tile board | Repeatable joystick cursor movement, tile selection and legal matching-pair removal; 144 → 142 tiles | Yes |
 | Battle City | IPL/D88 → title/menu at 16 simulated seconds | Start and gameplay being tested | No |
 | Mappy | IPL/D88 → title → live stage at 21 simulated seconds | Left moves player `(129,84)` → `(126,84)`; actual RGB changes; main RAM/report/RGB repeat identically | Yes |
 | Woody Poco | IPL/D88 loading observed | No live gameplay/control evidence yet | No |
+| Galaga | IPL/D88 loading observed | Native boot/start/control being tested as another candidate | No |
 
 ## Reproduce the control checks
 
@@ -36,6 +37,10 @@ python3 tests/test_commercial_gameplay.py ./obj_dir_fast/Vtop xevious \
 python3 tests/test_commercial_gameplay.py ./obj_dir_fast/Vtop mappy \
   obj_dir_fast/commercial/mappy-21s.state \
   ../references/software/private-downloads/commercial/mappy-19xx-namco-5ba14e830be7/disk-0-297e89aa7a8d.d88
+python3 tests/test_shanghai_gameplay.py ./obj_dir_fast/Vtop \
+  obj_dir_fast/commercial/shanghai-22p5s.state \
+  obj_dir_fast/commercial/shanghai-pair-remove-release.state \
+  ../references/software/private-downloads/commercial/shanghai-1987-activision-1457d22f05da/disk-0-648d150e8e36.d88
 ```
 
 Each check restores the same native-booted state three times: neutral input,
@@ -82,9 +87,59 @@ Idle/control frame hashes are `d94165a2b77ff168`/`049c495bf5bb7a89`,
 paired/repeat probes also matched text, attribute, sub-CPU RAM and register
 dumps byte-for-byte; the shared regression also passed separately.
 
+## Shanghai: a legal pair, not just a static board
+
+The independent agent's joystick-only runs and the parent's new
+`test_shanghai_gameplay.py` regression both pass. The latter repeats cursor
+movement and pair removal on the rebuilt comment-capable runner; no `--keys`
+option is used. Right changes the cursor from `(488,167)` to `(536,160)`;
+native mouse emulation aligns the Y coordinate while moving X. The cursor
+words are `0x5145/0x5147`, updated at `0x46e7..0x470b`. Button 2 (`0xbf`)
+maps to Z/select, while button 1 (`0xdf`) maps to X/the other mouse action.
+
+Native joystick navigation selected two free matching type-`0x11` tiles,
+grid `(0,0)` layer 0 and `(3,5)` layer 1. Their RAM bytes at `0x3e1b/0x3eba`
+became `0x91` when highlighted. A released/repressed select click confirms
+the pair through the game's unmodified `0x2ac3..0x2b30` removal routine:
+both bytes become zero, selection count at `0x2d2f` goes 2 → 0 and removed
+count at `0x3f9f` goes 0 → 2. The actual display shows Tiles 142. Neutral
+input retains both tiles and the 144-tile board. Controlled/repeated main,
+text, attribute and sub-CPU RAM, CPU dump, PPM, state and reports match.
+
+Disk SHA-256:
+`648d150e8e36b5ba282bb7e3475e704f5f938d5c4a77ef6d7d000908f48513dc`.
+Cursor checkpoint SHA-256:
+`ea209764c04a6cde7475a44e6180ed220d2c4fc87b2b35d988ff1c53a0a02bd0`.
+Selected/released pair checkpoint SHA-256:
+`ef39f41826a438ee0fdaad4aee468577d4fb016aaf2fb4b0e709d453297632ef`.
+Neutral/removed frame hashes: `f80f4af748047b39` / `44ed23bc5976312c`,
+640 × 200. Both use the same native cold reset count 4159 and unchanged
+original assets. No game RAM, registers, PC or synthetic firmware were injected.
+
+The retained ignored `shanghai-gameplay-evidence.json` contains exact native
+state-chain filenames, hashes and commands. Starting from the parent's
+19.5-second native board checkpoint, the state preparation was:
+
+| Input | Duration | Native result |
+|---|---:|---|
+| Neutral FF | 3000 ms | Stable board / cursor checkpoint at 22.5 seconds |
+| Left FB, left FB | 100, 400 ms | Navigate toward tiles |
+| Right F7 × three runs | 200, 50, 70 ms | End-tile selection test checkpoint |
+| Select BF, cancel DF | 300, 200 ms | Exercise selection, then cancel |
+| Left FB, up FE | 1000, 1000 ms | Reach top-left free matching tile |
+| Select BF | 200 ms | First tile selected |
+| Right F7 | 13 × 20 ms | Navigate toward matching tile |
+| Down FD | 22 × 20 ms | Reach second free tile |
+| Select BF, release FF | 300, 300 ms | Two selected matching tiles / removal checkpoint |
+| Select BF, release FF | 300, 300 ms | Confirm pair and show 142 tiles at 27.92 seconds |
+
+These are ordinary `--restore-state`, `--joya`, `--cycles MS*32000` and
+`--save-state` continuations of the native machine. The fixture verifies the
+last paired/repeated actions, not a complete puzzle or authentic mouse hardware.
+
 ## Remaining gates
 
-- Two further commercial titles with real start and live control proof;
+- One further commercial title with real start and live control proof;
   title screens, loading counters and static boards do not qualify.
 - Broader directions/actions and continued gameplay; reference audio fidelity.
 - Rerun earlier comment-bearing key scripts: the runner previously stopped

@@ -110,7 +110,8 @@ transition checks. On a busy host use `VIDEO_TEST_FLAGS='--timeout 600'`.
   Independently verify the character ROM and blink cadence against hardware.
 - Check measured line/frame timing and mode-change transients against hardware.
 - Demonstrate reproducible controls in five distinct commercial games. Druaga
-  and Xevious plus Mappy have live player-movement checks (3/5); other titles/boards are
+  and Xevious plus Mappy have live player-movement checks; Shanghai has native
+  cursor/selection and matching-pair removal (4/5). Other titles/boards are
   still bring-up evidence, not verified gameplay.
 - Obtain Quartus/CDC and actual MiSTer validation for this pixel qualification
   change; previous RBFs and hardware observations do not validate new RTL.
