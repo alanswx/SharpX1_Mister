@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Original standalone SIO asynchronous slice. Public register contract:
 // Zilog UM008101-0601. Not translated from an emulator or wired to the X1.
-// Supported serial profile: polled 8N1, x16 RX/TX clocks only. Interrupts,
-// WAIT/Ready, break/modem gating, other frame formats and sync are unsupported.
+// Supported: polled asynchronous 5..8 bits, N/E/O, 1/1.5/2 TX stops,
+// x16/x32/x64 RX/TX event clocks. Interrupts, x1, WAIT/Ready, break/modem
+// gating, synchronous modes and live frame reconfiguration are unsupported.
 module x1_sio_async_channel (
     input wire clk, ce, reset,
     input wire cpu_cs, control, cpu_rd_n, cpu_wr_n,
@@ -18,23 +19,53 @@ module x1_sio_async_channel (
     wire read_event = cpu_cs && !cpu_rd_n && !read_seen;
     wire write_event = cpu_cs && !cpu_wr_n && !write_seen;
     wire channel_reset = ce && write_event && control && pointer == 0 && cpu_din[5:3] == 3;
-    wire polled_frame = wr1 == 0 && wr4 == 8'h44;
-    wire rx_enabled = polled_frame && wr3 == 8'hc1;
-    wire tx_enabled = polled_frame && (wr5 & 8'h7d) == 8'h68;
+    function automatic [3:0] character_bits(input [1:0] config_bits);
+        case(config_bits)
+            0: character_bits=5; 1: character_bits=7;
+            2: character_bits=6; 3: character_bits=8;
+        endcase
+    endfunction
+    function automatic [6:0] clock_divisor(input [1:0] config_bits);
+        case(config_bits)
+            1: clock_divisor=16; 2: clock_divisor=32;
+            3: clock_divisor=64; default: clock_divisor=1;
+        endcase
+    endfunction
+    function automatic [11:0] transmit_frame(input [7:0] data,
+        input [3:0] bits, input parity_enable, even_parity);
+        reg parity;
+        transmit_frame=12'hfff; transmit_frame[0]=0; parity=0;
+        for(integer bit_index=0;bit_index<8;bit_index=bit_index+1)
+            if(bit_index<int'(bits)) begin
+                transmit_frame[bit_index+1]=data[bit_index];
+                parity=parity^data[bit_index];
+            end
+        if(parity_enable) transmit_frame[bits+1]=even_parity ? parity : !parity;
+    endfunction
+    wire polled_frame = wr1 == 0 && wr4[7:6]!=0 && wr4[5:4]==0 && wr4[3:2]!=0;
+    wire rx_enabled = polled_frame && wr3[0] && (wr3 & 8'h3e)==0;
+    wire tx_enabled = polled_frame && wr5[3] && (wr5 & 8'h15)==0;
     reg [7:0] fifo_data[0:2];
     reg [6:0] fifo_error[0:2];
     reg [1:0] fifo_count;
-    reg overrun_latched;
+    reg overrun_latched, parity_latched;
     reg rx_busy;
-    reg [3:0] rx_phase, rx_bit;
+    reg [5:0] rx_phase;
+    reg [3:0] rx_bit, rx_bits;
+    reg [6:0] rx_divisor, tx_divisor;
+    reg rx_has_parity, rx_even, rx_parity, rx_bad_parity;
     reg [7:0] rx_shift;
-    reg [3:0] framing_recovery;
-    wire rx_push = rx_tick && rx_enabled && rx_busy && rx_bit == 9 && rx_phase == 15;
+    reg [5:0] framing_recovery;
+    wire [3:0] rx_stop_bit = rx_bits+4'd1+{3'b0,rx_has_parity};
+    wire rx_push = rx_tick && rx_enabled && rx_busy && rx_bit == rx_stop_bit &&
+                   {1'b0,rx_phase} == rx_divisor-7'd1;
     wire rx_pop = read_event && !control && fifo_count != 0;
     reg tx_holding_full, tx_busy;
     reg [7:0] tx_holding;
-    reg [9:0] tx_shift;
-    reg [3:0] tx_phase, tx_bit;
+    reg [11:0] tx_shift;
+    reg [6:0] tx_phase;
+    reg [3:0] tx_bit, tx_stop_bit;
+    reg [7:0] tx_stop_ticks;
     wire tx_take = tx_tick && tx_enabled && !tx_busy && tx_holding_full;
     assign txd = tx_busy ? tx_shift[0] : 1'b1;
     assign rts_n = !wr5[1];
@@ -45,11 +76,14 @@ module x1_sio_async_channel (
         if (reset || channel_reset) begin
             wr1<=0; wr2<=0; wr3<=0; wr4<=0; wr5<=0; pointer<=0;
             read_seen<=0; write_seen<=channel_reset; cpu_dout<=0; unsupported<=0;
-            fifo_count<=0; overrun_latched<=0;
+            fifo_count<=0; overrun_latched<=0; parity_latched<=0;
             for(integer i=0;i<3;i=i+1) begin fifo_data[i]<=0; fifo_error[i]<=0; end
             rx_busy<=0; rx_phase<=0; rx_bit<=0; rx_shift<=0; framing_recovery<=0;
+            rx_bits<=8; rx_divisor<=16; rx_has_parity<=0; rx_even<=0;
+            rx_parity<=0; rx_bad_parity<=0;
             tx_holding_full<=0; tx_busy<=0; tx_holding<=0;
-            tx_shift<=10'h3ff; tx_phase<=0; tx_bit<=0;
+            tx_shift<=12'hfff; tx_phase<=0; tx_bit<=0; tx_stop_bit<=9;
+            tx_divisor<=16; tx_stop_ticks<=16;
         end else if (ce) begin
             if(!cpu_cs || cpu_rd_n) read_seen<=0;
             if(!cpu_cs || cpu_wr_n) write_seen<=0;
@@ -61,7 +95,7 @@ module x1_sio_async_channel (
                         // RR0: real buffering/pin levels; no invented IRQ.
                         0: cpu_dout<={1'b0,1'b0,!cts_n,1'b0,!dcd_n,!tx_holding_full,1'b0,fifo_count!=0};
                         1: cpu_dout<={1'b0,(fifo_count!=0 ? fifo_error[0][6] : 1'b0),
-                            overrun_latched,4'b0000,!tx_busy && !tx_holding_full};
+                            overrun_latched,parity_latched,3'b000,!tx_busy && !tx_holding_full};
                         default: begin cpu_dout<=8'hff; unsupported<=1; end
                     endcase
                     pointer<=0;
@@ -76,9 +110,19 @@ module x1_sio_async_channel (
                     case(pointer)
                         1: begin wr1<=cpu_din; if(cpu_din!=0) unsupported<=1; end
                         2: wr2<=cpu_din; // vector retained, IRQ/RR2 not implemented.
-                        3: begin wr3<=cpu_din; if(cpu_din!=0 && (cpu_din & 8'hfe)!=8'hc0) unsupported<=1; end
-                        4: begin wr4<=cpu_din; if(cpu_din!=8'h44) unsupported<=1; end
-                        5: begin wr5<=cpu_din; if((cpu_din & 8'h7d)!=8'h68 && cpu_din!=0) unsupported<=1; end
+                        3: begin
+                            wr3<=cpu_din;
+                            if((cpu_din & 8'h3e)!=0 || rx_busy) unsupported<=1;
+                        end
+                        4: begin
+                            wr4<=cpu_din;
+                            if(cpu_din[7:6]==0 || cpu_din[5:4]!=0 || cpu_din[3:2]==0 ||
+                               rx_busy || tx_busy) unsupported<=1;
+                        end
+                        5: begin
+                            wr5<=cpu_din;
+                            if((cpu_din & 8'h15)!=0 || tx_busy) unsupported<=1;
+                        end
                         default: unsupported<=1;
                     endcase
                     pointer<=0;
@@ -86,7 +130,7 @@ module x1_sio_async_channel (
                     pointer<=cpu_din[2:0];
                     case(cpu_din[5:3])
                         0: ;
-                        6: overrun_latched<=0;
+                        6: begin overrun_latched<=0; parity_latched<=0; end
                         default: unsupported<=1;
                     endcase
                     if(cpu_din[7:6]!=0) unsupported<=1;
@@ -102,21 +146,25 @@ module x1_sio_async_channel (
                     fifo_error[0]<=fifo_error[1]; fifo_error[1]<=fifo_error[2];
                     fifo_count<=fifo_count-1'b1;
                     if(fifo_count>1 && fifo_error[1][5]) overrun_latched<=1;
+                    if(fifo_count>1 && fifo_error[1][4]) parity_latched<=1;
                 end
                 2'b10: begin
                     if(fifo_count==3) begin
-                        fifo_data[2]<=rx_shift; fifo_error[2]<={!rxd,1'b1,5'b0};
+                        fifo_data[2]<=rx_shift; fifo_error[2]<={!rxd,1'b1,rx_bad_parity,4'b0};
                     end else begin
-                        fifo_data[fifo_count]<=rx_shift; fifo_error[fifo_count]<={!rxd,6'b0};
+                        fifo_data[fifo_count]<=rx_shift; fifo_error[fifo_count]<={!rxd,1'b0,rx_bad_parity,4'b0};
                         fifo_count<=fifo_count+1'b1;
+                        if(fifo_count==0 && rx_bad_parity) parity_latched<=1;
                     end
                 end
                 2'b11: begin
                     fifo_data[0]<=fifo_data[1]; fifo_data[1]<=fifo_data[2];
                     fifo_error[0]<=fifo_error[1]; fifo_error[1]<=fifo_error[2];
                     fifo_data[fifo_count-1'b1]<=rx_shift;
-                    fifo_error[fifo_count-1'b1]<={!rxd,6'b0};
+                    fifo_error[fifo_count-1'b1]<={!rxd,1'b0,rx_bad_parity,4'b0};
                     if(fifo_count>1 && fifo_error[1][5]) overrun_latched<=1;
+                    if((fifo_count>1 && fifo_error[1][4]) ||
+                       (fifo_count==1 && rx_bad_parity)) parity_latched<=1;
                 end
                 default: ;
             endcase
@@ -125,32 +173,53 @@ module x1_sio_async_channel (
             else if(rx_tick) begin
                 if(framing_recovery!=0) framing_recovery<=framing_recovery-1'b1;
                 else if(!rx_busy) begin
-                    if(!rxd) begin rx_busy<=1; rx_bit<=0; rx_phase<=0; end
+                    if(!rxd) begin
+                        rx_busy<=1; rx_bit<=0; rx_phase<=0; rx_shift<=8'hff;
+                        rx_bits<=character_bits(wr3[7:6]); rx_divisor<=clock_divisor(wr4[7:6]);
+                        rx_has_parity<=wr4[0]; rx_even<=wr4[1]; rx_parity<=0; rx_bad_parity<=0;
+                    end
                 end else if(rx_bit==0) begin
-                    if(rx_phase==7) begin
+                    if({1'b0,rx_phase}==(rx_divisor>>1)-7'd1) begin
                         rx_phase<=0;
                         if(rxd) rx_busy<=0; // reject a short false start.
                         else rx_bit<=1;
                     end else rx_phase<=rx_phase+1'b1;
-                end else if(rx_phase==15) begin
+                end else if({1'b0,rx_phase}==rx_divisor-7'd1) begin
                     rx_phase<=0;
-                    if(rx_bit==9) begin
+                    if(rx_bit==rx_stop_bit) begin
                         rx_busy<=0;
-                        if(!rxd) framing_recovery<=8; // extra half-bit on bad stop.
-                    end else begin rx_shift[3'(rx_bit-1'b1)]<=rxd; rx_bit<=rx_bit+1'b1; end
+                        if(!rxd) framing_recovery<=6'(rx_divisor>>1);
+                    end else begin
+                        if(rx_bit<=rx_bits) begin
+                            rx_shift[3'(rx_bit-1'b1)]<=rxd;
+                            rx_parity<=rx_parity^rxd;
+                        end else begin
+                            rx_bad_parity<=rxd!=(rx_even ? rx_parity : !rx_parity);
+                            if(rx_bits<8) rx_shift[rx_bits[2:0]]<=rxd;
+                        end
+                        rx_bit<=rx_bit+1'b1;
+                    end
                 end else rx_phase<=rx_phase+1'b1;
             end
 
             if(!tx_enabled) begin tx_busy<=0; tx_phase<=0; end
             else if(tx_tick) begin
                 if(tx_take) begin
-                    tx_shift<={1'b1,tx_holding,1'b0}; tx_busy<=1; tx_phase<=0; tx_bit<=0;
+                    tx_shift<=transmit_frame(tx_holding,character_bits(wr5[6:5]),wr4[0],wr4[1]);
+                    tx_busy<=1; tx_phase<=0; tx_bit<=0;
+                    tx_divisor<=clock_divisor(wr4[7:6]);
+                    tx_stop_bit<=character_bits(wr5[6:5])+4'd1+{3'b0,wr4[0]};
+                    case(wr4[3:2])
+                        1: tx_stop_ticks<={1'b0,clock_divisor(wr4[7:6])};
+                        2: tx_stop_ticks<={1'b0,clock_divisor(wr4[7:6])}+{1'b0,(clock_divisor(wr4[7:6])>>1)};
+                        default: tx_stop_ticks<={clock_divisor(wr4[7:6]),1'b0};
+                    endcase
                     // A simultaneous CPU write replaces the taken holding byte.
                     if(!(write_event && !control)) tx_holding_full<=0;
                 end else if(tx_busy) begin
-                    if(tx_phase==15) begin
-                        tx_phase<=0; tx_shift<={1'b1,tx_shift[9:1]};
-                        if(tx_bit==9) tx_busy<=0;
+                    if({1'b0,tx_phase}+8'd1 == (tx_bit==tx_stop_bit ? tx_stop_ticks : {1'b0,tx_divisor})) begin
+                        tx_phase<=0; tx_shift<={1'b1,tx_shift[11:1]};
+                        if(tx_bit==tx_stop_bit) tx_busy<=0;
                         else tx_bit<=tx_bit+1'b1;
                     end else tx_phase<=tx_phase+1'b1;
                 end

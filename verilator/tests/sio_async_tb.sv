@@ -55,6 +55,29 @@ module sio_async_tb;
     endtask
     reg [7:0] value;
     reg [9:0] expected_a,expected_b;
+    task automatic receive_pop_collision(input integer occupancy);
+        // Wait on the naturally reached completion phase, then issue an
+        // ordinary CPU read on that same enabled edge. No DUT state forcing.
+        fork
+            receive_two(8'h64,8'hb4,0);
+            begin
+                wait(dut.channels[0].unit.rx_push);
+                @(negedge clk); #1;
+                address=0; cpu_cs=1; cpu_rd_n=0;
+                do begin @(posedge clk);
+                    if(ce && !dut.channels[0].unit.rx_push)
+                        $fatal(1,"fixture missed RX completion/pop collision");
+                    #1;
+                end while(!ce);
+                if(cpu_dout!==8'h61) $fatal(1,"collision did not return old FIFO head");
+                repeat(3) step();
+                @(negedge clk); #1; cpu_cs=0; cpu_rd_n=1; step();
+            end
+        join
+        for(integer i=1;i<occupancy;i=i+1) check_byte(0,8'h61+8'(i));
+        check_byte(0,8'h64); check_byte(1,4);
+        put(1,1); check_byte(1,1); // simultaneous pop prevents overrun.
+    endtask
     initial begin
         if(!$value$plusargs("CE_PERIOD=%d",period)) period=1;
         repeat(8) step(); reset=0;
@@ -110,10 +133,38 @@ module sio_async_tb;
         tx_tick=0;
         put(1,1); check_byte(1,1); put(3,1); check_byte(3,1);
         if(txd!==3 || unsupported) $fatal(1,"idle TX/supported slice mismatch");
+        // RX completion plus CPU pop at every nonempty FIFO occupancy.
+        for(integer occupancy=1;occupancy<=3;occupancy=occupancy+1) begin
+            put(1,8'h18); put(3,8'h18); config_channel(0); config_channel(1);
+            for(integer i=0;i<occupancy;i=i+1) receive_two(8'h61+8'(i),8'hb1+8'(i),0);
+            receive_pop_collision(occupancy);
+        end
+        // Taking TX holding data and replacing it with a CPU write on the
+        // same edge must transmit both characters, without an overflow flag.
+        put(1,8'h18); put(3,8'h18); config_channel(0); config_channel(1);
+        put(0,8'h69);
+        @(negedge clk); #1;
+        address=0; cpu_din=8'h17; cpu_cs=1; cpu_wr_n=0; tx_tick=1;
+        step(); tx_tick=0;
+        repeat(3) step();
+        @(negedge clk); #1; cpu_cs=0; cpu_wr_n=1; step();
+        check_byte(1,0); put(1,1); check_byte(1,0);
+        expected_a={1'b1,8'h69,1'b0}; tx_tick=1;
+        for(integer i=0;i<10;i=i+1) begin
+            if(txd[0]!==expected_a[i]) $fatal(1,"TX collision first byte bit %0d",i);
+            repeat(16) step();
+        end
+        step(); expected_a={1'b1,8'h17,1'b0};
+        for(integer i=0;i<10;i=i+1) begin
+            if(txd[0]!==expected_a[i]) $fatal(1,"TX collision replacement byte bit %0d",i);
+            repeat(16) step();
+        end
+        tx_tick=0; put(1,1); check_byte(1,1);
+        if(unsupported) $fatal(1,"simultaneous accesses flagged unsupported");
         // Independent pins, unsupported modes, and channel-reset isolation.
         cts_n=2'b10; dcd_n=2'b01;
         check_byte(1,8'h24); check_byte(3,8'h0c);
-        put(1,4); put(1,8'h45); if(!unsupported) $fatal(1,"parity mode falsely supported");
+        put(1,4); put(1,8'h04); if(!unsupported) $fatal(1,"x1 synchronization falsely supported");
         put(1,8'h18); if(unsupported) $fatal(1,"channel reset retained unsupported");
         if(rts_n!==2'b01 || dtr_n!==2'b01) $fatal(1,"A reset disturbed B modem outputs");
         check_byte(1,8'h24); check_byte(3,8'h0c);
