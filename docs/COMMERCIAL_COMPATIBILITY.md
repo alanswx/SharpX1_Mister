@@ -128,7 +128,16 @@ and completed the unchanged 250 ms start, 14-second live continuation and
 unchanged assets pass. Native state SHA-256:
 `315fd60fdad62858d154645f4b16644e377f0fd23a3e96a564b4f3fdbd7f0982`.
 Evidence: `verilator/obj_dir_fast/d88-v05-requalification/druaga/`.
-Mappy, Galaga and Shanghai CRC qualifications are not yet accepted, and none
+Mappy now passes repeatable left movement `(129,84)`→`(126,84)` with unchanged
+inputs, RAM/report/RGB repeatability and native state
+`69856d0aa9e33e344f5ebbcd17c4339aa17c3ba83d598d7bd401900d7449482a`.
+Galaga's collector also returns zero and its active-wave firing/projectile
+and repeatability checks pass. The frozen v05 batch therefore has four
+accepted titles, not five. Shanghai's collector returns one: the gameplay
+assertion that the neutral board contains matching `91` tiles at `3E1B/3EBA`
+fails. Inputs stayed unchanged; native states and `controls.stderr` are retained
+under `d88-v05-requalification/shanghai/`. Determine whether its staged input
+sequence chose a different board before changing RTL or assertions. None
 of this v05 evidence qualifies the subsequent PCG/metadata/v07 or PPI/v08 machine.
 
 The separate older v04 Z/1 16-second cold probe retained one host timeout and

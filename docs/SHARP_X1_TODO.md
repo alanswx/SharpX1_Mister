@@ -50,11 +50,18 @@ Corrected-source standard-scan 40×10 expansion and delay-aware high-scan
 fix passes 36 focused cases and the original enable-equivalence tests;
 expanded high-scan 80×12 now passes all 640×384 CPU pixels and periods with
 both graphics pages initialized through DAM. Full-matrix/mode-exit gates
-are still in progress.
+now pass all 16 cases on the frozen v09 renderer. Native/ASIC/attribute
+acceptance remains open. The subsequent [X3 reset-release change](X3_RESET_RELEASE_STATUS.md)
+has unit/PCG, CPU polling, expanded-pixel, retained-font warm-reset and base
+snapshot/timing coverage; source-bound refit/CDC and physical reset remain open.
 Do not mark text/underline/400-line/native acceptance complete from those units.
 SIO's inspected primary programming/FIFO/IRQ contract and ordered original
 tests are recorded in [SIO_REGISTER_CONTRACT.md](SIO_REGISTER_CONTRACT.md).
 The engine is still absent; that research does not complete priority 3.
+Both complete frozen fast/delay-aware metadata CPU matrices now pass.
+Four v05 native-control titles pass; Shanghai's expected-pair assertion failed
+with unchanged inputs and retained evidence. None qualifies later v10 RTL.
+Current model state is v10; reject older snapshots, do not convert them.
 
 ## Phase 0 — make simulation trustworthy
 

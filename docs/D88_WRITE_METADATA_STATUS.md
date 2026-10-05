@@ -86,7 +86,10 @@ the final controller hash below is unchanged. Each case retains 8,000,000
 reference cycles. Coverage includes all normal/deleted 128/256/512/1024-byte
 repairs, live readback, fresh remount and whole-image preservation, track-command
 rejection, H=0/1/5 C/S cases, wrong-side CRC isolation and prior disk cases.
-The delay-aware matrix is still running; this older frozen run does not
+The complete delay-aware matrix also passes its terminal CPU/controller
+assertions (`/tmp/x1-v06-headless-disk-final.log`), including all repairs,
+remounts, H=0/1/5, wrong-side CRC and earlier status/write/reset cases.
+Both older frozen runs do not
 qualify subsequent PPI/text state or native games. Its temporary frozen runner
 was removed on successful completion; no unrecorded runner SHA is asserted.
 An isolated final v07 fast-machine CPU case already passes a 1024-byte

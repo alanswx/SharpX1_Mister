@@ -28,6 +28,14 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     output [2:0] rgb,
     output [15:0] audio
 );
+    // X3 alone has the independent faster video domain. Assert immediately,
+    // release its state only on that clock; base/single reset phase is intact.
+    wire video_reset;
+    generate if (TURBO_VIDEO_MASTER) begin : video_reset_domain
+        x1_reset_release release_reset(clk_28636, reset, video_reset);
+    end else begin : compatible_video_reset
+        assign video_reset = reset;
+    end endgenerate
     reg [4:0] ce;
     always @(negedge clk_sys or posedge reset)
         if (reset) ce <= 0;
@@ -116,8 +124,8 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     (* async_reg = "true" *) reg [7:0] turbo_scrn_meta, turbo_scrn_video;
     (* async_reg = "true" *) reg [6:0] turbo_black_meta, turbo_black_video;
     (* async_reg = "true" *) reg width_meta, width_video;
-    always @(posedge clk_28636 or posedge reset)
-        if (reset) begin
+    always @(posedge clk_28636 or posedge video_reset)
+        if (video_reset) begin
             turbo_scrn_meta <= 0; turbo_scrn_video <= 0;
             turbo_black_meta <= 0; turbo_black_video <= 0;
             width_meta <= 0; width_video <= 0;
@@ -319,7 +327,8 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         assign cg_selected_font16 = 0;
         assign cg_selected_unsupported = 0;
     end endgenerate
-    x1_pcg_access cg_bus (
+    x1_pcg_access #(.SEPARATE_VIDEO_RESET(TURBO_VIDEO_MASTER)) cg_bus (
+        .video_reset(video_reset),
         .reset(reset), .cpu_clk(clk_sys), .video_clk(clk_28636),
         .cpu_select(cg_access), .cpu_write(io_write), .cpu_plane(a[9:8]), .cpu_data(data_out),
         .wait_n(cg_wait_n), .cpu_q(cg_cpu_data), .beam_addr(cgaddr),
@@ -363,7 +372,8 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     end endgenerate
     assign cg_data = TURBO && turbo_scrn_video[0] ? ank16_data : cg8_data;
     wire r,g,b;
-    x1_vid #(.ENABLE_CRTC(SINGLE_CLOCK || TURBO_VIDEO_MASTER), .TURBO_SUPPORT(TURBO), .TURBO_CLOCKS(TURBO_VIDEO_MASTER)) display (
+    x1_vid #(.ENABLE_CRTC(SINGLE_CLOCK || TURBO_VIDEO_MASTER), .TURBO_SUPPORT(TURBO), .TURBO_CLOCKS(TURBO_VIDEO_MASTER), .SEPARATE_VIDEO_RESET(TURBO_VIDEO_MASTER)) display (
+        .I_VIDEO_RESET(video_reset),
         .I_TURBO_BLACK(turbo_black_video),
         .I_TURBO_HIGH_SCAN(TURBO && turbo_scrn_video[0]),
         .I_TURBO_TEXT_Y2(TURBO && turbo_scrn_video[2]),

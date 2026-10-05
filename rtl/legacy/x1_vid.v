@@ -27,7 +27,8 @@
     VIDEO / GRAPHIC RAM read is not supported
 
 ****************************************************************************/
-module x1_vid #(parameter ENABLE_CRTC = 0, TURBO_SUPPORT = 0, TURBO_CLOCKS = 0)(
+module x1_vid #(parameter ENABLE_CRTC = 0, TURBO_SUPPORT = 0, TURBO_CLOCKS = 0, SEPARATE_VIDEO_RESET = 0)(
+  I_VIDEO_RESET,
   I_TURBO_BLACK,
   I_TURBO_HIGH_SCAN,
   I_TURBO_TEXT_Y2,
@@ -88,6 +89,8 @@ module x1_vid #(parameter ENABLE_CRTC = 0, TURBO_SUPPORT = 0, TURBO_CLOCKS = 0)(
 );
 
 input I_RESET;
+input I_VIDEO_RESET;
+wire video_reset_active = SEPARATE_VIDEO_RESET ? I_VIDEO_RESET : I_RESET;
 input [6:0] I_TURBO_BLACK;
 input I_TURBO_HIGH_SCAN;
 input I_TURBO_TEXT_Y2, I_TURBO_UNDERLINE;
@@ -169,7 +172,7 @@ reg vid_reset;
 generate
 if (TURBO_CLOCKS) begin : turbo_timing
   x1_video_timing timing (
-    .clk(I_VCLK), .reset(I_RESET), .high_scan(I_TURBO_HIGH_SCAN),
+    .clk(I_VCLK), .reset(video_reset_active), .high_scan(I_TURBO_HIGH_SCAN),
     .width40(I_W40), .step(video_step), .phase(timing_phase)
   );
 end else begin : base_timing
@@ -177,8 +180,8 @@ end else begin : base_timing
   reg [3:0] base_divider;
   assign timing_phase = {base_divider,base_prescale};
   assign video_step = 1'b1;
-  always @(posedge I_VCLK or posedge I_RESET) begin
-    if(I_RESET) begin base_prescale <= 0; base_divider <= 0; end
+  always @(posedge I_VCLK or posedge video_reset_active) begin
+    if(video_reset_active) begin base_prescale <= 0; base_divider <= 0; end
     else begin
       base_prescale <= ~base_prescale & I_W40;
       if(~base_prescale) base_divider <= base_divider + 1'b1;
@@ -187,9 +190,9 @@ end else begin : base_timing
 end
 endgenerate
 
-always @(posedge I_VCLK or posedge I_RESET)
+always @(posedge I_VCLK or posedge video_reset_active)
 begin
-  if(I_RESET)
+  if(video_reset_active)
   begin
     vid_reset <= 1'b1;
   end else begin
@@ -316,8 +319,8 @@ x1_text_raster text_raster (
   .reserved_color(raster_reserved_color)
 );
 wire font_ra0 = text_y2 ? crtc_ra[1] : crtc_ra[0];
-always @(posedge I_VCLK or posedge I_RESET) begin
-  if(I_RESET) begin glyph_visible_d <= 0; reserved_color_d <= 0; end
+always @(posedge I_VCLK or posedge video_reset_active) begin
+  if(video_reset_active) begin glyph_visible_d <= 0; reserved_color_d <= 0; end
   else if(video_step & ~QP & QA & ~QD & ~QC & ~QB) begin
     glyph_visible_d <= raster_glyph_visible;
     reserved_color_d <= raster_reserved_color;
@@ -534,7 +537,7 @@ reg [2:0] out_col;
 reg out_disp;
 always @(posedge I_VCLK)
 begin
-  if(I_RESET) out_disp <= 0;
+  if(video_reset_active) out_disp <= 0;
   else out_disp <= disp_d;
 `ifdef X1TURBO
   ym_r    <= mx_black;

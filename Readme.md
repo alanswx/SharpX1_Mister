@@ -64,9 +64,12 @@ A further [digital text-raster increment](docs/TURBO_TEXT_RASTER_STATUS.md)
 implements provisional global vertical expansion and reserved underline/gap
 mixing. Focused units, standard-scan 80×20 / expanded 40×10 CPU pixels,
 expanded high-scan 80×12 (640×384), and delay-aware high-scan 40×20
-underline pixels pass; remaining
-row/scan qualification is in progress, not
-complete Turbo text/Kanji compatibility. It advances the model to v09.
+underline pixels pass. All 16 documented row/width/mode-exit cases now pass
+on the frozen v09 checkpoint, not complete Turbo text/Kanji compatibility.
+The subsequent [X3 reset-release increment](docs/X3_RESET_RELEASE_STATUS.md)
+keeps CPU phase intact and releases video reset on its own clock. Unit/PCG,
+CPU polling, expanded pixels and retained-font warm-reset checks pass; refit
+and physical reset remain open. It advances the model to v10.
 The optional `turbo-video-savable` simulator target now supports fast X3
 single-drive diagnostic continuations with model-profile rejection; it does
 not enable dual-drive snapshots or replace delay-aware/hardware checks.
@@ -106,11 +109,13 @@ native firing/projectile travel. See the
 bounded checks and remaining compatibility gates; this is not hardware signoff.
 The subsequent [ID/data CRC increment](docs/D88_CRC_STATUS.md) passes direct
 controller and fast/delay-aware machine regressions and requires snapshot v05.
-Fresh CRC/v05 Xevious and Druaga native/control qualifications pass; the other three are
-still running. The five-game v04 evidence is historical. Subsequent
+Fresh CRC/v05 Xevious, Druaga, Mappy and Galaga native/control qualifications
+pass, including Galaga firing. Shanghai's native pair check failed and its
+evidence is retained; it is not a fifth v05 pass. The five-game v04 evidence
+is historical. Subsequent
 [D88 metadata publication](docs/D88_WRITE_METADATA_STATUS.md) and PCG changes
 require v07 and separate acceptance. The subsequent X3 PPI increment requires
-v08, and the subsequent text-raster work v09; do not convert or patch old snapshots.
+v08, text-raster work v09, and X3 reset release v10; do not convert or patch old snapshots.
 The simulator window now offers optional [live joystick keys](docs/PLAYING.md):
 arrows, Space (button 1) and Ctrl (button 2), through `--joystick-keys`.
 Independent CPU-programmed 40/80-column text and 320/640 graphics rasters now

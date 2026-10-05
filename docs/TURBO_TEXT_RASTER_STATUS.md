@@ -85,10 +85,12 @@ and delay-aware high-scan 40×20 cases with unique ignored outputs; override
 `TEXT_RASTER_TIMEOUT` on a busy host, not simulated duration/assertions.
 `test-text-raster-matrix` adds all fourteen documented scan/row/width cases
 (excluding unsupported high-scan 10 rows) and two standard-scan mode exits.
-The target's recipe was dry-run checked and the full matrix is now running
-(`/tmp/x1-v09-text-full-matrix.log`), not a completed matrix. Each case freezes
-its runner and retains a full second/every-pixel oracle; only the wall timeout
-was raised to 7200 seconds on the contended host.
+The full matrix now passes **16/16** cases
+(`/tmp/x1-v09-text-full-matrix.log`): all fourteen documented scan/row/width
+cases and both mode exits. Each case froze runner `7121b501...3692` and
+retained a full second/every-pixel oracle; only the wall timeout was raised
+to 7200 seconds on the contended host. This qualifies the v09 checkpoint's
+digital policy, not later reset/DMA changes, native BASIC or ASIC timing.
 The initial expanded high-scan 80×12 run failed the retained **384-line**
 assertion: actual height 416, consistent with a repeated 32-raster first row.
 An original output-only CRTC unit reproduces the defect at R9=31/R5=0:

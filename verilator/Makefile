@@ -79,6 +79,23 @@ $(HEADLESS_DIR)/video-status/Vvideo_status_tb: tests/video_status_tb.sv ../rtl/x
 		-j 2 tests/video_status_tb.sv ../rtl/x1_video_status.sv -Wno-fatal
 .PHONY: test-video-status
 
+test-reset-release: $(HEADLESS_DIR)/reset-release/Vreset_release_tb
+	@for half in 3 7 31; do ./$(HEADLESS_DIR)/reset-release/Vreset_release_tb +VIDEO_HALF=$$half || exit 1; done
+
+$(HEADLESS_DIR)/reset-release/Vreset_release_tb: tests/reset_release_tb.sv ../rtl/x1_reset_release.sv
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module reset_release_tb --Mdir $(HEADLESS_DIR)/reset-release \
+		-j 2 tests/reset_release_tb.sv ../rtl/x1_reset_release.sv -Wno-fatal
+.PHONY: test-reset-release
+
+test-dma-reset: $(HEADLESS_DIR)/dma-reset/Vdma_reset_tb
+	./$(HEADLESS_DIR)/dma-reset/Vdma_reset_tb
+$(HEADLESS_DIR)/dma-reset/Vdma_reset_tb: tests/dma_reset_tb.sv ../rtl/x1_dma_reset.sv
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module dma_reset_tb --Mdir $(HEADLESS_DIR)/dma-reset \
+		-j 2 tests/dma_reset_tb.sv ../rtl/x1_dma_reset.sv -Wno-fatal
+.PHONY: test-dma-reset
+
 test-video-status-cpu: turbo-video
 	python3 tests/test_video_status.py ./obj_dir_turbo_video/Vtop
 
@@ -541,10 +558,10 @@ $(HEADLESS_DIR)/pcg-selector/Vpcg_selector_tb: tests/pcg_selector_tb.sv ../rtl/x
 	$(V) --binary --timing --assert --top-module pcg_selector_tb --Mdir $(HEADLESS_DIR)/pcg-selector \
 		-j 2 tests/pcg_selector_tb.sv ../rtl/x1_pcg_selector.sv -Wno-fatal
 
-$(HEADLESS_DIR)/turbo-pcg/Vturbo_pcg_access_tb: tests/turbo_pcg_access_tb.sv ../rtl/x1_pcg_access.v ../rtl/x1_video_ram.v ../rtl/x1_font16.sv
+$(HEADLESS_DIR)/turbo-pcg/Vturbo_pcg_access_tb: tests/turbo_pcg_access_tb.sv ../rtl/x1_pcg_access.v ../rtl/x1_video_ram.v ../rtl/x1_font16.sv ../rtl/x1_reset_release.sv
 	mkdir -p $(@D)
 	$(V) --binary --timing --assert --top-module turbo_pcg_access_tb --Mdir $(HEADLESS_DIR)/turbo-pcg \
-		-j 2 tests/turbo_pcg_access_tb.sv ../rtl/x1_pcg_access.v ../rtl/x1_video_ram.v ../rtl/x1_font16.sv -Wno-fatal
+		-j 2 tests/turbo_pcg_access_tb.sv ../rtl/x1_pcg_access.v ../rtl/x1_video_ram.v ../rtl/x1_font16.sv ../rtl/x1_reset_release.sv -Wno-fatal
 
 test-turbo-pcg-cpu: turbo turbo-video
 	python3 tests/test_turbo_pcg.py ./obj_dir_turbo/Vtop

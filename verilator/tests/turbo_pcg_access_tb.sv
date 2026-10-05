@@ -30,10 +30,12 @@ module turbo_pcg_access_tb;
         if(dut.stage==0 && dut.request_sync!=dut.seen && dut.high_speed_request && !window_open)
             assert(writes==0) else $fatal(1,"write before window");
     end
-    x1_pcg_access dut(reset,cpu_clk,video_clk,select,write_enable,plane,data,
+    wire video_reset;
+    x1_reset_release release_reset(video_clk,reset,video_reset);
+    x1_pcg_access #(.SEPARATE_VIDEO_RESET(1)) dut(reset,cpu_clk,video_clk,select,write_enable,plane,data,
         wait_n,q,beam,address,access_data,writes,rom_q,blue,red,green,
         high_speed,selected_addr,font16_select,unsupported,selected_font_addr,window_open,
-        font_cpu_addr,font_cpu_q,read_hold);
+        font_cpu_addr,font_cpu_q,read_hold,video_reset);
     x1_video_ram #(11) b(video_clk,address,access_data,writes[0],blue,video_clk,beam,);
     x1_video_ram #(11) r(video_clk,address,access_data,writes[1],red,video_clk,beam,);
     x1_video_ram #(11) g(video_clk,address,access_data,writes[2],green,video_clk,beam,);

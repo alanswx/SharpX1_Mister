@@ -4,7 +4,7 @@
 // response stays stable until the next request. This is CDC latency WAIT,
 // not the optional inherited scanline AUTO_WAIT trap. Turbo high-speed mode
 // uses a frozen CPU-selected address and provisional asserted-HSYNC window.
-module x1_pcg_access (
+module x1_pcg_access #(parameter SEPARATE_VIDEO_RESET = 0) (
     input reset, cpu_clk, video_clk,
     input cpu_select, cpu_write,
     input [1:0] cpu_plane,
@@ -23,8 +23,10 @@ module x1_pcg_access (
     input video_window,
     output reg [11:0] font_cpu_addr,
     input [7:0] font_cpu_q,
-    output reg cpu_read_hold
+    output reg cpu_read_hold,
+    input video_reset
 );
+    wire video_reset_active = SEPARATE_VIDEO_RESET ? video_reset : reset;
     reg request, busy, done, ack;
     reg [1:0] plane;
     reg write_request;
@@ -38,7 +40,7 @@ module x1_pcg_access (
     assign wait_n = !cpu_select || done;
     assign access_data = payload;
     // One video edge writes exactly one byte. ANK ROM writes are ignored.
-    assign access_write = !reset && stage == 1 && write_request && !unsupported_request
+    assign access_write = !reset && !video_reset_active && stage == 1 && write_request && !unsupported_request
                         ? (plane == 1 ? 3'b001 : plane == 2 ? 3'b010
                            : plane == 3 ? 3'b100 : 3'b000) : 3'b000;
 
@@ -79,8 +81,8 @@ module x1_pcg_access (
         end
     end
 
-    always @(posedge video_clk or posedge reset) begin
-        if (reset) begin
+    always @(posedge video_clk or posedge video_reset_active) begin
+        if (video_reset_active) begin
             request_meta <= 0; request_sync <= 0; seen <= 0; ack <= 0;
             stage <= 0; access_addr <= 0; response <= 8'hff;
         end else begin
