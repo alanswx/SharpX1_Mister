@@ -134,6 +134,10 @@ support before optional Turbo extensions.
 - [ ] Verify malformed direct MiSTer mounts and physical media changes; extend
   replacement during writes and all parser phases. Permanently stalled hosts
   remain safely quarantined; safe cancellation/timeouts need a transport contract.
+- [x] Extend connected FDC tests to active A eject before write ACK and during
+  ACK-high, including CE-stopped reset and unchanged B. Accepted writes drain
+  to the test host's retained old media. Real HPS replacement epochs, physical
+  mounts, rollback and exhaustive scanner-phase coverage remain open.
 - [ ] Implement DMA bus arbitration and verify Z80 DMA transfers.
 - [ ] Add CTC/SIO behavior and interrupt priority/acknowledgement tests.
 - [x] Add opt-in Turbo CTC with enable-driven timers/counters, schematic-based

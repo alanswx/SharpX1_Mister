@@ -1,8 +1,8 @@
 """Regenerate native v03 states and run private release-bound controls.
 
 No bundled media, injected RAM, patched games or old-state conversion. Run
-from verilator/. Only the historical four action-game input sequences are
-encoded here; Shanghai's cursor/pair preparation remains a separate check.
+from verilator/. Input sequences reproduce the historical action-game and
+Shanghai cursor/pair preparations; release-bound assertions still decide PASS.
 """
 import argparse
 import hashlib
@@ -19,7 +19,7 @@ def sha(path):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("executable", type=pathlib.Path)
-    parser.add_argument("title", choices=("druaga", "xevious", "mappy", "galaga"))
+    parser.add_argument("title", choices=("druaga", "xevious", "mappy", "galaga", "shanghai"))
     parser.add_argument("disk", type=pathlib.Path)
     parser.add_argument("--output", required=True, type=pathlib.Path)
     args = parser.parse_args()
@@ -27,6 +27,9 @@ def main():
     rom = pathlib.Path("../bios/ipl_x1.hex").resolve()
     keys = pathlib.Path("tests/commercial_boot.keys").resolve()
     originals = {str(p): sha(p) for p in (disk, rom, keys)}
+    mappy_keys = pathlib.Path("tests/mappy_start.keys").resolve()
+    if args.title == "mappy":
+        originals[str(mappy_keys)] = sha(mappy_keys)
     folder = args.output.resolve()
     folder.mkdir(parents=True, exist_ok=False)
     frozen = folder / "Vtop"
@@ -36,7 +39,7 @@ def main():
     runs = []
     state = None
 
-    def run(name, milliseconds, joy=0xff):
+    def run(name, milliseconds, joy=0xff, continuation_keys=None):
         nonlocal state
         prefix = folder / name
         command = [str(frozen), "--cycles", str(milliseconds * 32000),
@@ -45,6 +48,8 @@ def main():
                    "--frame", str(prefix) + ".ppm"]
         command += (["--restore-state", str(state)] if state else
                     ["--rom", str(rom), "--keys", str(keys)])
+        if state and continuation_keys:
+            command += ["--keys", str(continuation_keys)]
         result = subprocess.run(command, capture_output=True, text=True, timeout=1800)
         prefix.with_suffix(".stdout").write_text(result.stdout)
         prefix.with_suffix(".stderr").write_text(result.stderr)
@@ -70,16 +75,35 @@ def main():
     elif args.title == "xevious":
         sequence = [("start", 500, 0xdf), ("live", 3000, 0xff)]
     elif args.title == "mappy":
-        sequence = [("title18s", 2000, 0xff), ("start", 350, 0xdf),
-                    ("live", 2650, 0xff)]
-    else:
+        run("title18s", 2000)
+        run("live", 3000, continuation_keys=mappy_keys)
+        sequence = []
+    elif args.title == "galaga":
         sequence = [("trigger", 500, 0xdf), ("title", 4000, 0xff),
                     ("start", 250, 0xdf), ("selection", 3000, 0xff),
                     ("level", 250, 0xdf), ("live", 9000, 0xff)]
+    else:
+        sequence = [("start", 500, 0xdf), ("board", 3000, 0xff),
+                    ("cursor", 3000, 0xff)]
     for name, milliseconds, joy in sequence:
         run(name, milliseconds, joy)
-    command = ["python3", "tests/test_commercial_gameplay.py", str(frozen),
-               args.title, str(state), str(disk), "--output", str(folder / "controls")]
+    if args.title == "shanghai":
+        cursor_state = state
+        preparation = [("left1",100,0xfb),("left2",400,0xfb),
+                       ("right1",200,0xf7),("right2",50,0xf7),("right3",70,0xf7),
+                       ("select",300,0xbf),("cancel",200,0xdf),
+                       ("left",1000,0xfb),("up",1000,0xfe),("first",200,0xbf)]
+        preparation += [(f"right{i}",20,0xf7) for i in range(13)]
+        preparation += [(f"down{i}",20,0xfd) for i in range(22)]
+        preparation += [("second",300,0xbf),("release",300,0xff)]
+        for i, (name, milliseconds, joy) in enumerate(preparation):
+            run(f"pair-{i:02d}-{name}", milliseconds, joy)
+        command = ["python3", "tests/test_shanghai_gameplay.py", str(frozen),
+                   str(cursor_state), str(state), str(disk)]
+    else:
+        command = ["python3", "tests/test_commercial_gameplay.py", str(frozen),
+                   args.title, str(state), str(disk)]
+    command += ["--output", str(folder / "controls")]
     result = subprocess.run(command, capture_output=True, text=True, timeout=1800)
     (folder / "controls.stdout").write_text(result.stdout)
     (folder / "controls.stderr").write_text(result.stderr)

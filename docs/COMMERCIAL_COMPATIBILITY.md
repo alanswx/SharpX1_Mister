@@ -9,6 +9,28 @@ CROSS Chase is a separate homebrew regression and does not count toward five.
 All game media and native snapshots remain ignored private testing assets.
 Do not commit or redistribute them; collection availability is not a license.
 
+October 5 X3/font-source follow-up: fresh baseline v03 native-boot
+requalification has passed Xevious and Druaga (2/5 so far), using frozen executable
+`d3f6f53a852e82ddeccb3a12f5731484d86ad1f0ee4c2e6faf05378edccb1dda`.
+Its RTL matches `cd2695e`; the only subsequent runner change rejects combining
+font download with snapshot restore. Neutral/right coordinates remain
+`(30,40)` / `(36,40)` and RGB hashes remain `1b4795935e709306` /
+`867c8d2c709720a8`. New native live-state hash is
+`6e77334a5908c02f2e9d29c78e0356aae885fe3cbfdfd72256e9b59020a21101`.
+Commands, cold/continuation reports and controls are retained under ignored
+`verilator/obj_dir_fast/x3-requalification/xevious/`. This does not establish
+Turbo-profile or hardware gameplay; the other three are not yet requalified.
+Druaga's fresh native live-state hash is
+`c66564df93fb731d25027995f223ae1e18f1ad49bd350131056765c2b0958687`;
+neutral/left coordinates are `(68,32)` / `(67,32)`, RGB hashes
+`052e84d3a9ef2ddb` / `17a6be7d42032c0f`. Its cold/continuation/control
+evidence is under `verilator/obj_dir_fast/x3-requalification/druaga/`.
+The first Mappy joystick-start trial reached attract/demo, not live gameplay,
+and correctly failed its player-state assertion. A native Space-start
+continuation is being checked without weakening that assertion.
+`tests/requalify_commercial.py` regenerates states through native IPL/disk
+and recorded controls rather than importing incompatible historical states.
+
 Active path: `verilator/sim.v` → `rtl/sharpx1.v` → shared renderer/FDC/CPU.
 These commercial runs use `obj_dir_fast/Vtop`, baseline 32 MHz system and
 28.571428 MHz video clocks, without inherited intra-assignment delays. The

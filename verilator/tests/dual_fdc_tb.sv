@@ -1,7 +1,7 @@
 `timescale 1ns/1ps
 // Original two-image/FDC transport bench, bypassing host preflight. Exercises
 // real ACK history and buffers, not a mocked controller completion signal.
-module dual_fdc_tb;
+module dual_fdc_tb #(parameter EJECT_WRITE = 0);
     reg clk=0, reset=1, service=0, ack=0, host_wr=0;
     always #5 clk=!clk;
     reg [1:0] selected=0, mounted=3;
@@ -93,9 +93,22 @@ module dual_fdc_tb;
         wait(sd_wr); @(negedge clk);
         assert(active==0 && lba==1) else $fatal(1,"A write publication");
         selected=1; reset=1; host_addr=229;
+        if(EJECT_WRITE == 1) begin
+            mounted=1; present=2; size_a=0;
+        end
         repeat(30) @(negedge clk);
         assert(active==0 && sd_wr && lba==1 && host_out==(8'd37^8'h5a)) else $fatal(1,"pending write owner/buffer lost on selection/reset");
-        service=1; wait(ack); wait(!ack); repeat(20) @(negedge clk);
+        service=1; wait(ack);
+        if(EJECT_WRITE == 2) begin
+            @(negedge clk); mounted=1; present=2; size_a=0;
+            repeat(3) @(negedge clk);
+            assert(active==0 && changing && !selected_ready && lba==1)
+                else $fatal(1,"ACK-high eject lost owner/quarantine");
+        end
+        if(EJECT_WRITE != 0) begin
+            repeat(3) @(negedge clk); mounted=0;
+        end
+        wait(!ack); repeat(20) @(negedge clk);
         assert(transport_idle && active==1) else $fatal(1,"ACK failed to drain with CE stopped");
         reset=0; finish_scan(1);
         for(int i=0;i<128;i++) begin
@@ -109,8 +122,14 @@ module dual_fdc_tb;
         repeat(3) @(negedge clk); mounted=0; finish_scan(1);
         present=1; size_b=0; mounted=2;
         repeat(3) @(negedge clk); mounted=0; finish_scan(0);
+        if(EJECT_WRITE != 0) begin
+            present=3; size_a=976; mounted=1;
+            repeat(3) @(negedge clk); mounted=0;
+        end
         selected=0; finish_scan(1);
         $display("PASS: real FDC A/B scan ownership, mount isolation, accepted A write/buffer through selection and CE-stopped reset, malformed/ejected B and A recovery");
+        if(EJECT_WRITE != 0)
+            $display("PASS: active A eject variant %0d drains accepted write to retained old-media host buffer; physical HPS mount epochs are not modeled",EJECT_WRITE);
         $finish;
     end
     initial begin #100000000; $fatal(1,"dual FDC timeout active=%d scan=%b state=%d",active,prepare,fdc.state); end

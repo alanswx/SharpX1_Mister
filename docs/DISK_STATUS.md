@@ -134,6 +134,15 @@ Snapshot restore re-applies explicit host protection; writable snapshots need
 the corresponding exported media fingerprint. This is a development copy flow,
 not filesystem crash consistency or concurrent-writer protection.
 
+October 5 follow-up: `make -C verilator test-write-eject` passes two connected
+FDC/descriptor variants for active A eject before ACK and during ACK-high of
+an accepted sector write, with CPU/FDC CE stopped by reset. Owner/LBA and
+buffer stay stable; the synthetic host drains the accepted write to retained
+old-media storage, leaves B unchanged and rescans/recoveries pass. This is not
+a physical HPS image-generation contract: a mount that changes the underlying
+host file before the old write completes still requires host coordination.
+No timeout cancels an accepted write, and no automatic rollback is promised.
+
 MiSTer OSD defaults to **Disk writes: Protected**. **Enabled** only allows
 writes when mounted media are not read-only. Board writes are wired but have
 not been verified on hardware; use disposable media copies for bring-up.
@@ -151,6 +160,32 @@ abort/reset is covered by the focused synthetic fixture, not hardware fault inje
 Image addressing is limited to less than 1 MiB. Synthetic CRC flags do not
 establish exact MB8877 behavior on bad ID/data fields. Do not mark the broad
 storage milestone complete from these tests or a successful FPGA compile.
+
+### Concrete remaining command contracts
+
+Fujitsu's MB8876A/MB8877A datasheet, printed page 4-33, distinguishes
+Read Sector bit 5 (deleted-data record type) from Write Sector bit 5 (write
+fault), and distinguishes bad ID fields from bad data fields using CRC/RNF
+status. The current scanner retains only two CRC flags and ignores sector
+header byte 7's deleted mark; local MAME's D88 format reader treats any
+nonzero byte 7 as deleted. Current generated tests demonstrate sticky CRC
+reporting for A0/B0, not these complete command semantics. READ ADDRESS
+currently emits a computed good ID CRC, not a damaged ID field's behavior.
+
+Finish in this order, retaining default-profile and disposable-write checks:
+
+1. Preserve deleted/density/ID/data-error metadata in the sector index; test
+   normal/deleted reads, status clearing and mixed multi-sector boundaries.
+2. Separate bad-ID search/READ ADDRESS behavior from post-data CRC completion;
+   verify DRQ counts, CRC/RNF, INTRQ and subsequent recovery independently.
+3. Update D88 mark/CRC metadata after successful normal/deleted sector writes,
+   with protected/no-op, abort and cross-SD-block cases. Accepted writes may
+   commit even when the controller aborts; never promise atomic rollback.
+4. Specify supported WRITE TRACK tokens and bounded D88 reindex/reallocation;
+   unsupported layouts must fail safely, not corrupt adjacent tracks/volumes.
+5. Derive per-sector FM/MFM, 2D/2HD rates/index/seek/motor behavior from the
+   selected model, not just the image header. Validate HD software and physical
+   HPS same-slot replacement/ACK ownership separately.
 
 Both baseline delay-aware simulation and the optional single-clock simulation
 passed the generated-media suite. FPGA validation is separate; see

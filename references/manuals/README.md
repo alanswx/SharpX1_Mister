@@ -29,6 +29,14 @@ registers or memory sizes to the base X1 without checking the model schematic.
 The archive identifies the base and Turbo diagrams as magazine-published
 schematics. It does not provide a dedicated Turbo II schematic in this set.
 
+October 5 follow-up: CZ-880 service-manual pages 1–6, 9, 30 and 43–48 were
+visually inspected for the [Turbo Z roadmap](../../docs/TURBO_Z_PLAN.md).
+Specs, multi-mode matrix and chip/control labels were recorded; this was not
+OCR, a complete foldout netlist/ASIC audit, or verified register timing.
+The existing local scan was reused, not downloaded again. The Fujitsu
+datasheet's printed page 4-33 also informed concrete remaining status/CRC/
+deleted-data contracts in [disk status](../../docs/DISK_STATUS.md).
+
 ## Integrity (SHA-256)
 
 ```text

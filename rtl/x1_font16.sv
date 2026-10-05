@@ -6,21 +6,31 @@ module x1_font16 (
     input cpu_clk, video_clk,
     input load, input [24:0] load_address, input [7:0] load_data,
     input [11:0] display_address,
-    output reg [7:0] display_data,
+    output [7:0] display_data,
     output reg loaded = 0
 );
-    reg [7:0] rom [0:4095];
     reg [12:0] expected_address = 0;
     reg bad_load = 0;
     (* async_reg = "true" *) reg loaded_meta = 0, loaded_video = 0;
+    reg loaded_read = 0;
+    wire sequential = load_address < 4096 && !bad_load &&
+                      load_address == {12'd0,expected_address};
+    wire write_entry = load && (load_address == 0 || sequential);
+    wire [7:0] rom_data;
+    // One unconditional memory read and one qualified write port permit BRAM
+    // inference. Gating the read inside the RAM process mapped 32K font bits
+    // into flip-flops in Quartus 17; gate availability after the RAM instead.
+    x1_video_ram #(12) storage (
+        .cpu_clk(cpu_clk), .cpu_addr(load_address[11:0]),
+        .cpu_data(load_data), .cpu_write(write_entry), .cpu_q(),
+        .video_clk(video_clk), .video_addr(display_address), .video_q(rom_data)
+    );
+    assign display_data = loaded_read ? rom_data : 8'd0;
     always @(posedge cpu_clk) begin
         if (load) begin
             if (load_address == 0) begin
                 loaded <= 0; bad_load <= 0; expected_address <= 1;
-                rom[0] <= load_data;
-            end else if (load_address < 4096 && !bad_load &&
-                         load_address == {12'd0,expected_address}) begin
-                rom[load_address[11:0]] <= load_data;
+            end else if (sequential) begin
                 expected_address <= expected_address + 1'b1;
                 if (load_address == 4095) loaded <= 1;
             end else begin loaded <= 0; bad_load <= 1; end
@@ -30,6 +40,6 @@ module x1_font16 (
     // in reset; loaded-video becomes true only after a complete sequential load.
     always @(posedge video_clk) begin
         loaded_meta <= loaded; loaded_video <= loaded_meta;
-        display_data <= loaded_video ? rom[display_address] : 8'd0;
+        loaded_read <= loaded_video;
     end
 endmodule

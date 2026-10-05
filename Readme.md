@@ -105,6 +105,10 @@ The latest two-image/CTC experimental RBF is
 All 334 FPGA inputs match `ffc1c1c`; constrained paths pass all eight analyzed
 corners at 48% ALM usage. It has not been tested on MiSTer. See the
 [two-image build report](docs/DUAL_DISK_QUARTUS_BUILD.md).
+The newer X3 video/font candidate assembled but **fails timing at all eight
+corners**; it is not a replacement timing-closed hardware candidate. See the
+[X3 build audit](docs/TURBO_VIDEO_QUARTUS_BUILD.md) and
+[font RAM correction status](docs/TURBO_VIDEO_CLOCK_STATUS.md).
 
 MiSTer now wires keyboard, joystick, disk, RGB and audio paths and
 offers IPL/D88 OSD entries. Disk writes default to protected; enabling them

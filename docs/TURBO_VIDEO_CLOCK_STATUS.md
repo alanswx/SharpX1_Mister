@@ -75,7 +75,7 @@ v02 model states. Never patch states to bypass that check.
 | CPU CTC/keyboard | Focused IM2 and cold input polling pass in the new clock profile. Not pin-timing or hardware acceptance. |
 | Native Arcus, supplied 16-row ANK | Two fresh eight-second boots repeat byte-for-byte with unchanged assets; 468 complete 640x400 frames; HS 40.218750 us, VS 18.022406250 ms. Screen remains garbled: **not playable**. |
 
-Latest tested executable hashes:
+Initial X3/font checkpoint executable hashes (`cd2695e`, before BRAM refactor):
 
 - Delay-aware X3: `1df05fe01d03970641c6df89ee30f5606933159f6105dea2e55a73e02b3a84c5`.
 - Fast X3: `ccaa8ce89b8712773271b9ce8e80aa892f6065bd5e7630380aaeabdea1ae5a49`.
@@ -100,7 +100,22 @@ particular screen. Arcus and Bastard gameplay and the historical five-title
 requalification remain open.
 
 The new FPGA revision `sharpx1_turbo_video` requests a separate X3 PLL and
-retains the old 32 MHz system PLL. Wrapper lint uses a stand-in PLL and is
-not synthesis evidence. See the source-bound Quartus report when available;
-physical MiSTer testing is unavailable while travelling. Older published RBFs
-do not contain these clock/font changes.
+retains the old 32 MHz system PLL. Its first
+[source-bound Quartus build](TURBO_VIDEO_QUARTUS_BUILD.md) assembled, but
+**fails timing at every analyzed corner**. The font became 32K flip-flops
+rather than block RAM; total ALM utilization reached 94%. Other failures
+include HPS video-counter CDC and system-to-video reset recovery. Positive
+same-clock setup slack is not overall timing closure. The fitted video PLL
+is 42,954,545.4545 Hz, not precisely the simulator's nominal rate.
+
+The subsequent font refactor uses the existing dual-clock `x1_video_ram`
+primitive with an unconditional synchronous read, gating availability after
+the RAM. Loader unit and delay-aware mode-11 warm-reset pixel tests pass;
+both widths retain the same hashes above (six complete frames, 4841 reset
+edges). Tested executable SHA-256:
+`9200ba1211b4fba8bc826f868d4ada8ac22db151388c13debc804dd43a46f63b`.
+This is a RAM-inference correction candidate, **not proof of inference or
+timing closure** until a new fit is audited. No timing exceptions were added.
+Wrapper lint uses a stand-in PLL and is not synthesis evidence.
+Physical MiSTer testing is unavailable while travelling. Older published
+RBFs do not contain these clock/font changes.

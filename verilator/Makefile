@@ -51,9 +51,9 @@ $(HEADLESS_DIR)/video-timing/Vvideo_timing_tb: ../rtl/x1_video_timing.sv tests/v
 test-font16: $(HEADLESS_DIR)/font16/Vfont16_tb
 	./$(HEADLESS_DIR)/font16/Vfont16_tb
 
-$(HEADLESS_DIR)/font16/Vfont16_tb: ../rtl/x1_font16.sv tests/font16_tb.sv
+$(HEADLESS_DIR)/font16/Vfont16_tb: ../rtl/x1_font16.sv ../rtl/x1_video_ram.v tests/font16_tb.sv
 	$(V) --binary --timing --assert --top-module font16_tb --Mdir $(HEADLESS_DIR)/font16 \
-		-j 4 ../rtl/x1_font16.sv tests/font16_tb.sv -Wno-fatal
+		-j 4 ../rtl/x1_font16.sv ../rtl/x1_video_ram.v tests/font16_tb.sv -Wno-fatal
 
 .PHONY: test-font16
 
@@ -302,6 +302,7 @@ test-fast: fast test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner
 test-disk-control: $(HEADLESS_DIR)/disk/Vdisk_control_tb $(HEADLESS_DIR)/index/Vfdc_index_tb $(HEADLESS_DIR)/media/Vdisk_media_tb $(HEADLESS_DIR)/dual-fdc/Vdual_fdc_tb
 	./$(HEADLESS_DIR)/media/Vdisk_media_tb
 	./$(HEADLESS_DIR)/dual-fdc/Vdual_fdc_tb
+	$(MAKE) test-write-eject
 	./$(HEADLESS_DIR)/disk/Vdisk_control_tb
 	./$(HEADLESS_DIR)/index/Vfdc_index_tb
 
@@ -385,6 +386,20 @@ $(HEADLESS_DIR)/media/Vdisk_media_tb: ../rtl/x1_disk_media.sv tests/disk_media_t
 $(HEADLESS_DIR)/dual-fdc/Vdual_fdc_tb: ../rtl/x1_disk_media.sv ../rtl/vendor/wd1793.sv ../rtl/vendor/x1_fdc_index_ram.v tests/dual_fdc_tb.sv
 	$(V) --binary --timing --assert --top-module dual_fdc_tb --Mdir $(HEADLESS_DIR)/dual-fdc \
 		-j 4 ../rtl/x1_disk_media.sv ../rtl/vendor/wd1793.sv ../rtl/vendor/x1_fdc_index_ram.v tests/dual_fdc_tb.sv -Wno-fatal
+
+test-write-eject: $(HEADLESS_DIR)/write-eject-before/Vdual_fdc_tb $(HEADLESS_DIR)/write-eject-during/Vdual_fdc_tb
+	./$(HEADLESS_DIR)/write-eject-before/Vdual_fdc_tb
+	./$(HEADLESS_DIR)/write-eject-during/Vdual_fdc_tb
+
+$(HEADLESS_DIR)/write-eject-before/Vdual_fdc_tb: ../rtl/x1_disk_media.sv ../rtl/vendor/wd1793.sv ../rtl/vendor/x1_fdc_index_ram.v tests/dual_fdc_tb.sv
+	$(V) --binary --timing --assert --top-module dual_fdc_tb -GEJECT_WRITE=1 --Mdir $(HEADLESS_DIR)/write-eject-before \
+		-j 4 ../rtl/x1_disk_media.sv ../rtl/vendor/wd1793.sv ../rtl/vendor/x1_fdc_index_ram.v tests/dual_fdc_tb.sv -Wno-fatal
+
+$(HEADLESS_DIR)/write-eject-during/Vdual_fdc_tb: ../rtl/x1_disk_media.sv ../rtl/vendor/wd1793.sv ../rtl/vendor/x1_fdc_index_ram.v tests/dual_fdc_tb.sv
+	$(V) --binary --timing --assert --top-module dual_fdc_tb -GEJECT_WRITE=2 --Mdir $(HEADLESS_DIR)/write-eject-during \
+		-j 4 ../rtl/x1_disk_media.sv ../rtl/vendor/wd1793.sv ../rtl/vendor/x1_fdc_index_ram.v tests/dual_fdc_tb.sv -Wno-fatal
+
+.PHONY: test-write-eject
 
 lint-wrapper:
 	$(V) --lint-only --timing --top-module emu -Itests ../sharpx1.sv ../sys/hps_io.sv \
