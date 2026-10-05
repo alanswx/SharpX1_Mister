@@ -270,7 +270,10 @@ typedef enum
 	STATE_ABORT,
 	STATE_WAIT,
 	STATE_WAIT_2,
-	STATE_ENDCOMMAND
+	STATE_ENDCOMMAND,
+	// Registered index read must settle after a changed address, even CE=1.
+	// Append to retain the numeric values of the existing state enum.
+	STATE_SEARCH_SETTLE
 } io_state_t;
 
 
@@ -282,6 +285,7 @@ typedef enum
 // FDC.v starts wp_r at 2'b11.
 wire        s_readonly = media_ready & (wp | !RWMODE);
 reg			s_crcerr;
+reg         pending_read_crc; // selected data/READ ADDRESS CRC, applied at completion
 reg			s_headloaded, s_seekerr, s_index;  // mode 1
 reg			s_lostdata, s_wrfault; 			     // mode 2,3
 
@@ -564,6 +568,7 @@ always @(posedge clk_sys) begin
 		cmd_mode <= 0;
 		s_wpe <= 1;
 		{s_headloaded, s_seekerr, s_crcerr, s_intrq} <= 0;
+		pending_read_crc <= 0;
 		{s_wrfault, s_lostdata} <= 0;
 		s_drq_busy <= 0;
 		watchdog_set <= 0;
@@ -651,7 +656,7 @@ always @(posedge clk_sys) begin
 							if(var_size) begin
 								if(~format) edsk_addr <= edsk_start;
 								if(EDSK) spt_addr  <= (side ? spt_size>>1 : 8'd0) + disk_track;
-								state     <= STATE_SEARCH_1;
+								state     <= STATE_SEARCH_SETTLE;
 							end else begin
 								if(!wdreg_sector || (wdreg_sector > sectors_per_track)) begin
 									if(~format) s_seekerr <= 1;
@@ -663,6 +668,7 @@ always @(posedge clk_sys) begin
 						end
 					end
 				end
+			STATE_SEARCH_SETTLE: state <= STATE_SEARCH_1;
 			STATE_SEARCH_1:
 				begin
 					// Type-II reads locate a sector under the current head, but the
@@ -674,7 +680,8 @@ always @(posedge clk_sys) begin
 					if(rw_type & (edsk_track == disk_track) &
 									(edsk_trackf == wdreg_track) &
 									 (edsk_side == side) &
-									 (format | (edsk_sector == wdreg_sector))) begin
+									 (format | (edsk_sector == wdreg_sector)) &
+									 (format | ~edsk_crc[1])) begin
 						// LOCAL ADDITION (FM-7_MiSTer): a .d77 records whether the
 						// sector was read back with a bad CRC when the disk was
 						// dumped. Report it, the way the drive would have. Titles
@@ -682,12 +689,11 @@ always @(posedge clk_sys) begin
 						// protection need this to be true. Not on a write: that
 						// replaces the data, and not while formatting.
 						//
-						// Sticky, so a multi-sector read that crosses a bad
-						// sector still reports the error when it ends. A real
-						// WD179x would also abort the run there; this one reads
-						// on to the end of the track.
+						// This branch has a usable ID. Data CRC reports payload
+						// completion, not an ID-search failure. Keep it sticky
+						// across multi-sector continuation (MAME read_sector_continue).
 						if(~write & ~format) begin
-							s_crcerr <= s_crcerr | (|edsk_crc);
+							pending_read_crc <= edsk_crc[0];
 							// MB8877 Type-II read status bit 5 is record type,
 							// not write fault. Each located sector replaces it;
 							// command setup already clears the shared bit.
@@ -706,11 +712,23 @@ always @(posedge clk_sys) begin
 						read_addr[1] <= edsk_sidef;
 						read_addr[2] <= edsk_sector;
 						read_addr[3] <= edsk_sizecode;
-						read_addr[4] <= id_crc[15:8];
-						read_addr[5] <= id_crc[7:0];
+						// D88 stores only an error flag, not the damaged CRC.
+						// Complement both bytes as MAME's D88-to-MFM builder
+						// does; this is not reconstruction of original flux.
+						read_addr[4] <= id_crc[15:8] ^ {8{edsk_crc[1]}};
+						read_addr[5] <= id_crc[7:0] ^ {8{edsk_crc[1]}};
+						pending_read_crc <= edsk_crc[1];
 						state        <= STATE_READ;
 					end
 					else
+					begin
+						// A matching bad-ID field cannot authorize either a
+						// sector read or write. Search onward for a valid
+						// duplicate; bounded index exhaustion reports CRC+RNF.
+						if(rw_type && !format && edsk_crc[1] &&
+						   edsk_track == disk_track && edsk_trackf == wdreg_track &&
+						   edsk_side == side && edsk_sector == wdreg_sector)
+							s_crcerr <= 1;
 					if(edsk_next == edsk_start) begin
 `ifdef DEBUG_FDC_SCAN
 						$display("WDNOMATCH want trk=%0d side=%0d sec=%0d (wdreg_track=%0d rw_type=%0d edsk_size=%0d)",
@@ -722,6 +740,8 @@ always @(posedge clk_sys) begin
 					else
 					begin
 						edsk_addr <= edsk_next;
+						state <= STATE_SEARCH_SETTLE;
+					end
 					end
 				end
 			// read before write in case if sector not aligned or smaller than 512b
@@ -766,6 +786,11 @@ always @(posedge clk_sys) begin
 						read_data <= 0;
 						watchdog_set <= 0;
 						s_drq_busy <= 2'b11;
+						// Fujitsu READ ADDRESS copies C (not R) into SCR.
+						// Present it with the first DRQ, as MAME does, even
+						// if the host misses that byte and triggers lost-data.
+						if(!buff_rd && byte_addr == 0)
+							wdreg_sector <= read_addr[0];
 						state <= STATE_READ_2;
 					end
 				end
@@ -810,8 +835,9 @@ always @(posedge clk_sys) begin
 						if(read_data & s_drq)
 							wdreg_data <= buff_rd ? (RWMODE ? buff_dout : buff_din)
 							                      : read_addr[byte_addr[2:0]];
-
 						if(next_length == 0) begin
+							s_crcerr <= s_crcerr | pending_read_crc;
+							pending_read_crc <= 0;
 							// either read the next sector, or stop if this is track end
 							if(multisector) begin
 								wdreg_sector <= wdreg_sector + 1'b1;
@@ -903,6 +929,7 @@ always @(posedge clk_sys) begin
 					if(RWMODE) buff_wr <= 0;
 					s_drq_busy <= 2'b01;
 					{s_wrfault,s_seekerr,s_crcerr,s_lostdata} <= 0;
+					pending_read_crc <= 0;
 					if(!transport_active) state <= STATE_ENDCOMMAND;
 				end
 
@@ -985,6 +1012,7 @@ always @(posedge clk_sys) begin
 							// flags; this makes the Type I path do it too, at the one
 							// point every command passes through.
 							{s_seekerr, s_crcerr} <= 0;
+							pending_read_crc <= 0;
 							case (din[7:4])
 							'h0: 	// RESTORE
 								begin

@@ -47,6 +47,8 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     cpu Cpu (
         .reset_n(~reset), .clock(clk_sys), .cep(pe4M4), .cen(ne4M4),
         .int_n(TURBO ? !machine_irq : sub_int_n), .wait_n(cg_wait_n), .halt_n(halt_n),
+        // DMA arbiter is not implemented yet; keep CPU ownership unrequested.
+        .busrq_n(1'b1), .busak_n(), .rfsh_n(),
         .mreq(mreq), .iorq(iorq), .rd(rd), .wr(wr), .m1(m1),
         .di(di), .data_out(data_out), .a(a), .dir(16'd0), .dirset(1'b0)
     );

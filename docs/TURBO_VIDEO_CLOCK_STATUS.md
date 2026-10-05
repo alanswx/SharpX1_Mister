@@ -67,7 +67,7 @@ The synthetic pixel test generates its own 4096-byte font and checks every
 active pixel, not just a screenshot. Native probes can use `--font16 PATH`;
 it requires an exact 4096-byte file and a Turbo model. Runner snapshot format
 was v03 at the recorded X3 checkpoint; the later deleted-data index increment
-uses v04. Regenerate live native-boot snapshots instead of restoring older
+uses v05 after the later CRC completion-latch change. Regenerate live native-boot snapshots instead of restoring older
 model states. Never patch states to bypass that check.
 
 ## Recorded evidence
@@ -165,7 +165,7 @@ groups/false paths or new timing exceptions were added. No physical signoff.
 for native single-drive diagnostic continuations. It does not replace the
 delay-aware build or bypass the existing dual-drive snapshot prohibition.
 Snapshot identity now includes compiled Turbo/X3 profile flags before model
-deserialization; baseline v04 identity is unchanged. Equal clock frequencies
+deserialization; the later FDC CRC latch requires v05 for both profiles. Equal clock frequencies
 alone no longer allow a base/Turbo state to reach incompatible deserialization.
 An original counter diagnostic passes X3 clock/RAM/CPU continuity, both-way
 same-rate profile rejection (exit 2, not framework abort), and restore/font

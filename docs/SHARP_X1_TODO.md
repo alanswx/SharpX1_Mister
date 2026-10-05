@@ -17,8 +17,8 @@ These are acceptance gates, not four completed checkboxes.
 |---|---|---|
 | 1. Turbo video | X3 enable cadence, synthetic graphics raster mapping, 16-row ANK pixels/reset; font maps as 32K RAM bits; opt-in HPS measurement snapshot seam tests pass | Route/timing/CDC/reset signoff and refit; text expansion/CPU font selection/underline, high-speed PCG, Kanji CPU/glyph paths and native/hardware acceptance |
 | 2. Native games | All five baseline games requalified on deleted-data/v04 RTL, including Galaga firing and Shanghai pair removal | Native Arcus/Bastard playability, Turbo firmware/video and multi-disk continuity; delay-aware and hardware gameplay (Arcus A1/B2 remains exploratory) |
-| 3. CTC/DMA/SIO | Enable-driven CTC and focused IM2/ACK/keyboard arbitration tests pass | DMA/BUSRQ/BUSACK engine, shared bus ownership/FDC DRQ transfers; SIO serial/FIFO/IRQ implementation; exact CTC pin/phase and physical daisy-chain timing |
-| 4. D88 robustness | Malformed-image bounds, A/B ACK ownership/eject, protected/cross-block writes, new deleted-read record type/status isolation pass | Separate ID/data CRC semantics, deleted-write/CRC metadata updates, bounded format/write-track, density/HD mechanics, physical HPS media epochs and native disk-change acceptance |
+| 3. CTC/DMA/SIO | Enable-driven CTC/IM2/ACK/keyboard tests; actual CPU wrapper BUSRQ/BUSACK seam passes 18 ownership cases plus three controls | DMA engine, shared bus ownership/FDC DRQ transfers; SIO serial/FIFO/IRQ implementation; exact CTC pin/phase and physical daisy-chain timing |
+| 4. D88 robustness | Malformed-image bounds, A/B ACK ownership/eject, protected/cross-block writes, deleted-read status isolation; bounded ID/data CRC and READ ADDRESS direct fixtures pass | Final-source machine/game qualification for CRC increment; deleted-write/CRC metadata updates, bounded format/write-track, density/HD mechanics, physical HPS media epochs and native disk-change acceptance |
 
 Turbo Z is a separate planned profile, not implied by these increments. Its
 manual-based feature/acceptance breakdown is in [TURBO_Z_PLAN.md](TURBO_Z_PLAN.md)
@@ -136,7 +136,12 @@ and expansion placement gates; these are not yet completed behavior.
 - [x] Preserve D88 byte-7 deleted marks in the sector index and report Read
   Sector record type; generated CPU payload/status-clearing, READ ADDRESS,
   mixed multi-sector and byte-8 isolation checks pass. Deleted writes and
-  metadata/CRC/density behavior remain open; snapshots now require v04.
+  metadata/density behavior remain open. The later CRC latch requires v05.
+- [x] Separate bad-ID search from data-CRC completion; direct generated-media
+  tests cover bounded exhaustion, duplicate recovery, sticky multi-sector CRC,
+  READ ADDRESS CRC/C-to-sector/lost-data and pending-CRC cleanup at two CE rates.
+  See [CRC increment](D88_CRC_STATUS.md); final-source machine/game acceptance,
+  exact rotational/pin timing and duplicate writes remain separate gates.
 - [x] Fix busy `$D0` falsely raising completion INTRQ; add idle/busy `$D0/$D8`,
   subsequent normal completion, status acknowledgement and reset regression.
 - [x] Cross-check Fujitsu MB8877A Type IV bits and status acknowledgement;
@@ -162,6 +167,10 @@ and expansion placement gates; these are not yet completed behavior.
   to the test host's retained old media. Real HPS replacement epochs, physical
   mounts, rollback and exhaustive scanner-phase coverage remain open.
 - [ ] Implement DMA bus arbitration and verify Z80 DMA transfers.
+- [x] Expose actual CPU wrapper BUSRQ/BUSACK/refresh pins and verify 18
+  WAIT/ownership/release/reset cases plus three enable-rate controls.
+  [CPU seam audit](CPU_BUSREQ_AUDIT.md); machine request stays inactive until
+  DMA and shared-bus arbitration are implemented.
 - [ ] Add CTC/SIO behavior and interrupt priority/acknowledgement tests.
 - [x] Add opt-in Turbo CTC with enable-driven timers/counters, schematic-based
   CTC-before-keyboard arbitration, stable vectors/single mailbox consumption,

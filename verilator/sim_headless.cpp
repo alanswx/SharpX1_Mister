@@ -323,9 +323,10 @@ int main(int argc, char **argv) {
         // a reconstructed RAM bootstrap. Only quiescent host interfaces are
         // supported; disk contents must match and clocks keep absolute phase.
         uint64_t resume_time = 0;
-        // v04: D88 index widened to retain deleted-data metadata. Never load
+        // v05: FDC transfer-completion CRC latch changes serialized state.
+        // v04 widened the D88 index to retain deleted-data metadata. Never load
         // an earlier serialized model into the new RAM layout.
-        // Preserve baseline v04 identity, but distinguish different compiled
+        // Keep a distinct identity for different compiled
         // machine layouts before calling VerilatedRestore. Matching rates
         // alone do not make base/Turbo model serialization interchangeable.
         constexpr uint64_t snapshot_profile = 0
@@ -336,7 +337,7 @@ int main(int argc, char **argv) {
             ^ (1ULL << 55)
 #endif
             ;
-        constexpr uint64_t snapshot_magic = 0x5831534e41503034ULL ^ sys_hz ^ snapshot_profile;
+        constexpr uint64_t snapshot_magic = 0x5831534e41503035ULL ^ sys_hz ^ snapshot_profile;
 #ifdef X1_SAVABLE
         if (restore_path) {
             if (rom_path || ram_path || font16_path) throw std::runtime_error("snapshot restore cannot also download ROM/RAM/font16");

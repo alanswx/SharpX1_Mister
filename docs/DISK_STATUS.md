@@ -175,9 +175,13 @@ readback, a subsequent normal sector, READ ADDRESS isolation, mixed
 deleted/normal multi-sector reads and byte-8 `10` without a deleted mark.
 No game media were used or modified. This does **not** implement deleted
 writes, metadata updates or exact multi-sector CRC-stop behavior.
-Current generated tests demonstrate sticky CRC
-reporting for A0/B0, not these complete command semantics. READ ADDRESS
-currently emits a computed good ID CRC, not a damaged ID field's behavior.
+At the deleted-read checkpoint, generated tests demonstrated sticky CRC
+reporting for A0/B0, not complete command semantics, and READ ADDRESS always
+emitted a computed good ID CRC. The subsequent
+[CRC increment](D88_CRC_STATUS.md) separates bad-ID search from data completion,
+returns deterministic synthesized damaged ID CRC and copies C into SCR.
+Its direct fixtures pass; final-source machine/game qualification and exact
+physical command timing remain separate gates. Snapshots now require v05.
 
 Deleted-read increment verification (October 5): expanded generated-media
 suite passes with delay-aware baseline and single-clock models. Logs:
@@ -211,17 +215,18 @@ Finish in this order, retaining default-profile and disposable-write checks:
 
 1. Complete density/error metadata beyond the implemented deleted-read bit;
    retain normal/deleted/status-clearing/multi-sector tests.
-2. Separate bad-ID search/READ ADDRESS behavior from post-data CRC completion;
-   verify DRQ counts, CRC/RNF, INTRQ and subsequent recovery independently.
+2. Qualify the implemented bounded bad-ID search/READ ADDRESS and post-data
+   CRC completion in the final machine and native software; direct fixtures
+   now verify DRQ counts, CRC/RNF, INTRQ and subsequent recovery independently.
    Fujitsu's Type-II/III status table (datasheet PDF page 7) distinguishes
    bad-ID CRC with RNF from data CRC without RNF. Local MAME
    `wd_fdc.cpp::read_sector_continue()` skips a matching bad-CRC ID but
    continues multi-sector transfer after data CRC when RNF is clear; its
    READ ADDRESS path returns six bytes and records ID CRC failure. This
-   conflicts with the inherited RTL comment saying real WD179x necessarily
-   aborts a multi-sector read at CRC. Do not change that behavior solely
-   from the comment: reconcile the selected Fujitsu command flow/timing,
-   duplicate-ID recovery and sticky error rules before implementing it.
+   conflicted with the inherited RTL comment saying real WD179x necessarily
+   aborts a multi-sector read at CRC. That comment is removed; the increment
+   follows bounded duplicate-ID recovery and sticky data-CRC continuation.
+   Exact rotational timeout and pin timing are still unverified.
 3. Update D88 mark/CRC metadata after successful normal/deleted sector writes,
    with protected/no-op, abort and cross-SD-block cases. Accepted writes may
    commit even when the controller aborts; never promise atomic rollback.

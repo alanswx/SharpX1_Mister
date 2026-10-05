@@ -340,8 +340,11 @@ order. The new bridge has no keyboard service latch. ASIC alias decode and
 exact physical phase remain unresolved. T3 has focused unit/CPU acceptance,
 not complete hardware/native-software acceptance; T2/T4/T5/T6 remain open.
 
-Introduce a shared ordinary memory/I/O bus owner mux and explicit Z80
-BUSRQ/BUSACK connections through `rtl/cpu.v` before DMA can drive a transaction.
+The [CPU ownership seam](CPU_BUSREQ_AUDIT.md) now exports active-low
+BUSRQ/BUSACK through `rtl/cpu.v`; its real-wrapper unit passes WAIT, sparse/
+stopped enables, release, continuation and reset. The shared machine still
+ties BUSRQ inactive. Introduce a shared ordinary memory/I/O bus owner mux
+and actual DMA engine before DMA can drive a transaction.
 The active machine currently ties MR16 DMA inactive; the inherited refresh
 hack is not the proposed implementation. Keep arbitration in `clk_sys` with
 qualified enables, hold address/data/strobes through WAIT and complete only

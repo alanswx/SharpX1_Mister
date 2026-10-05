@@ -85,6 +85,10 @@ Xevious, Mappy, Shanghai and Galaga, including legal tile-pair removal and
 native firing/projectile travel. See the
 [commercial compatibility matrix](docs/COMMERCIAL_COMPATIBILITY.md) for the
 bounded checks and remaining compatibility gates; this is not hardware signoff.
+The subsequent [ID/data CRC increment](docs/D88_CRC_STATUS.md) passes direct
+controller regressions and requires snapshot v05. Final-source machine/game
+qualification is still running; the five-game v04 evidence above is historical,
+not acceptance of this later change.
 The simulator window now offers optional [live joystick keys](docs/PLAYING.md):
 arrows, Space (button 1) and Ctrl (button 2), through `--joystick-keys`.
 Independent CPU-programmed 40/80-column text and 320/640 graphics rasters now

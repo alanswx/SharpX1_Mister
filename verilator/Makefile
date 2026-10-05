@@ -178,7 +178,7 @@ $(HEADLESS_DIR)/ctcirq/Vx1_ctc_irq_tb: ../rtl/x1_ctc.sv ../rtl/x1_irq_bridge.sv 
 
 .PHONY: test-ctc
 
-test-single: single test-clock-enables test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner
+test-single: single test-clock-enables test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner test-d88-crc test-cpu-busreq
 	python3 tests/test_key_script.py ./obj_dir_single/Vtop $(VIDEO_TEST_FLAGS)
 	python3 tests/test_video_modes.py ./obj_dir_single/Vtop $(VIDEO_TEST_FLAGS)
 	python3 tests/test_video_modes.py ./obj_dir_single/Vtop --kind mixed --transition $(VIDEO_TEST_FLAGS)
@@ -286,7 +286,7 @@ $(HEADLESS_EXE): $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_i
 run: headless
 	./$(HEADLESS_EXE) $(CYCLES)
 
-test: headless test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner
+test: headless test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner test-d88-crc test-cpu-busreq
 	python3 tests/test_key_script.py ./$(HEADLESS_EXE) $(VIDEO_TEST_FLAGS)
 	python3 tests/test_video_modes.py ./$(HEADLESS_EXE) $(VIDEO_TEST_FLAGS)
 	python3 tests/test_video_modes.py ./$(HEADLESS_EXE) --kind mixed --transition $(VIDEO_TEST_FLAGS)
@@ -317,7 +317,7 @@ test-peripherals: headless
 	$(MAKE) test-pcg-access
 	$(MAKE) test-disk-control
 
-test-fast: fast test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner
+test-fast: fast test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner test-d88-crc test-cpu-busreq
 	python3 tests/test_key_script.py ./obj_dir_fast/Vtop $(VIDEO_TEST_FLAGS)
 	python3 tests/test_video_modes.py ./obj_dir_fast/Vtop $(VIDEO_TEST_FLAGS)
 	python3 tests/test_video_modes.py ./obj_dir_fast/Vtop --kind mixed --transition $(VIDEO_TEST_FLAGS)
@@ -374,6 +374,26 @@ $(HEADLESS_DIR)/d88/Vd88_scanner_tb: tests/d88_scanner_tb.sv ../rtl/vendor/wd179
 		-j 4 ../rtl/vendor/wd1793.sv ../rtl/vendor/x1_fdc_index_ram.v tests/d88_scanner_tb.sv -Wno-fatal
 
 .PHONY: test-d88-scanner
+
+test-d88-crc: $(HEADLESS_DIR)/d88-crc/Vd88_crc_tb
+	./$(HEADLESS_DIR)/d88-crc/Vd88_crc_tb +divider=8
+	./$(HEADLESS_DIR)/d88-crc/Vd88_crc_tb +divider=1
+
+$(HEADLESS_DIR)/d88-crc/Vd88_crc_tb: tests/d88_crc_tb.sv ../rtl/vendor/wd1793.sv ../rtl/vendor/x1_fdc_index_ram.v
+	$(V) --binary --timing --assert --top-module d88_crc_tb --Mdir $(HEADLESS_DIR)/d88-crc \
+		-j 4 ../rtl/vendor/wd1793.sv ../rtl/vendor/x1_fdc_index_ram.v tests/d88_crc_tb.sv -Wno-fatal
+
+.PHONY: test-d88-crc
+
+test-cpu-busreq: $(HEADLESS_DIR)/cpu-busreq/Vcpu_busreq_tb
+	./$(HEADLESS_DIR)/cpu-busreq/Vcpu_busreq_tb
+
+$(HEADLESS_DIR)/cpu-busreq/Vcpu_busreq_tb: tests/cpu_busreq_tb.sv ../rtl/cpu.v $(wildcard ../rtl/tv80/*.v)
+	$(V) --binary --timing --assert --top-module cpu_busreq_tb --Mdir $(HEADLESS_DIR)/cpu-busreq \
+		-j 4 ../rtl/cpu.v ../rtl/tv80/tv80e.v ../rtl/tv80/tv80_core.v \
+		../rtl/tv80/tv80_mcode.v ../rtl/tv80/tv80_alu.v ../rtl/tv80/tv80_reg.v tests/cpu_busreq_tb.sv -Wno-fatal
+
+.PHONY: test-cpu-busreq
 
 test-keyboard-receiver:
 	python3 tests/test_keyboard_receiver.py

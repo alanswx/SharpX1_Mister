@@ -298,9 +298,32 @@ with tempfile.TemporaryDirectory(prefix="x1-disk-") as directory:
     for error in (0xA0, 0xB0):
         damaged, _ = media(crc=error)
         d = DiskProgram()
-        d.read(1, 0x9000)
-        d.equal(0x0FF8, 8, 8)
-        run(d.finish(), damaged, "crc" + str(error))
+        if error == 0xA0:
+            # A damaged ID cannot authorize a payload transfer. Poll BUSY,
+            # not DRQ: fixed-length reads would hang on the correct behavior.
+            d.output(0x0FFA, 1)
+            d.output(0x0FF8, 0x80)
+            d.idle()
+            d.equal(0x0FF8, 0x18, 0x3E)  # CRC+RNF, no data/record/lost bits.
+            # Search ended at the final entry, so READ ADDRESS rotates to
+            # first CHRN. D88 stores a flag, not original damaged CRC bytes.
+            d.read(1, 0x9400, 6, 0xC0)
+            d.equal(0x0FF8, 0x08, 0x3E)
+            d.equal(0x0FFA, 0)  # READ ADDRESS copies C, not R.
+        else:
+            d.read(1, 0x9000)
+            d.equal(0x0FF8, 0x08, 0x3E)
+        d.read(2, 0x9100)
+        d.equal(0x0FF8, 0, 0x3E)
+        _, damaged_ram, _ = run(d.finish(), damaged, "crc" + str(error))
+        assert damaged_ram[0x9100:0x9200] == sectors[0, 0, 2][1]
+        if error == 0xA0:
+            identifier = damaged_ram[0x9400:0x9406]
+            assert identifier[:4] == bytes((0, 0, 1, 1))
+            crc = binascii.crc_hqx(bytes((0xA1, 0xA1, 0xA1, 0xFE)) + identifier[:4], 0xFFFF)
+            assert identifier[4:] == (crc ^ 0xFFFF).to_bytes(2, "big")
+        else:
+            assert damaged_ram[0x9000:0x9100] == sectors[0, 0, 1][1]
     # Refuse destructive output paths before starting simulation.
     for output in (disk, folder / "protected.d88"):
         result = subprocess.run([exe, "--disk", str(disk), "--disk-output", str(output)], capture_output=True)
