@@ -15,7 +15,7 @@ are reference-only, not verification evidence.
 | Blackclip | Write-only `1FE0`: graphics raw indices 0/1, selected text color and blanking clip. Registered mixer fixture exhausts all 128 masks and nonzero text/all graphics colors before palette mapping. CPU-written RGB fixtures verify graphics/text clipping at both widths. |
 | IPL aperture | 32 KiB in Turbo versus 4 KiB in base. Bounds, no 4 KiB mirroring, writes under ROM and overlay off/on verified with an original synthetic IPL/RAM diagnostic; oversize CLI loads rejected. Authentic local Turbo archives inventoried, **not installed/booted**. |
 | CTC/IRQ | Enable-driven four-channel timers/counters, channel-0/3 cascade, vectors/service and RETI integrated. Schematic-based CTC-before-keyboard priority; both CPU clock profiles pass repeated IM2 and concurrent cold input. Stable stretched ACKs verified with connected CTC and real MR16 firmware. Exact phase/pin timing, ASIC aliases and hardware remain open. See [CTC evidence](CTC_STATUS.md). |
-| Two mounted disks | Shared one-controller A/B path, independent physical heads/motor hold, protected copies and ACK-stable ownership pass generated CPU/transport tests. Selection rescans temporarily deassert ready; exact mechanics/HPS replacement and native disk-set compatibility remain open. This base/Turbo-common increment is not in the current RBF. See [disk evidence](DUAL_DISK_STATUS.md). |
+| Two mounted disks | Shared one-controller A/B path, independent physical heads/motor hold, protected copies and ACK-stable ownership pass generated CPU/transport tests. Selection rescans temporarily deassert ready; exact mechanics/HPS replacement and native disk-set compatibility remain open. Included in the latest experimental RBF, not hardware-tested. See [disk evidence](DUAL_DISK_STATUS.md). |
 
 Provenance: mode/bank and loader changes are local original integration code
 based on the documented map and inspected references; blackclip modifies the
@@ -54,12 +54,13 @@ Pixel fixtures switch before settled captures, not exact live-write timing.
 Optional FPGA revision `sharpx1_turbo_single` sources the single-clock project
 and enables `X1_TURBO_FOUNDATION`; neither default revision changes model.
 MiSTer IPL upload bounds follow the same 32/4 KiB choice. No OSD label promises
-Turbo compatibility. The [latest source-bound CTC build](CTC_QUARTUS_BUILD.md)
+Turbo compatibility. The [latest source-bound two-image build](DUAL_DISK_QUARTUS_BUILD.md)
 fits at 48% ALMs / 54% memory bits (69% RAM blocks), with positive constrained
 timing at all eight analyzed corners. External I/O, CDC/reset and hardware
 remain unverified. Hardware is unavailable while travelling; earlier RBFs
 predate this increment. The earlier [foundation build](TURBO_QUARTUS_BUILD.md)
-remains historical; the latest CTC RBF binds all 333 inputs to commit `0115a38`.
+remains historical; the CTC checkpoint binds 333 inputs to `0115a38`, while
+the latest two-image RBF binds all 334 inputs to `ffc1c1c`.
 
 ## Reference disagreements and next gates
 

@@ -169,9 +169,10 @@ media-ready true. `FAE1/FAEB` are polling helpers for `1A01` bits 6/5; their
 presence at one endpoint is not proof of a new permanent stall.
 
 The captured 640x400 endpoint image is **not a recognizable game title**:
-solid green replaces the prior all-black framebuffer. An earlier PNG taken
-while the first cold trial was still running shows a transient misrendered
-rectangle; it is not the endpoint frame. Frame hash `25743cbe39750765`, HS/VS periods 60.500 us /
+a green background and a small severely misrendered rectangle replace the
+prior all-black framebuffer. Full-resolution PNG inspection and raw PPM
+counts confirm 235,520 green pixels and 20,480 black/blue/white/cyan pixels;
+it is not a uniformly green frame. Frame hash `25743cbe39750765`, HS/VS periods 60.500 us /
 27.095031250 ms. This is still incorrect high-resolution timing/rendering,
 not native gameplay or confirmed compatibility. Earlier and later shorter
 probes must retain their own clocks, executable hashes and durations.
@@ -196,6 +197,14 @@ the actual final PPM was converted to `cold.png` for local inspection.
 A separate four-second repeat with the same final executable stops earlier
 with only three PS/2 bytes transmitted, 958 requests and an all-black frame;
 do not compare that endpoint with a completed eight-second input sequence.
+
+Bastard Special was rechecked after the Quartus language fix (RTL matching
+`ffc1c1c`): two fresh **8-second** native boots repeat reports/RAM/registers/RGB,
+1062 disk requests, zero writes and unchanged inputs. Frozen executable SHA-256
+`0cfbb6a9e438fa7633198ea516cb96cc92fa744bcb4e9d28f5ec7c8159c0eddc`.
+The inspected 640x200 title PPM matches the earlier disk/keyboard checkpoint
+byte-for-byte, frame hash `22b566650e6207c3`; gameplay remains unverified.
+Evidence: `verilator/obj_dir_turbo_fast/special-probes/bastard-dual-verilog-final-8s/`.
 
 ### Fresh CROSS receiver-profile regression (separate homebrew)
 

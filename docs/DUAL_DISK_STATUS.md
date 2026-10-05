@@ -3,8 +3,11 @@
 The shared `rtl/sharpx1.v` now supports independently mounted A/B D88 images
 through **one** WD1793-family controller, register set, IRQ/DRQ engine and
 sector index. This is a tested development increment, not complete two-drive
-mechanical fidelity or Arcus compatibility. No new FPGA build or hardware
-deployment has yet verified this increment. The CTC RBF predates it.
+mechanical fidelity or Arcus compatibility. The source-bound
+[two-image FPGA build](DUAL_DISK_QUARTUS_BUILD.md) fits at 48% ALMs and passes
+constrained paths at all eight analyzed corners, worst setup/hold
++0.394/+0.080 ns. All 334 FPGA inputs match `ffc1c1c`. External I/O constraints,
+CDC/reset review and hardware remain open. No hardware deployment occurred.
 
 ## Architecture and observable limits
 
@@ -41,7 +44,7 @@ MiSTer uses `hps_io VDNUM=2`, separate `S0`/`S1` OSD mount slots and per-drive
 size/read-only descriptors. Only the retained owner receives the FDC SD request;
 ACK is selected from that owner. Shared data-buffer buses remain unchanged.
 Wrapper lint elaborates successfully; inherited warnings remain. This is not
-Quartus timing or HPS mount validation.
+HPS mount validation; Quartus fit/timing is recorded separately above.
 
 ## Simulator and verification
 
@@ -104,6 +107,6 @@ ready nor a mirror of Disk 1. Final source-bound probe details belong in
 Remaining: authenticated disk-order/instructions, active replacement before
 ACK and during writes on HPS, metadata caching/selection timing, independent
 index phase/mechanics, accurate seek/track-register stepping, authentic Turbo
-IPL/font/video work, new Quartus build and physical reset/mount/write tests.
+IPL/font/video work and physical reset/mount/write tests.
 Original project code and generated fixtures were added; vendor notices and
 licensing restrictions are preserved. Private media/evidence remains ignored.

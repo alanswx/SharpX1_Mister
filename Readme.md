@@ -85,11 +85,16 @@ external I/O, CDC and hardware acceptance remain open. See the
 [Turbo build report](docs/TURBO_QUARTUS_BUILD.md); it is not full Turbo support.
 This RBF predates the subsequent CTC/IRQ increment; do not attribute the new
 CTC tests to that artifact.
-The latest CTC-inclusive experimental RBF is
+The CTC-only experimental checkpoint RBF is
 `output_files/quartus-CEhveaur/source/output_files/sharpx1_turbo_single.rbf`.
 All 333 FPGA inputs match implementation commit `0115a38`; constrained paths
 pass all eight analyzed corners. It has not been tested on MiSTer. See the
 [CTC build report](docs/CTC_QUARTUS_BUILD.md) for hashes and remaining signoff gaps.
+The latest two-image/CTC experimental RBF is
+`output_files/quartus-JC4BFj9f/source/output_files/sharpx1_turbo_single.rbf`.
+All 334 FPGA inputs match `ffc1c1c`; constrained paths pass all eight analyzed
+corners at 48% ALM usage. It has not been tested on MiSTer. See the
+[two-image build report](docs/DUAL_DISK_QUARTUS_BUILD.md).
 
 MiSTer now wires keyboard, joystick, disk, RGB and audio paths and
 offers IPL/D88 OSD entries. Disk writes default to protected; enabling them
@@ -98,8 +103,9 @@ protection, variable sector sizes, seeking, sides and error/status cases.
 The new [two-image disk increment](docs/DUAL_DISK_STATUS.md) adds separate A/B
 mount slots, independent head/motor state and owner-stable host transfers.
 Generated A/B read/write tests pass in both clock profiles; selecting media
-requires a not-ready rescan interval. This increment is not in the latest RBF
-and has not been tested on MiSTer or accepted as complete disk-set compatibility.
+requires a not-ready rescan interval. This increment is in the latest
+experimental RBF, but has not been tested on MiSTer or accepted as complete
+disk-set compatibility.
 See [disk verification and limits](docs/DISK_STATUS.md).
 Focused tests cover pending SD read/write abort/reset and stable request
 addresses. Shared RTL now rejects unsafe D88 header/table/sector layouts and
