@@ -66,7 +66,7 @@ do not embed private font bytes. See `docs/TURBO_VIDEO_CLOCK_STATUS.md` for
 exact checks and missing Kanji/text/high-speed PCG behavior. The FPGA revision
 `sharpx1_turbo_video` requests its own PLL; record the fitted frequency,
 source-bound timing and hardware results separately from nominal simulation.
-Snapshot format v10 rejects older states after X3 video reset-release changes
+Snapshot format v11 rejects older states after the opt-in CPU/DMA bus and instrumentation changes
 (v09 added text-raster state;
 v08 added X3 PPI sampling; v07 added PCG/metadata state). Regenerate from native boot,
 never convert or patch state bytes to bypass model compatibility checks.
@@ -78,6 +78,13 @@ writes. Freeze/hash each runner before a long test, not after another build
 may have replaced it. Older frozen game qualifications remain historical.
 Simulator disk writes require `--disk-output NEW_COPY`; private originals and
 snapshots remain ignored. See `docs/DISK_STATUS.md` for tested and missing cases.
+`TURBO_DMA=1` / `turbo-dma` is a separate, opt-in shared-machine DMA subset,
+not enabled by ordinary Turbo/X3 or board revisions. See `docs/DMA_MACHINE_STATUS.md`.
+During an owned reset drain, CPU CE stops while DMA/target CE and host SD ACK
+processing continue. Do not replace actual BUSACK ownership with BUSRQ or
+reset the CPU before the already-started pair completes. Uploads must honor
+`ioctl_wait`; do not modify IPL/font assets during drain. Generated diagnostics
+do not establish native Turbo firmware, IRQ/search or exact pin timing support.
 Warm reset events use repeated `--reset-at MS` and `--reset-for-us US`, relative
 to the invocation/restore. See `docs/RESET_STATUS.md`: CPU/FDC enables stop during
 reset, but host SD ACK processing must continue on `clk_sys`. Transport fixtures

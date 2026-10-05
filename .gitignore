@@ -62,6 +62,8 @@ verilator/obj_dir_v06_*/
 verilator/obj_dir_v08_*/
 verilator/obj_dir_v09_*/
 verilator/obj_dir_v10_*/
+verilator/obj_dir_v11_*/
+verilator/obj_dir_turbo_dma/
 verilator/obj_dir_qualification_fast/
 software/
 references/software/private-downloads/

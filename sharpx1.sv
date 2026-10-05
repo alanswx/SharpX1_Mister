@@ -281,7 +281,7 @@ hps_io #(.CONF_STR(CONF_STR), .PS2DIV(1600), .VDNUM(2), .VIDEO_CDC(TURBO_VIDEO_M
 	.ioctl_addr(ioctl_addr),
 	.ioctl_dout(ioctl_data),
 	.ioctl_upload_req(1'b0), .ioctl_upload_index(8'd0),
-	.ioctl_din(8'd0), .ioctl_wait(1'b0),
+	.ioctl_din(8'd0), .ioctl_wait(machine_ioctl_wait),
 
 	.buttons(buttons),
 	.status(status),
@@ -345,6 +345,7 @@ wire ce_pix;
 wire [7:0] video;
 wire [2:0] machine_rgb;
 wire [15:0] machine_audio;
+wire machine_ioctl_wait;
 `ifdef X1_TURBO_FOUNDATION
 localparam TURBO_FOUNDATION = 1;
 `else
@@ -366,6 +367,7 @@ sharpx1 #(.SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ), .TURBO(TURBO_FOUND
 	.ioctl_wr(ioctl_wr && ((ioctl_index == 0 && ioctl_addr < (TURBO_FOUNDATION ? 27'd32768 : 27'd4096)) || (TURBO_FOUNDATION && ioctl_index == 4))),
 	.ioctl_addr(ioctl_index == 4 && ioctl_addr >= 27'd4096 ? 25'h1ffffff : ioctl_addr[24:0]),
 	.ioctl_dout(ioctl_data),
+	.ioctl_wait(machine_ioctl_wait),
 	.ps2_clk_in(ps2_clk), .ps2_data_in(ps2_data),
 	.joya_n(joya_n), .joyb_n(joyb_n),
 	.disk_ready(media_present[0]), .img_mounted(img_mounted[0]),

@@ -1,6 +1,6 @@
 // Sharp X1 base-machine integration. Shared by MiSTer and simulation.
 // See docs/BASE_X1_CONTRACT.md for address-map sources and limitations.
-module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0) (
+module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0) (
     input clk_sys, clk_28636, reset,
     input pal, scandouble,
     input ioctl_download,
@@ -8,6 +8,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     input ioctl_wr,
     input [24:0] ioctl_addr,
     input [7:0] ioctl_dout,
+    output ioctl_wait,
     input ps2_clk_in, ps2_data_in,
     input [7:0] joya_n, joyb_n,
     input disk_ready, img_mounted, disk_wp,
@@ -28,21 +29,39 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     output [2:0] rgb,
     output [15:0] audio
 );
+    // The actual CPU ACK selects the shared bus. Reset stops CPU execution,
+    // but retains that ACK and peripheral enables until an owned pair drains.
+    wire core_reset, cpu_run, dma_reset, dma_draining;
+    wire dma_busrq_n, cpu_busak_n;
+    wire dma_owner = TURBO && TURBO_DMA && !cpu_busak_n;
+    generate if (TURBO && TURBO_DMA) begin : dma_reset_domain
+        x1_dma_reset reset_guard (
+            .clk(clk_sys), .reset_request(reset), .dma_busak_n(cpu_busak_n),
+            .dma_busrq_n(dma_busrq_n), .machine_reset(core_reset),
+            .cpu_run(cpu_run), .dma_reset(dma_reset), .draining(dma_draining)
+        );
+    end else begin : compatible_machine_reset
+        assign core_reset = reset;
+        assign cpu_run = !reset;
+        assign dma_reset = reset;
+        assign dma_draining = 0;
+    end endgenerate
+    assign ioctl_wait = TURBO && TURBO_DMA && dma_draining;
     // X3 alone has the independent faster video domain. Assert immediately,
     // release its state only on that clock; base/single reset phase is intact.
     wire video_reset;
     generate if (TURBO_VIDEO_MASTER) begin : video_reset_domain
-        x1_reset_release release_reset(clk_28636, reset, video_reset);
+        x1_reset_release release_reset(clk_28636, core_reset, video_reset);
     end else begin : compatible_video_reset
-        assign video_reset = reset;
+        assign video_reset = core_reset;
     end endgenerate
     reg [4:0] ce;
-    always @(negedge clk_sys or posedge reset)
-        if (reset) ce <= 0;
+    always @(negedge clk_sys or posedge core_reset)
+        if (core_reset) ce <= 0;
         else ce <= ce + 1'b1;
     wire fractional_cpu, fractional_psg;
     x1_clock_enables #(.MASTER_HZ(MASTER_HZ)) clock_enables (
-        .clk(clk_sys), .reset(reset), .cpu_ce(fractional_cpu), .psg_ce(fractional_psg)
+        .clk(clk_sys), .reset(core_reset), .cpu_ce(fractional_cpu), .psg_ce(fractional_psg)
     );
     wire pe4M4 = SINGLE_CLOCK ? fractional_cpu : ce[2:0] == 3'b100;
     wire psg_ce = SINGLE_CLOCK ? fractional_psg : ce[3:0] == 4'b1000;
@@ -50,22 +69,51 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
 
     wire [15:0] a;
     wire [7:0] di, data_out;
+    wire [15:0] cpu_a, dma_a;
+    wire [7:0] cpu_data_out, dma_data_out, dma_data;
+    wire cpu_mreq, cpu_iorq, cpu_rd, cpu_wr, cpu_m1;
+    wire dma_mreq, dma_iorq, dma_rd, dma_wr, dma_unsupported;
+    wire cpu_ce = pe4M4 && cpu_run;
     // cpu.v exposes TV80 active-low strobes despite the historical names.
     wire mreq, iorq, rd, wr, m1, halt_n;
     cpu Cpu (
-        .reset_n(~reset), .clock(clk_sys), .cep(pe4M4), .cen(ne4M4),
+        .reset_n(~core_reset), .clock(clk_sys), .cep(cpu_ce), .cen(ne4M4),
         .int_n(TURBO ? !machine_irq : sub_int_n), .wait_n(cg_wait_n), .halt_n(halt_n),
-        // DMA arbiter is not implemented yet; keep CPU ownership unrequested.
-        .busrq_n(1'b1), .busak_n(), .rfsh_n(),
-        .mreq(mreq), .iorq(iorq), .rd(rd), .wr(wr), .m1(m1),
-        .di(di), .data_out(data_out), .a(a), .dir(16'd0), .dirset(1'b0)
+        .busrq_n(dma_busrq_n), .busak_n(cpu_busak_n), .rfsh_n(),
+        .mreq(cpu_mreq), .iorq(cpu_iorq), .rd(cpu_rd), .wr(cpu_wr), .m1(cpu_m1),
+        .di(di), .data_out(cpu_data_out), .a(cpu_a), .dir(16'd0), .dirset(1'b0)
     );
+    assign a = dma_owner ? dma_a : cpu_a;
+    assign data_out = dma_owner ? dma_data_out : cpu_data_out;
+    assign mreq = dma_owner ? dma_mreq : cpu_mreq;
+    assign iorq = dma_owner ? dma_iorq : cpu_iorq;
+    assign rd = dma_owner ? dma_rd : cpu_rd;
+    assign wr = dma_owner ? dma_wr : cpu_wr;
+    assign m1 = dma_owner ? 1'b1 : cpu_m1;
+    wire dma_cs = TURBO && TURBO_DMA && !dma_owner && io_cycle && !dam && a[15:4] == 12'h1f8;
+    generate if (TURBO && TURBO_DMA) begin : turbo_dma
+        x1_dma engine (
+            .clk(clk_sys), .ce(pe4M4), .reset(dma_reset),
+            .cpu_cs(dma_cs), .cpu_rd_n(cpu_rd), .cpu_wr_n(cpu_wr),
+            .cpu_data_in(cpu_data_out), .cpu_data_out(dma_data),
+            .busrq_n(dma_busrq_n), .busak_n(cpu_busak_n),
+            .mreq_n(dma_mreq), .iorq_n(dma_iorq), .rd_n(dma_rd), .wr_n(dma_wr),
+            .address(dma_a), .data_out(dma_data_out), .data_in(di),
+            .wait_n(cg_wait_n), .rdy(!fdc_drq), .unsupported(dma_unsupported)
+        );
+    end else begin : no_turbo_dma
+        assign dma_busrq_n = 1;
+        assign dma_mreq = 1; assign dma_iorq = 1;
+        assign dma_rd = 1; assign dma_wr = 1;
+        assign dma_a = 0; assign dma_data_out = 0;
+        assign dma_data = 8'hff; assign dma_unsupported = 0;
+    end endgenerate
 
     wire mem_read = !mreq && !rd;
-    wire mem_write = !reset && !mreq && !wr;
+    wire mem_write = !core_reset && !mreq && !wr;
     // M1 low with IORQ is interrupt acknowledge, not an ordinary I/O cycle.
-    wire io_read = !reset && !iorq && !rd && m1;
-    wire io_write = !reset && !iorq && !wr && m1;
+    wire io_read = !core_reset && !iorq && !rd && m1;
+    wire io_write = !core_reset && !iorq && !wr && m1;
     wire io_cycle = io_read || io_write;
     wire sub_cs = io_cycle && !dam && a[15:8] == 8'h19;
     wire ppi_cs = io_cycle && !dam && a[15:8] == 8'h1a;
@@ -76,8 +124,8 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     // edge-qualified, not repeated on every master edge of a Z80 strobe.
     wire ctc_cs = TURBO && io_cycle && !dam && a[15:4] == 12'h1fa && !a[2];
     reg ctc_write_old, ctc_trigger_2m;
-    always @(posedge clk_sys or posedge reset)
-        if (reset) begin ctc_write_old <= 0; ctc_trigger_2m <= 0; end
+    always @(posedge clk_sys or posedge core_reset)
+        if (core_reset) begin ctc_write_old <= 0; ctc_trigger_2m <= 0; end
         else begin
             ctc_write_old <= ctc_cs && io_write;
             if (pe4M4) ctc_trigger_2m <= !ctc_trigger_2m;
@@ -90,7 +138,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     // 1/2 and channel-0 terminal-count cascade into channel 3. Physical
     // phase/pulse-width and inter-chip priority remain hardware review gates.
     x1_ctc ctc (
-        .clk(clk_sys), .reset(reset), .ce(pe4M4),
+        .clk(clk_sys), .reset(core_reset), .ce(pe4M4),
         .wr(ctc_cs && io_write && !ctc_write_old), .channel(a[1:0]),
         .din(data_out), .dout(ctc_data),
         .trigger({ctc_zc[0],ctc_trigger_2m,ctc_trigger_2m,1'b1}),
@@ -98,7 +146,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         .reti(ctc_reti), .vector(ctc_vector), .zc(ctc_zc)
     );
     x1_irq_bridge irq_bridge (
-        .clk(clk_sys), .reset(reset), .m1_n(m1), .mreq_n(mreq),
+        .clk(clk_sys), .reset(core_reset), .m1_n(m1), .mreq_n(mreq),
         .iorq_n(iorq), .rd_n(rd), .data(di),
         .keyboard_irq(!sub_int_n), .ctc_irq(ctc_irq), .ctc_vector(ctc_vector),
         .ctc_ieo(ctc_ieo), .keyboard_vector(sub_data),
@@ -113,8 +161,8 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     // 01's fixed even/odd pages), CPU access page bit 4; write-only on Turbo.
     reg [7:0] turbo_scrn;
     reg [6:0] turbo_black;
-    always @(posedge clk_sys or posedge reset)
-        if (reset) begin turbo_scrn <= 0; turbo_black <= 0; end
+    always @(posedge clk_sys or posedge core_reset)
+        if (core_reset) begin turbo_scrn <= 0; turbo_black <= 0; end
         else if (TURBO && io_write && !dam) begin
             if (a[15:4] == 12'h1fd) turbo_scrn <= data_out;
             if (a == 16'h1fe0) turbo_black <= data_out[6:0];
@@ -134,8 +182,8 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
             turbo_black_meta <= turbo_black; turbo_black_video <= turbo_black_meta;
             width_meta <= mode_c[6]; width_video <= width_meta;
         end
-    always @(posedge clk_sys or posedge reset)
-        if (reset) ipl_enabled <= 1'b1;
+    always @(posedge clk_sys or posedge core_reset)
+        if (core_reset) ipl_enabled <= 1'b1;
         else if (ipl_set_cs) ipl_enabled <= 1'b1;
         else if (ipl_clear_cs) ipl_enabled <= 1'b0;
 
@@ -143,9 +191,9 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     // Index 2: explicit debug/program RAM download.
     // Loader does not wrap invalid addresses and cannot write without download.
     localparam IPL_AW = TURBO ? 15 : 12;
-    wire ipl_load = ioctl_download && ioctl_wr && ioctl_index == 0
+    wire ipl_load = ioctl_download && ioctl_wr && !ioctl_wait && ioctl_index == 0
                     && ioctl_addr < (TURBO ? 25'd32768 : 25'd4096);
-    wire ram_load = reset && ioctl_download && ioctl_wr && ioctl_index == 2
+    wire ram_load = core_reset && ioctl_download && ioctl_wr && !ioctl_wait && ioctl_index == 2
                     && ioctl_addr < 25'd65536;
     wire [7:0] ipl_data, ram_data;
     dpram #(8,IPL_AW) IPL (
@@ -168,7 +216,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     wire [7:0] sub_data;
     wire sub_tx_busy, sub_rx_busy, sub_int_n, clk1;
     x1_sub #(.CLOCK_HZ(SINGLE_CLOCK ? MASTER_HZ : 32000000), .PS2_RECEIVE_ONLY(1), .IRQ_ACK_ONCE(TURBO)) subCPU (
-        .I_reset(reset), .I_clk(clk_sys), .I_cs(sub_cs),
+        .I_reset(core_reset), .I_clk(clk_sys), .I_cs(sub_cs),
         .I_rd(io_read), .I_wr(io_write), .I_M1_n(m1),
         .I_D(data_out), .O_D(sub_data), .O_DOE(), .O_clk1(clk1),
         .O_FDC_DRQ_n(), .I_FDCS(1'b0), .I_RFSH_n(1'b1),
@@ -194,6 +242,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
               : sub_cs && io_read && !dam ? sub_data
               : ppi_cs && io_read ? ppi_data
               : ctc_cs && io_read ? ctc_data
+              : dma_cs && io_read ? dma_data
               : io_read && !dam && a[15:2] == 14'h03fe ? fdc_data
               : io_read && !dam && a[15:8] == 8'h1b ? psg_data
               : (cg_access && io_read) || cg_read_tail ? cg_cpu_data
@@ -211,20 +260,20 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     // The X3 profile has a genuinely separate faster video domain. Only its
     // PPI status levels change latency; preserve the established base path.
     x1_video_status #(.SYNCHRONIZE(TURBO_VIDEO_MASTER)) video_status (
-        .clk_sys(clk_sys), .reset(reset),
+        .clk_sys(clk_sys), .reset(core_reset),
         .video_vdisp(vdisp), .video_vsync(VSync),
         .cpu_vdisp(ppi_vdisp), .cpu_vsync(ppi_vsync)
     );
     i8255 ppi (
-        .reset(reset), .clk_sys(clk_sys), .addr(a[1:0]), .idata(data_out),
+        .reset(core_reset), .clk_sys(clk_sys), .addr(a[1:0]), .idata(data_out),
         .odata(ppi_data), .cs(ppi_cs), .we(io_write), .oe(io_read),
         .ipa(8'hff), .opa(), .ipb({ppi_vdisp,sub_tx_busy,sub_rx_busy,!ipl_enabled,1'b0,ppi_vsync,1'b0,1'b1}),
         .opb(), .ipc(8'hff), .opc(mode_c),
         .sna_load(1'b0), .sna_opa(8'd0), .sna_opb(8'd0), .sna_opc(8'd0), .sna_control(8'd0)
     );
     reg old_mode5, dam;
-    always @(posedge clk_sys or posedge reset)
-        if (reset) begin old_mode5 <= 1; dam <= 0; end
+    always @(posedge clk_sys or posedge core_reset)
+        if (core_reset) begin old_mode5 <= 1; dam <= 0; end
         else begin
             old_mode5 <= mode_c[5];
             if (io_read) dam <= 0;
@@ -236,7 +285,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     wire psg_address = !dam && a[15:8] == 8'h1c;
     wire psg_access = !dam && a[15:8] == 8'h1b;
     jt49_bus psg (
-        .rst_n(~reset), .clk(clk_sys), .clk_en(psg_ce),
+        .rst_n(~core_reset), .clk(clk_sys), .clk_en(psg_ce),
         .bdir(io_write && (psg_address || psg_access)),
         .bc1((io_write && psg_address) || (io_read && psg_access)),
         .din(data_out), .sel(1'b1), .dout(psg_data), .sound(psg_sound),
@@ -246,7 +295,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     assign audio = {psg_sound,6'd0};
 
     wire [7:0] fdc_data;
-    wire fdc_prepare, fdc_fmt_wp;
+    wire fdc_prepare, fdc_fmt_wp, fdc_drq;
     wire [1:0] drive;
     wire disk_side, disk_motor, disk_fm;
     wire [1:0] active_drive;
@@ -262,14 +311,14 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     );
     assign sd_drive = active_drive[0];
     x1_disk_control #(.MOTOR_HOLD_CYCLES(SINGLE_CLOCK ? MASTER_HZ * 6 / 5 : 38400000), .PHYSICAL_DRIVES(2)) disk_control (
-        .clk(clk_sys), .reset(reset), .io_read(io_read && !dam), .io_write(io_write && !dam),
+        .clk(clk_sys), .reset(core_reset), .io_read(io_read && !dam), .io_write(io_write && !dam),
         .address(a), .data(data_out), .drive(drive), .side(disk_side), .motor_on(disk_motor), .fm_mode(disk_fm)
     );
     wd1793 #(.RWMODE(1), .EDSK(1), .HEADLOAD_STATUS(1), .INDEX_CYCLES(800000), .D88_ONLY(1), .PHYSICAL_DRIVES(2)) fdc (
-        .clk_sys(clk_sys), .ce(pe4M4), .reset(reset),
+        .clk_sys(clk_sys), .ce(pe4M4), .reset(core_reset),
         .io_en(!dam && a[15:2] == 14'h03fe), .rd(io_read), .wr(io_write),
         .addr(a[1:0]), .din(data_out), .dout(fdc_data),
-        .drq(), .intrq(), .busy(), .wp(selected_wp || fdc_fmt_wp), .fmt_wp(fdc_fmt_wp),
+        .drq(fdc_drq), .intrq(), .busy(), .wp(selected_wp || fdc_fmt_wp), .fmt_wp(fdc_fmt_wp),
         .size_code(3'd1), .layout(1'b0), .side(disk_side), .fm_mode(disk_fm),
         .ready(selected_ready && disk_motor && !fdc_prepare),
         .drive_select(active_drive[0]), .transport_idle(transport_idle),
@@ -303,7 +352,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     // with RD/IORQ already high on its second data-sampling edge. Retain only
     // the completed high-speed read on that inactive-bus CG-address tail.
     // Never override memory, interrupt ACK or another active I/O transaction.
-    wire cg_read_tail = TURBO && cg_read_hold && !reset && mreq && iorq && m1
+    wire cg_read_tail = TURBO && cg_read_hold && !core_reset && mreq && iorq && m1
                         && a[15:10] == 6'b000101;
     wire [10:0] cg_selected_addr;
     wire [11:0] cg_selected_font_addr, cg_font_cpu_addr;
@@ -329,7 +378,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     end endgenerate
     x1_pcg_access #(.SEPARATE_VIDEO_RESET(TURBO_VIDEO_MASTER)) cg_bus (
         .video_reset(video_reset),
-        .reset(reset), .cpu_clk(clk_sys), .video_clk(clk_28636),
+        .reset(core_reset), .cpu_clk(clk_sys), .video_clk(clk_28636),
         .cpu_select(cg_access), .cpu_write(io_write), .cpu_plane(a[9:8]), .cpu_data(data_out),
         .wait_n(cg_wait_n), .cpu_q(cg_cpu_data), .beam_addr(cgaddr),
         .access_addr(cg_access_addr), .access_data(cg_access_data), .access_write(cg_access_write),
@@ -361,7 +410,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     generate if (TURBO) begin : turbo_font
         x1_font16 font16 (
             .cpu_clk(clk_sys), .video_clk(clk_28636),
-            .load(ioctl_download && ioctl_wr && ioctl_index == 4),
+            .load(ioctl_download && ioctl_wr && !ioctl_wait && ioctl_index == 4),
             .load_address(ioctl_addr), .load_data(ioctl_dout),
             .display_address(ank16_addr), .display_data(ank16_data), .loaded(),
             .cpu_address(cg_font_cpu_addr), .cpu_data(cg_font_cpu_data)
@@ -378,7 +427,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         .I_TURBO_HIGH_SCAN(TURBO && turbo_scrn_video[0]),
         .I_TURBO_TEXT_Y2(TURBO && turbo_scrn_video[2]),
         .I_TURBO_UNDERLINE(TURBO && turbo_scrn_video[7]),
-        .I_RESET(reset), .I_CCLK(clk_sys), .I_A(a), .I_D(data_out), .O_D(), .O_DE(),
+        .I_RESET(core_reset), .I_CCLK(clk_sys), .I_A(a), .I_D(data_out), .O_D(), .O_DE(),
         .I_WR(io_write && !dam), .I_RD(io_read), .O_VWAIT(),
         .I_CRTC_CS(io_cycle && a[15:8] == 8'h18), .I_CG_CS(cg_access),
         .I_PAL_CS(io_cycle && a[15:10] == 6'b000100),

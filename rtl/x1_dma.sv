@@ -2,7 +2,8 @@
 // Original, standalone functional Z80 DMA subset, 2026.
 // Interface encodings/tables: Zilog UM008101-0601 DMA chapter.
 // MAME z80dma.cpp/h (Couriersud, BSD-3-Clause) consulted, not translated.
-// See docs/DMA_STATUS.md: not a pin-timing model or connected machine DMA.
+// See docs/DMA_STATUS.md and DMA_MACHINE_STATUS.md: not a pin-timing model;
+// shared-machine use is a separate opt-in subset, not native compatibility.
 module x1_dma (
     input  logic clk, ce, reset,
     input  logic cpu_cs, cpu_rd_n, cpu_wr_n,

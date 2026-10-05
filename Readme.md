@@ -32,7 +32,7 @@ source macros; its presence does not imply complete Turbo compatibility.
 An explicit, opt-in `TURBO=1` foundation now adds two graphics pages, separate
 Kanji attribute RAM, blackclip controls and a 32 KiB IPL aperture to the shared
 machine. CPU diagnostics and actual RGB tests cover these extensions. It is
-**not full Turbo support**: Kanji, connected DMA, SIO and native Turbo
+**not full Turbo support**: Kanji, full DMA, SIO and native Turbo
 firmware acceptance remain open. An
 experimental [graphics raster increment](docs/TURBO_RASTER_STATUS.md) separates
 text/graphics addresses and adds repeated/alternating-page raster mapping;
@@ -49,10 +49,14 @@ An unchanged user-supplied 32 KiB Turbo IPL now executes to an IPL disk-search
 screen; see [native firmware evidence](docs/NATIVE_TURBO_FIRMWARE_STATUS.md).
 This does not establish native Turbo game or complete firmware compatibility.
 An original [standalone DMA subset](docs/DMA_STATUS.md) now passes register,
-transfer, count/readback and ownership tests. It is not connected to the
-shared machine; this does not change the native DMA compatibility limit.
-The [real CPU/DMA unit diagnostic](docs/DMA_CPU_BUS_STATUS.md) now also passes
-18 ownership/register/reset cases; connected machine/FDC DMA is still missing.
+transfer, count/readback and ownership tests. That standalone checkpoint did
+not connect the shared machine or establish native DMA compatibility.
+The [real CPU/DMA unit diagnostic](docs/DMA_CPU_BUS_STATUS.md) passes
+18 ownership/register/reset cases. A subsequent separate, opt-in
+[shared-machine DMA increment](docs/DMA_MACHINE_STATUS.md) connects real CPU
+ownership and FDC DRQ pacing. Generated A/B reads, writes, CRC repair,
+protection and owned-pair reset tests pass; native firmware and full DMA
+functions remain open. Ordinary Turbo/X3 and board defaults do not enable it.
 A bounded [high-speed PCG increment](docs/TURBO_HIGH_SPEED_PCG_STATUS.md)
 adds selector shadows, frozen HSYNC-window access and CPU ANK8/16 selection.
 Original unit/CPU tests pass; ASIC fallback/WAIT phase, Kanji and hardware
@@ -115,7 +119,8 @@ evidence is retained; it is not a fifth v05 pass. The five-game v04 evidence
 is historical. Subsequent
 [D88 metadata publication](docs/D88_WRITE_METADATA_STATUS.md) and PCG changes
 require v07 and separate acceptance. The subsequent X3 PPI increment requires
-v08, text-raster work v09, and X3 reset release v10; do not convert or patch old snapshots.
+v08, text-raster work v09, and X3 reset release v10. Current CPU/DMA integration
+requires v11; do not convert or patch old snapshots.
 The simulator window now offers optional [live joystick keys](docs/PLAYING.md):
 arrows, Space (button 1) and Ctrl (button 2), through `--joystick-keys`.
 Independent CPU-programmed 40/80-column text and 320/640 graphics rasters now
@@ -154,6 +159,11 @@ The later [coherent-snapshot refit](docs/TURBO_VIDEO_CDC_QUARTUS_BUILD.md)
 binds `c0d1042`, retains the new measurement registers and still uses four
 font M10Ks at 49% ALMs. It also fails setup/recovery at all eight corners
 and hold at three; it is not hardware signoff or a build of current HEAD.
+The completed [PCG/metadata fit audit](docs/TURBO_PCG_METADATA_QUARTUS_BUILD.md)
+binds `15a0655`: 49% ALMs, 393 M10Ks, eight M10Ks for the dual-read font.
+Same-clock machine paths pass all eight corners, but setup/recovery fail
+all eight and hold fails five. It excludes newer PPI/text/reset/DMA changes;
+the timing-failed RBF is not a deployment-ready replacement.
 
 MiSTer now wires keyboard, joystick, disk, RGB and audio paths and
 offers IPL/D88 OSD entries. Disk writes default to protected; enabling them

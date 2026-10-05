@@ -347,9 +347,11 @@ not complete hardware/native-software acceptance; T2/T4/T5/T6 remain open.
 
 The [CPU ownership seam](CPU_BUSREQ_AUDIT.md) now exports active-low
 BUSRQ/BUSACK through `rtl/cpu.v`; its real-wrapper unit passes WAIT, sparse/
-stopped enables, release, continuation and reset. The shared machine still
-ties BUSRQ inactive. Introduce a shared ordinary memory/I/O bus owner mux
-and actual DMA engine before DMA can drive a transaction.
+stopped enables, release, continuation and reset. The separate opt-in
+`TURBO_DMA=1` shared-machine owner mux now passes original CPU memory copies,
+generated A/B FDC transfers and owned reset drain. See [machine evidence](DMA_MACHINE_STATUS.md).
+Default Turbo/X3 and FPGA profiles still tie BUSRQ inactive. Native firmware,
+pending-SD reset, target coverage and full DMA functions remain acceptance gates.
 The [DMA register contract](DMA_REGISTER_CONTRACT.md) supplies primary WR0–WR6
 grammar/count/readback/Ready gates and the unchanged IPL's semantic needs.
 In particular, programmed zero is not the ordinary one-byte N+1 case, and

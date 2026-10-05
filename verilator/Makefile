@@ -38,6 +38,26 @@ turbo-video: obj_dir_turbo_video/Vtop
 turbo-video-fast: obj_dir_turbo_video_fast/Vtop
 turbo-video-savable: obj_dir_turbo_video_savable/Vtop
 
+# Separate opt-in DMA profile. Board/default Turbo profiles remain unchanged.
+DMA_DIR ?= obj_dir_turbo_dma
+DMA_TIMING ?= --timing
+turbo-dma: $(DMA_DIR)/Vtop
+$(DMA_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
+	$(V) -cc $(DMA_TIMING) --assert --trace-fst --exe --build -j 4 --Mdir $(DMA_DIR) --top-module top \
+		-GTURBO=1 -GTURBO_DMA=1 -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_TURBO_DMA" \
+		-MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
+.PHONY: turbo-dma
+
+test-machine-dma: turbo-dma test-machine-dma-reset
+	python3 tests/test_machine_dma.py ./$(DMA_DIR)/Vtop
+test-machine-dma-reset: $(HEADLESS_DIR)/dma-machine-reset/Vdma_machine_reset_tb
+	@for kind in 0 1 2 3; do ./$(HEADLESS_DIR)/dma-machine-reset/Vdma_machine_reset_tb +RESET_KIND=$$kind || exit 1; done
+$(HEADLESS_DIR)/dma-machine-reset/Vdma_machine_reset_tb: $(V_SRC) tests/dma_machine_reset_tb.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module dma_machine_reset_tb --Mdir $(HEADLESS_DIR)/dma-machine-reset \
+		-j 4 $(V_SRC) tests/dma_machine_reset_tb.sv -Wno-fatal
+.PHONY: test-machine-dma test-machine-dma-reset
+
 # Fast X3 diagnostic continuations; not the delay-aware scheduling reference.
 obj_dir_turbo_video_savable/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc --no-timing --savable --assert --trace-fst --exe --build -j 4 --Mdir obj_dir_turbo_video_savable --top-module top \

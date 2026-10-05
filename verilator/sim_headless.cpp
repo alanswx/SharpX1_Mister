@@ -301,6 +301,7 @@ int main(int argc, char **argv) {
         top.sd_buff_wr = 0;
         top.debug_addr = peek_address;
         size_t download_pos = 0;
+        bool download_accepted = false;
         auto set_download = [&]() {
             const bool active = download_pos < downloads.size();
             top.ioctl_download = active;
@@ -323,6 +324,7 @@ int main(int argc, char **argv) {
         // a reconstructed RAM bootstrap. Only quiescent host interfaces are
         // supported; disk contents must match and clocks keep absolute phase.
         uint64_t resume_time = 0;
+        // v11: opt-in shared-machine CPU/DMA ownership and reset drain.
         // v10: X3 destination-clock video reset release.
         // v09: Turbo text expansion and reserved underline raster state.
         // v08: X3 video-to-PPI status synchronizers.
@@ -341,8 +343,11 @@ int main(int argc, char **argv) {
 #ifdef X1_TURBO_VIDEO_MASTER
             ^ (1ULL << 55)
 #endif
+#ifdef X1_TURBO_DMA
+            ^ (1ULL << 54)
+#endif
             ;
-        constexpr uint64_t snapshot_magic = 0x5831534e41503130ULL ^ sys_hz ^ snapshot_profile;
+        constexpr uint64_t snapshot_magic = 0x5831534e41503131ULL ^ sys_hz ^ snapshot_profile;
 #ifdef X1_SAVABLE
         if (restore_path) {
             if (rom_path || ram_path || font16_path) throw std::runtime_error("snapshot restore cannot also download ROM/RAM/font16");
@@ -458,8 +463,9 @@ int main(int argc, char **argv) {
             if (next == sys_time(sys_edge)) {
                 top.clk_sys = !top.clk_sys;
                 sys_rise = top.clk_sys;
+                if (sys_rise) download_accepted = top.ioctl_wr && !top.ioctl_wait;
                 if (sys_rise && top.reset) ++expected_reset_edges;
-                if (!sys_rise && download_pos < downloads.size()) {
+                if (!sys_rise && download_accepted && download_pos < downloads.size()) {
                     ++download_pos;
                     set_download();
                 }
@@ -690,14 +696,20 @@ int main(int argc, char **argv) {
 #else
         constexpr const char *turbo_video_master = "false";
 #endif
-        std::printf("{\"machine\":\"sharpx1\",\"turbo_foundation\":%s,\"turbo_video_master\":%s,\"intra_assignment_delays\":%s,\"sys_hz\":%llu,\"video_hz\":%llu,"
+#ifdef X1_TURBO_DMA
+        constexpr const char *turbo_dma = "true";
+#else
+        constexpr const char *turbo_dma = "false";
+#endif
+        std::printf("{\"machine\":\"sharpx1\",\"turbo_foundation\":%s,\"turbo_video_master\":%s,\"turbo_dma\":%s,\"intra_assignment_delays\":%s,\"sys_hz\":%llu,\"video_hz\":%llu,"
                     "\"time_ps\":%llu,\"sys_edges\":%llu,\"video_edges\":%llu,"
                     "\"reset_edges\":%llu,\"cpu_enables\":%llu,\"delayed_sys_edges\":%llu,"
                     "\"hs_edges\":%llu,\"vs_edges\":%llu,\"hs_period_ps\":%llu,\"vs_period_ps\":%llu,\"video_hash\":\"%016llx\","
                     "\"download_bytes\":%llu,\"cpu_address\":%u,\"halted\":%s,\"peek\":\"%s\","
                     "\"ps2_bytes_sent\":%llu,\"disk_requests\":%llu,\"disk_writes\":%llu,\"frames\":%llu,\"frame_width\":%u,\"frame_height\":%u,\"frame_hash\":\"%016llx\","
-                    "\"sub_pc\":%u,\"sub_address\":%u,\"sub_control\":%u,\"sub_running\":%s,\"sub_tx_busy\":%s,\"sub_rx_empty\":%s}\n",
-                    turbo_foundation, turbo_video_master, VM_TIMING ? "true" : "false",
+                    "\"sub_pc\":%u,\"sub_address\":%u,\"sub_control\":%u,\"sub_running\":%s,\"sub_tx_busy\":%s,\"sub_rx_empty\":%s,"
+                    "\"dma_grants\":%llu,\"dma_reads\":%llu,\"dma_writes\":%llu,\"cpu_fdc_data_reads\":%llu,\"cpu_fdc_data_writes\":%llu}\n",
+                    turbo_foundation, turbo_video_master, turbo_dma, VM_TIMING ? "true" : "false",
                     (unsigned long long)sys_hz,
                     (unsigned long long)video_hz, (unsigned long long)context.time(), (unsigned long long)top.sys_edges,
                     (unsigned long long)top.video_edges, (unsigned long long)top.reset_edges,
@@ -709,7 +721,10 @@ int main(int argc, char **argv) {
                     (unsigned long long)disk_requests,(unsigned long long)disk_writes,(unsigned long long)frame.frames,frame.width,frame.height,
                     (unsigned long long)frame.hash,
                     top.sub_pc,top.sub_address,top.sub_control,
-                    top.sub_wait ? "true" : "false",top.sub_tx ? "true" : "false",top.sub_rx ? "true" : "false");
+                    top.sub_wait ? "true" : "false",top.sub_tx ? "true" : "false",top.sub_rx ? "true" : "false",
+                    (unsigned long long)top.dma_grants, (unsigned long long)top.dma_reads,
+                    (unsigned long long)top.dma_writes, (unsigned long long)top.cpu_fdc_data_reads,
+                    (unsigned long long)top.cpu_fdc_data_writes);
         const uint64_t expected_edges = sys_edge / 2;
         const uint64_t expected_delayed = expected_edges -
             (expected_edges && sys_time(expected_edges * 2 - 1) + 1000 > end_ps ? 1 : 0);

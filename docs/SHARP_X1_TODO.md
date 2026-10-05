@@ -17,8 +17,8 @@ These are acceptance gates, not four completed checkboxes.
 |---|---|---|
 | 1. Turbo video | X3 enables/raster mapping/16-row ANK; bounded high-speed PCG selector, frozen HSYNC-window transactions and CPU ANK8/16 selection pass focused simulation; HPS snapshot seam and X3 PPI level crossing tested, including real-CPU cold/warm polling | Route/timing/CDC/reset signoff and refit; exact ASIC selector/WAIT phase, text expansion/underline, Kanji CPU/glyph paths and native/hardware acceptance |
 | 2. Native games | All five baseline games requalified on deleted-data/v04 RTL, including Galaga firing and Shanghai pair removal | Native Arcus/Bastard playability, Turbo firmware/video and multi-disk continuity; delay-aware and hardware gameplay (Arcus A1/B2 remains exploratory) |
-| 3. CTC/DMA/SIO | CTC/IM2/ACK/keyboard tests; actual CPU BUSRQ seam; standalone DMA 32 groups and real CPU/DMA 18 ownership/reset cases plus a direct-read case pass | DMA machine integration/shared bus ownership/FDC DRQ and unsupported functions; SIO serial/FIFO/IRQ implementation; exact CTC pin/phase and physical daisy-chain timing |
-| 4. D88 robustness | Bounds/A/B ACK/eject/protected writes; CRC/READ ADDRESS; metadata/short-reset drain pass 75 direct groups at two CE rates and the full frozen fast CPU matrix; fresh v05 Xevious and Druaga controls pass | Complete delay-aware/current-source and native metadata qualification; remaining native games; safe format contract, density/HD mechanics, physical HPS epochs and native disk-change acceptance |
+| 3. CTC/DMA/SIO | CTC/IM2/ACK/keyboard; standalone DMA and actual CPU/DMA tests; opt-in shared-machine bus/FDC DRQ, generated A/B transfer/count/protection/CRC and owned reset tests pass | DMA native/pending-SD reset/other-target/IRQ/search/exact timing acceptance; SIO serial/FIFO/IRQ implementation; physical daisy-chain timing |
+| 4. D88 robustness | Bounds/A/B ACK/eject/protected writes; CRC/READ ADDRESS; 75 metadata/short-reset direct groups and both complete frozen fast/delay-aware CPU matrices; four v05 native-control titles pass | Current-source/native metadata qualification; Shanghai failed pair check; safe format contract, density/HD mechanics, physical HPS epochs and native disk-change acceptance |
 
 Turbo Z is a separate planned profile, not implied by these increments. Its
 manual-based feature/acceptance breakdown is in [TURBO_Z_PLAN.md](TURBO_Z_PLAN.md)
@@ -27,10 +27,11 @@ replace the previous timing-positive experimental RBF without a reviewed fit.
 The [Turbo II manual acceptance matrix](TURBO_IMPLEMENTATION_PLAN.md#primary-turbo-ii-textvideo-acceptance-contract)
 adds the documented row/scan combinations, underline graphics suppression
 and expansion placement gates; these are not yet completed behavior.
-The original [standalone DMA slice](DMA_STATUS.md) is not in `machine.qip`
-and cannot service native firmware yet. Its next gate is actual-CPU ownership
-and register/bus transactions, then connected generated-media DRQ transfers.
-Fresh v05 five-game qualifications are running after the CRC increment;
+The original [standalone DMA slice](DMA_STATUS.md) now has a separate,
+opt-in shared-machine integration; ordinary Turbo/X3 and board profiles remain
+disabled. Native firmware and remaining DMA acceptance gates are still open.
+Fresh v05 five-game qualification finished after the CRC increment: four pass,
+Shanghai fails its pair assertion;
 the prior v04 results must not be promoted to current-RTL acceptance.
 See [high-speed PCG](TURBO_HIGH_SPEED_PCG_STATUS.md),
 [CPU/DMA bus diagnostic](DMA_CPU_BUS_STATUS.md) and
@@ -61,7 +62,16 @@ The engine is still absent; that research does not complete priority 3.
 Both complete frozen fast/delay-aware metadata CPU matrices now pass.
 Four v05 native-control titles pass; Shanghai's expected-pair assertion failed
 with unchanged inputs and retained evidence. None qualifies later v10 RTL.
-Current model state is v10; reject older snapshots, do not convert them.
+Current model state is v11; reject older snapshots, do not convert them.
+The separate [shared-machine DMA subset](DMA_MACHINE_STATUS.md) now connects
+real CPU ownership, DRQ pacing, shared decode and retained reset drain.
+Generated A/B read/write/protected/CRC and actual-machine owned-reset checks
+pass. It remains opt-in, with native firmware, pending-SD reset, other targets,
+IRQ/search/exact timing and fitted/hardware qualification still open.
+The completed [frozen PCG/metadata fit](TURBO_PCG_METADATA_QUARTUS_BUILD.md)
+has positive same-clock machine paths but fails cross-domain setup/recovery
+at all eight corners and hold at five. Narrow CDC/mux constraints and a
+current-source refit remain required; assembly is not timing closure.
 
 ## Phase 0 — make simulation trustworthy
 
