@@ -73,6 +73,11 @@ differs from MAME's display `ank_sel` usage. Treat the port table below as a
 reference inventory, not a settled hardware contract for those two bits.
 Verify mode/CPU-read/display combinations from the circuit/manual before
 adding independent font selection; high-scan-only ANK does not close it.
+The later [high-speed PCG contract](TURBO_PCG_CONTRACT.md) traces the real
+address/WAIT wiring and identifies opaque ASIC gates, emulator fallback/read
+disagreements, a frozen selector transaction and CPU-font port reuse. It is
+an implementation/test contract with explicit unresolved hardware details,
+not high-speed PCG implementation or timing acceptance.
 Its screen-mode comments contain a bank-bit typo, while `scrn_w` unambiguously
 uses bit 3 for display and bit 4 for access. Its Turbo interrupt order is marked
 unverified and disagrees with the legacy chain. These are explicit review gates.
@@ -345,6 +350,11 @@ BUSRQ/BUSACK through `rtl/cpu.v`; its real-wrapper unit passes WAIT, sparse/
 stopped enables, release, continuation and reset. The shared machine still
 ties BUSRQ inactive. Introduce a shared ordinary memory/I/O bus owner mux
 and actual DMA engine before DMA can drive a transaction.
+The [DMA register contract](DMA_REGISTER_CONTRACT.md) supplies primary WR0–WR6
+grammar/count/readback/Ready gates and the unchanged IPL's semantic needs.
+In particular, programmed zero is not the ordinary one-byte N+1 case, and
+fixed-destination loading/counter readback differ from MAME's convenience
+model. Preserve those distinctions in the engine tests.
 The active machine currently ties MR16 DMA inactive; the inherited refresh
 hack is not the proposed implementation. Keep arbitration in `clk_sys` with
 qualified enables, hold address/data/strobes through WAIT and complete only

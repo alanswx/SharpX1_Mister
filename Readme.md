@@ -48,6 +48,9 @@ focused unit/CPU/real-MR16 tests pass, not exact hardware timing. See the
 An unchanged user-supplied 32 KiB Turbo IPL now executes to an IPL disk-search
 screen; see [native firmware evidence](docs/NATIVE_TURBO_FIRMWARE_STATUS.md).
 This does not establish native Turbo game or complete firmware compatibility.
+An original [standalone DMA subset](docs/DMA_STATUS.md) now passes register,
+transfer, count/readback and ownership tests. It is not connected to the
+shared machine; this does not change the native DMA compatibility limit.
 The optional `turbo-video-savable` simulator target now supports fast X3
 single-drive diagnostic continuations with model-profile rejection; it does
 not enable dual-drive snapshots or replace delay-aware/hardware checks.
@@ -86,8 +89,8 @@ native firing/projectile travel. See the
 [commercial compatibility matrix](docs/COMMERCIAL_COMPATIBILITY.md) for the
 bounded checks and remaining compatibility gates; this is not hardware signoff.
 The subsequent [ID/data CRC increment](docs/D88_CRC_STATUS.md) passes direct
-controller regressions and requires snapshot v05. Final-source machine/game
-qualification is still running; the five-game v04 evidence above is historical,
+controller and fast/delay-aware machine regressions and requires snapshot v05.
+Fresh native/game qualification is pending; the five-game v04 evidence above is historical,
 not acceptance of this later change.
 The simulator window now offers optional [live joystick keys](docs/PLAYING.md):
 arrows, Space (button 1) and Ctrl (button 2), through `--joystick-keys`.

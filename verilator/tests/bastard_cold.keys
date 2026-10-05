@@ -1,0 +1,4 @@
+# Native base IPL boot only. All events finish before a short cold checkpoint.
+1000 2b
+1200 f0
+1202 2b

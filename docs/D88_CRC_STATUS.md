@@ -39,9 +39,25 @@ and direct scanner bounds/replacement fixtures in
 `/tmp/x1-d88-crc-connected.log`. The later CPU wrapper ownership seam leaves
 machine BUSRQ inactive. Combined base/X3 wrapper lint passes in
 `/tmp/x1-crc-cpu-wrapper-lint.log`, with
-inherited warnings visible. Final-source machine-level disk/snapshot checks
-remain in progress. Do not attribute intermediate binaries, previous five-game
-v04 results or the frozen `c0d1042` Quartus fit to the final CRC source.
+inherited warnings visible. Final source `76d87a2` builds and passes the full
+expanded generated-media machine suite in fast and delay-aware baseline
+simulation, plus baseline snapshot and same-rate base/X3 profile-rejection
+checks. Logs: `/tmp/x1-crc-cpu-final-{fast,headless}-disk.log`,
+`/tmp/x1-crc-cpu-final-{base,cross}-snapshot.log`.
+Both machine disk suites retain 8,000,000 cycles per original CPU fixture,
+32 MHz sys / 28.571428 MHz video and loader-derived resets; source images are
+hashed unchanged, with writes confined to disposable output images.
+
+| Final executable | SHA-256 |
+|---|---|
+| Fast baseline | `2b48f7818c7fa584b82502c9fc2a99ed536fae2b923093eb387f0035a77ed1c0` |
+| Delay-aware baseline | `846be4d27b6c84e1738689db55dcf698a6a76f8e5e673b3b8426018ac0a57cc0` |
+| Fast savable X3 | `d8650c4e9f36e2dbfce6ce1c7440d1d638ad93d5b8d15833c3e8df9d1e8c59e4` |
+
+X3 snapshot checks use 32 MHz sys / 42.954540 MHz video and original synthetic
+CPU diagnostics, not native game acceptance. Five-game v04 results remain
+historical; fresh v05 native/game qualification is pending. The frozen
+`c0d1042` Quartus fit does not include these later CRC/CPU changes.
 No new hardware acceptance is claimed.
 
 ## Primary evidence and limits

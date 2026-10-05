@@ -57,6 +57,36 @@ storage changes or complete Turbo/hardware compatibility.
 `tests/requalify_commercial.py` regenerates states through native IPL/disk
 and recorded controls rather than importing incompatible historical states.
 
+### CRC/v05 qualification in progress
+
+The `76d87a2` CRC/CPU-wrapper checkpoint requires fresh v05 states; old v04
+passes below do not qualify it. Its frozen fast baseline runner is
+`2b48f7818c7fa584b82502c9fc2a99ed536fae2b923093eb387f0035a77ed1c0`.
+Fresh sequential qualifications for all five titles have been started under
+ignored `verilator/obj_dir_fast/d88-v05-requalification/`; none is asserted
+passed until its actual controls and source-integrity checks finish.
+
+For a CPU-contended host, `requalify_commercial.py --boot-chunk-ms 8000
+--timeout 7200` checkpoints the same 16-second boot as 8+8 seconds and divides
+long neutral continuations without changing their total durations or inputs.
+All initial key events must finish in the first chunk. Keyed continuations
+are not split. The frozen runner still enforces quiescent snapshots; no old
+state conversion, RAM loading or firmware patching is used. Host timeouts
+retain partial logs and an explicit failed result, never a gameplay pass.
+`make -C verilator test-requalify-scheduling` checks orchestration and timeout
+reporting with asset-free mocks, **not machine execution or gameplay**.
+
+Bastard Special's two new native four-second cold probes on this runner
+produce identical reports, RAM, frames and quiescent states, with unchanged
+assets and zero writes. Private evidence is under
+`verilator/obj_dir_fast/special-probes/bastard-v05-cold4s/`.
+The actual frame hash is `b7b725b914373325` (640×200); state SHA-256
+`b7d835a7be6896d812bae7d3e1f30c1f675deb3393d5a80f2355d945a58731c1`.
+This is repeatability, not gameplay. `continue_native_probe.py` verifies the
+source probe's hashes and frozen runner, then restores native state without
+ROM/font/RAM downloads. Four-second continuations toward 16 seconds followed
+by a Z/1 input probe are running; playability remains unverified.
+
 ### Deleted-data/v04 requalification
 
 October 5: all five control gates also pass on the new deleted-data checkpoint

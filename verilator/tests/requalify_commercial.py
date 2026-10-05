@@ -22,10 +22,20 @@ def main():
     parser.add_argument("title", choices=("druaga", "xevious", "mappy", "galaga", "shanghai"))
     parser.add_argument("disk", type=pathlib.Path)
     parser.add_argument("--output", required=True, type=pathlib.Path)
+    parser.add_argument("--timeout", type=float, default=1800,
+                        help="host timeout per native/control run; does not change simulation duration")
+    parser.add_argument("--boot-chunk-ms", type=int, default=16000,
+                        help="checkpoint interval; total 16-second boot and neutral-stage durations stay unchanged")
     args = parser.parse_args()
+    if args.timeout <= 0 or not 1 <= args.boot_chunk_ms <= 16000:
+        parser.error("timeout must be positive and boot chunk must be 1..16000 ms")
     exe, disk = args.executable.resolve(), args.disk.resolve()
     rom = pathlib.Path("../bios/ipl_x1.hex").resolve()
     keys = pathlib.Path("tests/commercial_boot.keys").resolve()
+    last_key_ms = max(int(line.split()[0]) for line in keys.read_text().splitlines()
+                      if line.strip() and not line.lstrip().startswith("#"))
+    if args.boot_chunk_ms <= last_key_ms:
+        parser.error("first boot chunk must include every boot key event before saving state")
     originals = {str(p): sha(p) for p in (disk, rom, keys)}
     mappy_keys = pathlib.Path("tests/mappy_start.keys").resolve()
     if args.title == "mappy":
@@ -39,8 +49,26 @@ def main():
     runs = []
     state = None
 
+    def execute(command):
+        try:
+            return subprocess.run(command, capture_output=True, text=True, timeout=args.timeout)
+        except subprocess.TimeoutExpired as error:
+            def partial(value):
+                return value.decode(errors="replace") if isinstance(value, bytes) else (value or "")
+            return subprocess.CompletedProcess(command, 124, partial(error.stdout),
+                partial(error.stderr) + f"\nHost timeout after {args.timeout} seconds; command incomplete.\n")
+
     def run(name, milliseconds, joy=0xff, continuation_keys=None):
         nonlocal state
+        if state is not None and milliseconds > args.boot_chunk_ms and continuation_keys is None:
+            remaining = milliseconds
+            part = 0
+            while remaining:
+                part += 1
+                duration = min(args.boot_chunk_ms, remaining)
+                run(f"{name}-part{part}", duration, joy)
+                remaining -= duration
+            return
         prefix = folder / name
         command = [str(frozen), "--cycles", str(milliseconds * 32000),
                    "--disk", str(disk), "--joya", str(joy),
@@ -50,7 +78,7 @@ def main():
                     ["--rom", str(rom), "--keys", str(keys)])
         if state and continuation_keys:
             command += ["--keys", str(continuation_keys)]
-        result = subprocess.run(command, capture_output=True, text=True, timeout=1800)
+        result = execute(command)
         prefix.with_suffix(".stdout").write_text(result.stdout)
         prefix.with_suffix(".stderr").write_text(result.stderr)
         record = {"command": command, "returncode": result.returncode}
@@ -69,7 +97,14 @@ def main():
             raise RuntimeError(f"native run failed: {prefix}; inspect stderr")
         print(f"{args.title}: {name}, frame {report['frame_hash']}", flush=True)
 
-    run("cold16s", 16000)
+    remaining = 16000
+    while remaining:
+        duration = min(args.boot_chunk_ms, remaining)
+        elapsed = 16000 - remaining + duration
+        name = "cold16s" if args.boot_chunk_ms == 16000 else (
+            f"cold{elapsed}ms" if state is None else f"boot{elapsed}ms")
+        run(name, duration)
+        remaining -= duration
     if args.title == "druaga":
         sequence = [("start", 250, 0xdf), ("live", 14000, 0xff)]
     elif args.title == "xevious":
@@ -105,8 +140,8 @@ def main():
     else:
         command = ["python3", "tests/test_commercial_gameplay.py", str(frozen),
                    args.title, str(state), str(disk)]
-    command += ["--output", str(folder / "controls"), "--timeout", "1800"]
-    result = subprocess.run(command, capture_output=True, text=True, timeout=1800)
+    command += ["--output", str(folder / "controls"), "--timeout", str(args.timeout)]
+    result = execute(command)
     (folder / "controls.stdout").write_text(result.stdout)
     (folder / "controls.stderr").write_text(result.stderr)
     fire_record = None
@@ -114,8 +149,8 @@ def main():
         run("wave39s", 6000)
         fire_command = ["python3", "tests/test_galaga_fire.py", str(frozen),
                         str(state), str(disk), "--output", str(folder / "fire"),
-                        "--timeout", "1800"]
-        fired = subprocess.run(fire_command, capture_output=True, text=True, timeout=1800)
+                        "--timeout", str(args.timeout)]
+        fired = execute(fire_command)
         (folder / "fire.stdout").write_text(fired.stdout)
         (folder / "fire.stderr").write_text(fired.stderr)
         fire_record = {"command": fire_command, "returncode": fired.returncode}

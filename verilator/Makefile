@@ -395,6 +395,21 @@ $(HEADLESS_DIR)/cpu-busreq/Vcpu_busreq_tb: tests/cpu_busreq_tb.sv ../rtl/cpu.v $
 
 .PHONY: test-cpu-busreq
 
+test-dma: $(HEADLESS_DIR)/dma/Vdma_tb
+	./$(HEADLESS_DIR)/dma/Vdma_tb
+
+$(HEADLESS_DIR)/dma/Vdma_tb: tests/dma_tb.sv ../rtl/x1_dma.sv
+	$(V) --binary --timing --assert --top-module dma_tb --Mdir $(HEADLESS_DIR)/dma \
+		-j 2 -CFLAGS -O1 tests/dma_tb.sv ../rtl/x1_dma.sv
+
+.PHONY: test-dma
+
+test-requalify-scheduling:
+	python3 tests/test_requalify_scheduling.py
+	python3 tests/test_native_continuation.py
+
+.PHONY: test-requalify-scheduling
+
 test-keyboard-receiver:
 	python3 tests/test_keyboard_receiver.py
 
