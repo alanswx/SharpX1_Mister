@@ -170,6 +170,12 @@ Local generated logs: `/tmp/x1-dma-final-build.log` and
 Binary hashes are local provenance, not a portable
 reproducibility guarantee. Earlier 26/30-group runs predate final assertions
 or reset retention; only the source-bound 32-group result describes this slice.
+The parent independently reran the frozen source-bound binary and then
+`make -C verilator test-dma`; both pass the same 32 groups and edge count.
+The Make target builds the fixture before the RTL, preserving the fixture's
+timescale without suppressing warnings. Parent Make log:
+`/tmp/x1-dma-parent-make.log`. This is still a synthetic host, not actual CPU
+arbitration or FDC integration.
 
 From the repository root:
 

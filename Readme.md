@@ -126,6 +126,10 @@ The [font-BRAM refit](docs/TURBO_VIDEO_BRAM_QUARTUS_BUILD.md) confirms 49% ALMs
 and true font RAM, but still fails setup/recovery at every corner. It binds
 `f7875af`, not the later deleted-data storage changes; no hardware deployment
 has occurred.
+The later [coherent-snapshot refit](docs/TURBO_VIDEO_CDC_QUARTUS_BUILD.md)
+binds `c0d1042`, retains the new measurement registers and still uses four
+font M10Ks at 49% ALMs. It also fails setup/recovery at all eight corners
+and hold at three; it is not hardware signoff or a build of current HEAD.
 
 MiSTer now wires keyboard, joystick, disk, RGB and audio paths and
 offers IPL/D88 OSD entries. Disk writes default to protected; enabling them

@@ -147,7 +147,9 @@ the prior v04 results must not be promoted to current-RTL acceptance.
   READ ADDRESS CRC/C-to-sector/lost-data and pending-CRC cleanup at two CE rates.
   Fast and delay-aware baseline machine suites also pass. See
   [CRC increment](D88_CRC_STATUS.md); fresh native/game acceptance,
-  exact rotational/pin timing and duplicate writes remain separate gates.
+  exact rotational/pin timing remain separate gates. Valid duplicate writes
+  now pass with byte-exact media preservation, cross-block readback and host
+  protection at both CE rates; this does not repair D88 CRC/deleted metadata.
 - [x] Fix busy `$D0` falsely raising completion INTRQ; add idle/busy `$D0/$D8`,
   subsequent normal completion, status acknowledgement and reset regression.
 - [x] Cross-check Fujitsu MB8877A Type IV bits and status acknowledgement;

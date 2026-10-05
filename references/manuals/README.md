@@ -71,6 +71,19 @@ Type IV ready/index/immediate condition bits; compare local MAME's
 `src/devices/machine/wd_fdc.cpp` for immediate-mask persistence and re-arming.
 Physical pin timing and exact Fujitsu silicon equivalence remain unvalidated.
 
+Retrieved 2026-10-05: Western Digital's October 1979
+[FD179X-01 datasheet](https://bitsavers.trailing-edge.com/components/westernDigital/FD179X-01_Data_Sheet_Oct1979.pdf),
+saved as `FD179X-01_Data_Sheet_Oct1979.pdf` (ignored, 20 pages).
+SHA-256: `e51aef0933d88e7705f6f774ffb3238e8e8096bd9b9d774a985d95ef5766e3ce`.
+PDF 11 (printed 11) explicitly specifies Type-II C/S comparison against the
+least significant ID-side bit; PDF 12–13 describe write data marks, lost-data
+zero filling and CRC generation. These are manufacturer interface references,
+not proof the X1's Fujitsu part has identical timing or all error behavior.
+In particular its PDF 12 says data-CRC terminates a multi-record read, whereas
+the current bounded adapter follows MAME's sticky-CRC continuation policy.
+That discrepancy remains a chip-exact acceptance gate; do not advertise the
+adapter as a complete FD179X or MB8877 replica.
+
 ## Z80 peripherals manual
 
 Retrieved 2026-10-04 directly from [Zilog](https://www.zilog.com/docs/z80/um0081.pdf):
@@ -83,4 +96,6 @@ CTC and focused tests; it is not evidence of authentic X1 ASIC alias decode.
 October 5: official-host retrieval matches the existing file byte-for-byte;
 the redundant retrieval was moved to a temporary audit file. DMA printed
 pages 75–78 and 89–92 were checked for terminal counts, bus request and
-programming contracts; see the implementation plan. DMA/SIO remain absent.
+programming contracts; see the implementation plan. DMA/SIO remain absent
+from the shared machine; a separately tested standalone DMA slice is now
+documented in `docs/DMA_STATUS.md`.

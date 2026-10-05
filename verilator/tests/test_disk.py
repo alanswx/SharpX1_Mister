@@ -169,10 +169,10 @@ def basic():
     return d.finish()
 
 
-def writer(protected=False, number=2, count=256):
+def writer(protected=False, number=2, count=256, command=0xA0, read_command=0x80):
     d = DiskProgram()
     d.output(0x0FFA, number)
-    d.output(0x0FF8, 0xA0)
+    d.output(0x0FF8, command)
     if protected:
         d.idle()
         d.equal(0x0FF8, 0x40, 0x40)
@@ -187,7 +187,7 @@ def writer(protected=False, number=2, count=256):
         d.p.jump(0xC2, label)
         d.idle()
         d.equal(0x0FF8, 0, 0x7C)
-        d.read(number, 0x9900, count)
+        d.read(number, 0x9900, count, read_command)
     return d.finish()
 
 
@@ -295,6 +295,42 @@ with tempfile.TemporaryDirectory(prefix="x1-disk-") as directory:
     protected, _ = media(True)
     report, _, output = run(writer(True), protected, "protected", True)
     assert report["disk_writes"] == 0 and output.read_bytes() == protected
+    # C compares the least significant ID H bit against S. This is separate
+    # from the physical head-select pin; high ID-side bits remain observable.
+    for id_side in (0, 1, 5):
+        side_image = bytearray(data)
+        first_offset, first_payload = sectors[0, 0, 1]
+        side_image[first_offset - 15] = id_side
+        match_command = 0x82 | ((id_side & 1) << 3)
+        wrong_command = match_command ^ 8
+        d = DiskProgram()
+        for command in (wrong_command, wrong_command | 0x20):
+            d.output(0x0FFA, 1)
+            d.output(0x0FF8, command)
+            d.idle()
+            d.equal(0x0FF8, 0x10, 0x3E) # RNF, zero DRQ/CRC/lost data.
+        d.read(1, 0x9000, command=match_command)
+        d.equal(0x0FF8, 0, 0x3E)
+        d.read(1, 0x9100, command=wrong_command & ~2) # C=0 ignores S.
+        d.equal(0x0FF8, 0, 0x3E)
+        _, side_ram, _ = run(d.finish(), side_image, f"id-side-{id_side}")
+        assert side_ram[0x9000:0x9100] == first_payload
+        assert side_ram[0x9100:0x9200] == first_payload
+        _, side_ram, side_output = run(writer(number=1, command=match_command|0x20,
+            read_command=match_command), side_image, f"id-side-write-{id_side}", True)
+        expected_side = bytearray(side_image)
+        expected_side[first_offset:first_offset+256] = bytes(i ^ 0x5A for i in range(256))
+        assert side_output.read_bytes() == expected_side
+        assert side_ram[0x9900:0x9A00] == expected_side[first_offset:first_offset+256]
+    wrong_side_crc = bytearray(data)
+    wrong_side_crc[sectors[0, 0, 1][0]-15] = 1
+    wrong_side_crc[sectors[0, 0, 1][0]-8] = 0xA0
+    d = DiskProgram()
+    d.output(0x0FFA, 1)
+    d.output(0x0FF8, 0x82)
+    d.idle()
+    d.equal(0x0FF8, 0x10, 0x3E) # CRC of a nonmatching H must not leak.
+    run(d.finish(), wrong_side_crc, "wrong-id-side-crc")
     for error in (0xA0, 0xB0):
         damaged, _ = media(crc=error)
         d = DiskProgram()

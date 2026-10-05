@@ -86,6 +86,20 @@ This is repeatability, not gameplay. `continue_native_probe.py` verifies the
 source probe's hashes and frozen runner, then restores native state without
 ROM/font/RAM downloads. Four-second continuations toward 16 seconds followed
 by a Z/1 input probe are running; playability remains unverified.
+The completed native 4→8-second continuation shows the actual Bastard Special
+title/logo and “PRESENTED BY XAIN”; frame hash `22b566650e6207c3` at 640×200.
+This is a title screen, not a playable scene or a successful start sequence.
+
+The separate older v04 Z/1 16-second cold probe retained one host timeout and
+one completed run; its collector correctly reports **not repeatable**. That
+is inconclusive rather than a game pass or a proven RTL failure.
+Arcus's older frozen v04 X3 savable runner completes two identical eight-second
+A-only cold probes (Disk 1; no B), unchanged assets and zero writes, but still
+shows the IPL disk-search screen. A native 100 ms continuation records PPI
+`1A01` polling, with no FDC accesses in that bounded window. Offline IPL
+inspection identifies a cassette-style polling routine; this does not yet
+establish why disk boot chose that path. The new v05 100 ms startup trace
+observes DMA DISABLE and ordinary SIO writes, not a completed DMA transfer.
 
 ### Deleted-data/v04 requalification
 

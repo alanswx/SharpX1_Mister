@@ -5,11 +5,13 @@ module d88_crc_tb;
     reg [1:0] address=0;
     reg [7:0] data=0, host_data=0;
     reg [8:0] host_address=0;
-    reg [7:0] image[1120];
+    reg [7:0] image[1120], before_write[1120];
     wire [7:0] dout;
     wire [31:0] lba;
     wire prepare, sd_rd, sd_wr, busy, drq, irq;
-    integer divider=8, phase=0, requests=0;
+    wire [7:0] host_read_data;
+    reg allow_writes=0, protected_media=0;
+    integer divider=8, phase=0, requests=0, write_requests=0;
     reg [23:0] size=1120;
     wire ce=!reset && phase==0;
     always #5 clk=!clk;
@@ -18,27 +20,42 @@ module d88_crc_tb;
         .drive_select(1'b0), .drive_connected(1'b1), .transport_idle(),
         .clk_sys(clk), .ce(ce), .reset(reset), .io_en(1'b1),
         .rd(rd), .wr(wr), .addr(address), .din(data), .dout(dout),
-        .drq(drq), .intrq(irq), .busy(busy), .wp(1'b0), .fmt_wp(),
+        .drq(drq), .intrq(irq), .busy(busy), .wp(protected_media), .fmt_wp(),
         .size_code(3'd1), .layout(1'b0), .side(1'b0), .ready(1'b1), .fm_mode(1'b0),
         .img_mounted(mounted), .img_size(size[19:0]), .img_size_id(size),
         .disk_index(3'd0), .prepare(prepare), .sd_lba(lba), .sd_rd(sd_rd), .sd_wr(sd_wr),
         .sd_ack(ack), .sd_buff_addr(host_address), .sd_buff_dout(host_data),
-        .sd_buff_din(), .sd_buff_wr(host_wr), .input_active(1'b0),
+        .sd_buff_din(host_read_data), .sd_buff_wr(host_wr), .input_active(1'b0),
         .input_addr(20'd0), .input_data(8'd0), .input_wr(1'b0),
         .buff_addr(), .buff_read(), .buff_din(8'd0));
     initial forever begin
-        wait(sd_rd);
+        reg writing;
+        reg [31:0] owned_lba;
+        wait(sd_rd || sd_wr);
+        writing=sd_wr; owned_lba=lba;
+        assert(!(sd_rd && sd_wr)) else $fatal(1,"simultaneous host read/write");
+        assert(!writing || allow_writes) else $fatal(1,"unexpected host write");
         @(negedge clk); ack=1; requests++;
+        if(writing) write_requests++;
         for(int i=0;i<512;i++) begin
             host_address=9'(i);
-            host_data=(lba*512+32'(i)<1120) ? image[lba*512+32'(i)] : 0;
-            host_wr=1; @(negedge clk);
+            if(writing) begin
+                // The buffer is synchronously read. Set the address before
+                // sampling its registered output, not the previous byte.
+                repeat(2) @(negedge clk);
+                if(owned_lba*512+32'(i)<1120)
+                    image[owned_lba*512+32'(i)]=host_read_data;
+            end else begin
+                host_data=(owned_lba*512+32'(i)<1120) ? image[owned_lba*512+32'(i)] : 0;
+                host_wr=1; @(negedge clk);
+            end
+            assert(lba==owned_lba) else $fatal(1,"host LBA changed before ACK drain");
         end
         host_wr=0;
         repeat(10) @(negedge clk); ack=0;
         repeat(10) @(negedge clk);
     end
-    always @(negedge clk) assert(!sd_wr) else $fatal(1,"unexpected host write");
+    always @(negedge clk) assert(!sd_wr || allow_writes) else $fatal(1,"unexpected host write");
     task send(input [1:0] port, input [7:0] value);
         @(negedge clk); address=port; data=value; wr=1;
         repeat(divider*3) @(negedge clk);
@@ -58,12 +75,14 @@ module d88_crc_tb;
         assert(!irq) else $fatal(1,"status read failed to acknowledge");
     endtask
     task mount(input [7:0] error, input bit duplicate, input integer count=3,
-               input integer error_at=0);
+               input integer error_at=0, input [7:0] header_side=0);
+        allow_writes=0; protected_media=0;
         for(int i=0;i<1120;i++) image[i]=0;
         size=24'(688+count*144);
         for(int i=0;i<4;i++) image[28+i]=8'(size>>(8*i));
         image[32]=8'hb0; image[33]=2; // first track at 688.
         for(int j=0;j<count;j++) begin
+            image[688+j*144+1]=header_side;
             image[688+j*144+2]=(duplicate && j==2) ? 1 : 8'(j+1);
             image[688+j*144+4]=8'(count);
             image[688+j*144+8]=(j==error_at) ? error : 0;
@@ -76,6 +95,62 @@ module d88_crc_tb;
         wait(!prepare && !dut.mount_pending && !dut.transport_active);
         repeat(divider*3) @(negedge clk);
         assert(dut.media_ready && int'(dut.edsk_size)==count) else $fatal(1,"mount failed");
+    endtask
+    task duplicate_write(input integer bad_at, input integer target,
+                         input bit compare_side=0, input bit header_side=0);
+        reg [7:0] value;
+        integer writes_before;
+        mount(8'ha0,1,3,bad_at,{7'd0,header_side});
+        for(int i=0;i<1120;i++) before_write[i]=image[i];
+        writes_before=write_requests;
+        allow_writes=1;
+        start(8'ha0 | (compare_side ? 8'h02 : 0) | (header_side ? 8'h08 : 0),1);
+        for(int i=0;i<128;i++) begin
+            wait(drq || !busy);
+            assert(drq) else $fatal(1,"valid duplicate write truncated byte=%0d",i);
+            send(3,8'(i)^8'ha5);
+        end
+        wait(!busy);
+        check_status(bad_at==0 ? 8'h08 : 8'h00);
+        // Entry 2 crosses a 512-byte boundary; entry 0 does not. Every
+        // header, rejected duplicate and neighboring payload must survive.
+        assert(write_requests-writes_before==(target==2 ? 2 : 1))
+            else $fatal(1,"duplicate write block count");
+        for(int i=0;i<1120;i++) begin
+            if(i>=704+target*144 && i<832+target*144) begin
+                assert(image[i]==(8'(i-(704+target*144))^8'ha5))
+                    else $fatal(1,"written duplicate payload byte=%0d",i);
+            end else begin
+                assert(image[i]==before_write[i])
+                    else $fatal(1,"duplicate write changed unrelated byte=%0d",i);
+            end
+        end
+        start(8'h80 | (compare_side ? 8'h02 : 0) | (header_side ? 8'h08 : 0),1);
+        for(int i=0;i<128;i++) begin
+            wait(drq || !busy); assert(drq) else $fatal(1,"duplicate readback truncated");
+            read_byte(value);
+            assert(value==(8'(i)^8'ha5)) else $fatal(1,"duplicate readback mismatch");
+        end
+        wait(!busy); check_status(bad_at==0 ? 8'h08 : 8'h00);
+        // Host protection still denies payload and SD writes, even though
+        // a valid duplicate exists. Undefined write-fault details are masked.
+        protected_media=1; writes_before=write_requests;
+        start(8'ha0,1);
+        while(busy) begin
+            @(negedge clk); assert(!drq) else $fatal(1,"protected duplicate requested data");
+        end
+        assert(write_requests==writes_before && (dout&8'h40)!=0)
+            else $fatal(1,"protected duplicate wrote media or omitted WP");
+        for(int i=0;i<1120;i++) begin
+            if(i>=704+target*144 && i<832+target*144) begin
+                assert(image[i]==(8'(i-(704+target*144))^8'ha5))
+                    else $fatal(1,"protected duplicate changed payload");
+            end else begin
+                assert(image[i]==before_write[i])
+                    else $fatal(1,"protected duplicate changed unrelated media");
+            end
+        end
+        allow_writes=0; protected_media=0;
     endtask
     task start(input [7:0] cmd, input [7:0] sector);
         send(2,sector); send(0,cmd);
@@ -90,6 +165,17 @@ module d88_crc_tb;
         end
         assert(requests==before_requests) else $fatal(1,"bad ID fetched payload");
         check_status(8'h18); // bad ID CRC + record not found; no lost-data.
+    endtask
+    task side_miss(input [7:0] cmd);
+        integer before_requests;
+        before_requests=requests;
+        start(cmd,1);
+        while(busy) begin
+            @(negedge clk);
+            assert(!drq) else $fatal(1,"nonmatching ID H exposed payload cmd=%02x",cmd);
+        end
+        assert(requests==before_requests) else $fatal(1,"nonmatching ID H accessed media");
+        check_status(8'h10); // no matching side: RNF, not CRC from a wrong H.
     endtask
     task payload(input integer count, input integer first_pattern);
         reg [7:0] value;
@@ -168,6 +254,18 @@ module d88_crc_tb;
         repeat(divider*3) @(negedge clk);
         assert(!dut.s_crcerr && !dut.pending_read_crc && !irq && !drq) else $fatal(1,"reset leaked CRC/pins");
         start(8'h80,2); payload(128,1); check_status(8'h00);
+        mount(0,0); side_miss(8'h8a); side_miss(8'haa);
+        start(8'h82,1); payload(128,0); check_status(0);
+        start(8'h88,1); payload(128,0); check_status(0); // S ignored when C=0.
+        mount(0,0,3,0,1); side_miss(8'h82); side_miss(8'ha2);
+        start(8'h8a,1); payload(128,0); check_status(0); // ID H is not physical side.
+        mount(0,0,3,0,5); side_miss(8'h82);
+        start(8'h8a,1); payload(128,0); check_status(0); // Only ID H bit 0 is compared.
+        start(8'h80,1); payload(128,0); check_status(0); // Arbitrary H remains indexed.
+        mount(8'ha0,0,3,0,1); side_miss(8'h82); no_data(8'h8a);
+        duplicate_write(0,2); // Reject bad ID, write later valid cross-block duplicate.
+        duplicate_write(2,0); // First valid ID wins; unvisited corrupt duplicate is untouched.
+        duplicate_write(0,2,1,1); // Side-compared writes use command S, not physical side.
         $display("PASS: D88 ID/data CRC, duplicate ID, READ ADDRESS, multi-sector and recovery divider=%0d",divider);
         $finish;
     end

@@ -286,6 +286,7 @@ typedef enum
 wire        s_readonly = media_ready & (wp | !RWMODE);
 reg			s_crcerr;
 reg         pending_read_crc; // selected data/READ ADDRESS CRC, applied at completion
+reg         compare_id_side, requested_id_side;
 reg			s_headloaded, s_seekerr, s_index;  // mode 1
 reg			s_lostdata, s_wrfault; 			     // mode 2,3
 
@@ -569,6 +570,8 @@ always @(posedge clk_sys) begin
 		s_wpe <= 1;
 		{s_headloaded, s_seekerr, s_crcerr, s_intrq} <= 0;
 		pending_read_crc <= 0;
+		compare_id_side <= 0;
+		requested_id_side <= 0;
 		{s_wrfault, s_lostdata} <= 0;
 		s_drq_busy <= 0;
 		watchdog_set <= 0;
@@ -680,6 +683,7 @@ always @(posedge clk_sys) begin
 					if(rw_type & (edsk_track == disk_track) &
 									(edsk_trackf == wdreg_track) &
 									 (edsk_side == side) &
+									 (format | ~compare_id_side | (edsk_sidef[0] == requested_id_side)) &
 									 (format | (edsk_sector == wdreg_sector)) &
 									 (format | ~edsk_crc[1])) begin
 						// LOCAL ADDITION (FM-7_MiSTer): a .d77 records whether the
@@ -727,7 +731,8 @@ always @(posedge clk_sys) begin
 						// duplicate; bounded index exhaustion reports CRC+RNF.
 						if(rw_type && !format && edsk_crc[1] &&
 						   edsk_track == disk_track && edsk_trackf == wdreg_track &&
-						   edsk_side == side && edsk_sector == wdreg_sector)
+						   edsk_side == side && edsk_sector == wdreg_sector &&
+						   (!compare_id_side || edsk_sidef[0] == requested_id_side))
 							s_crcerr <= 1;
 					if(edsk_next == edsk_start) begin
 `ifdef DEBUG_FDC_SCAN
@@ -1078,7 +1083,11 @@ always @(posedge clk_sys) begin
 									// 3: S: SIDE
 									// 2: E: some 15ms delay
 									// 1: C: check side matching?
-									// 0: 0
+									// 0: write data mark (not yet persisted in D88).
+									// C/S compare ID H bit 0; they do not select the
+									// physical drive head, supplied separately by side.
+									compare_id_side <= din[1];
+									requested_id_side <= din[3];
 
 									s_drq_busy <= 2'b01;
 									{s_wrfault,s_seekerr,s_crcerr,s_lostdata} <= 0;

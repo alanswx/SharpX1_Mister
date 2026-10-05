@@ -33,6 +33,17 @@ command-status recovery. Pre-fix payload DRQ failure is retained in
 `/tmp/x1-d88-crc-before.log`; final fixture passes in
 `/tmp/x1-d88-crc-final-address.log`.
 
+The expanded fixture also passes successful writes through duplicate IDs
+at both CE rates (`/tmp/x1-d88-crc-duplicate-write.log`): a matching corrupt
+ID is skipped before writing the later valid duplicate, including a payload
+crossing two host blocks; a valid first ID wins without attributing CRC from
+an unvisited corrupt duplicate. Every rejected payload, header and neighbor
+is compared byte-for-byte, the written sector is read back through the FDC,
+and host protection causes zero write requests and no DRQ. The SD host samples
+the synchronous buffer read after address setup and checks stable owned LBA
+through ACK. This extends tests only; controller RTL and snapshot layout are
+unchanged. It does not implement deleted-write or CRC-metadata repair.
+
 Final CRC source also passes force-interrupt, twelve pending-SD abort/reset
 and direct scanner bounds/replacement fixtures in
 `/tmp/x1-d88-crc-final-connected.log`; the earlier increment's retained log is
@@ -75,7 +86,36 @@ recovered original flux/CRC**. Revision is recorded in
 code imported for this increment.
 
 Search visits the index once, not five physical index revolutions. Exact
-CRC/INTRQ/DRQ pin timing, successful writes through duplicates, missing marks,
+CRC/INTRQ/DRQ pin timing, missing marks,
 deleted writes/CRC metadata repair, format/write track, density/HD mechanics,
 native protection/disk changes and physical HPS file epochs remain open.
 Synthetic flag handling does not establish full copy-protection compatibility.
+
+## Subsequent C/S ID-side increment
+
+The controller previously ignored Type-II C/S comparison, despite its source
+comment describing that requirement. An original generated-media test
+reproduces inappropriate DRQ for a mismatching side in
+`/tmp/x1-d88-side-compare-before.log`. The new flags compare ID H **bit 0**
+with command S only when C is set; selected physical side remains a separate
+condition. A mismatching bad-ID field contributes neither CRC nor payload.
+The expanded direct fixture passes at CE=1 and CE=1/8 in
+`/tmp/x1-d88-side-compare-after.log`: both S values, C-disabled aliases,
+noncanonical ID H=5, reads/writes, valid-duplicate ordering, byte-exact write
+readback and host protection. Fujitsu's PDF 6/printed 4-32 defines C/S;
+Western Digital's [manufacturer datasheet](https://bitsavers.trailing-edge.com/components/westernDigital/FD179X-01_Data_Sheet_Oct1979.pdf)
+PDF 11 explicitly identifies the low-bit comparison, also used by local MAME.
+The downloaded document/hash is in the manual inventory.
+The side-comparison source also passes the existing force-interrupt, twelve
+pending-SD abort/reset, and scanner bounds/replacement tests in
+`/tmp/x1-d88-side-compare-connected.log`. Original CPU-programmed side-compare
+read/write and wrong-side CRC fixtures were added to `test_disk.py`; their
+full-machine execution on a rebuilt v06 runner is still pending.
+
+These added flags and the concurrently developed PCG transaction change
+serialized state; the next rebuilt savable runners require **v06**, rejecting
+v05 before deserialization. Frozen v05 native qualifications above continue
+with their original executable, not a conversion. Full-machine/build/snapshot
+qualification of this subsequent increment is pending. Exact rotational/pin
+timing and the primary FD179X-versus-MAME multi-record data-CRC termination
+discrepancy remain open; this fix does not silently change that policy.
