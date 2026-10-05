@@ -24,6 +24,38 @@ single-fast: obj_dir_single_fast/Vtop
 turbo: obj_dir_turbo/Vtop
 turbo-single: obj_dir_turbo_single/Vtop
 turbo-fast: obj_dir_turbo_fast/Vtop
+turbo-video: obj_dir_turbo_video/Vtop
+turbo-video-fast: obj_dir_turbo_video_fast/Vtop
+
+obj_dir_turbo_video/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
+	$(V) -cc --timing --assert --trace-fst --exe --build -j 4 --Mdir obj_dir_turbo_video --top-module top \
+		-GTURBO=1 -GTURBO_VIDEO_MASTER=1 -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER" \
+		-MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
+
+obj_dir_turbo_video_fast/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
+	$(V) -cc --no-timing --assert --trace-fst --exe --build -j 4 --Mdir obj_dir_turbo_video_fast --top-module top \
+		-GTURBO=1 -GTURBO_VIDEO_MASTER=1 -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER" \
+		-MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
+
+.PHONY: turbo-video turbo-video-fast
+
+test-video-timing: $(HEADLESS_DIR)/video-timing/Vvideo_timing_tb
+	./$(HEADLESS_DIR)/video-timing/Vvideo_timing_tb
+
+$(HEADLESS_DIR)/video-timing/Vvideo_timing_tb: ../rtl/x1_video_timing.sv tests/video_timing_tb.sv
+	$(V) --binary --timing --assert --top-module video_timing_tb --Mdir $(HEADLESS_DIR)/video-timing \
+		-j 4 ../rtl/x1_video_timing.sv tests/video_timing_tb.sv -Wno-fatal
+
+.PHONY: test-video-timing
+
+test-font16: $(HEADLESS_DIR)/font16/Vfont16_tb
+	./$(HEADLESS_DIR)/font16/Vfont16_tb
+
+$(HEADLESS_DIR)/font16/Vfont16_tb: ../rtl/x1_font16.sv tests/font16_tb.sv
+	$(V) --binary --timing --assert --top-module font16_tb --Mdir $(HEADLESS_DIR)/font16 \
+		-j 4 ../rtl/x1_font16.sv tests/font16_tb.sv -Wno-fatal
+
+.PHONY: test-font16
 
 # Native-software probes without snapshots; --timing remains the diagnostic
 # reference. Keep this separate from the base savable gameplay executable.
@@ -44,7 +76,7 @@ obj_dir_turbo_single/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_captu
 
 .PHONY: turbo turbo-single turbo-fast
 
-test-turbo: turbo test-ctc test-gram-address $(HEADLESS_DIR)/turbo-video/Vturbo_video_tb
+test-turbo: turbo test-ctc test-gram-address test-video-timing test-font16 $(HEADLESS_DIR)/turbo-video/Vturbo_video_tb
 	python3 tests/test_turbo_banks.py ./obj_dir_turbo/Vtop
 	python3 tests/test_turbo_ipl.py ./obj_dir_turbo/Vtop
 	python3 tests/test_ctc.py ./obj_dir_turbo/Vtop
@@ -55,9 +87,9 @@ test-turbo: turbo test-ctc test-gram-address $(HEADLESS_DIR)/turbo-video/Vturbo_
 	python3 tests/test_dual_disk.py ./obj_dir_turbo/Vtop
 	./$(HEADLESS_DIR)/turbo-video/Vturbo_video_tb
 
-$(HEADLESS_DIR)/turbo-video/Vturbo_video_tb: tests/turbo_video_tb.sv ../rtl/legacy/x1_vid.v ../rtl/legacy/crtc/crtc6845s.v
+$(HEADLESS_DIR)/turbo-video/Vturbo_video_tb: tests/turbo_video_tb.sv ../rtl/legacy/x1_vid.v ../rtl/legacy/crtc/crtc6845s.v ../rtl/x1_video_timing.sv
 	$(V) --binary --timing --assert --top-module turbo_video_tb --Mdir $(HEADLESS_DIR)/turbo-video \
-		-j 4 ../rtl/legacy/x1_vid.v ../rtl/legacy/crtc/crtc6845s.v tests/turbo_video_tb.sv -Wno-fatal
+		-j 4 ../rtl/x1_video_timing.sv ../rtl/legacy/x1_vid.v ../rtl/legacy/crtc/crtc6845s.v tests/turbo_video_tb.sv -Wno-fatal
 
 .PHONY: test-turbo
 

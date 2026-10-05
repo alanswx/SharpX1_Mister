@@ -140,11 +140,13 @@ not been verified on hardware; use disposable media copies for bring-up.
 
 ## Remaining limits
 
-Only drive A and the base MFM/2D path are covered. Exact command/byte/seek timing,
+The original suite covers drive A and base MFM/2D; the subsequent
+[two-image increment](DUAL_DISK_STATUS.md) separately covers generated A/B
+reads/writes and ownership/ACK draining. Exact command/byte/seek timing,
 exact force-interrupt pin timing, deleted-data marks, metadata updates after writes,
 per-sector density, format/write-track, hardware malformed-image rejection,
 replacement during writes/all parser phases, permanent stalled-host recovery,
-drive B and Turbo 2HD/2DD remain unvalidated or incomplete. Pending-sector SD
+native multi-disk continuity and Turbo 2HD/2DD remain unvalidated or incomplete. Pending-sector SD
 abort/reset is covered by the focused synthetic fixture, not hardware fault injection.
 Image addressing is limited to less than 1 MiB. Synthetic CRC flags do not
 establish exact MB8877 behavior on bad ID/data fields. Do not mark the broad

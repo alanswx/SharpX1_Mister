@@ -72,12 +72,16 @@ int main(int argc, char **argv) {
         uint64_t video_hz = sys_hz;
 #else
         constexpr uint64_t sys_hz = 32000000;
+#ifdef X1_TURBO_VIDEO_MASTER
+        uint64_t video_hz = 42954540;
+#else
         uint64_t video_hz = 28571428;
+#endif
 #endif
         uint64_t joya = 0xff, joyb = 0xff;
         bool joya_override = false, joyb_override = false;
         const char *trace_path = nullptr;
-        const char *rom_path = nullptr, *ram_path = nullptr;
+        const char *rom_path = nullptr, *ram_path = nullptr, *font16_path = nullptr;
         uint64_t load_address = 0x8000, entry = 0x8000, peek_address = 0xf000;
         const char *bus_path = nullptr;
         uint64_t bus_start_ms = 0, bus_end_ms = 0;
@@ -96,6 +100,7 @@ int main(int argc, char **argv) {
             else if (!std::strcmp(argv[i], "--reset-at") && i + 1 < argc) reset_at_ms.push_back(number(argv[++i]));
             else if (!std::strcmp(argv[i], "--reset-for-us") && i + 1 < argc) reset_for_us = number(argv[++i]);
             else if (!std::strcmp(argv[i], "--video-hz") && i + 1 < argc) video_hz = number(argv[++i]);
+            else if (!std::strcmp(argv[i], "--font16") && i + 1 < argc) font16_path = argv[++i];
             else if (!std::strcmp(argv[i], "--joya") && i + 1 < argc) { joya = number(argv[++i]); joya_override = true; }
             else if (!std::strcmp(argv[i], "--joyb") && i + 1 < argc) { joyb = number(argv[++i]); joyb_override = true; }
             else if (!std::strcmp(argv[i], "--rom") && i + 1 < argc) rom_path = argv[++i];
@@ -136,6 +141,10 @@ int main(int argc, char **argv) {
             throw std::runtime_error("require 0 < reset-cycles < cycles <= 1000000000000");
         if (video_hz == 0 || video_hz > 100000000)
             throw std::runtime_error("require 0 < video-hz <= 100000000");
+#ifdef X1_TURBO_VIDEO_MASTER
+        if (video_hz != 42954540)
+            throw std::runtime_error("Turbo video-master model requires video-hz = 42954540");
+#endif
         if (!reset_for_us || reset_for_us > 1000000)
             throw std::runtime_error("require 0 < reset-for-us <= 1000000");
 #ifdef X1_SINGLE_CLOCK
@@ -153,6 +162,15 @@ int main(int argc, char **argv) {
                 downloads.push_back({index, start + static_cast<uint32_t>(i), bytes[i]});
         };
         if (ram_path) enqueue(2, load_address, image(ram_path), 65536);
+        if (font16_path) {
+#ifdef X1_TURBO_FOUNDATION
+            auto font_bytes = image(font16_path);
+            if (font_bytes.size() != 4096) throw std::runtime_error("font16 must contain exactly 4096 bytes");
+            enqueue(4, 0, font_bytes, 4096);
+#else
+            throw std::runtime_error("font16 requires a Turbo model");
+#endif
+        }
 #ifdef X1_TURBO_FOUNDATION
         constexpr unsigned ipl_capacity = 32768;
         constexpr const char *turbo_foundation = "true";
@@ -305,10 +323,10 @@ int main(int argc, char **argv) {
         // a reconstructed RAM bootstrap. Only quiescent host interfaces are
         // supported; disk contents must match and clocks keep absolute phase.
         uint64_t resume_time = 0;
-        constexpr uint64_t snapshot_magic = 0x5831534e41503032ULL ^ sys_hz;
+        constexpr uint64_t snapshot_magic = 0x5831534e41503033ULL ^ sys_hz;
 #ifdef X1_SAVABLE
         if (restore_path) {
-            if (rom_path || ram_path) throw std::runtime_error("snapshot restore cannot also download ROM/RAM");
+            if (rom_path || ram_path || font16_path) throw std::runtime_error("snapshot restore cannot also download ROM/RAM/font16");
             VerilatedRestore state;
             state.open(restore_path);
             if (!state.isOpen()) throw std::runtime_error("cannot open snapshot");
@@ -634,14 +652,19 @@ int main(int argc, char **argv) {
             std::snprintf(byte, sizeof(byte), "%02x", top.debug_ram);
             peek += byte;
         }
-        std::printf("{\"machine\":\"sharpx1\",\"turbo_foundation\":%s,\"intra_assignment_delays\":%s,\"sys_hz\":%llu,\"video_hz\":%llu,"
+#ifdef X1_TURBO_VIDEO_MASTER
+        constexpr const char *turbo_video_master = "true";
+#else
+        constexpr const char *turbo_video_master = "false";
+#endif
+        std::printf("{\"machine\":\"sharpx1\",\"turbo_foundation\":%s,\"turbo_video_master\":%s,\"intra_assignment_delays\":%s,\"sys_hz\":%llu,\"video_hz\":%llu,"
                     "\"time_ps\":%llu,\"sys_edges\":%llu,\"video_edges\":%llu,"
                     "\"reset_edges\":%llu,\"cpu_enables\":%llu,\"delayed_sys_edges\":%llu,"
                     "\"hs_edges\":%llu,\"vs_edges\":%llu,\"hs_period_ps\":%llu,\"vs_period_ps\":%llu,\"video_hash\":\"%016llx\","
                     "\"download_bytes\":%llu,\"cpu_address\":%u,\"halted\":%s,\"peek\":\"%s\","
                     "\"ps2_bytes_sent\":%llu,\"disk_requests\":%llu,\"disk_writes\":%llu,\"frames\":%llu,\"frame_width\":%u,\"frame_height\":%u,\"frame_hash\":\"%016llx\","
                     "\"sub_pc\":%u,\"sub_address\":%u,\"sub_control\":%u,\"sub_running\":%s,\"sub_tx_busy\":%s,\"sub_rx_empty\":%s}\n",
-                    turbo_foundation, VM_TIMING ? "true" : "false",
+                    turbo_foundation, turbo_video_master, VM_TIMING ? "true" : "false",
                     (unsigned long long)sys_hz,
                     (unsigned long long)video_hz, (unsigned long long)context.time(), (unsigned long long)top.sys_edges,
                     (unsigned long long)top.video_edges, (unsigned long long)top.reset_edges,

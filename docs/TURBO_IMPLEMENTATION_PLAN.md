@@ -53,7 +53,8 @@ References actually inspected locally:
   [the manuals archive](https://eaw.app/Downloads/Manuals/Sharp/CZ851_2C_Schematic.pdf).
 - The local Turbo II user/BASIC manuals were checked for text extraction;
   they are image scans without usable extracted text. The Turbo Z service
-  manual is present but was not page-audited in this task. See
+  manual pages 1–6 were subsequently visually audited for the separate
+  [Turbo Z roadmap](TURBO_Z_PLAN.md); later schematics remain unaudited. See
   [manual inventory and hashes](../references/manuals/README.md). Do not cite
   these scans as proof of unreviewed register details.
 

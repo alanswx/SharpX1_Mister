@@ -1,6 +1,6 @@
 // Sharp X1 base-machine integration. Shared by MiSTer and simulation.
 // See docs/BASE_X1_CONTRACT.md for address-map sources and limitations.
-module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0) (
+module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0) (
     input clk_sys, clk_28636, reset,
     input pal, scandouble,
     input ioctl_download,
@@ -113,13 +113,16 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0) (
     // still needs hardware/CDC review; diagnostics switch while masked.
     (* async_reg = "true" *) reg [7:0] turbo_scrn_meta, turbo_scrn_video;
     (* async_reg = "true" *) reg [6:0] turbo_black_meta, turbo_black_video;
+    (* async_reg = "true" *) reg width_meta, width_video;
     always @(posedge clk_28636 or posedge reset)
         if (reset) begin
             turbo_scrn_meta <= 0; turbo_scrn_video <= 0;
             turbo_black_meta <= 0; turbo_black_video <= 0;
+            width_meta <= 0; width_video <= 0;
         end else begin
             turbo_scrn_meta <= turbo_scrn; turbo_scrn_video <= turbo_scrn_meta;
             turbo_black_meta <= turbo_black; turbo_black_video <= turbo_black_meta;
+            width_meta <= mode_c[6]; width_video <= width_meta;
         end
     always @(posedge clk_sys or posedge reset)
         if (reset) ipl_enabled <= 1'b1;
@@ -266,6 +269,8 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0) (
     wire [4:0] graphics_ra;
     wire [14:0] graphics_addr;
     wire [10:0] cgaddr;
+    wire [11:0] ank16_addr;
+    wire [7:0] ank16_data, cg8_data;
     wire [7:0] text_cpu, text_vid, attr_cpu, attr_vid, cg_data;
     wire [7:0] kan_cpu, kan_vid;
     wire [7:0] grb_cpu, grr_cpu, grg_cpu, grb_vid, grr_vid, grg_vid;
@@ -303,22 +308,34 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0) (
     x1_video_ram #(11) pcg_r(clk_28636,cg_access_addr,cg_access_data,cg_access_write[1],pcgr_cpu,clk_28636,cgaddr,pcgr_vid);
     x1_video_ram #(11) pcg_g(clk_28636,cg_access_addr,cg_access_data,cg_access_write[2],pcgg_cpu,clk_28636,cgaddr,pcgg_vid);
     x1_cg8 access_font(clk_28636,cg_access_addr,cg_rom_cpu);
-    x1_cg8 font(clk_28636,cgaddr,cg_data);
+    x1_cg8 font(clk_28636,cgaddr,cg8_data);
+    generate if (TURBO) begin : turbo_font
+        x1_font16 font16 (
+            .cpu_clk(clk_sys), .video_clk(clk_28636),
+            .load(ioctl_download && ioctl_wr && ioctl_index == 4),
+            .load_address(ioctl_addr), .load_data(ioctl_dout),
+            .display_address(ank16_addr), .display_data(ank16_data), .loaded()
+        );
+    end else begin : no_turbo_font
+        assign ank16_data = 0;
+    end endgenerate
+    assign cg_data = TURBO && turbo_scrn_video[0] ? ank16_data : cg8_data;
     wire r,g,b;
-    x1_vid #(.ENABLE_CRTC(SINGLE_CLOCK), .TURBO_SUPPORT(TURBO)) display (
+    x1_vid #(.ENABLE_CRTC(SINGLE_CLOCK || TURBO_VIDEO_MASTER), .TURBO_SUPPORT(TURBO), .TURBO_CLOCKS(TURBO_VIDEO_MASTER)) display (
         .I_TURBO_BLACK(turbo_black_video),
+        .I_TURBO_HIGH_SCAN(TURBO && turbo_scrn_video[0]),
         .I_RESET(reset), .I_CCLK(clk_sys), .I_A(a), .I_D(data_out), .O_D(), .O_DE(),
         .I_WR(io_write && !dam), .I_RD(io_read), .O_VWAIT(),
         .I_CRTC_CS(io_cycle && a[15:8] == 8'h18), .I_CG_CS(cg_access),
         .I_PAL_CS(io_cycle && a[15:10] == 6'b000100),
         .I_TXT_CS(1'b0), .I_ATT_CS(1'b0), .I_KAN_CS(1'b0),
         .I_GRB_CS(1'b0), .I_GRR_CS(1'b0), .I_GRG_CS(1'b0),
-        .I_VCLK(clk_28636), .I_CLK1(clk1), .O_VQ(), .I_W40(mode_c[6]),
+        .I_VCLK(clk_28636), .I_CLK1(clk1), .O_VQ(), .I_W40(TURBO_VIDEO_MASTER ? width_video : mode_c[6]),
         .O_VA(vaddr), .O_GRAPHICS_RA(graphics_ra), .O_TXT_WE(), .O_ATT_WE(), .O_KAN_WE(),
-        .I_TXT_D(text_vid), .I_ATT_D(attr_vid), .I_KAN_D(8'd0),
+        .I_TXT_D(text_vid), .I_ATT_D(attr_vid), .I_KAN_D(TURBO ? kan_vid : 8'd0),
         .O_GRB_WE(), .O_GRR_WE(), .O_GRG_WE(),
         .I_GRB_D(grb_vid), .I_GRR_D(grr_vid), .I_GRG_D(grg_vid),
-        .O_CGA(cgaddr), .I_CG_D(cg_data),
+        .O_CGA(cgaddr), .O_ANK16_ADDR(ank16_addr), .I_CG_D(cg_data),
         .I_PCGB_D(pcgb_vid), .I_PCGR_D(pcgr_vid), .I_PCGG_D(pcgg_vid),
         .O_R(r), .O_G(g), .O_B(b), .O_HSYNC(HSync), .O_VSYNC(VSync), .O_VDISP(vdisp),
         .O_HBLANK(HBlank), .O_VBLANK(VBlank), .O_CE_PIXEL(ce_pix)

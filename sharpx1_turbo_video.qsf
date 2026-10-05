@@ -1,0 +1,6 @@
+# Experimental 32 MHz CPU + enable-driven X3 Turbo video domain.
+# Neither the default nor the old single-clock revision changes configuration.
+source sharpx1.qsf
+set_global_assignment -name VERILOG_MACRO "X1_TURBO_FOUNDATION=1"
+set_global_assignment -name VERILOG_MACRO "X1_TURBO_VIDEO_MASTER=1"
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_turbo_video_pll.sv

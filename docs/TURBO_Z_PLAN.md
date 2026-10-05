@@ -1,0 +1,166 @@
+# X1 Turbo Z roadmap (research, not implemented)
+
+October 5, 2026. Finish base Turbo video/peripherals and native tests first.
+`TURBO=1` is not a Turbo Z identification flag. Introduce a separate capability
+profile only when its observable behavior exists; do not make software detect
+missing devices by returning invented status values.
+
+## Evidence actually inspected
+
+- Sharp CZ-880CB/CE service manual No. CZ-72, printed/PDF pages 1–6, 9, 30,
+  43–48, read
+  visually from the existing local scan. Page numbers coincide for these
+  sheets. [Original scan](https://eaw.app/Downloads/Manuals/Sharp/CZ-880_Service_Manual.pdf),
+  [local inventory/hash](../references/manuals/README.md).
+  The manual is image-only; text extraction did not provide searchable prose.
+  No new copy was downloaded. Pages 43/45 are partial foldout sheets: only
+  visible chip/control labels were surveyed, not a complete netlist/register
+  timing audit. Adjoining pages 44/46 were also surveyed for component labels;
+  custom ASIC behavior remains unresolved. The web viewer could not fetch this PDF; the local
+  scan was used successfully.
+- Existing local MAME `x1.cpp` / `x1_v.cpp`, revision recorded in
+  `TURBO_IMPLEMENTATION_PLAN.md`. [Upstream implementation](https://github.com/mamedev/mame/blob/f4bfc5a423f48d48e809c01fc70a47c0c00d40a2/src/mame/sharp/x1.cpp).
+  Z palette/control code and logging-only capture/mosaic/key/scroll handlers
+  were inspected, not executed. These stubs are not reference acceptance.
+- Existing X Millennium `io/crtc.h`, `io/crtc.c`, `vram/makescrn.c`, inspected
+  locally, not built/run. Its mode selection and palette readback provide a
+  second implementation, with disagreements listed below.
+
+## Model and feature boundaries
+
+The CZ-880 manual specifies a 4 MHz Z80A, two 80C49 control processors, 64 KiB
+main RAM, 96 KiB GRAM, 6 KiB PCG, 6 KiB total text/attributes, 8 KiB character
+ROM and 256 KiB Kanji ROM. Its 32 KiB BIOS contains a 4 KiB IPL (page 4): a
+32 KiB read aperture alone does not prove the reset/BIOS bank contract.
+Page 2 describes first/second-level Kanji and a standard mouse. Page 3 describes
+FM/PSG mixing and two switchable 2HD/2D drives; page 6 includes RS-232C,
+parallel printer, two joystick ports and battery-backed clock functionality.
+
+Do not assume ZII/ZIII RAM or cassette differences from the CZ-880 manual.
+MAME's model inventory associates additional 64 KiB RAM with ZII and cassette
+removal with ZIII; verify their manuals before exposing those variants.
+EMM, SASI/HDD and expansion-board interfaces remain optional capabilities,
+not requirements inferred from MAME's combined port map.
+
+## Graphics acceptance matrix
+
+Manual page 4 lists these multi-mode configurations, all with 12-bit analog
+RGB color selection. Active dimensions and actual address/plane use need
+independent pixel tests; no row resampling or oversized framebuffer claim.
+
+| Native mode | Simultaneous colors | Screen capacity |
+|---|---:|---:|
+| 640x400 | 8 selected from 4096 | 1 |
+| 640x200 | 64 selected from 4096 | 1 |
+| 320x400 | 64 selected from 4096 | 1 |
+| 320x200 | 64 selected from 4096 | 2 |
+| 320x200 | 4096 | 1 |
+
+The 640x200/64-color entry is absent from MAME's introductory list; retain
+the manual's entry and derive its packing from schematics/second reference.
+Compatibility mode also has 192/384-raster variants. Screen counts in the
+manual include monochrome/plane-use configurations; do not allocate imaginary
+extra GRAM. The digital RGB output reduces analog multi-mode colors to eight
+(page 4); model that separately from the full-color MiSTer/scaler output.
+
+## Ordered TODO and tests
+
+- [ ] Z0: explicit CZ-880 profile, authentic BIOS/ANK/Kanji loader layout and
+  hashes, real device/DIP/readback behavior. Verify base/Turbo decode isolation,
+  DAM and ACK exclusion, cold reset and retained storage. Resolve BIOS bank
+  layout before native boot, without patching firmware detection.
+- [ ] Z1: widen the shared RGB pipeline to at least 4 bits/component and carry
+  full color through simulator PPM capture, wrapper/scandoubler/scaler and
+  screenshots. Preserve exact base eight-color pixels and audio interfaces.
+- [ ] Z2: analog enable/palette mode `1FB0`, eight text palette entries
+  `1FB8..1FBF`, graphics palette control `1FC5`, and palette programming/read
+  transactions at `1000..12FF`. Establish AEN/APEN/APRD/C64 gating, address
+  formation, masks, reset and palette RAM retention from hardware diagrams.
+  Exhaust palette entries/components and read-selector transactions; verify
+  address/data latch and held-strobe behavior, WAIT/bus ownership, live changes
+  during blanking/active display and mode switches without reset.
+- [ ] Z3: all five multi-mode pixel formats above, using real CPU-programmed
+  GRAM, distinct pages/planes, horizontal pixel packing and raster boundaries.
+  Verify MA wrap, screen-page capacity, priority/transparency and blackclip
+  before/after palette stages; compare every active pixel and native HS/VS.
+- [ ] Z4: text-display/priority control `1FC0`, analog text colors, background
+  transparency and model-specific SCRN/blackclip readback. Manual pages 4–5
+  distinguish compatibility/multi-mode border/black rules. Test text/graphics
+  overlap with underline, blink/reverse, Kanji halves and all color controls.
+- [ ] Z5: standard stereo FM (YM2151), board CTC/interrupts and PSG mixing.
+  Reuse audited JT51 sources, preserve licenses, verify busy/status/timers,
+  stereo panning, clipping and deterministic note WAVs. Manual page 3 routes
+  PSG equally to L/R and combines FM channels for the internal mono speaker;
+  MiSTer stereo and optional mono output need distinct tests.
+  Resolve the page-30 block diagram's FM 4 MHz label versus local MAME's
+  2 MHz YM configuration from the complete circuit sheets, not by copying
+  either rate without checking the actual input/divider.
+- [ ] Z6: dual 2HD/2D operation, mode-switch/DIP reset behavior, rates/index,
+  media type and supported D88 track/sector layouts. Protect source images;
+  validate native HD boot/reads/writes using disposable output copies.
+- [ ] Z7: second-level Kanji/ANK ROM authenticity and addressing, mouse/serial
+  behavior, calendar/RTC persistence and control-processor commands. Verify
+  CPU-level device transactions, not static capability signatures.
+- [ ] Z8: image capture `1FC1`, mosaic `1FC2`, chroma key `1FC3`, extra-scroll
+  `1FC4`, superimpose/telopper output and video-source ownership. First derive
+  register encodings, capture clocks and DMA/GRAM arbitration from manual
+  schematics; specify a deterministic simulated input source. Verify capture
+  at 1/2/3/4-bit component quantization (8/64/512/4096 colors), inversion,
+  normal/inverse chroma key and horizontal/vertical mosaic dimensions listed
+  on page 5. Test physical video input separately; an absent input must not
+  masquerade as a working digitizer.
+- [ ] Z9: native software acceptance, analog/multi-mode test programs and
+  diagnostic input patterns; cold/warm reset during palette/capture/SD/DMA,
+  unchanged assets and repeatable input/audio/screens. Record source-bound
+  Quartus resource/timing/CDC reports and physical output measurements.
+
+MAME's palette implementation marks APRD and active-display bus behavior
+incomplete. X Millennium gates text/graphics palette readback/writes on AEN
+where MAME is less restrictive, and forms reduced-color palette indices
+differently. These are explicit research/acceptance gates, not choices to
+settle by making one game's boot pass. MAME's four video-effect handlers only
+log accesses; they cannot validate capture or mosaic output.
+
+## Next primary-document audit
+
+Page 9 shows optional external drives/RAM/color-image board, not a chip-level
+system block diagram. Its right-hand foldout continues beyond that scan page;
+do not infer full built-in capture hardware from the accessories alone.
+Page 30 is the internal system diagram: separate 48 KiB GRAM banks, A/D and
+D/A paths, RGB decoder, mosaic/capture positioning, telopper, automatic
+synchronization control and 32.768 kHz NiCd-backed clock. It independently
+shows the CPU/DMA/SIO/CTC, two 8255s and two 80C49s. The keyboard processor
+and main sub-CPU are distinct; the MR16 replacement is not automatically an
+implementation of both controllers.
+
+The visible part of page 43 identifies Z80A CPU IC9, DMA IC10, SIO IC11,
+decode ASIC IX0861CE (IC17) and wait/bus ASIC IX0724CE (IC3). Page 45 shows
+address/video ASICs IX0862CE/IX0866CE, graphics ASIC IX0867CE, character/IRQ
+ASIC IX0864CE, MB8416 graphics RAM, 2 KiB text/Kanji/attribute RAMs and
+42.95454 MHz crystal. These labels give net-audit targets, not behavioral
+models of custom ASIC internals. Chip acquisition alone cannot fill those gaps.
+
+Page 44 adds the HD46505-2 CRTC, Z80A CTC, timing/PCG ASIC IX0863CE,
+16 MHz CPU crystal and real FDC-ready/external-ready inputs. Page 46 shows
+palette ASIC IX0868CE with three uPD4314 palette RAMs (12 output data bits),
+three MB40776H D/A converters, three MB40576 A/D converters, two uPD4101C
+line-buffer FIFOs and level-1/level-2 Kanji ROMs IX0730CE/IX0782CE. This
+supports separate palette, capture/line-buffer and glyph-loader milestones.
+The ROM address nets explicitly include glyph code, raster and left/right;
+archive layouts must be reconciled with those pin orders before claiming
+that concatenating downloaded font files reproduces silicon addressing.
+
+Sub-board pages 47/48 show the 6 MHz 80C49 sub-CPU, uPD1990 serial calendar
+and 32.768 kHz oscillator, YM2151/YM3012 FM path, YM2149 PSG, MB8877A plus
+MB4107 data separator and disk-control ASIC IX0870CE. The existing main
+CPU's DMA-ready path therefore depends on real FDC DRQ and wait/bus logic,
+not a replacement always-ready status bit. Disk connectors explicitly carry
+rate/mode, 48/96 TPI, index, ready and write-protect; add those relationships
+to the HD-media timing contract before merely accepting an HD D88 header.
+
+Continue a full signal/ASIC functional audit of sheets 43–46, connectors
+pages 11–29; capture adjustment page 40; sub-board page 47; telopper page 51; IC blocks
+pages 67–71. Render and inspect those pages before assigning register bits
+or importing FPGA chips. Record page-specific evidence and unresolved nets.
+For now only the pages explicitly listed above and named emulator source paths
+have been inspected.

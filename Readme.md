@@ -32,16 +32,22 @@ source macros; its presence does not imply complete Turbo compatibility.
 An explicit, opt-in `TURBO=1` foundation now adds two graphics pages, separate
 Kanji attribute RAM, blackclip controls and a 32 KiB IPL aperture to the shared
 machine. CPU diagnostics and actual RGB tests cover these extensions. It is
-**not full Turbo support**: 400-line clocks, glyph ROMs/high-speed
-PCG, DMA, SIO and native Turbo firmware acceptance remain open. An
+**not full Turbo support**: Kanji/high-speed PCG, DMA, SIO and native Turbo
+firmware acceptance remain open. An
 experimental [graphics raster increment](docs/TURBO_RASTER_STATUS.md) separates
 text/graphics addresses and adds repeated/alternating-page raster mapping;
-it does not yet provide authentic 24 kHz timing or 16-row glyphs. The latest
-published RBF predates that increment. The earlier
+the new opt-in [X3 clock/font increment](docs/TURBO_VIDEO_CLOCK_STATUS.md)
+adds enable-driven nominal high/low-scan timing and a validated 16-row ANK
+loader. Synthetic pixel tests pass; native Arcus remains garbled/not playable.
+Exact hardware timing, remaining text/PCG/Kanji functions and FPGA acceptance
+remain open. The previous published RBF predates these increments. The earlier
 opt-in [CTC increment](docs/CTC_STATUS.md) adds enable-driven timers/counters,
 IM2 vectors, CTC-before-keyboard arbitration and stable stretched ACKs;
 focused unit/CPU/real-MR16 tests pass, not exact hardware timing. See the
 [Turbo status](docs/TURBO_STATUS.md) and [implementation plan](docs/TURBO_IMPLEMENTATION_PLAN.md).
+Turbo Z is a separate, unimplemented target with a
+[manual-based roadmap](docs/TURBO_Z_PLAN.md), including analog multi-color
+video, stereo FM, HD disks and capture effects.
 
 The headless simulator has been compiled with Verilator 5.044 on macOS.
 The timing/reset regression passes. A 200,000-system-cycle run reports:

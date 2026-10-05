@@ -144,8 +144,15 @@ support before optional Turbo extensions.
   still absent. See `CTC_STATUS.md`.
 - [ ] Implement X1 Turbo high-resolution/400-line behavior.
   Graphics raster/page addressing is implemented separately from text MA;
-  calibrated high-scan clocks and 16-row glyphs remain open. See
-  `TURBO_RASTER_STATUS.md`; this does not close the 400-line milestone.
+  nominal X3 enable timing and 16-row ANK now have focused simulation coverage.
+  Exact clock/switching hardware, Kanji, text expansion, CPU font selection,
+  underline and high-speed PCG remain open. See `TURBO_VIDEO_CLOCK_STATUS.md`;
+  this does not close the 400-line milestone.
+- [x] Add separate opt-in 42.954540 MHz X3 video profile with enabled CRTC,
+  2/3-edge high/low dot cadence, phase/reset/width tests, sixteen-row ANK
+  loader and synthetic pixel tests. Exhaust ordinary/paired PCG addresses.
+  Native Arcus high-scan periods now match nominal geometry; its screen remains
+  garbled, not playable. FPGA fitted frequency/hardware need separate evidence.
 - [x] Separate graphics RA from text MA; implement low/repeated/even-odd GRAM
   page/raster addresses. Exhaustive address unit and sixteen CPU-written RGB
   cases pass in fast baseline Turbo, with focused delay-aware single coverage.
@@ -191,3 +198,23 @@ support before optional Turbo extensions.
   compatibility, delay-aware gameplay or hardware validation.
 - [ ] Record known deviations from MAME/X Millennium and gate regressions on
   stable screenshots, bus traces, and audio hashes.
+
+## Phase 5 — Turbo Z (researched roadmap, not implemented)
+
+See [Turbo Z specification, sources and acceptance plan](TURBO_Z_PLAN.md).
+Finish base Turbo first; keep Z-specific detection/ports behind a separate
+capability profile. The existing `TURBO=1` build is not Turbo Z support.
+
+- [ ] Define CZ-880 model/BIOS/font/DIP/readback contracts; distinguish ZII/ZIII.
+- [ ] Widen simulator and FPGA RGB paths for true 12-bit analog color.
+- [ ] Implement analog enable, text/graphics palettes and palette readback.
+- [ ] Implement/test 640x400/8, 640x200/64, 320x400/64,
+  320x200/64 (two screens) and 320x200/4096 (one screen) multi-modes.
+- [ ] Implement Z text priority, transparency, blackclip and output rules.
+- [ ] Integrate standard stereo YM2151 FM, CTC/IRQ and PSG mixing.
+- [ ] Qualify switchable dual 2HD/2D drives and native HD software.
+- [ ] Add second-level Kanji, mouse/serial and RTC/control-processor behavior.
+- [ ] Research/implement capture quantization/inversion, mosaic, chroma key,
+  extra scroll and superimpose/telopper, with a deterministic test video source.
+- [ ] Validate native Z software, pending-operation resets, Quartus/CDC and
+  physical video/input/audio. EMM/SASI remain separately scoped expansions.

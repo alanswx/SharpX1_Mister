@@ -33,9 +33,13 @@ def main():
     parser.add_argument("--bus-start-ms", type=int, default=0)
     parser.add_argument("--bus-end-ms", type=int, default=0)
     parser.add_argument("--timeout", type=float, default=1800)
+    parser.add_argument("--font16", type=pathlib.Path, help="local character-major 4096-byte Turbo ANK font")
+    parser.add_argument("--joya", type=lambda value: int(value, 0), help="exploratory held active-low joystick A pins")
     args = parser.parse_args()
     if args.seconds < 1:
         parser.error("--seconds must be positive")
+    if args.joya is not None and not 0 <= args.joya <= 255:
+        parser.error("joya must fit one byte")
     if (args.bus_events or args.bus_start_ms or args.bus_end_ms) and not args.io_trace:
         parser.error("bus options require --io-trace")
     manifest = args.manifest.resolve()
@@ -61,6 +65,11 @@ def main():
             parser.error("staged B disk differs from manifest")
     exe, rom, keys = (p.resolve() for p in (args.executable, args.rom, args.keys))
     originals = {str(p): digest(p) for p in (disk, rom, keys, manifest)}
+    font16 = args.font16.resolve() if args.font16 else None
+    if font16:
+        if font16.stat().st_size != 4096:
+            parser.error("font16 must contain exactly 4096 bytes")
+        originals[str(font16)] = digest(font16)
     if disk_b:
         originals[str(disk_b)] = digest(disk_b)
     folder = args.output.resolve()
@@ -82,6 +91,10 @@ def main():
                    "--dump", str(prefix), "--frame", str(prefix) + ".ppm"]
         if disk_b:
             command += ["--disk-b", str(disk_b)]
+        if font16:
+            command += ["--font16", str(font16)]
+        if args.joya is not None:
+            command += ["--joya", str(args.joya)]
         if args.io_trace:
             command += ["--bus-trace", str(prefix) + ".csv", "--io-only"]
             if args.bus_events:

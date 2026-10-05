@@ -58,6 +58,16 @@ revision uses the existing actual 28,571,428 Hz PLL output instead. See
 gameplay regression, but its instruction clock remains slower. Preserve the
 timer's inherited N+1-tick period and test both actual master frequencies.
 Never claim compatibility or timing closure from a boot screenshot.
+`turbo-video`/`turbo-video-fast` are separate, opt-in X3 video experiments:
+32 MHz system and nominal 42.954540 MHz video with high/low-scan enables.
+Do not run the compensated single-clock MR16 at X3 or silently change the
+default model. Index 4 / `--font16` accepts character-major 4096-byte ANK;
+do not embed private font bytes. See `docs/TURBO_VIDEO_CLOCK_STATUS.md` for
+exact checks and missing Kanji/text/high-speed PCG behavior. The FPGA revision
+`sharpx1_turbo_video` requests its own PLL; record the fitted frequency,
+source-bound timing and hardware results separately from nominal simulation.
+Snapshot format v03 rejects old v02 states; regenerate from native boot,
+never convert or patch state bytes to bypass model compatibility checks.
 Simulator disk writes require `--disk-output NEW_COPY`; private originals and
 snapshots remain ignored. See `docs/DISK_STATUS.md` for tested and missing cases.
 Warm reset events use repeated `--reset-at MS` and `--reset-for-us US`, relative

@@ -27,8 +27,9 @@
     VIDEO / GRAPHIC RAM read is not supported
 
 ****************************************************************************/
-module x1_vid #(parameter ENABLE_CRTC = 0, TURBO_SUPPORT = 0)(
+module x1_vid #(parameter ENABLE_CRTC = 0, TURBO_SUPPORT = 0, TURBO_CLOCKS = 0)(
   I_TURBO_BLACK,
+  I_TURBO_HIGH_SCAN,
   I_RESET,
 // CPU I/F
   I_CCLK,
@@ -76,6 +77,7 @@ module x1_vid #(parameter ENABLE_CRTC = 0, TURBO_SUPPORT = 0)(
   I_GRB_D , I_GRR_D,  I_GRG_D,
 // CG ROM/RAM
   O_CGA,
+  O_ANK16_ADDR,
   I_CG_D  , I_PCGB_D , I_PCGR_D , I_PCGG_D,
 // VIDEO OUTPUT
   O_R     , O_G     , O_B,
@@ -85,6 +87,7 @@ module x1_vid #(parameter ENABLE_CRTC = 0, TURBO_SUPPORT = 0)(
 
 input I_RESET;
 input [6:0] I_TURBO_BLACK;
+input I_TURBO_HIGH_SCAN;
 // CPU I/F
 input I_CCLK;
 input [15:0] I_A;
@@ -142,6 +145,7 @@ input [7:0] I_GRB_D  , I_GRR_D  , I_GRG_D ;
 
 // CG ROM/RAM
 output [10:0] O_CGA;
+output [11:0] O_ANK16_ADDR;
 input [7:0] I_CG_D  , I_PCGB_D , I_PCGR_D , I_PCGG_D;
 
 // VIDEO OUTPUT
@@ -153,18 +157,32 @@ output O_HBLANK, O_VBLANK, O_CE_PIXEL;
 /////////////////////////////////////////////////////////////////////////////
 // video timming generator
 /////////////////////////////////////////////////////////////////////////////
-reg ppres;
-reg [3:0] pris;
+wire [4:0] timing_phase;
+wire ppres = timing_phase[0];
+wire [3:0] pris = timing_phase[4:1];
+wire video_step;
 reg vid_reset;
 
-always @(posedge I_VCLK or posedge I_RESET)
-begin
-  if(I_RESET) begin ppres <= 0; pris <= 0; end
-  else begin
-    ppres <= ~ppres & I_W40;
-    if(~ppres) pris <= pris + 1;
+generate
+if (TURBO_CLOCKS) begin : turbo_timing
+  x1_video_timing timing (
+    .clk(I_VCLK), .reset(I_RESET), .high_scan(I_TURBO_HIGH_SCAN),
+    .width40(I_W40), .step(video_step), .phase(timing_phase)
+  );
+end else begin : base_timing
+  reg base_prescale;
+  reg [3:0] base_divider;
+  assign timing_phase = {base_divider,base_prescale};
+  assign video_step = 1'b1;
+  always @(posedge I_VCLK or posedge I_RESET) begin
+    if(I_RESET) begin base_prescale <= 0; base_divider <= 0; end
+    else begin
+      base_prescale <= ~base_prescale & I_W40;
+      if(~base_prescale) base_divider <= base_divider + 1'b1;
+    end
   end
 end
+endgenerate
 
 always @(posedge I_VCLK or posedge I_RESET)
 begin
@@ -172,7 +190,7 @@ begin
   begin
     vid_reset <= 1'b1;
   end else begin
-    if(pris==4'b1111)
+    if(video_step && pris==4'b1111)
       vid_reset <= 1'b0;
   end
 end
@@ -194,14 +212,14 @@ wire crtc_hsync;
 wire crtc_vsync;
 wire crtc_disptmg;
 
-crtc6845s #(.ENABLE_MODE(ENABLE_CRTC)) crtc6845s(
+crtc6845s #(.ENABLE_MODE(ENABLE_CRTC || TURBO_CLOCKS)) crtc6845s(
   .I_E(~I_CCLK),
   .I_DI(I_D),
   .I_RS(I_A[0]),
   .I_RWn(~I_WR),
   .I_CSn(~I_CRTC_CS),
-  .I_CLK(ENABLE_CRTC ? I_VCLK : ~QD),
-  .I_CE(~ppres && pris == 4'b1111),
+  .I_CLK((ENABLE_CRTC || TURBO_CLOCKS) ? I_VCLK : ~QD),
+  .I_CE(video_step && ~ppres && pris == 4'b1111),
   .I_RSTn(~vid_reset),
   .O_RA(crtc_ra),
   .O_MA(crtc_ma),
@@ -226,7 +244,7 @@ begin
     vdisp_dly <= 1;
   else begin
     // latch VDISP
-    if(~QP & QA & ~QD & ~QC & ~QB)
+    if(video_step & ~QP & QA & ~QD & ~QC & ~QB)
     begin
       if(vdisp_dly)
         vdisp <= crtc_disptmg;
@@ -277,12 +295,13 @@ reg att_b;
 reg hsync_d , vsync_d , disp_d;
 
 // V2X
-reg [2:0] cg_line;
+reg [3:0] cg_line;
 reg old_ra0;
+reg pcg_paired;
 
 always @(posedge I_VCLK)
 begin
-  if(~QP & QA) // 1pixel clock
+  if(video_step & ~QP & QA) // 1pixel enable
   begin
 
     // CG pixel shift
@@ -305,6 +324,7 @@ begin
       if( QC & ~QB) // delay 2 ealy latch
       begin
         txt_d <= I_TXT_D;
+        pcg_paired <= TURBO_SUPPORT && ((I_KAN_D & 8'h90) != 0);
 
         // CG V pos
         old_ra0 <= crtc_ra[0];
@@ -314,7 +334,7 @@ begin
           if(old_ra0 & ~crtc_ra[0])
             cg_line <= cg_line + 1;    // x2 increment CRTC 2V
         end else begin
-          cg_line <= crtc_ra[2:0];     // x1 CRTC through
+          cg_line <= TURBO_SUPPORT && I_TURBO_HIGH_SCAN ? crtc_ra[3:0] : {1'b0,crtc_ra[2:0]};
         end
       end
 `endif
@@ -333,7 +353,7 @@ begin
           if(old_ra0 & ~crtc_ra[0])
             cg_line <= cg_line + 1;        // x2 increment CRTC 2V
         end else begin
-          cg_line <= crtc_ra[2:0];     // x1 CRTC through
+          cg_line <= TURBO_SUPPORT && I_TURBO_HIGH_SCAN ? crtc_ra[3:0] : {1'b0,crtc_ra[2:0]};
         end
 `endif
         // CG load
@@ -398,10 +418,14 @@ wire [3:0] kan_ah = kan_d[3:0]; // upper address
 
 `ifdef X1TURBO
 wire x1t_cg_sel = I_PCG_TURBO & (crtc_hsync | hsync_d);
-assign O_CGA = { txt_d, x1t_cg_sel ? I_A[3:1] : cg_line };
+assign O_CGA = { txt_d, x1t_cg_sel ? I_A[3:1] : cg_line[2:0] };
 `else
-assign O_CGA = { txt_d, cg_line };
+wire high_glyph = TURBO_SUPPORT && I_TURBO_HIGH_SCAN;
+wire [7:0] pcg_character = high_glyph && pcg_paired ? {txt_d[7:1],cg_line[3]} : txt_d;
+wire [2:0] pcg_row = high_glyph && !pcg_paired ? cg_line[3:1] : cg_line[2:0];
+assign O_CGA = {pcg_character,pcg_row};
 `endif
+assign O_ANK16_ADDR = {txt_d,cg_line};
 
 /****************************************************************************
   CG attribute effect
@@ -510,7 +534,7 @@ assign O_VSYNC = vsync_d;
 assign O_VDISP = vdisp;
 assign O_HBLANK = ~out_disp;
 assign O_VBLANK = ~vdisp;
-assign O_CE_PIXEL = ~QP & QA;
+assign O_CE_PIXEL = video_step & ~QP & QA;
 
 /****************************************************************************
   CPU read data

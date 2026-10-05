@@ -21,13 +21,19 @@ parser.add_argument("--turbo-bank", type=int, choices=(0, 1),
                     help="experimental Turbo: display this page with opposite CPU access page")
 parser.add_argument("--turbo-raster", type=int, choices=(0, 1, 2, 3),
                     help="SCRN low two bits, 16-raster graphics address fixture; NOT high-scan timing acceptance")
+parser.add_argument("--ank16", action="store_true", help="original 16-row font fixture with high-scan text")
+parser.add_argument("--ank16-warm-reset", action="store_true", help="retain the loaded font across a 10 us reset at 120 ms")
 parser.add_argument("--blackclip", type=lambda value: int(value, 0),
                     help="experimental Turbo blackclip mask, graphics/text fixtures only")
 args = parser.parse_args()
 if args.turbo_raster is not None:
-    if args.kind != "graphics" or args.transition or args.blackclip is not None:
-        parser.error("--turbo-raster requires --kind graphics without transition/blackclip")
+    if (args.kind != "graphics" and not (args.ank16 and args.kind == "text")) or args.transition or args.blackclip is not None:
+        parser.error("--turbo-raster requires graphics or --ank16 text without transition/blackclip")
     if args.turbo_bank is None: args.turbo_bank = 0
+if args.ank16 and (args.turbo_raster not in (1, 3) or args.kind != "text"):
+    parser.error("--ank16 requires --kind text and --turbo-raster 1 or 3")
+if args.ank16_warm_reset and not args.ank16:
+    parser.error("--ank16-warm-reset requires --ank16")
 if args.blackclip is not None and (not 0 <= args.blackclip < 128 or args.kind not in ("graphics", "text")):
     parser.error("--blackclip needs graphics/text and a 7-bit mask")
 exe = str(args.executable.resolve())
@@ -143,10 +149,16 @@ def run(folder, columns, kind):
     # 500 ms. Capture away from an edge, testing real firmware-driven reversal
     # rather than forcing the renderer's blink input.
     duration_ms = 700 if kind == "blink-on" else 1000 if kind in ("graphics", "mixed") else 300 if kind == "pcg" else 200
-    if args.turbo_raster is not None: duration_ms = 1800
+    if args.turbo_raster is not None: duration_ms = 200 if args.ank16 else 1800
     cycles = duration_ms * 32000
-    result = subprocess.run([exe, "--cycles", str(cycles), "--ram", str(code),
-                             "--frame", str(frame)], capture_output=True, text=True, timeout=args.timeout)
+    command = [exe, "--cycles", str(cycles), "--ram", str(code), "--frame", str(frame)]
+    if args.ank16:
+        font_image = folder / (name + ".font16")
+        font_image.write_bytes(bytes((a ^ (a >> 8)) & 255 for a in range(4096)))
+        command += ["--font16", str(font_image)]
+    if args.ank16_warm_reset:
+        command += ["--reset-at", "120", "--reset-for-us", "10"]
+    result = subprocess.run(command, capture_output=True, text=True, timeout=args.timeout)
     assert result.returncode == 0, (name, result.stderr)
     report = json.loads(result.stdout.splitlines()[-1])
     if args.turbo_bank is not None or args.blackclip is not None:
@@ -160,7 +172,10 @@ def run(folder, columns, kind):
     # clk_sys, so allow one system sampling edge, not arbitrary percentage.
     tolerance = (10**12 + report["sys_hz"] - 1) // report["sys_hz"] + 1
     total_lines = 448 if args.turbo_raster is not None else 258
-    for field, master_edges in (("hs_period_ps", 1792), ("vs_period_ps", 1792 * total_lines)):
+    line_edges = 1792
+    if report.get("turbo_video_master"):
+        line_edges = 1792 if args.turbo_raster is not None and args.turbo_raster & 1 else 2688
+    for field, master_edges in (("hs_period_ps", line_edges), ("vs_period_ps", line_edges * total_lines)):
         expected = round(master_edges * 10**12 / report["video_hz"])
         assert abs(report[field] - expected) <= tolerance, (name, field, expected, report[field], tolerance)
     header, dimensions, maximum, pixels = frame.read_bytes().split(b"\n", 3)
@@ -171,10 +186,14 @@ def run(folder, columns, kind):
         for x in range(width):
             color = ((7 - x % 8) ^ (y % 8)) if kind == "graphics" else (
                 7 if font[ord("A") * 8 + y % 8] & (128 >> (x % 8)) else 0)
-            if args.turbo_raster is not None:
+            if args.turbo_raster is not None and kind == "graphics":
                 page = y % 2 if args.turbo_raster == 1 else args.turbo_bank
                 row = (y // 2) % 8 if args.turbo_raster & 1 else y % 8
                 color = (7 - x % 8) ^ row ^ (7 if page else 0)
+            if args.ank16:
+                address = ord("A") * 16 + y % 16
+                bits = (address ^ (address >> 8)) & 255
+                color = 7 if bits & (128 >> (x % 8)) else 0
             if kind == "pattern":
                 offset = (0x7D5 + (y // 8) * columns + x // 8) & 0x7FF
                 address = 0x3000 + offset
@@ -206,8 +225,9 @@ def run(folder, columns, kind):
                       "program_sha256": hashlib.sha256(code.read_bytes()).hexdigest(),
                       "executable_sha256": hashlib.sha256(pathlib.Path(exe).read_bytes()).hexdigest(),
                       "turbo_raster": args.turbo_raster,
-                      "high_scan_timing_verified": False if args.turbo_raster is not None else None,
+                      "nominal_x3_timing_verified": bool(report.get("turbo_video_master")),
                       "font_source_sha256": hashlib.sha256(font_source.encode()).hexdigest(),
+                      "font16_sha256": hashlib.sha256(font_image.read_bytes()).hexdigest() if args.ank16 else None,
                       "sys_hz": report["sys_hz"], "video_hz": report["video_hz"],
                       "reset_edges": report["reset_edges"], "reference_cycles": cycles,
                       "hs_period_ps": report["hs_period_ps"], "vs_period_ps": report["vs_period_ps"],
@@ -220,7 +240,7 @@ def cases(folder):
         for kind in ((args.kind,) if args.kind else ("graphics", "text", "mixed", "pattern", "stretch", "pcg", "blink-off", "blink-on")):
             run(folder, columns, kind)
     print("PASS: CPU-programmed RGB pixels and current-clock periods" +
-          ("; Turbo raster addressing only, NOT calibrated high-scan timing" if args.turbo_raster is not None else ""))
+          ("; hardware high-scan timing remains unverified" if args.turbo_raster is not None else ""))
 
 if args.output:
     cases(args.output.resolve())

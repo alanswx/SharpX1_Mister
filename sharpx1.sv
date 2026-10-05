@@ -208,6 +208,9 @@ localparam CONF_STR = {
 	"-;",
 	"O[122:121],Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
 	"F0,ROM,Load IPL;",
+`ifdef X1_TURBO_FOUNDATION
+	"F4,X1,Load 16-row ANK;",
+`endif
 	"S0,D88,Drive A;",
 	"S1,D88,Drive B;",
 	"O[1],Disk writes,Protected,Enabled;",
@@ -302,7 +305,16 @@ hps_io #(.CONF_STR(CONF_STR), .PS2DIV(1600), .VDNUM(2)) hps_io
 
 ///////////////////////   CLOCKS   ///////////////////////////////
 
-wire clk_sys, clk_28636, clk_sys_pll;
+wire clk_sys, clk_28636, clk_sys_pll, legacy_video_pll;
+wire turbo_video_locked;
+`ifdef X1_TURBO_VIDEO_MASTER
+localparam TURBO_VIDEO_MASTER = 1;
+x1_turbo_video_pll turbo_video_pll(.refclk(CLK_50M), .video_clk(clk_28636), .locked(turbo_video_locked));
+`else
+localparam TURBO_VIDEO_MASTER = 0;
+assign clk_28636 = legacy_video_pll;
+assign turbo_video_locked = 1'b1;
+`endif
 `ifdef X1_SINGLE_CLOCK
 // Opt-in experiment uses the existing video's actual PLL frequency.
 assign clk_sys = clk_28636;
@@ -318,10 +330,10 @@ pll pll
 	.refclk(CLK_50M),
 	.rst(1'b0),
 	.outclk_0(clk_sys_pll),   // 32 MHz baseline; unused in one-clock mode.
-	.outclk_1(clk_28636)  // Checked-in PLL: 28.571428 MHz; crystal target needs review.
+	.outclk_1(legacy_video_pll)  // Checked-in PLL: 28.571428 MHz; unchanged old profiles.
 );
 
-wire reset = RESET | status[0] | buttons[1] | ioctl_download;
+wire reset = RESET | status[0] | buttons[1] | ioctl_download | !turbo_video_locked;
 
 //////////////////////////////////////////////////////////////////
 
@@ -339,7 +351,7 @@ localparam TURBO_FOUNDATION = 1;
 localparam TURBO_FOUNDATION = 0;
 `endif
 
-sharpx1 #(.SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ), .TURBO(TURBO_FOUNDATION)) sharpx1
+sharpx1 #(.SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ), .TURBO(TURBO_FOUNDATION), .TURBO_VIDEO_MASTER(TURBO_VIDEO_MASTER)) sharpx1
 (
 	.clk_sys(clk_sys),
 	.clk_28636(clk_28636),
@@ -351,8 +363,8 @@ sharpx1 #(.SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ), .TURBO(TURBO_FOUND
 
 	.ioctl_download(ioctl_download),
 	.ioctl_index(ioctl_index[7:0]),
-	.ioctl_wr(ioctl_wr && ioctl_index == 0 && ioctl_addr < (TURBO_FOUNDATION ? 27'd32768 : 27'd4096)),
-	.ioctl_addr(ioctl_addr[24:0]),
+	.ioctl_wr(ioctl_wr && ((ioctl_index == 0 && ioctl_addr < (TURBO_FOUNDATION ? 27'd32768 : 27'd4096)) || (TURBO_FOUNDATION && ioctl_index == 4))),
+	.ioctl_addr(ioctl_index == 4 && ioctl_addr >= 27'd4096 ? 25'h1ffffff : ioctl_addr[24:0]),
 	.ioctl_dout(ioctl_data),
 	.ps2_clk_in(ps2_clk), .ps2_data_in(ps2_data),
 	.joya_n(joya_n), .joyb_n(joyb_n),

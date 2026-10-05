@@ -5,7 +5,9 @@ enabled/divided-clock `crtc6845s`. The simulator uses that same machine, not
 the reference-only legacy wrapper. Complete Turbo 400-line video is not implemented.
 An experimental [graphics raster mapper](TURBO_RASTER_STATUS.md) now handles
 low, repeated and alternating-page addressing independently of text MA;
-clocks/fonts/native high-scan acceptance remain open.
+the separate [X3 clock/font increment](TURBO_VIDEO_CLOCK_STATUS.md) adds
+nominal high/low enables and tested 16-row ANK loading/pixels. Complete glyph,
+exact switching and native high-scan gameplay/hardware acceptance remain open.
 Experimental Turbo page/blackclip tests now run through the same renderer;
 see `TURBO_STATUS.md`. They do not extend this base 200-line milestone to
 400-line, high-speed PCG or authentic Kanji support.
