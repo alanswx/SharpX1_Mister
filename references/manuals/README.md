@@ -72,3 +72,7 @@ UM008101-0601 includes CTC, DMA, SIO and PIO programming/timing. Printed CTC
 pages 15/30/31 describe deferred running time-constant reload; pages 21/29 cover
 software reset and interrupt service. It informed the original enable-based
 CTC and focused tests; it is not evidence of authentic X1 ASIC alias decode.
+October 5: official-host retrieval matches the existing file byte-for-byte;
+the redundant retrieval was moved to a temporary audit file. DMA printed
+pages 75–78 and 89–92 were checked for terminal counts, bus request and
+programming contracts; see the implementation plan. DMA/SIO remain absent.

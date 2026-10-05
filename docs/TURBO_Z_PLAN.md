@@ -101,6 +101,14 @@ extra GRAM. The digital RGB output reduces analog multi-mode colors to eight
 - [ ] Z7: second-level Kanji/ANK ROM authenticity and addressing, mouse/serial
   behavior, calendar/RTC persistence and control-processor commands. Verify
   CPU-level device transactions, not static capability signatures.
+  Resolve storage budget before adding the ROM: the font-BRAM X3 fit uses
+  389 of 553 M10Ks, leaving 164. Extrapolating its four-block/4-KiB byte-wide
+  font layout, a further 256-KiB Kanji ROM would need about 256 blocks, beyond
+  that remaining capacity. This is an estimate, not a Kanji synthesis result.
+  Plan external-memory/cache service or a verified alternative packing/port
+  architecture, then refit. Include simultaneous video/CPU glyph requests,
+  deterministic WAIT/prefetch latency and DMA/capture contention in tests.
+  [Measured memory budget](TURBO_VIDEO_BRAM_QUARTUS_BUILD.md).
 - [ ] Z8: image capture `1FC1`, mosaic `1FC2`, chroma key `1FC3`, extra-scroll
   `1FC4`, superimpose/telopper output and video-source ownership. First derive
   register encodings, capture clocks and DMA/GRAM arbitration from manual

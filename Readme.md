@@ -45,6 +45,9 @@ opt-in [CTC increment](docs/CTC_STATUS.md) adds enable-driven timers/counters,
 IM2 vectors, CTC-before-keyboard arbitration and stable stretched ACKs;
 focused unit/CPU/real-MR16 tests pass, not exact hardware timing. See the
 [Turbo status](docs/TURBO_STATUS.md) and [implementation plan](docs/TURBO_IMPLEMENTATION_PLAN.md).
+An unchanged user-supplied 32 KiB Turbo IPL now executes to an IPL disk-search
+screen; see [native firmware evidence](docs/NATIVE_TURBO_FIRMWARE_STATUS.md).
+This does not establish native Turbo game or complete firmware compatibility.
 Turbo Z is a separate, unimplemented target with a
 [manual-based roadmap](docs/TURBO_Z_PLAN.md), including analog multi-color
 video, stereo FM, HD disks and capture effects.
@@ -73,10 +76,10 @@ See [bring-up progress](docs/BRINGUP_PROGRESS.md) for changes and remaining gate
 Private commercial-game test preparation and the top-32 shortlist are documented
 in [test media](docs/TEST_MEDIA.md). Locally extracted disks remain ignored
 assets; their presence is not proof of compatibility or gameplay.
-The X3/font checkpoint requalified repeatable native gameplay-control evidence
-for five commercial titles in fast baseline simulation: Druaga, Xevious,
-Mappy, Shanghai and Galaga. Subsequent storage changes require their own
-requalification. See the
+The deleted-data/v04 checkpoint requalified repeatable native gameplay-control
+evidence for five commercial titles in fast baseline simulation: Druaga,
+Xevious, Mappy, Shanghai and Galaga, including legal tile-pair removal and
+native firing/projectile travel. See the
 [commercial compatibility matrix](docs/COMMERCIAL_COMPATIBILITY.md) for the
 bounded checks and remaining compatibility gates; this is not hardware signoff.
 The simulator window now offers optional [live joystick keys](docs/PLAYING.md):
@@ -109,6 +112,10 @@ The newer X3 video/font candidate assembled but **fails timing at all eight
 corners**; it is not a replacement timing-closed hardware candidate. See the
 [X3 build audit](docs/TURBO_VIDEO_QUARTUS_BUILD.md) and
 [font RAM correction status](docs/TURBO_VIDEO_CLOCK_STATUS.md).
+The [font-BRAM refit](docs/TURBO_VIDEO_BRAM_QUARTUS_BUILD.md) confirms 49% ALMs
+and true font RAM, but still fails setup/recovery at every corner. It binds
+`f7875af`, not the later deleted-data storage changes; no hardware deployment
+has occurred.
 
 MiSTer now wires keyboard, joystick, disk, RGB and audio paths and
 offers IPL/D88 OSD entries. Disk writes default to protected; enabling them

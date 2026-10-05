@@ -105,20 +105,33 @@ def main():
     else:
         command = ["python3", "tests/test_commercial_gameplay.py", str(frozen),
                    args.title, str(state), str(disk)]
-    command += ["--output", str(folder / "controls")]
+    command += ["--output", str(folder / "controls"), "--timeout", "1800"]
     result = subprocess.run(command, capture_output=True, text=True, timeout=1800)
     (folder / "controls.stdout").write_text(result.stdout)
     (folder / "controls.stderr").write_text(result.stderr)
+    fire_record = None
+    if args.title == "galaga" and result.returncode == 0:
+        run("wave39s", 6000)
+        fire_command = ["python3", "tests/test_galaga_fire.py", str(frozen),
+                        str(state), str(disk), "--output", str(folder / "fire"),
+                        "--timeout", "1800"]
+        fired = subprocess.run(fire_command, capture_output=True, text=True, timeout=1800)
+        (folder / "fire.stdout").write_text(fired.stdout)
+        (folder / "fire.stderr").write_text(fired.stderr)
+        fire_record = {"command": fire_command, "returncode": fired.returncode}
+        print(fired.stdout, end="", flush=True)
     unchanged = all(sha(pathlib.Path(p)) == digest for p, digest in originals.items())
     evidence = {"title": args.title, "executable_sha256": exe_sha,
                 "inputs_sha256": originals, "native_boot_chain": runs,
                 "control_command": command, "control_returncode": result.returncode,
+                "fire_check": fire_record,
                 "unchanged_inputs": unchanged,
-                "gameplay_verified": result.returncode == 0 and unchanged,
+                "gameplay_verified": result.returncode == 0 and unchanged and
+                    (fire_record is None or fire_record["returncode"] == 0),
                 "scope": "bounded fast baseline native controls, not Turbo or hardware"}
     (folder / "provenance.json").write_text(json.dumps(evidence, indent=2) + "\n")
     print(result.stdout, end="", flush=True)
-    if result.returncode or not unchanged:
+    if not evidence["gameplay_verified"]:
         raise SystemExit("FAIL: retained native evidence; no gameplay claim")
 
 

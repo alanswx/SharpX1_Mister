@@ -14,7 +14,7 @@ are reference-only, not verification evidence.
 | X3 clock / ANK | Optional `TURBO_VIDEO_MASTER=1`: nominal 42.954540 MHz video, unchanged 32 MHz system, enabled CRTC; exact dot/character cadence unit and focused pixel tests pass. Index-4 4096-byte font loader publishes only complete ANK, retained over machine reset. Ordinary/paired PCG address unit passes. Hardware phase/PLL/CDC, complete text/Kanji/high-speed PCG and native gameplay remain open. See [clock/font evidence](TURBO_VIDEO_CLOCK_STATUS.md). |
 | Kanji attribute VRAM | Separate 2 KiB at `3800..3FFF`, independently readable/writable from text at `3000..37FF`. Base retains its text mirror. CPU tests cover boundaries/reset retention. **Kanji glyph rendering/ROM access is not implemented**. |
 | Blackclip | Write-only `1FE0`: graphics raw indices 0/1, selected text color and blanking clip. Registered mixer fixture exhausts all 128 masks and nonzero text/all graphics colors before palette mapping. CPU-written RGB fixtures verify graphics/text clipping at both widths. |
-| IPL aperture | 32 KiB in Turbo versus 4 KiB in base. Bounds, no 4 KiB mirroring, writes under ROM and overlay off/on verified with an original synthetic IPL/RAM diagnostic; oversize CLI loads rejected. Authentic local Turbo archives inventoried, **not installed/booted**. |
+| IPL aperture | 32 KiB in Turbo versus 4 KiB in base. Bounds, no 4 KiB mirroring, writes under ROM and overlay off/on verified with an original synthetic IPL/RAM diagnostic; oversize CLI loads rejected. A supplied 32 KiB IPL matches local MAME ROM metadata and executes to a native IPL search screen; **not game/firmware compatibility acceptance**. See [native firmware probe](NATIVE_TURBO_FIRMWARE_STATUS.md). |
 | CTC/IRQ | Enable-driven four-channel timers/counters, channel-0/3 cascade, vectors/service and RETI integrated. Schematic-based CTC-before-keyboard priority; both CPU clock profiles pass repeated IM2 and concurrent cold input. Stable stretched ACKs verified with connected CTC and real MR16 firmware. Exact phase/pin timing, ASIC aliases and hardware remain open. See [CTC evidence](CTC_STATUS.md). |
 | Two mounted disks | Shared one-controller A/B path, independent physical heads/motor hold, protected copies and ACK-stable ownership pass generated CPU/transport tests. Selection rescans temporarily deassert ready; exact mechanics/HPS replacement and native disk-set compatibility remain open. Included in the latest experimental RBF, not hardware-tested. See [disk evidence](DUAL_DISK_STATUS.md). |
 
@@ -61,7 +61,11 @@ timing at all eight analyzed corners. External I/O, CDC/reset and hardware
 remain unverified. Hardware is unavailable while travelling; earlier RBFs
 predate this increment. The earlier [foundation build](TURBO_QUARTUS_BUILD.md)
 remains historical; the CTC checkpoint binds 333 inputs to `0115a38`, while
-the latest two-image RBF binds all 334 inputs to `ffc1c1c`.
+the timing-positive two-image RBF binds all 334 inputs to `ffc1c1c`.
+The newer [X3 fit](TURBO_VIDEO_QUARTUS_BUILD.md) assembles but fails timing;
+its [font-RAM refit](TURBO_VIDEO_BRAM_QUARTUS_BUILD.md) confirms RAM inference
+and 49% ALMs but still fails setup/recovery at every corner. Neither is
+hardware acceptance or grounds to replace the earlier timing-positive build.
 
 ## Reference disagreements and next gates
 

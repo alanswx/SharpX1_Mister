@@ -57,6 +57,22 @@ $(HEADLESS_DIR)/font16/Vfont16_tb: ../rtl/x1_font16.sv ../rtl/x1_video_ram.v tes
 
 .PHONY: test-font16
 
+# Standalone CDC protocol diagnostic; not machine/framework integration or STA.
+test-cdc-snapshot: $(HEADLESS_DIR)/cdc-snapshot/Vcdc_snapshot_tb
+	./$(HEADLESS_DIR)/cdc-snapshot/Vcdc_snapshot_tb
+
+$(HEADLESS_DIR)/cdc-snapshot/Vcdc_snapshot_tb: ../rtl/x1_cdc_snapshot.sv tests/cdc_snapshot_tb.sv
+	$(V) --binary --timing --assert --top-module cdc_snapshot_tb --Mdir $(HEADLESS_DIR)/cdc-snapshot \
+		-j 4 ../rtl/x1_cdc_snapshot.sv tests/cdc_snapshot_tb.sv
+
+.PHONY: test-cdc-snapshot
+
+# Asset-free collector failure-path test; not a machine/game acceptance test.
+test-probe-timeout:
+	python3 tests/test_probe_timeout.py
+
+.PHONY: test-probe-timeout
+
 # Native-software probes without snapshots; --timing remains the diagnostic
 # reference. Keep this separate from the base savable gameplay executable.
 obj_dir_turbo_fast/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
@@ -253,6 +269,11 @@ test: headless test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner
 	python3 tests/test_key_script.py ./$(HEADLESS_EXE) $(VIDEO_TEST_FLAGS)
 	python3 tests/test_video_modes.py ./$(HEADLESS_EXE) $(VIDEO_TEST_FLAGS)
 	python3 tests/test_video_modes.py ./$(HEADLESS_EXE) --kind mixed --transition $(VIDEO_TEST_FLAGS)
+	$(MAKE) test-peripherals
+
+# Resume the independent peripheral checks after a long video matrix, using
+# the same HEADLESS_EXE. Keep test's original sequential execution order.
+test-peripherals: headless
 	python3 tests/test_keyboard_poll.py ./$(HEADLESS_EXE) $(VIDEO_TEST_FLAGS)
 	python3 tests/test_warm_reset.py ./$(HEADLESS_EXE)
 	python3 tests/test_d88_bounds.py ./$(HEADLESS_EXE)
@@ -409,7 +430,7 @@ clean:
 	# obj_dir is a tracked legacy GUI build artifact; preserve it.
 	rm -rf obj_dir_headless
 
-.PHONY: all headless interactive fast boot-game test-game play run test test-fast test-sdl test-loader test-joystick test-pcg-access test-disk-control lint lint-wrapper clean
+.PHONY: all headless interactive fast boot-game test-game play run test test-peripherals test-fast test-sdl test-loader test-joystick test-pcg-access test-disk-control lint lint-wrapper clean
 .PHONY: single single-fast test-single test-clock-enables boot-game-single test-game-single
 .PHONY: test-sub-timer
 .PHONY: test-game-reset test-game-reset-single

@@ -9,6 +9,22 @@ ordering, test coverage, and acceptance gates. These checklist phases are broad
 work buckets; the plan gives the execution order, including base-X1 floppy
 support before optional Turbo extensions.
 
+## Current priorities 1–4 (October 5 checkpoint)
+
+These are acceptance gates, not four completed checkboxes.
+
+| Priority | Confirmed increment | Still required |
+|---|---|---|
+| 1. Turbo video | X3 enable cadence, synthetic graphics raster mapping, 16-row ANK pixels/reset; font refactor maps as 32K RAM bits | Route/timing/CDC/reset signoff; text expansion/CPU font selection/underline, high-speed PCG, Kanji CPU/glyph paths and native/hardware acceptance |
+| 2. Native games | All five baseline games requalified on deleted-data/v04 RTL, including Galaga firing and Shanghai pair removal | Native Arcus/Bastard playability, Turbo firmware/video and multi-disk continuity; delay-aware and hardware gameplay (Arcus A1/B2 remains exploratory) |
+| 3. CTC/DMA/SIO | Enable-driven CTC and focused IM2/ACK/keyboard arbitration tests pass | DMA/BUSRQ/BUSACK engine, shared bus ownership/FDC DRQ transfers; SIO serial/FIFO/IRQ implementation; exact CTC pin/phase and physical daisy-chain timing |
+| 4. D88 robustness | Malformed-image bounds, A/B ACK ownership/eject, protected/cross-block writes, new deleted-read record type/status isolation pass | Separate ID/data CRC semantics, deleted-write/CRC metadata updates, bounded format/write-track, density/HD mechanics, physical HPS media epochs and native disk-change acceptance |
+
+Turbo Z is a separate planned profile, not implied by these increments. Its
+manual-based feature/acceptance breakdown is in [TURBO_Z_PLAN.md](TURBO_Z_PLAN.md)
+and Phase 5 below. New X3 hardware artifacts currently fail timing; do not
+replace the previous timing-positive experimental RBF without a reviewed fit.
+
 ## Phase 0 — make simulation trustworthy
 
 - [x] Repair the Verilator Makefile continuation and clean rules.

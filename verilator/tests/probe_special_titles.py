@@ -38,6 +38,8 @@ def main():
     args = parser.parse_args()
     if args.seconds < 1:
         parser.error("--seconds must be positive")
+    if args.timeout <= 0:
+        parser.error("--timeout must be positive")
     if args.joya is not None and not 0 <= args.joya <= 255:
         parser.error("joya must fit one byte")
     if (args.bus_events or args.bus_start_ms or args.bus_end_ms) and not args.io_trace:
@@ -100,7 +102,16 @@ def main():
             if args.bus_events:
                 command += ["--bus-events"]
             command += ["--bus-start-ms", str(args.bus_start_ms), "--bus-end-ms", str(args.bus_end_ms)]
-        result = subprocess.run(command, capture_output=True, text=True, timeout=args.timeout)
+        try:
+            result = subprocess.run(command, capture_output=True, text=True, timeout=args.timeout)
+        except subprocess.TimeoutExpired as error:
+            # Preserve failed probes too; never promote a partial frame or
+            # one completed cold run to repeatability/game acceptance.
+            def partial(value):
+                return value.decode(errors="replace") if isinstance(value, bytes) else (value or "")
+            result = subprocess.CompletedProcess(command, 124,
+                partial(error.stdout), partial(error.stderr) +
+                f"\nHost wall-clock timeout after {args.timeout} seconds; simulation did not complete.\n")
         prefix.with_suffix(".stdout").write_text(result.stdout)
         prefix.with_suffix(".stderr").write_text(result.stderr)
         record = {"command": command, "returncode": result.returncode}

@@ -23,7 +23,10 @@ Confirmed first increment: machine/simulator default to `TURBO=0`;
 experimental targets pass `-GTURBO=1`. CPU page/KVRAM/DAM/reset and synthetic
 32 KiB IPL tests pass in both clock models; actual RGB page/clip fixtures
 also pass. These checks do not complete T2 or establish a full Turbo model.
-No supplied Turbo BIOS was booted. The shared machine explicitly selects
+A supplied 32 KiB Turbo IPL has now been staged unchanged and executed in a
+bounded native probe; it displays an IPL search message, not the Arcus game.
+See [firmware provenance and limits](NATIVE_TURBO_FIRMWARE_STATUS.md).
+The shared machine explicitly selects
 `PS2_RECEIVE_ONLY=1`, while standalone/legacy defaults remain 0. X Millennium
 is now cloned and inspected locally, not built/run; existing sibling MAME
 remains the main reference. See `TURBO_STATUS.md` for exact scopes.
@@ -310,6 +313,15 @@ be tested together with the chosen DMA engine's programmable polarity.
 Cover final count, restart, search/match if supported, bus release, pending
 interrupt and resets with outstanding SD transport. Never stop host ACK draining
 just because CPU/DMA/FDC enables stopped.
+
+Additional [Zilog UM008101-0601](https://www.zilog.com/docs/z80/um0081.pdf)
+audit: printed pages 75–78 and 89–92 make programmed block length a terminal
+count, not a byte count: sequential transfer length N transfers N+1 bytes.
+Source/destination terminal address counters differ. Add tests for N=0/1/65535,
+fixed/increment/decrement ports and readback after stop. Bus request requires
+enable plus Ready (or Force Ready); byte/burst/continuous release conditions
+are distinct. Test Ready loss during each bus phase and programmable WAIT
+before native FDC transfers. These details are not yet implemented in this core.
 
 Make CTC channel state and interrupt pending/in-service state explicit. A
 shared daisy arbiter must provide the selected IM2 vector only during M1/IORQ,

@@ -195,8 +195,13 @@ New index layout requires snapshot v04; the fast snapshot regression passes
 continuity, input persistence, incompatible-version/time and truncated-header
 rejection. Early header checks precede Verilator deserialization, avoiding
 its trailer-check abort on exception unwinding. No older state is converted.
-Complete base regression and fresh five-title v04 native requalification are
-in progress; this increment has not been synthesized or tested on MiSTer.
+Fresh five-title v04 native requalification passes bounded baseline controls,
+Shanghai pair removal and Galaga firing; see [source-bound evidence](COMMERCIAL_COMPATIBILITY.md).
+The complete base regression remains in progress: its original 180-second
+mixed-video host timeout is retained, the same frozen executable passes that
+case with a larger wall-time limit, and remaining peripheral checks resume
+without reduced simulation durations/assertions. This storage increment has
+not been synthesized or tested on MiSTer.
 
 Finish in this order, retaining default-profile and disposable-write checks:
 

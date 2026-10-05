@@ -37,6 +37,14 @@ unit-tested, but native PCG pixel acceptance is still open. SCRN text expansion,
 CPU 16-row font selection, underline, high-speed PCG, Kanji ROM/readback and
 Kanji rendering remain unimplemented. KVRAM allocation is not glyph support.
 
+The current high-scan choice directly selects the 16-row display font; it
+does not implement independent SCRN font controls. Reconcile the existing
+references before extending this: local MAME `scrn_w` uses bit 2 as `ank_sel`
+and its renderer selects 8/16-row ANK, while inherited `x1t_mode.v` calls bit 2
+`O_TEXT12` and bit 6 `O_CG16`. Names alone are not a hardware specification.
+Audit the manual's CPU-read/display selection separately and test all mode/bit
+combinations, including low-scan 16-row selection and high-scan 8-row selection.
+
 `scripts/stage_turbo_font.py` stages an unchanged font from the user's existing
 private archive. No font bytes or commercial assets are tracked. The selected
 FNT0816.X1 hash is
@@ -115,8 +123,25 @@ the RAM. Loader unit and delay-aware mode-11 warm-reset pixel tests pass;
 both widths retain the same hashes above (six complete frames, 4841 reset
 edges). Tested executable SHA-256:
 `9200ba1211b4fba8bc826f868d4ada8ac22db151388c13debc804dd43a46f63b`.
-This is a RAM-inference correction candidate, **not proof of inference or
-timing closure** until a new fit is audited. No timing exceptions were added.
+The [source-bound refit](TURBO_VIDEO_BRAM_QUARTUS_BUILD.md) confirms four
+M10Ks/32768 font RAM bits and 49% overall ALMs, eliminating the old register
+array crossing. **Timing still fails setup and recovery at all eight
+corners**: worst setup -15.059 ns is an HDMI clock-mux alternative pairing,
+HPS video return remains -10.176 ns, and reset recovery is -9.804 ns.
+Hold/removal/pulse checks pass, but do not prove CDC safety. Review genuinely
+exclusive mux-generated alternatives separately from real system/video CDC
+and synchronized reset release. No timing exceptions were added.
 Wrapper lint uses a stand-in PLL and is not synthesis evidence.
 Physical MiSTer testing is unavailable while travelling. Older published
 RBFs do not contain these clock/font changes.
+
+The original `rtl/x1_cdc_snapshot.sv` helper is a **standalone protocol
+increment only**: held payload/request/acknowledgement, continuous refresh,
+four clock ratios and stopped-clock backpressure/recovery pass in
+`make -C verilator test-cdc-snapshot`. It is not yet instantiated by the
+machine or HPS framework and cannot resolve the fitted CDC failures by its
+presence. Next integrate atomic video/100 MHz measurement snapshots into
+the opt-in X3 HPS parameter path, verify returned register fields, and audit
+first-stage synchronization plus bounded payload paths in Quartus. The
+helper's power-on state is explicit; warm machine reset does not stop it.
+No blanket clock-group/false-path exceptions or physical signoff are implied.

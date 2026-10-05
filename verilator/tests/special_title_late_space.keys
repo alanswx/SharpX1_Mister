@@ -1,0 +1,8 @@
+# Exploratory native input: boot from floppy, then Space after the title loads.
+# This is not a verified release-specific start/control sequence.
+1000 2b
+1200 f0
+1202 2b
+8000 29
+8300 f0
+8302 29

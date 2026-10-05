@@ -2,7 +2,8 @@
 
 October 4, 2026: **5 of the required 5 commercial games reached reproducible
 native gameplay-control evidence at the earlier checkpoint**. That five-title
-set has not yet been requalified after the D88/keyboard/Turbo foundation changes.
+set was subsequently requalified as recorded below; historical results must
+not be attributed to a newer executable without that requalification.
 This is bounded simulation gameplay, not
 complete software compatibility, level completion, or hardware acceptance.
 CROSS Chase is a separate homebrew regression and does not count toward five.
@@ -55,6 +56,37 @@ These are **pre-deleted-data-index** results, not acceptance of subsequent
 storage changes or complete Turbo/hardware compatibility.
 `tests/requalify_commercial.py` regenerates states through native IPL/disk
 and recorded controls rather than importing incompatible historical states.
+
+### Deleted-data/v04 requalification
+
+October 5: all five control gates also pass on the new deleted-data checkpoint
+`2db40b0`, frozen baseline executable SHA-256
+`16e1fb66b3e3ea001e8e9d084cc568addf6720b63ffcc5080c246ce3beaacb99`.
+These are new native cold boots and continuations, not converted v03 states.
+The shared machine uses 32 MHz system / 28.571428 MHz video, 4159 initial reset
+edges, unchanged native IPL/game disks and no intra-assignment delays.
+Commands, reports, control comparisons and frozen executables remain under
+ignored `verilator/obj_dir_fast/d88-v04-requalification/<title>/`.
+
+| Title | Native control result | v04 live-state SHA-256 |
+|---|---|---|
+| Xevious | Neutral/right `(30,40)` / `(36,40)` | `79e1798ffc5c29160172cc3bbda2606ceb603414be7d55325f0a8fb7c1abed47` |
+| Druaga | Neutral/left `(68,32)` / `(67,32)` | `b724d9e4283a4e39ad824e7576f56930e56ba60b7997d926728dd58b29ee6989` |
+| Mappy | Native Space start at 24 s; live at 27 s, neutral/left `(129,84)` / `(125,84)` | `6a47618099825b688e27ebce641bbeef22aa3e58743908c1976c2a2ae057d0cd` |
+| Shanghai | Cursor `(488,167)` / `(536,160)`; legal pair removed, count `0` / `2` | Cursor `7b91f4896abf231cbe622a61b07bff533f5115138f4e9b972229ab0dacd7279d`; pair `2c38cdb41aeb8ee9e1212bec2ed865cc84505cc1ea4259a87417df10b3eb8a02` |
+| Galaga | At 33 s, neutral/right `(32,24)` / `(41,24)` | `cbe0c735c67665325ee6517334f20b7a309952d3a0cc3893d2140c55243269cc` |
+
+Galaga additionally passes the unchanged firing regression after a native
+six-second neutral continuation: 16 enemy slots, shots `0` / `1`, projectile
+`(33,12)` to `(33,8)` after release. Wave-state SHA-256 is
+`8434d27a3623f4bc46982431ff49a8edd5952e76b3392909969e08b8d9dbcb93`.
+Idle/fire/released RGB hashes are `320906a1036afe92`, `53fa204c036a640b`,
+`7f55bbd4fdce64ea`. This continuation was run separately from the original
+movement helper; its command/report/dumps and firing comparisons are in
+`galaga/wave39s.*` and `galaga/fire/`. Future helper runs include it automatically.
+All five bounded control comparisons repeat actual RAM/RGB/state/reports and
+verify unchanged inputs. This closes the five-title baseline control gate for
+this storage checkpoint, not complete game, Turbo or hardware compatibility.
 
 Active path: `verilator/sim.v` → `rtl/sharpx1.v` → shared renderer/FDC/CPU.
 These commercial runs use `obj_dir_fast/Vtop`, baseline 32 MHz system and
