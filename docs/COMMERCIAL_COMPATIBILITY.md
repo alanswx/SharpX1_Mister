@@ -89,6 +89,26 @@ by a Z/1 input probe are running; playability remains unverified.
 The completed native 4→8-second continuation shows the actual Bastard Special
 title/logo and “PRESENTED BY XAIN”; frame hash `22b566650e6207c3` at 640×200.
 This is a title screen, not a playable scene or a successful start sequence.
+The native chain subsequently reaches 16 seconds unchanged. Its four-second
+Z/1 continuation reaches 20 seconds, performs 95 additional read requests and
+changes the actual screen to a title overlay labelled “DIM”, frame hash
+`29ce8173ecbffc53`; still no game-play acceptance. The completed neutral
+20→24-second continuation shows the title and an empty bordered lower panel,
+frame hash `d4322a9b14ddbb53`, not a verified playable scene.
+`--from-continuation` verifies the parent
+chain's asset identities and saved-state hash, so longer probes can continue
+without reloading ROM/RAM or silently changing clocks/model/runner.
+
+Fresh CRC/v05 Xevious qualification completed on frozen executable
+`2b48f7818c7fa584b82502c9fc2a99ed536fae2b923093eb387f0035a77ed1c0`:
+native 16-second boot, 0.5-second start and three-second live stage, then
+300 ms controlled/idle/repeat checks. Right moves `(30,40)`→`(36,40)` with
+matching main RAM/report/RGB repeatability and unchanged media. The private
+provenance is `verilator/obj_dir_fast/d88-v05-requalification/xevious/`.
+The daemon restart interrupted the remaining batch; a hash/schedule-checked
+`requalify_commercial.py --resume` continues Druaga's successful prefix.
+The remaining four CRC qualifications are not yet accepted, and none of
+this v05 evidence qualifies the subsequent PCG/metadata/v06 machine.
 
 The separate older v04 Z/1 16-second cold probe retained one host timeout and
 one completed run; its collector correctly reports **not repeatable**. That

@@ -323,7 +323,8 @@ int main(int argc, char **argv) {
         // a reconstructed RAM bootstrap. Only quiescent host interfaces are
         // supported; disk contents must match and clocks keep absolute phase.
         uint64_t resume_time = 0;
-        // v06: high-speed PCG/font transaction state and FDC ID-side flags.
+        // v07: high-speed PCG/font transactions and payload/header metadata
+        // publication/cancellation. v06 added the FDC ID-side flags.
         // v05 added the FDC transfer-completion CRC latch.
         // v04 widened the D88 index to retain deleted-data metadata. Never load
         // an earlier serialized model into the new RAM layout.
@@ -338,7 +339,7 @@ int main(int argc, char **argv) {
             ^ (1ULL << 55)
 #endif
             ;
-        constexpr uint64_t snapshot_magic = 0x5831534e41503036ULL ^ sys_hz ^ snapshot_profile;
+        constexpr uint64_t snapshot_magic = 0x5831534e41503037ULL ^ sys_hz ^ snapshot_profile;
 #ifdef X1_SAVABLE
         if (restore_path) {
             if (rom_path || ram_path || font16_path) throw std::runtime_error("snapshot restore cannot also download ROM/RAM/font16");

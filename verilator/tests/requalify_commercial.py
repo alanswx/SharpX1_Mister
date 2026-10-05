@@ -22,6 +22,8 @@ def main():
     parser.add_argument("title", choices=("druaga", "xevious", "mappy", "galaga", "shanghai"))
     parser.add_argument("disk", type=pathlib.Path)
     parser.add_argument("--output", required=True, type=pathlib.Path)
+    parser.add_argument("--resume", action="store_true",
+                        help="resume a verified successful native prefix after interruption; never convert states")
     parser.add_argument("--timeout", type=float, default=1800,
                         help="host timeout per native/control run; does not change simulation duration")
     parser.add_argument("--boot-chunk-ms", type=int, default=16000,
@@ -41,11 +43,24 @@ def main():
     if args.title == "mappy":
         originals[str(mappy_keys)] = sha(mappy_keys)
     folder = args.output.resolve()
-    folder.mkdir(parents=True, exist_ok=False)
     frozen = folder / "Vtop"
     exe_sha = sha(exe)
-    shutil.copy2(exe, frozen)
-    assert sha(frozen) == exe_sha, "executable changed during freeze"
+    completed = []
+    if args.resume:
+        previous = json.loads((folder / "provenance.json").read_text())
+        assert previous["title"] == args.title and not previous["gameplay_verified"]
+        assert previous["executable_sha256"] == exe_sha == sha(frozen), "runner identity changed"
+        assert previous["inputs_sha256"] == originals, "native input identity changed"
+        completed = previous["native_boot_chain"]
+        assert completed and all(r["returncode"] == 0 for r in completed), "unsuccessful native prefix"
+        for record in completed:
+            command = record["command"]
+            saved = pathlib.Path(command[command.index("--save-state") + 1])
+            assert sha(saved) == record["state_sha256"], "native checkpoint changed"
+    else:
+        folder.mkdir(parents=True, exist_ok=False)
+        shutil.copy2(exe, frozen)
+        assert sha(frozen) == exe_sha, "executable changed during freeze"
     runs = []
     state = None
 
@@ -78,6 +93,14 @@ def main():
                     ["--rom", str(rom), "--keys", str(keys)])
         if state and continuation_keys:
             command += ["--keys", str(continuation_keys)]
+        if len(runs) < len(completed):
+            record = completed[len(runs)]
+            assert record["command"] == command, "resume schedule/model differs from original prefix"
+            assert record["report"]["disk_writes"] == 0
+            state = prefix.with_suffix(".state")
+            runs.append(record)
+            print(f"{args.title}: retained {name}, verified native checkpoint", flush=True)
+            return
         result = execute(command)
         prefix.with_suffix(".stdout").write_text(result.stdout)
         prefix.with_suffix(".stderr").write_text(result.stderr)

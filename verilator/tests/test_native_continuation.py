@@ -44,6 +44,26 @@ with tempfile.TemporaryDirectory(prefix="x1-native-continuation-") as directory:
     result = json.loads((root / "good/provenance.json").read_text())
     assert result["unchanged_inputs"] and not result["gameplay_verified"]
     assert result["continuations"][-1]["absolute_duration_ms"] == 12000
+    # Resume from the verified last checkpoint, preserving absolute time.
+    child_argv = ["continue", str(evidence_path), "--output", str(root / "child"),
+                  "--chunks-ms", "4000", "--from-continuation", str(root / "good/provenance.json")]
+    with mock.patch.object(sys, "argv", child_argv), mock.patch.object(subprocess, "run", fake_run), contextlib.redirect_stdout(io.StringIO()):
+        probe.main()
+    child = json.loads((root / "child/provenance.json").read_text())
+    assert child["continuations"][-1]["absolute_duration_ms"] == 16000
+    assert calls[-1][calls[-1].index("--restore-state") + 1].endswith("native12000ms.state")
+    altered_parent = json.loads((root / "good/provenance.json").read_text())
+    altered_parent["inputs_sha256"][str(runner)] = "0" * 64
+    (root / "altered-parent.json").write_text(json.dumps(altered_parent))
+    bad_child_argv = list(child_argv)
+    bad_child_argv[-1] = str(root / "altered-parent.json")
+    with mock.patch.object(sys, "argv", bad_child_argv), contextlib.redirect_stderr(io.StringIO()):
+        try:
+            probe.main()
+        except SystemExit as error:
+            assert error.code == 2
+        else:
+            raise AssertionError("continuation replaced original asset identity")
     # Refuse an altered runner before creating output or starting execution.
     runner.write_bytes(b"changed")
     with mock.patch.object(sys, "argv", argv), contextlib.redirect_stderr(io.StringIO()):

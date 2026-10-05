@@ -18,6 +18,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_gram_address.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_video_timing.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_font16.sv
 set_global_assignment -name VERILOG_FILE rtl/x1_pcg_access.v
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_pcg_selector.sv
 set_global_assignment -name VERILOG_FILE rtl/x1_disk_control.v
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_disk_media.sv
 set_global_assignment -name VERILOG_FILE rtl/x1_clock_enables.v

@@ -128,7 +128,8 @@ reg [20:0] d88_end = 0;
 reg mount_pending = 0;
 wire media_ready = ready && (!D88_ONLY || d88_valid);
 wire transport_active = sd_busy || sd_ack || (|ack);
-assign transport_idle = !transport_active && !sd_rd && !sd_wr;
+// A header RMW owns the medium between its separate host transactions too.
+assign transport_idle = !transport_active && !sd_rd && !sd_wr && !metadata_busy;
 assign sd_lba = request_lba;
 wire [31:0] next_lba = scan_active ? {21'd0, scan_addr[19:9]}
                                   : {21'd0, buff_a[19:9]} + {30'd0, sd_block};
@@ -145,6 +146,36 @@ reg   [1:0] wd_size_code;
 wire  [7:0] buff_dout;
 reg   [1:0] sd_block = 0;
 reg         format;
+// Strict D88 sector writes publish metadata only AFTER all payload ACKs.
+// Saved identity must not follow the live search cursor or reset registers.
+wire [56:0] sector_index_entry;
+reg [56:0] metadata_entry;
+reg [10:0] metadata_index;
+reg [19:0] metadata_mark_address;
+reg metadata_deleted, metadata_second;
+reg metadata_busy = 0, metadata_inflight = 0, metadata_invalid = 0;
+reg metadata_aborted = 0;
+reg metadata_commit_mark, metadata_commit_crc;
+reg metadata_repair_crc;
+reg metadata_dirty;
+reg write_byte_seen;
+reg write_data;
+wire metadata_cancel_event = reset || (D88_ONLY && (img_mounted || mount_pending)) ||
+                             (ce && wre && addr == A_COMMAND && din[7:4] == 4'hD);
+wire metadata_cancel = metadata_cancel_event || metadata_aborted;
+wire metadata_commit = metadata_inflight && ack[5:4] == 2'b10 &&
+                       !metadata_invalid && !img_mounted && !mount_pending && !scan_active;
+wire [56:0] metadata_committed_entry =
+    {metadata_entry[56:22], metadata_entry[21] && !metadata_commit_crc,
+     metadata_commit_mark ? metadata_deleted : metadata_entry[20], metadata_entry[19:0]};
+wire [19:0] metadata_address = metadata_mark_address + (metadata_second ? 20'd1 : 20'd0);
+wire metadata_edit = ce && !metadata_cancel &&
+                     (state == STATE_METADATA_MARK || state == STATE_METADATA_STATUS);
+wire zero_write_byte = D88_ONLY && ce && !metadata_cancel && state == STATE_WRITE_2 &&
+                       s_drq && watchdog_bark && !write_byte_seen && !write_data && !wre &&
+                       data_length != sector_size;
+wire cpu_buffer_write = wre && buff_wr && addr == A_DATA && !scan_active &&
+                        (!D88_ONLY || (state == STATE_WRITE_2 && s_drq && !metadata_cancel));
 generate
 	if(RWMODE) begin
 		wd1793_dpram sbuf
@@ -156,9 +187,14 @@ generate
 			.wren_a(sd_buff_wr & sd_ack),
 			.q_a(sd_buff_din),
 
-			.address_b(scan_active ? {2'b00, scan_addr[8:0]} : byte_addr),
-			.data_b(format ? 8'd0 : din),
-			.wren_b(wre & buff_wr & (addr == A_DATA) & ~scan_active),
+			.address_b(scan_active ? {2'b00, scan_addr[8:0]} :
+			           metadata_busy ? {2'b00, (state == STATE_METADATA_STATUS ||
+			              state == STATE_METADATA_STATUS_SETTLE ? metadata_mark_address[8:0] + 9'd1 : metadata_address[8:0])} : byte_addr),
+			.data_b(metadata_edit ? (state == STATE_METADATA_MARK ?
+			        (metadata_deleted ? 8'h10 : 8'h00) :
+			        (buff_dout == 8'hb0 ? 8'h00 : buff_dout)) :
+			        (format || zero_write_byte ? 8'd0 : din)),
+			.wren_b(cpu_buffer_write || metadata_edit || zero_write_byte),
 			.q_b(buff_dout)
 		);
 	end else begin
@@ -273,7 +309,16 @@ typedef enum
 	STATE_ENDCOMMAND,
 	// Registered index read must settle after a changed address, even CE=1.
 	// Append to retain the numeric values of the existing state enum.
-	STATE_SEARCH_SETTLE
+	STATE_SEARCH_SETTLE,
+	STATE_METADATA_READ,
+	STATE_METADATA_READ_WAIT,
+	STATE_METADATA_MARK,
+	STATE_METADATA_STATUS_SETTLE,
+	STATE_METADATA_STATUS,
+	STATE_METADATA_WRITE,
+	STATE_METADATA_WRITE_WAIT,
+	STATE_METADATA_NEXT,
+	STATE_WRITE_COMPLETE
 } io_state_t;
 
 
@@ -460,7 +505,6 @@ always @(posedge clk_sys) begin
 
 	reg [2:0] cur_addr;
 	reg       read_data;
-	reg       write_data;
 	reg       rw_type;
 	integer   wait_time;
 	reg [3:0] read_timer;
@@ -511,7 +555,7 @@ always @(posedge clk_sys) begin
 		end
 		if((!D88_ONLY && ((old_mounted && ~img_mounted) ||
 		   (have_image && (old_disk_index != disk_index)))) ||
-		   (D88_ONLY && mount_pending && !img_mounted && !transport_active)) begin
+		   (D88_ONLY && mount_pending && !img_mounted && transport_idle)) begin
 			mount_pending <= 0;
 			if(EDSK) begin
 				scan_active<= !D88_ONLY || (img_size_id >= 24'h2b0 && img_size_id < 24'h100000);
@@ -543,6 +587,22 @@ always @(posedge clk_sys) begin
 	ack <= {ack[4:0], sd_ack};
 	if(ack[5:4] == 'b01) {sd_rd,sd_wr} <= 0;
 	if(ack[5:4] == 'b10) sd_busy <= 0;
+	// Commit bookkeeping is clk_sys work, never gated by the stopped FDC CE.
+	// D0/reset cannot retract a published metadata write. Eject invalidates
+	// only its cached-index publication, not its immutable host request/buffer.
+	if(D88_ONLY && (img_mounted || mount_pending)) metadata_invalid <= 1;
+	// Reset may be a pulse shorter than the host ACK. Retain cancellation
+	// until ownership has drained even when controller state is already IDLE.
+	if(metadata_cancel_event && metadata_busy) metadata_aborted <= 1;
+	if(metadata_inflight && ack[5:4] == 2'b10) begin
+		metadata_inflight <= 0;
+		if(metadata_commit) metadata_entry <= metadata_committed_entry;
+	end
+	if(metadata_cancel && !metadata_inflight) metadata_busy <= 0;
+	if(metadata_aborted && !metadata_inflight && !transport_active) begin
+		metadata_busy <= 0;
+		metadata_aborted <= 0;
+	end
 	if((reset || (D88_ONLY && (img_mounted || mount_pending))) & ~scan_active) begin
 		read_data <= 0;
 		write_data <= 0;
@@ -594,7 +654,7 @@ always @(posedge clk_sys) begin
 			end
 			else begin
 				case(scan_state)
-					0: if(!transport_active) begin
+					0: if(transport_idle) begin
 							sd_rd   <= 1;
 							request_lba <= next_lba;
 							sd_busy <= 1;
@@ -708,6 +768,12 @@ always @(posedge clk_sys) begin
 									disk_track, side, wdreg_sector, edsk_track, edsk_side, edsk_sector, edsk_offset);
 `endif
 						state <= STATE_WAIT_READ;
+						if(D88_ONLY && write && !format) begin
+							metadata_entry <= sector_index_entry;
+							metadata_index <= edsk_addr;
+							metadata_mark_address <= edsk_offset - 20'd9;
+							metadata_invalid <= 0;
+						end
 					end
 					else
 					if(~rw_type & (edsk_track == disk_track) &
@@ -870,10 +936,12 @@ always @(posedge clk_sys) begin
 				end
 			STATE_WAIT_WRITE_1:
 				begin
-					sd_busy <= 1;
-					sd_wr   <= 1;
-					request_lba <= next_lba;
-					state   <= STATE_WAIT_WRITE_2;
+					if(!D88_ONLY || !metadata_cancel) begin
+						sd_busy <= 1;
+						sd_wr   <= 1;
+						request_lba <= next_lba;
+						state   <= STATE_WAIT_WRITE_2;
+					end
 				end
 			STATE_WAIT_WRITE_2:
 				begin
@@ -881,15 +949,11 @@ always @(posedge clk_sys) begin
 						sd_block <= sd_block + 1'd1;
 						if(sd_block < blk_max) state <= STATE_WAIT_WRITE_1;
 						else begin
-							if(format && var_size && !edsk_next) begin
-								state <= STATE_ENDCOMMAND;
-							end else if(multisector) begin
-								edsk_addr <= edsk_next;
-								wdreg_sector <= wdreg_sector + 1'b1;
-								state <= STATE_SEARCH;
-							end else begin
-								state <= STATE_ENDCOMMAND;
-							end
+							if(D88_ONLY && !format) begin
+								metadata_busy <= 1;
+								metadata_second <= 0;
+								state <= STATE_METADATA_READ;
+							end else state <= STATE_WRITE_COMPLETE;
 						end
 					end
 				end
@@ -904,6 +968,7 @@ always @(posedge clk_sys) begin
 					read_timer <= read_timer - 1'b1;
 					if(!read_timer) begin
 						write_data <= 0;
+						write_byte_seen <= 0;
 						watchdog_set <= 0;
 						s_drq_busy <= 2'b11;
 						state <= STATE_WRITE_2;
@@ -911,11 +976,19 @@ always @(posedge clk_sys) begin
 				end
 			STATE_WRITE_2:
 				begin
-					if(watchdog_bark | (write_data & s_drq)) begin
+					// An already accepted CPU byte wins the watchdog race;
+					// wait for its bus release instead of overwriting it with zero.
+					if((watchdog_bark && (!D88_ONLY || (!write_byte_seen && !wre))) |
+					   (write_data & s_drq)) begin
 						s_drq_busy <= 2'b01;
-						s_lostdata <= s_lostdata | watchdog_bark;
+						s_lostdata <= s_lostdata | (D88_ONLY ?
+						    (watchdog_bark && !write_byte_seen && !write_data) : watchdog_bark);
 
-						if(!next_length) state <= STATE_WAIT_WRITE;
+						// FD179X: no initial byte means no write gate; later
+						// underruns write zero and finish with sticky lost-data.
+						if(D88_ONLY && watchdog_bark && !write_byte_seen && !write_data && data_length == sector_size)
+							state <= STATE_ENDCOMMAND;
+						else if(!next_length) state <= STATE_WAIT_WRITE;
 						else begin
 							byte_addr <= byte_addr + 1'd1;
 							data_length <= next_length;
@@ -923,6 +996,60 @@ always @(posedge clk_sys) begin
 						end
 					end
 				end
+
+			STATE_METADATA_READ: if(!transport_active && !metadata_cancel) begin
+				sd_block <= 0;
+				sd_rd <= 1;
+				sd_busy <= 1;
+				request_lba <= {21'd0, metadata_address[19:9]};
+				metadata_repair_crc <= 0;
+				metadata_dirty <= 0;
+				state <= STATE_METADATA_READ_WAIT;
+			end
+			STATE_METADATA_READ_WAIT: if(!transport_active)
+				state <= metadata_second ? STATE_METADATA_STATUS_SETTLE : STATE_METADATA_MARK;
+			STATE_METADATA_MARK: begin
+				metadata_dirty <= buff_dout != (metadata_deleted ? 8'h10 : 8'h00);
+				// The mark's RMW buffer is distinct from the flushed payload.
+				state <= (&metadata_mark_address[8:0]) ? STATE_METADATA_WRITE : STATE_METADATA_STATUS_SETTLE;
+			end
+			STATE_METADATA_STATUS_SETTLE: state <= STATE_METADATA_STATUS;
+			STATE_METADATA_STATUS: begin
+				// Unknown dump status is preserved; only B0 is repaired.
+				metadata_repair_crc <= (buff_dout == 8'hb0);
+				metadata_dirty <= metadata_dirty || (buff_dout == 8'hb0);
+				state <= STATE_METADATA_WRITE;
+			end
+			STATE_METADATA_WRITE: if(!transport_active && !metadata_cancel) begin
+				if(!metadata_dirty) state <= STATE_METADATA_NEXT;
+				else begin
+					sd_wr <= 1;
+					sd_busy <= 1;
+					request_lba <= {21'd0, metadata_address[19:9]};
+					metadata_inflight <= 1;
+					metadata_commit_mark <= !metadata_second;
+					metadata_commit_crc <= metadata_repair_crc;
+					state <= STATE_METADATA_WRITE_WAIT;
+				end
+			end
+			STATE_METADATA_WRITE_WAIT: if(!transport_active) state <= STATE_METADATA_NEXT;
+			STATE_METADATA_NEXT: begin
+				if(!metadata_second && (&metadata_mark_address[8:0])) begin
+					metadata_second <= 1;
+					state <= STATE_METADATA_READ;
+				end else begin
+					metadata_busy <= 0;
+					state <= STATE_WRITE_COMPLETE;
+				end
+			end
+			STATE_WRITE_COMPLETE: begin
+				if(format && var_size && edsk_next == 0) state <= STATE_ENDCOMMAND;
+				else if(multisector) begin
+					edsk_addr <= edsk_next;
+					wdreg_sector <= wdreg_sector + 1'b1;
+					state <= STATE_SEARCH;
+				end else state <= STATE_ENDCOMMAND;
+			end
 
 			// Abort current operation ($D0)
 			STATE_ABORT:
@@ -935,7 +1062,10 @@ always @(posedge clk_sys) begin
 					s_drq_busy <= 2'b01;
 					{s_wrfault,s_seekerr,s_crcerr,s_lostdata} <= 0;
 					pending_read_crc <= 0;
-					if(!transport_active) state <= STATE_ENDCOMMAND;
+					if(!transport_active && !metadata_inflight) begin
+						metadata_busy <= 0;
+						state <= STATE_ENDCOMMAND;
+					end
 				end
 
 			STATE_WAIT:
@@ -992,7 +1122,7 @@ always @(posedge clk_sys) begin
 						$display("WDCMD %02x accepted=%0d", din, ((state == STATE_IDLE) | (din[7:4] == 'hD)));
 `endif
 						s_intrq <= 0;
-						if(((state == STATE_IDLE) && !transport_active) | (din[7:4] == 'hD)) begin
+						if(((state == STATE_IDLE) && transport_idle) | (din[7:4] == 'hD)) begin
 							force_command <= (din[7:4] == 4'hD);
 							force_mask <= (din[7:4] == 4'hD) ? din[3:0] : 4'd0;
 							cmd_mode <= din[7];
@@ -1083,11 +1213,12 @@ always @(posedge clk_sys) begin
 									// 3: S: SIDE
 									// 2: E: some 15ms delay
 									// 1: C: check side matching?
-									// 0: write data mark (not yet persisted in D88).
+									// 0: a0 normal/deleted data mark.
 									// C/S compare ID H bit 0; they do not select the
 									// physical drive head, supplied separately by side.
 									compare_id_side <= din[1];
 									requested_id_side <= din[3];
+									metadata_deleted <= din[0];
 
 									s_drq_busy <= 2'b01;
 									{s_wrfault,s_seekerr,s_crcerr,s_lostdata} <= 0;
@@ -1155,6 +1286,10 @@ always @(posedge clk_sys) begin
 								begin
 									s_wpe <= din[5];
 									{s_wrfault,s_seekerr,s_crcerr,s_lostdata} <= 0;
+									// Strict sector containers cannot encode a raw track
+									// stream. Report unsupported/write-fault, not a
+									// successful no-op format. No DRQ or host write.
+									if(D88_ONLY) s_wrfault <= 1;
 									s_drq_busy <= 2'b01;
 									state <= STATE_WAIT;
 								end
@@ -1188,7 +1323,10 @@ always @(posedge clk_sys) begin
 					else $display("WDDROP SECTOR <- $%02x while BUSY (kept $%02x)", din, wdreg_sector);
 `endif
 				end
-				A_DATA:   wdreg_data <= din;
+				A_DATA: begin
+					wdreg_data <= din;
+					if(D88_ONLY && state == STATE_WRITE_2 && s_drq) write_byte_seen <= 1;
+				end
 			endcase
 		end
 	end
@@ -1261,7 +1399,7 @@ reg        d77_wp = 0;
 assign     fmt_wp = d77_wp;
 
 generate
-	if(EDSK) begin
+	if(EDSK) begin : image_index
 		wire [7:0] scan_data = RWMODE ? buff_dout : input_data;
 		// The sector index has two independent producers (EDSK and D77), which
 		// prevented Quartus 17 from inferring the old reg [55:0] edsk[1992] as
@@ -1279,9 +1417,9 @@ generate
 			.NUMWORDS(2048)
 		) edsk_ram (
 			.clock     (clk_sys),
-			.address_a (edsk_wraddr),
-			.data_a    (edsk_wrdata),
-			.wren_a    (edsk_wren),
+			.address_a (metadata_commit ? metadata_index : edsk_wraddr),
+			.data_a    (metadata_commit ? metadata_committed_entry : edsk_wrdata),
+			.wren_a    (metadata_commit || edsk_wren),
 			.q_a       (),
 			.address_b (edsk_addr),
 			.data_b    (57'd0),
@@ -1291,6 +1429,7 @@ generate
 
 		assign {edsk_track,edsk_side,edsk_trackf,edsk_sidef,edsk_sector,
 		        edsk_sizecode,edsk_crc,edsk_deleted,edsk_offset} = edsk_q;
+		assign sector_index_entry = edsk_q;
 
 		reg  [7:0] spt[166];
 
@@ -1803,6 +1942,7 @@ generate
 		end
 	end else begin
 		assign edsk_deleted = 1'b0;
+		assign sector_index_entry = 57'd0;
 	end
 endgenerate
 

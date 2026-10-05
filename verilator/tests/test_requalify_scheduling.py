@@ -45,6 +45,41 @@ with tempfile.TemporaryDirectory(prefix="x1-requalify-schedule-") as directory:
             assert "--restore-state" in command and "--rom" not in command and "--keys" not in command
         assert all("--ram" not in c and "--disk-output" not in c for c, _ in calls)
         assert all(kwargs["timeout"] == 7200 for _, kwargs in calls)
+        # A daemon interruption retains its successful prefix. Resume verifies
+        # the same runner/assets/state/schedule and does not repeat cold boot.
+        saved = root / "chunks/provenance.json"
+        interrupted = json.loads(saved.read_text())
+        interrupted["native_boot_chain"] = interrupted["native_boot_chain"][:1]
+        interrupted["gameplay_verified"] = False
+        saved.write_text(json.dumps(interrupted))
+        calls.clear()
+        resume_argv = argv + ["--resume"]
+        with mock.patch.object(sys, "argv", resume_argv), mock.patch.object(subprocess, "run", fake_run), contextlib.redirect_stdout(io.StringIO()):
+            requalify_commercial.main()
+        assert len(calls) == 4 and "--restore-state" in calls[0][0]
+        assert "--rom" not in calls[0][0]
+        # A changed checkpoint cannot be resumed even if the asset hashes agree.
+        saved.write_text(json.dumps(interrupted))
+        first_state = pathlib.Path(interrupted["native_boot_chain"][0]["command"][
+            interrupted["native_boot_chain"][0]["command"].index("--save-state") + 1])
+        first_state.write_bytes(b"changed-state")
+        with mock.patch.object(sys, "argv", resume_argv), mock.patch.object(subprocess, "run", fake_run):
+            try:
+                requalify_commercial.main()
+            except AssertionError as error:
+                assert "checkpoint changed" in str(error)
+            else:
+                raise AssertionError("changed checkpoint resumed")
+        first_state.write_bytes(b"mock-state")
+        bad_schedule = list(resume_argv)
+        bad_schedule[bad_schedule.index("--boot-chunk-ms") + 1] = "16000"
+        with mock.patch.object(sys, "argv", bad_schedule), mock.patch.object(subprocess, "run", fake_run):
+            try:
+                requalify_commercial.main()
+            except AssertionError as error:
+                assert "schedule/model differs" in str(error)
+            else:
+                raise AssertionError("different resume schedule accepted")
         # A long neutral live stage also keeps its total duration and input.
         calls.clear()
         argv = ["requalify", str(exe), "druaga", str(disk), "--boot-chunk-ms", "8000",

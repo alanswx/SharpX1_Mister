@@ -23,6 +23,8 @@ def main():
     parser.add_argument("--timeout", type=float, default=7200)
     parser.add_argument("--final-keys", type=pathlib.Path,
                         help="relative-time key events in the final continuation only")
+    parser.add_argument("--from-continuation", type=pathlib.Path,
+                        help="resume the last verified checkpoint of this probe's continuation provenance")
     args = parser.parse_args()
     if args.timeout <= 0 or any(ms <= 0 for ms in args.chunks_ms):
         parser.error("timeout and all chunk durations must be positive")
@@ -41,6 +43,26 @@ def main():
     expected[str(evidence_path)] = sha(evidence_path)
     expected[str(runner)] = evidence["executable_sha256"]
     expected[str(state)] = cold["artifacts"][".state"]
+    elapsed = evidence["duration_seconds"] * 1000
+    if args.from_continuation:
+        parent_path = args.from_continuation.resolve()
+        parent = json.loads(parent_path.read_text())
+        if parent["cold_evidence"] != str(evidence_path) or not parent["unchanged_inputs"]:
+            parser.error("continuation does not belong to this unchanged cold probe")
+        if not parent["continuations"] or any(r["returncode"] for r in parent["continuations"]):
+            parser.error("cannot resume an incomplete continuation chain")
+        for path, digest in parent["inputs_sha256"].items():
+            if path in expected and expected[path] != digest:
+                parser.error("continuation changes an original asset identity")
+            expected[path] = digest
+        expected[str(parent_path)] = sha(parent_path)
+        last = parent["continuations"][-1]
+        command = last["command"]
+        if command[0] != str(runner) or command[command.index("--disk") + 1] != str(disk):
+            parser.error("continuation runner/media differ from the original probe")
+        state = pathlib.Path(command[command.index("--save-state") + 1])
+        expected[str(state)] = last["state_sha256"]
+        elapsed = last["absolute_duration_ms"]
     keys = args.final_keys.resolve() if args.final_keys else None
     if keys:
         last_ms = max(int(line.split()[0]) for line in keys.read_text().splitlines()
@@ -53,7 +75,6 @@ def main():
     folder = args.output.resolve()
     folder.mkdir(parents=True, exist_ok=False)
     records = []
-    elapsed = evidence["duration_seconds"] * 1000
     for i, ms in enumerate(args.chunks_ms):
         elapsed += ms
         prefix = folder / f"native{elapsed}ms"
@@ -84,6 +105,7 @@ def main():
         unchanged = all(sha(pathlib.Path(p)) == h for p, h in expected.items())
         (folder / "provenance.json").write_text(json.dumps({
             "cold_evidence": str(evidence_path), "inputs_sha256": expected,
+            "parent_continuation": str(args.from_continuation.resolve()) if args.from_continuation else None,
             "continuations": records, "unchanged_inputs": unchanged,
             "gameplay_verified": False}, indent=2) + "\n")
         if result.returncode or not unchanged:

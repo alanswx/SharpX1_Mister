@@ -32,7 +32,7 @@ source macros; its presence does not imply complete Turbo compatibility.
 An explicit, opt-in `TURBO=1` foundation now adds two graphics pages, separate
 Kanji attribute RAM, blackclip controls and a 32 KiB IPL aperture to the shared
 machine. CPU diagnostics and actual RGB tests cover these extensions. It is
-**not full Turbo support**: Kanji/high-speed PCG, DMA, SIO and native Turbo
+**not full Turbo support**: Kanji, connected DMA, SIO and native Turbo
 firmware acceptance remain open. An
 experimental [graphics raster increment](docs/TURBO_RASTER_STATUS.md) separates
 text/graphics addresses and adds repeated/alternating-page raster mapping;
@@ -51,6 +51,12 @@ This does not establish native Turbo game or complete firmware compatibility.
 An original [standalone DMA subset](docs/DMA_STATUS.md) now passes register,
 transfer, count/readback and ownership tests. It is not connected to the
 shared machine; this does not change the native DMA compatibility limit.
+The [real CPU/DMA unit diagnostic](docs/DMA_CPU_BUS_STATUS.md) now also passes
+18 ownership/register/reset cases; connected machine/FDC DMA is still missing.
+A bounded [high-speed PCG increment](docs/TURBO_HIGH_SPEED_PCG_STATUS.md)
+adds selector shadows, frozen HSYNC-window access and CPU ANK8/16 selection.
+Original unit/CPU tests pass; ASIC fallback/WAIT phase, Kanji and hardware
+timing remain open, not full 400-line compatibility.
 The optional `turbo-video-savable` simulator target now supports fast X3
 single-drive diagnostic continuations with model-profile rejection; it does
 not enable dual-drive snapshots or replace delay-aware/hardware checks.
@@ -90,8 +96,10 @@ native firing/projectile travel. See the
 bounded checks and remaining compatibility gates; this is not hardware signoff.
 The subsequent [ID/data CRC increment](docs/D88_CRC_STATUS.md) passes direct
 controller and fast/delay-aware machine regressions and requires snapshot v05.
-Fresh native/game qualification is pending; the five-game v04 evidence above is historical,
-not acceptance of this later change.
+Fresh CRC/v05 Xevious native/control qualification passes; the other four are
+still running. The five-game v04 evidence is historical. Subsequent
+[D88 metadata publication](docs/D88_WRITE_METADATA_STATUS.md) and PCG changes
+require v07 and separate acceptance; do not convert or patch old snapshots.
 The simulator window now offers optional [live joystick keys](docs/PLAYING.md):
 arrows, Space (button 1) and Ctrl (button 2), through `--joystick-keys`.
 Independent CPU-programmed 40/80-column text and 320/640 graphics rasters now

@@ -25,7 +25,8 @@ module pcg_access_tb;
         if (writes != 0) write_count <= write_count + 1;
     end
     x1_pcg_access dut(reset,cpu_clk,video_clk,select,write_enable,plane,data,
-                      wait_n,result,beam,address,access_data,writes,rom,blue,red,green);
+                      wait_n,result,beam,address,access_data,writes,rom,blue,red,green,
+                      1'b0,11'd0,1'b0,1'b0,12'd0,1'b0,,8'd0,);
     x1_video_ram #(11) b(video_clk,address,access_data,writes[0],blue,video_clk,beam,);
     x1_video_ram #(11) r(video_clk,address,access_data,writes[1],red,video_clk,beam,);
     x1_video_ram #(11) g(video_clk,address,access_data,writes[2],green,video_clk,beam,);

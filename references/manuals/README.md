@@ -99,3 +99,6 @@ pages 75–78 and 89–92 were checked for terminal counts, bus request and
 programming contracts; see the implementation plan. DMA/SIO remain absent
 from the shared machine; a separately tested standalone DMA slice is now
 documented in `docs/DMA_STATUS.md`.
+SIO printed 225–231 and 272–301 were inspected for the original
+[SIO contract](../../docs/SIO_REGISTER_CONTRACT.md); programming/FIFO/IRQ
+research is not device implementation, physical timing or native acceptance.

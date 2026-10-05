@@ -1,6 +1,6 @@
 # Sharp X1 chip implementation summary
 
-Updated: 2026-10-04. Native IPL/D88 boot and playable CROSS Chase are verified
+Updated: 2026-10-05. Native IPL/D88 boot and playable CROSS Chase are verified
 in simulation, together with focused CPU, memory, graphics, keyboard/IRQ and
 PSG tests. MiSTer and simulation both use `rtl/sharpx1.v`; the board wrapper
 wires the exposed interfaces and passes lint with warnings, not hardware validation.
@@ -21,15 +21,15 @@ changes and runtime evidence.
 | AY/YM PSG | JT49; three tones/mute, deterministic noise, all envelope shapes/period scaling tested; full fidelity/hardware pending | Present; audio output incomplete |
 | Joystick ports | Both PSG inputs tested; MiSTer bit order corrected and 64 combinations verified; hardware pending | Partial |
 | Z80 CTC | Opt-in Turbo: CE-based four-channel timers/counters, vectors, priority/service and RETI connected; CPU IM2/keyboard coexistence and stretched ACK tested; exact pin timing/ASIC aliases/hardware pending | Present |
-| Z80 DMA | Disconnected scaffolding | Partial firmware emulation |
+| Z80 DMA | Standalone stream/transfer subset passes 32 groups; actual CPU/DMA unit mux passes 18 register/ownership/reset cases; machine/FDC integration and IRQ/search/timing functions still missing | Partial firmware emulation |
 | Z80 SIO | Missing | Stub |
-| MB8877 floppy controller | One WD1793-family engine boots D88; generated A/B image, independent head/motor, read/write/protection and owner-drain tests pass. Selection rescans, exact MB8877 mechanics/format/errors and hardware remain open; see [two-image status](DUAL_DISK_STATUS.md) | Partial firmware emulation |
+| MB8877 floppy controller | WD1793-family D88 engine; A/B read/write/protection and owner-drain tests. ID/data CRC, C/S and 75 deleted/CRC metadata/reset-drain groups pass directly. Full-machine metadata matrix, exact mechanics/format/errors and hardware remain open; see [metadata status](D88_WRITE_METADATA_STATUS.md) | Partial firmware emulation |
 | Disk-image backend | D88 host preflight plus shared-RTL bounds/invalid not-ready and pending-read replacement/eject/reset quarantine tested; copy-only writes verified; physical faults/permanent stalls pending | Missing from historical harness |
 | RTC | Partial firmware state | Partial firmware state |
 | Cassette/APSS | Missing | Command-state stub |
 | Kanji | Experimental 2 KiB KVRAM storage tested; glyph ROM/readback/rendering missing | Fake register |
-| Turbo display modes | SCRN pages/blackclip/raster addresses and optional nominal X3 clock/16-row ANK tested; Kanji, expansion/underline, high-speed PCG, exact switching and hardware missing; see `TURBO_VIDEO_CLOCK_STATUS.md` | Partial |
-| Turbo Z / YM2151 / expansion devices | Missing | Missing or stubbed |
+| Turbo display modes | SCRN pages/blackclip/raster and nominal X3/ANK tested; bounded high-speed PCG/CPU ANK selection passes original unit/CPU tests. Kanji, expansion/underline, exact ASIC/WAIT/switching and hardware remain open; see [PCG status](TURBO_HIGH_SPEED_PCG_STATUS.md) | Partial |
+| Turbo Z / YM2151 / expansion devices | Unimplemented; manual-based [Turbo Z roadmap](TURBO_Z_PLAN.md) covers model identification, analog graphics, FM/HD disks and capture peripherals | Missing or stubbed |
 
 See [the detailed survey](CORE_STATUS.md) for evidence and
 [replacement chip candidates](CHIP_REUSE.md) for sources pulled from other

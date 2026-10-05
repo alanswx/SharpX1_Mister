@@ -16,6 +16,16 @@ interactive: obj_dir_interactive/Vtop
 # ignored. Keep the headless --timing build as the scheduling reference.
 fast: obj_dir_fast/Vtop
 
+# Isolated base savable runner for qualification while a frozen historical
+# obj_dir_fast executable remains in use. Same fast/SDL model, separate output.
+QUALIFICATION_DIR ?= obj_dir_qualification_fast
+qualification-fast: $(QUALIFICATION_DIR)/Vtop
+$(QUALIFICATION_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h sdl_frontend.h Makefile $(MACHINE_MANIFEST)
+	$(V) -cc --no-timing --savable --assert --trace-fst --exe --build -j 4 --Mdir $(QUALIFICATION_DIR) --top-module top \
+		-CFLAGS "-std=c++20 -DX1_SAVABLE -DX1_SDL $(shell sdl2-config --cflags)" -MAKEFLAGS "OPT_FAST=-O3" \
+		-LDFLAGS "$(shell sdl2-config --libs)" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
+.PHONY: qualification-fast
+
 # Experimental shared-clock model; baseline builds and board default stay intact.
 single: obj_dir_single/Vtop
 single-fast: obj_dir_single_fast/Vtop
@@ -113,9 +123,10 @@ obj_dir_turbo_single/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_captu
 
 .PHONY: turbo turbo-single turbo-fast
 
-test-turbo: turbo test-ctc test-gram-address test-video-timing test-font16 $(HEADLESS_DIR)/turbo-video/Vturbo_video_tb
+test-turbo: turbo test-ctc test-gram-address test-video-timing test-turbo-pcg-access test-dma test-dma-cpu $(HEADLESS_DIR)/turbo-video/Vturbo_video_tb
 	python3 tests/test_turbo_banks.py ./obj_dir_turbo/Vtop
 	python3 tests/test_turbo_ipl.py ./obj_dir_turbo/Vtop
+	python3 tests/test_turbo_pcg.py ./obj_dir_turbo/Vtop
 	python3 tests/test_ctc.py ./obj_dir_turbo/Vtop
 	python3 tests/test_keyboard_irq.py ./obj_dir_turbo/Vtop
 	python3 tests/test_keyboard_poll.py ./obj_dir_turbo/Vtop
@@ -286,7 +297,7 @@ $(HEADLESS_EXE): $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_i
 run: headless
 	./$(HEADLESS_EXE) $(CYCLES)
 
-test: headless test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner test-d88-crc test-cpu-busreq
+test: headless test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner test-d88-crc test-d88-metadata test-cpu-busreq
 	python3 tests/test_key_script.py ./$(HEADLESS_EXE) $(VIDEO_TEST_FLAGS)
 	python3 tests/test_video_modes.py ./$(HEADLESS_EXE) $(VIDEO_TEST_FLAGS)
 	python3 tests/test_video_modes.py ./$(HEADLESS_EXE) --kind mixed --transition $(VIDEO_TEST_FLAGS)
@@ -317,7 +328,7 @@ test-peripherals: headless
 	$(MAKE) test-pcg-access
 	$(MAKE) test-disk-control
 
-test-fast: fast test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner test-d88-crc test-cpu-busreq
+test-fast: fast test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner test-d88-crc test-d88-metadata test-cpu-busreq
 	python3 tests/test_key_script.py ./obj_dir_fast/Vtop $(VIDEO_TEST_FLAGS)
 	python3 tests/test_video_modes.py ./obj_dir_fast/Vtop $(VIDEO_TEST_FLAGS)
 	python3 tests/test_video_modes.py ./obj_dir_fast/Vtop --kind mixed --transition $(VIDEO_TEST_FLAGS)
@@ -404,6 +415,29 @@ $(HEADLESS_DIR)/dma/Vdma_tb: tests/dma_tb.sv ../rtl/x1_dma.sv
 
 .PHONY: test-dma
 
+# Actual CPU wrapper and original program; DMA is not yet a machine device.
+test-dma-cpu: $(HEADLESS_DIR)/dma-cpu/Vdma_cpu_tb
+	./$(HEADLESS_DIR)/dma-cpu/Vdma_cpu_tb
+	./$(HEADLESS_DIR)/dma-cpu/Vdma_cpu_tb +direct-register-read
+
+$(HEADLESS_DIR)/dma-cpu/Vdma_cpu_tb: tests/dma_cpu_tb.sv ../rtl/x1_dma.sv ../rtl/cpu.v $(wildcard ../rtl/tv80/*.v)
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module dma_cpu_tb --Mdir $(HEADLESS_DIR)/dma-cpu \
+		-j 2 tests/dma_cpu_tb.sv ../rtl/x1_dma.sv ../rtl/cpu.v \
+		../rtl/tv80/tv80e.v ../rtl/tv80/tv80_core.v ../rtl/tv80/tv80_mcode.v \
+		../rtl/tv80/tv80_alu.v ../rtl/tv80/tv80_reg.v -Wno-fatal
+
+test-d88-metadata: $(HEADLESS_DIR)/d88-metadata/Vd88_metadata_tb
+	./$(HEADLESS_DIR)/d88-metadata/Vd88_metadata_tb +divider=1
+	./$(HEADLESS_DIR)/d88-metadata/Vd88_metadata_tb +divider=8
+
+$(HEADLESS_DIR)/d88-metadata/Vd88_metadata_tb: tests/d88_metadata_tb.sv ../rtl/vendor/wd1793.sv ../rtl/vendor/x1_fdc_index_ram.v
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module d88_metadata_tb --Mdir $(HEADLESS_DIR)/d88-metadata \
+		-j 2 tests/d88_metadata_tb.sv ../rtl/vendor/wd1793.sv ../rtl/vendor/x1_fdc_index_ram.v -Wno-fatal
+
+.PHONY: test-dma-cpu test-d88-metadata
+
 test-requalify-scheduling:
 	python3 tests/test_requalify_scheduling.py
 	python3 tests/test_native_continuation.py
@@ -427,6 +461,28 @@ test-pcg-access: $(HEADLESS_DIR)/pcg/Vpcg_access_tb
 	./$(HEADLESS_DIR)/pcg/Vpcg_access_tb
 	./$(HEADLESS_DIR)/pcg/Vpcg_access_tb +VIDEO_HALF=3
 	./$(HEADLESS_DIR)/pcg/Vpcg_access_tb +VIDEO_HALF=17
+
+test-turbo-pcg-access: test-font16 test-pcg-access $(HEADLESS_DIR)/pcg-selector/Vpcg_selector_tb $(HEADLESS_DIR)/turbo-pcg/Vturbo_pcg_access_tb
+	./$(HEADLESS_DIR)/pcg-selector/Vpcg_selector_tb
+	@for half in 3 7 31; do for width in 1 3; do \
+		./$(HEADLESS_DIR)/turbo-pcg/Vturbo_pcg_access_tb +VIDEO_HALF=$$half +WINDOW_WIDTH=$$width || exit 1; \
+	done; done
+
+$(HEADLESS_DIR)/pcg-selector/Vpcg_selector_tb: tests/pcg_selector_tb.sv ../rtl/x1_pcg_selector.sv
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module pcg_selector_tb --Mdir $(HEADLESS_DIR)/pcg-selector \
+		-j 2 tests/pcg_selector_tb.sv ../rtl/x1_pcg_selector.sv -Wno-fatal
+
+$(HEADLESS_DIR)/turbo-pcg/Vturbo_pcg_access_tb: tests/turbo_pcg_access_tb.sv ../rtl/x1_pcg_access.v ../rtl/x1_video_ram.v ../rtl/x1_font16.sv
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module turbo_pcg_access_tb --Mdir $(HEADLESS_DIR)/turbo-pcg \
+		-j 2 tests/turbo_pcg_access_tb.sv ../rtl/x1_pcg_access.v ../rtl/x1_video_ram.v ../rtl/x1_font16.sv -Wno-fatal
+
+test-turbo-pcg-cpu: turbo turbo-video
+	python3 tests/test_turbo_pcg.py ./obj_dir_turbo/Vtop
+	python3 tests/test_turbo_pcg.py ./obj_dir_turbo_video/Vtop
+
+.PHONY: test-turbo-pcg-access test-turbo-pcg-cpu
 
 $(HEADLESS_DIR)/pcg/Vpcg_access_tb: tests/pcg_access_tb.sv ../rtl/x1_pcg_access.v ../rtl/x1_video_ram.v
 	$(V) --binary --timing --assert --top-module pcg_access_tb --Mdir $(HEADLESS_DIR)/pcg \

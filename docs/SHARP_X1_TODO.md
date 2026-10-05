@@ -15,10 +15,10 @@ These are acceptance gates, not four completed checkboxes.
 
 | Priority | Confirmed increment | Still required |
 |---|---|---|
-| 1. Turbo video | X3 enable cadence, synthetic graphics raster mapping, 16-row ANK pixels/reset; font maps as 32K RAM bits; opt-in HPS measurement snapshot seam tests pass | Route/timing/CDC/reset signoff and refit; text expansion/CPU font selection/underline, high-speed PCG, Kanji CPU/glyph paths and native/hardware acceptance |
+| 1. Turbo video | X3 enables/raster mapping/16-row ANK; bounded high-speed PCG selector, frozen HSYNC-window transactions and CPU ANK8/16 selection pass focused simulation; HPS measurement snapshot seam tested | Route/timing/CDC/reset signoff and refit; exact ASIC selector/WAIT phase, text expansion/underline, Kanji CPU/glyph paths and native/hardware acceptance |
 | 2. Native games | All five baseline games requalified on deleted-data/v04 RTL, including Galaga firing and Shanghai pair removal | Native Arcus/Bastard playability, Turbo firmware/video and multi-disk continuity; delay-aware and hardware gameplay (Arcus A1/B2 remains exploratory) |
-| 3. CTC/DMA/SIO | Enable-driven CTC/IM2/ACK/keyboard tests; actual CPU wrapper BUSRQ/BUSACK seam passes 18 ownership cases plus three controls; standalone DMA slice passes 32 groups | DMA integration/shared bus ownership/FDC DRQ transfers and unsupported DMA functions; SIO serial/FIFO/IRQ implementation; exact CTC pin/phase and physical daisy-chain timing |
-| 4. D88 robustness | Malformed-image bounds, A/B ACK ownership/eject, protected/cross-block writes, deleted-read isolation; bounded CRC/READ ADDRESS unit and fast/delay-aware machine suites pass | Fresh native/game qualification for CRC increment; deleted-write/CRC metadata updates, bounded format/write-track, density/HD mechanics, physical HPS media epochs and native disk-change acceptance |
+| 3. CTC/DMA/SIO | CTC/IM2/ACK/keyboard tests; actual CPU BUSRQ seam; standalone DMA 32 groups and real CPU/DMA 18 ownership/reset cases plus a direct-read case pass | DMA machine integration/shared bus ownership/FDC DRQ and unsupported functions; SIO serial/FIFO/IRQ implementation; exact CTC pin/phase and physical daisy-chain timing |
+| 4. D88 robustness | Bounds/A/B ACK/eject/protected writes; CRC/READ ADDRESS; deleted/CRC metadata publication and short-reset drain pass 75 direct groups at two CE rates; fresh v05 Xevious controls pass | Full-machine metadata qualification; remaining native games; safe format contract, density/HD mechanics, physical HPS epochs and native disk-change acceptance |
 
 Turbo Z is a separate planned profile, not implied by these increments. Its
 manual-based feature/acceptance breakdown is in [TURBO_Z_PLAN.md](TURBO_Z_PLAN.md)
@@ -32,6 +32,14 @@ and cannot service native firmware yet. Its next gate is actual-CPU ownership
 and register/bus transactions, then connected generated-media DRQ transfers.
 Fresh v05 five-game qualifications are running after the CRC increment;
 the prior v04 results must not be promoted to current-RTL acceptance.
+See [high-speed PCG](TURBO_HIGH_SPEED_PCG_STATUS.md),
+[CPU/DMA bus diagnostic](DMA_CPU_BUS_STATUS.md) and
+[metadata publication](D88_WRITE_METADATA_STATUS.md) for exact test scopes.
+New PCG/metadata model state requires v07; fresh v05 game results remain source-bound
+historical acceptance, not acceptance of these later changes.
+SIO's inspected primary programming/FIFO/IRQ contract and ordered original
+tests are recorded in [SIO_REGISTER_CONTRACT.md](SIO_REGISTER_CONTRACT.md).
+The engine is still absent; that research does not complete priority 3.
 
 ## Phase 0 — make simulation trustworthy
 
@@ -138,6 +146,12 @@ the prior v04 results must not be promoted to current-RTL acceptance.
 - [ ] Validate deleted-data/format/force-interrupt/metadata/CRC edge cases,
   including conditional force-interrupt sources, abort during host SD I/O,
   malformed/eject/reset transfers, drive B and applicable 2HD/2DD media.
+- [x] Implement selected-sector normal/deleted mark and B0 CRC repair after
+  all payload ACKs, separate header RMW/per-block index publication, split
+  metadata blocks, deterministic write-underrun zeros and retained short-reset
+  cancellation. Original 75-group unit passes CE=1/8 and CE=1; shared-machine
+  matrix/native/hardware acceptance remain separate. Unsupported WRITE TRACK
+  now reports write-fault rather than a successful no-op; no formatter claim.
 - [x] Preserve D88 byte-7 deleted marks in the sector index and report Read
   Sector record type; generated CPU payload/status-clearing, READ ADDRESS,
   mixed multi-sector and byte-8 isolation checks pass. Deleted writes and
@@ -175,6 +189,10 @@ the prior v04 results must not be promoted to current-RTL acceptance.
   to the test host's retained old media. Real HPS replacement epochs, physical
   mounts, rollback and exhaustive scanner-phase coverage remain open.
 - [ ] Implement DMA bus arbitration and verify Z80 DMA transfers.
+- [x] Exercise real CPU-executed DMA register streams and a single-owner unit
+  mux at CE=1/4/7, WAIT-stretched raw/accepted register writes, both transfer
+  directions, count/readback/CONTINUE and drained read/write reset. This is
+  not connected shared-machine/FDC arbitration; see `DMA_CPU_BUS_STATUS.md`.
 - [x] Expose actual CPU wrapper BUSRQ/BUSACK/refresh pins and verify 18
   WAIT/ownership/release/reset cases plus three enable-rate controls.
   [CPU seam audit](CPU_BUSREQ_AUDIT.md); machine request stays inactive until
@@ -192,6 +210,10 @@ the prior v04 results must not be promoted to current-RTL acceptance.
   Exact clock/switching hardware, Kanji, text expansion, CPU font selection,
   underline and high-speed PCG remain open. See `TURBO_VIDEO_CLOCK_STATUS.md`;
   this does not close the 400-line milestone.
+- [x] Implement bounded Turbo high-speed PCG and CPU ANK16 selection with
+  retained selector shadows, frozen bundled requests, one-write semantics
+  and provisional HSYNC service. Original unit/CPU tests pass; fallback,
+  ASIC/WAIT timing, Kanji, refit and native acceptance remain open.
 - [x] Add separate opt-in 42.954540 MHz X3 video profile with enabled CRTC,
   2/3-edge high/low dot cadence, phase/reset/width tests, sixteen-row ANK
   loader and synthetic pixel tests. Exhaust ordinary/paired PCG addresses.

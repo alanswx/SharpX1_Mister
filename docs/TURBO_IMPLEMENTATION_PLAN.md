@@ -212,7 +212,7 @@ Acceptance for this slice:
 | T2 | Remaining digital video: 15/24 kHz timing, raster repeat, 8/16-raster text/ANK, black clip, underline and high-speed PCG; add KVRAM/glyph ROMs. | CPU programs explicit CRTC values; measure line/frame periods and active dimensions, check every pixel, glyph halves, reverse/blink/width/height and each priority bit. Four SCRN b1:b0 combinations must be investigated separately: MAME enables its `v400_mode` only for `11`; `01` is explicitly not complete. Never implement all 400-line modes by just scaling PPM output. |
 | T3 | CTC and shared interrupt arbitration before SIO/DMA IRQs. | Original IM2 vector fixture with simultaneous requests, masked requests, in-service blocking, nested priority, ACK and RETI; keyboard must still recover. Resolve physical priority from schematic/second source because MAME and legacy disagree. Clock CTC from enables, not a new fabric clock. |
 | T4 | DMA register engine, CPU wrapper BUSRQ/BUSACK exposure, shared memory/I/O arbiter, FDC DRQ ready. | Memory copy then read-only native disk DMA; stalled WAIT/host ACK, stopped CPU enables, warm reset during bus ownership and pending SD ACK; exact byte/count/CRC assertions. FDC DRQ enters DMA ready, not an invented base CPU IRQ. |
-| T5 | SIO then optional YM2151/CTC board; optional bank RAM only with capacity/provenance. | Serial loopback and interrupt sequence; FM WAV/timer tests; RAM bank isolation and overlay tests. Serial connectors/audio hardware remain separate. |
+| T5 | SIO then optional YM2151/CTC board; optional bank RAM only with capacity/provenance. | [Primary SIO contract and ordered tests](SIO_REGISTER_CONTRACT.md); serial loopback/IRQ, FM WAV/timers and RAM-bank/overlay isolation. Serial connectors/audio hardware remain separate. |
 | T6 | Authentic Turbo IPL + fonts, disk-set support and commercial acceptance. | Native cold boot, visible title, actual control response and repeatability, disk changes/protection as required. Validate delay-aware baseline, chosen clock profile, main Quartus build and coordinated MiSTer test separately. |
 
 ### Authentic 400-line clock gate
@@ -448,7 +448,10 @@ glyph during a transaction, read behavior and wait timing from hardware
 documentation. Test competing selector attributes, all four candidate cells,
 fallback, port raster bits and reset with a pending crossing. Preserve the
 current beam transaction's data stability and single-write behavior. The first
-foundation must leave b5 unimplemented rather than claim high-speed PCG support.
+foundation left b5 unimplemented. The subsequent bounded
+[high-speed PCG increment](TURBO_HIGH_SPEED_PCG_STATUS.md) now exercises these
+selectors with provisional X Millennium 7FF fallback and HSYNC service;
+it does not settle ASIC/WAIT or missing Kanji gates above.
 
 Before T2, inspect the remaining Turbo schematic sheets at usable resolution
 and OCR/translate the relevant manual pages; obtain register-level primary

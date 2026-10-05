@@ -119,3 +119,17 @@ with their original executable, not a conversion. Full-machine/build/snapshot
 qualification of this subsequent increment is pending. Exact rotational/pin
 timing and the primary FD179X-versus-MAME multi-record data-CRC termination
 discrepancy remain open; this fix does not silently change that policy.
+
+## Subsequent metadata / PCG checkpoint
+
+See [metadata publication and short-reset regression](D88_WRITE_METADATA_STATUS.md)
+for the later write path. Its 75 direct groups and existing CRC/abort/scanner/
+eject suites pass; a focused 1024-byte actual CPU write/readback also passes.
+The full rebuilt machine matrix is still running. Its earlier side-compare
+failure was a fixture policy error: a mismatching WRITE was tested without
+an explicit disposable output, correctly producing host protection/write-fault
+`60`, not RNF `10`. The corrected copy-enabled CPU diagnostic passes with
+zero writes and unchanged image/payload in `/tmp/x1-side-cpu-copy-fixed.log`.
+No RTL protection check was weakened. The final PCG/metadata model advances
+to **v07**, because the smaller v06 side-compare layout was already committed;
+never convert either historical layout into the new serialized model.

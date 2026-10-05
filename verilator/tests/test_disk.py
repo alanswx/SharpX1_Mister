@@ -3,6 +3,7 @@ import binascii
 import hashlib
 import json
 import pathlib
+import shutil
 import struct
 import subprocess
 import sys
@@ -57,7 +58,11 @@ class DiskProgram:
 
     def equal(self, port, value, mask=255):
         self.p.word(0x01, port)
-        self.p.emit(0xED, 0x78, 0xE6, mask, 0xFE, value)
+        self.p.store(0xF002, value)
+        self.p.store(0xF003, mask)
+        self.p.emit(0xED, 0x78)
+        self.p.word(0x32, 0xF001)  # Keep actual/expected/mask on a failed comparison.
+        self.p.emit(0xE6, mask, 0xFE, value)
         self.p.jump(0xC2, "fail")
 
     def delay(self, count):
@@ -188,11 +193,17 @@ def writer(protected=False, number=2, count=256, command=0xA0, read_command=0x80
         d.idle()
         d.equal(0x0FF8, 0, 0x7C)
         d.read(number, 0x9900, count, read_command)
+        d.equal(0x0FF8, 0x20 if command & 1 else 0, 0x3C)
     return d.finish()
 
 
 with tempfile.TemporaryDirectory(prefix="x1-disk-") as directory:
     folder = pathlib.Path(directory)
+    executable_hash = hashlib.sha256(pathlib.Path(exe).read_bytes()).hexdigest()
+    frozen_runner = folder / "Vtop"
+    shutil.copy2(exe, frozen_runner)
+    assert hashlib.sha256(frozen_runner.read_bytes()).hexdigest() == executable_hash
+    exe = str(frozen_runner)
     disk, rom = folder / "original.d88", folder / "test.bin"
 
     def run(program, data, name, writable=False, resets=()):
@@ -209,6 +220,7 @@ with tempfile.TemporaryDirectory(prefix="x1-disk-") as directory:
         report = json.loads(result.stdout.splitlines()[-1])
         assert report["halted"] and report["peek"].startswith(b"DSK!".hex()), (name, report)
         assert hashlib.sha256(disk.read_bytes()).hexdigest() == original_hash, "input media modified"
+        print(f"PASS: {name}", flush=True)
         return report, dump.with_suffix(".ram").read_bytes(), output
 
     data, sectors = media()
@@ -286,6 +298,38 @@ with tempfile.TemporaryDirectory(prefix="x1-disk-") as directory:
     expected[offset:offset + 1024] = pattern
     assert output.read_bytes() == expected and memory[0x9900:0x9D00] == pattern
     assert written["disk_writes"] >= 2
+    # CPU writes must publish deleted/CRC metadata only for the selected
+    # record; a fresh mount must rediscover the same repaired status.
+    for number in range(1, 5):
+        for deleted in (False, True):
+            initial = bytearray(mixed)
+            offset, payload = mixed_sectors[0, 0, number]
+            initial[offset-9] = 0 if deleted else 0x10
+            initial[offset-8] = 0xB0
+            command = 0xA1 if deleted else 0xA0
+            _, changed_ram, changed_output = run(writer(number=number,
+                count=len(payload), command=command), initial,
+                f"metadata-{number}-{deleted}", True)
+            repaired = bytearray(initial)
+            pattern = bytes((i & 255) ^ 0x5A for i in range(len(payload)))
+            repaired[offset:offset+len(payload)] = pattern
+            repaired[offset-9] = 0x10 if deleted else 0
+            repaired[offset-8] = 0
+            assert changed_output.read_bytes() == repaired, "metadata write damaged another record"
+            assert changed_ram[0x9900:0x9900+len(payload)] == pattern
+            d = DiskProgram()
+            d.read(number, 0x9000, len(payload))
+            d.equal(0x0FF8, 0x20 if deleted else 0, 0x3C)
+            _, remounted_ram, _ = run(d.finish(), repaired,
+                f"metadata-remount-{number}-{deleted}")
+            assert remounted_ram[0x9000:0x9000+len(payload)] == pattern
+    for command, status in ((0xE0, 0x10), (0xF0, 0x20)):
+        d = DiskProgram()
+        d.output(0x0FF8, command)
+        d.idle()
+        d.equal(0x0FF8, status, 0x3E)
+        rejected, _, unchanged = run(d.finish(), data, f"unsupported-track-{command}", True)
+        assert rejected["disk_writes"] == 0 and unchanged.read_bytes() == data
     d = DiskProgram()
     d.read(15, 0x9000, 512, 0x90)  # Multi-sector command reaches absent R=17.
     d.equal(0x0FF8, 0x10, 0x10)
@@ -313,7 +357,10 @@ with tempfile.TemporaryDirectory(prefix="x1-disk-") as directory:
         d.equal(0x0FF8, 0, 0x3E)
         d.read(1, 0x9100, command=wrong_command & ~2) # C=0 ignores S.
         d.equal(0x0FF8, 0, 0x3E)
-        _, side_ram, _ = run(d.finish(), side_image, f"id-side-{id_side}")
+        # A mismatching WRITE must use a disposable writable copy: without
+        # --disk-output host WP correctly wins before the ID search.
+        side_report, side_ram, rejected_output = run(d.finish(), side_image, f"id-side-{id_side}", True)
+        assert side_report["disk_writes"] == 0 and rejected_output.read_bytes() == side_image
         assert side_ram[0x9000:0x9100] == first_payload
         assert side_ram[0x9100:0x9200] == first_payload
         _, side_ram, side_output = run(writer(number=1, command=match_command|0x20,

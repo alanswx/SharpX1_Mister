@@ -188,7 +188,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
               : ctc_cs && io_read ? ctc_data
               : io_read && !dam && a[15:2] == 14'h03fe ? fdc_data
               : io_read && !dam && a[15:8] == 8'h1b ? psg_data
-              : cg_access && io_read ? cg_cpu_data
+              : (cg_access && io_read) || cg_read_tail ? cg_cpu_data
               : io_read && !dam && a[15:12] == 4'h2 ? attr_cpu
               : io_read && !dam && TURBO && a[15:11] == 5'b00111 ? kan_cpu
               : io_read && !dam && a[15:12] == 4'h3 ? text_cpu
@@ -282,16 +282,46 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     wire [7:0] cg_access_data;
     wire [2:0] cg_access_write;
     wire cg_wait_n;
+    wire cg_read_hold;
+    // TV80's inherited IOWait phase can repeat T2 after a long WAIT release,
+    // with RD/IORQ already high on its second data-sampling edge. Retain only
+    // the completed high-speed read on that inactive-bus CG-address tail.
+    // Never override memory, interrupt ACK or another active I/O transaction.
+    wire cg_read_tail = TURBO && cg_read_hold && !reset && mreq && iorq && m1
+                        && a[15:10] == 6'b000101;
+    wire [10:0] cg_selected_addr;
+    wire [11:0] cg_selected_font_addr, cg_font_cpu_addr;
+    wire cg_selected_font16, cg_selected_unsupported;
+    wire [7:0] cg_font_cpu_data;
     wire text_write = io_write && !dam && a[15:12] == 4'h3 && (!TURBO || !a[11]);
     wire kan_write = TURBO && io_write && !dam && a[15:11] == 5'b00111;
     wire attr_write = io_write && !dam && a[15:12] == 4'h2;
     wire cg_access = io_cycle && !dam && a[15:10] == 6'b000101;
+    generate if (TURBO) begin : turbo_pcg_selector
+        x1_pcg_selector selector (
+            .clk(clk_sys), .text_write(text_write), .attr_write(attr_write), .kan_write(kan_write),
+            .address(a[10:0]), .data(data_out), .nibble(a[3:0]), .plane(a[9:8]),
+            .font16_mode(turbo_scrn[6]), .byte_address(cg_selected_addr),
+            .font_address(cg_selected_font_addr), .font16_select(cg_selected_font16),
+            .unsupported(cg_selected_unsupported)
+        );
+    end else begin : no_turbo_pcg_selector
+        assign cg_selected_addr = 0;
+        assign cg_selected_font_addr = 0;
+        assign cg_selected_font16 = 0;
+        assign cg_selected_unsupported = 0;
+    end endgenerate
     x1_pcg_access cg_bus (
         .reset(reset), .cpu_clk(clk_sys), .video_clk(clk_28636),
         .cpu_select(cg_access), .cpu_write(io_write), .cpu_plane(a[9:8]), .cpu_data(data_out),
         .wait_n(cg_wait_n), .cpu_q(cg_cpu_data), .beam_addr(cgaddr),
         .access_addr(cg_access_addr), .access_data(cg_access_data), .access_write(cg_access_write),
-        .rom_q(cg_rom_cpu), .blue_q(pcgb_cpu), .red_q(pcgr_cpu), .green_q(pcgg_cpu)
+        .rom_q(cg_rom_cpu), .blue_q(pcgb_cpu), .red_q(pcgr_cpu), .green_q(pcgg_cpu),
+        .high_speed(TURBO && turbo_scrn[5]), .selected_addr(cg_selected_addr),
+        .selected_font16(cg_selected_font16), .selected_unsupported(cg_selected_unsupported),
+        .selected_font_addr(cg_selected_font_addr), .video_window(HSync),
+        .font_cpu_addr(cg_font_cpu_addr), .font_cpu_q(cg_font_cpu_data),
+        .cpu_read_hold(cg_read_hold)
     );
     x1_video_ram #(11) text_ram(clk_sys,a[10:0],data_out,text_write,text_cpu,clk_28636,vaddr[10:0],text_vid);
     x1_video_ram #(11) attr_ram(clk_sys,a[10:0],data_out,attr_write,attr_cpu,clk_28636,vaddr[10:0],attr_vid);
@@ -316,10 +346,12 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
             .cpu_clk(clk_sys), .video_clk(clk_28636),
             .load(ioctl_download && ioctl_wr && ioctl_index == 4),
             .load_address(ioctl_addr), .load_data(ioctl_dout),
-            .display_address(ank16_addr), .display_data(ank16_data), .loaded()
+            .display_address(ank16_addr), .display_data(ank16_data), .loaded(),
+            .cpu_address(cg_font_cpu_addr), .cpu_data(cg_font_cpu_data)
         );
     end else begin : no_turbo_font
         assign ank16_data = 0;
+        assign cg_font_cpu_data = 0;
     end endgenerate
     assign cg_data = TURBO && turbo_scrn_video[0] ? ank16_data : cg8_data;
     wire r,g,b;
