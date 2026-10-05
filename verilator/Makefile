@@ -52,6 +52,7 @@ test-turbo: turbo test-ctc $(HEADLESS_DIR)/turbo-video/Vturbo_video_tb
 	python3 tests/test_keyboard_poll.py ./obj_dir_turbo/Vtop
 	python3 tests/test_bus_trace.py ./obj_dir_turbo/Vtop
 	python3 tests/test_drive_selection.py ./obj_dir_turbo/Vtop
+	python3 tests/test_dual_disk.py ./obj_dir_turbo/Vtop
 	./$(HEADLESS_DIR)/turbo-video/Vturbo_video_tb
 
 $(HEADLESS_DIR)/turbo-video/Vturbo_video_tb: tests/turbo_video_tb.sv ../rtl/legacy/x1_vid.v ../rtl/legacy/crtc/crtc6845s.v
@@ -107,6 +108,7 @@ test-single: single test-clock-enables test-sub-timer test-fdc-abort test-fdc-sd
 	python3 tests/test_system_ports.py ./obj_dir_single/Vtop
 	python3 tests/test_pcg.py ./obj_dir_single/Vtop 28636364
 	python3 tests/test_disk.py ./obj_dir_single/Vtop
+	python3 tests/test_dual_disk.py ./obj_dir_single/Vtop
 
 boot-game-single: single-fast
 	./obj_dir_single_fast/Vtop --cycles 416000000 --rom ../bios/ipl_x1.hex --disk $(GAME_DISK) \
@@ -208,6 +210,7 @@ test: headless test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner
 	python3 tests/test_ctc_base.py ./$(HEADLESS_EXE)
 	python3 tests/test_bus_trace.py ./$(HEADLESS_EXE)
 	python3 tests/test_drive_selection.py ./$(HEADLESS_EXE)
+	python3 tests/test_dual_disk.py ./$(HEADLESS_EXE)
 	python3 tests/test_subcpu.py ./$(HEADLESS_EXE)
 	python3 tests/test_graphics_bus.py ./$(HEADLESS_EXE)
 	python3 tests/test_keyboard_irq.py ./$(HEADLESS_EXE)
@@ -238,13 +241,16 @@ test-fast: fast test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner
 	python3 tests/test_system_ports.py ./obj_dir_fast/Vtop
 	python3 tests/test_pcg.py ./obj_dir_fast/Vtop
 	python3 tests/test_disk.py ./obj_dir_fast/Vtop
+	python3 tests/test_dual_disk.py ./obj_dir_fast/Vtop
 	python3 tests/test_snapshot.py ./obj_dir_fast/Vtop
 	$(MAKE) test-sdl
 	$(MAKE) test-joystick
 	$(MAKE) test-pcg-access
 	$(MAKE) test-disk-control
 
-test-disk-control: $(HEADLESS_DIR)/disk/Vdisk_control_tb $(HEADLESS_DIR)/index/Vfdc_index_tb
+test-disk-control: $(HEADLESS_DIR)/disk/Vdisk_control_tb $(HEADLESS_DIR)/index/Vfdc_index_tb $(HEADLESS_DIR)/media/Vdisk_media_tb $(HEADLESS_DIR)/dual-fdc/Vdual_fdc_tb
+	./$(HEADLESS_DIR)/media/Vdisk_media_tb
+	./$(HEADLESS_DIR)/dual-fdc/Vdual_fdc_tb
 	./$(HEADLESS_DIR)/disk/Vdisk_control_tb
 	./$(HEADLESS_DIR)/index/Vfdc_index_tb
 
@@ -320,6 +326,14 @@ $(HEADLESS_DIR)/loader/Vloader_tb: tests/loader_tb.sv $(MACHINE_SRC) $(MACHINE_M
 
 lint:
 	$(V) --lint-only --timing --assert --top-module top $(V_SRC) -Wno-fatal
+
+$(HEADLESS_DIR)/media/Vdisk_media_tb: ../rtl/x1_disk_media.sv tests/disk_media_tb.sv
+	$(V) --binary --timing --assert --top-module disk_media_tb --Mdir $(HEADLESS_DIR)/media \
+		-j 4 ../rtl/x1_disk_media.sv tests/disk_media_tb.sv -Wno-fatal
+
+$(HEADLESS_DIR)/dual-fdc/Vdual_fdc_tb: ../rtl/x1_disk_media.sv ../rtl/vendor/wd1793.sv ../rtl/vendor/x1_fdc_index_ram.v tests/dual_fdc_tb.sv
+	$(V) --binary --timing --assert --top-module dual_fdc_tb --Mdir $(HEADLESS_DIR)/dual-fdc \
+		-j 4 ../rtl/x1_disk_media.sv ../rtl/vendor/wd1793.sv ../rtl/vendor/x1_fdc_index_ram.v tests/dual_fdc_tb.sv -Wno-fatal
 
 lint-wrapper:
 	$(V) --lint-only --timing --top-module emu -Itests ../sharpx1.sv ../sys/hps_io.sv \

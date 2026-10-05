@@ -95,6 +95,11 @@ MiSTer now wires keyboard, joystick, disk, RGB and audio paths and
 offers IPL/D88 OSD entries. Disk writes default to protected; enabling them
 does not override read-only media. Generated D88 tests cover reads, safe writes,
 protection, variable sector sizes, seeking, sides and error/status cases.
+The new [two-image disk increment](docs/DUAL_DISK_STATUS.md) adds separate A/B
+mount slots, independent head/motor state and owner-stable host transfers.
+Generated A/B read/write tests pass in both clock profiles; selecting media
+requires a not-ready rescan interval. This increment is not in the latest RBF
+and has not been tested on MiSTer or accepted as complete disk-set compatibility.
 See [disk verification and limits](docs/DISK_STATUS.md).
 Focused tests cover pending SD read/write abort/reset and stable request
 addresses. Shared RTL now rejects unsafe D88 header/table/sector layouts and

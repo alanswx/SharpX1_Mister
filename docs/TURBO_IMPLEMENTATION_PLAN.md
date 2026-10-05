@@ -326,8 +326,12 @@ engine; the machine schematic and MAME integration establish wiring only.
 The experimental Arcus cold checkpoint reaches a driver routine at `F9B0`
 that reads `0FF8` and loops while status `81` bits are set. Its saved script
 pointer/stack identify an earlier `0FFC=81` selection (drive B, motor on).
-Only drive A has media support today. This is an initialization dependency to
-confirm with bounded traces, not a reason to report an empty drive as ready.
+At that checkpoint only drive A had media support. Bounded traces subsequently
+confirmed the initialization dependency, not a reason to report an empty drive
+as ready. The October 5 [two-image increment](DUAL_DISK_STATUS.md) implements
+serialized A/B rescans, separate head/motor state and ACK-drained ownership;
+generated tests pass, but the acceptance steps below remain wider than that
+increment's software/mechanical/hardware coverage.
 The resulting black 640x400 capture is not title or video-mode acceptance.
 
 Next storage increment, before claiming Arcus/disk-set compatibility:

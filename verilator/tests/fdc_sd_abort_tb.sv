@@ -10,6 +10,7 @@ module fdc_sd_abort_tb;
     wire [31:0] lba;
     wire [7:0] host_data;
     wd1793 #(.RWMODE(1), .EDSK(0)) dut (
+        .drive_select(1'b0), .drive_connected(1'b1), .transport_idle(),
         // Shared machine freezes CPU/FDC enables during reset. Host ACK still
         // runs on clk_sys and must not disappear while the enable is stopped.
         .clk_sys(clk), .ce(!reset), .reset(reset), .io_en(1'b1), .rd(rd), .wr(wr),

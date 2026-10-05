@@ -12,6 +12,9 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0) (
     input [7:0] joya_n, joyb_n,
     input disk_ready, img_mounted, disk_wp,
     input [23:0] img_size,
+    input disk_ready_b, img_mounted_b, disk_wp_b,
+    input [23:0] img_size_b,
+    output sd_drive,
     output [31:0] sd_lba,
     output sd_rd, sd_wr,
     input sd_ack,
@@ -224,18 +227,32 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0) (
     wire fdc_prepare, fdc_fmt_wp;
     wire [1:0] drive;
     wire disk_side, disk_motor, disk_fm;
-    x1_disk_control #(.MOTOR_HOLD_CYCLES(SINGLE_CLOCK ? MASTER_HZ * 6 / 5 : 38400000)) disk_control (
+    wire [1:0] active_drive;
+    wire media_changing, selected_ready, selected_wp, transport_idle;
+    wire [23:0] selected_size;
+    x1_disk_media disk_media (
+        .clk(clk_sys), .selected(drive),
+        .mounted({img_mounted_b,img_mounted}),
+        .present({disk_ready_b,disk_ready}), .readonly({disk_wp_b,disk_wp}),
+        .size_a(img_size), .size_b(img_size_b), .transport_idle(transport_idle),
+        .active(active_drive), .changing(media_changing),
+        .ready(selected_ready), .wp(selected_wp), .size(selected_size)
+    );
+    assign sd_drive = active_drive[0];
+    x1_disk_control #(.MOTOR_HOLD_CYCLES(SINGLE_CLOCK ? MASTER_HZ * 6 / 5 : 38400000), .PHYSICAL_DRIVES(2)) disk_control (
         .clk(clk_sys), .reset(reset), .io_read(io_read && !dam), .io_write(io_write && !dam),
         .address(a), .data(data_out), .drive(drive), .side(disk_side), .motor_on(disk_motor), .fm_mode(disk_fm)
     );
-    wd1793 #(.RWMODE(1), .EDSK(1), .HEADLOAD_STATUS(1), .INDEX_CYCLES(800000), .D88_ONLY(1)) fdc (
+    wd1793 #(.RWMODE(1), .EDSK(1), .HEADLOAD_STATUS(1), .INDEX_CYCLES(800000), .D88_ONLY(1), .PHYSICAL_DRIVES(2)) fdc (
         .clk_sys(clk_sys), .ce(pe4M4), .reset(reset),
         .io_en(!dam && a[15:2] == 14'h03fe), .rd(io_read), .wr(io_write),
         .addr(a[1:0]), .din(data_out), .dout(fdc_data),
-        .drq(), .intrq(), .busy(), .wp(disk_wp || fdc_fmt_wp), .fmt_wp(fdc_fmt_wp),
+        .drq(), .intrq(), .busy(), .wp(selected_wp || fdc_fmt_wp), .fmt_wp(fdc_fmt_wp),
         .size_code(3'd1), .layout(1'b0), .side(disk_side), .fm_mode(disk_fm),
-        .ready(disk_ready && drive == 0 && disk_motor && !fdc_prepare),
-        .img_mounted(img_mounted), .img_size(img_size[19:0]), .img_size_id(img_size),
+        .ready(selected_ready && disk_motor && !fdc_prepare),
+        .drive_select(active_drive[0]), .transport_idle(transport_idle),
+        .drive_connected(active_drive < 2),
+        .img_mounted(media_changing), .img_size(selected_size[19:0]), .img_size_id(selected_size),
         .disk_index(3'd0), .prepare(fdc_prepare),
         .sd_lba(sd_lba), .sd_rd(sd_rd), .sd_wr(sd_wr), .sd_ack(sd_ack),
         .sd_buff_addr(sd_buff_addr), .sd_buff_dout(sd_buff_dout),

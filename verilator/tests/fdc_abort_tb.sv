@@ -6,6 +6,7 @@ module fdc_abort_tb;
     always #5 clk = !clk;
     wire irq, busy, drq;
     wd1793 #(.RWMODE(0), .EDSK(0), .INDEX_CYCLES(1000)) dut (
+        .drive_select(1'b0), .drive_connected(1'b1), .transport_idle(),
         .clk_sys(clk), .ce(1'b1), .reset(reset), .io_en(1'b1), .rd(rd), .wr(wr),
         .addr(2'd0), .din(command), .dout(), .drq(drq), .intrq(irq), .busy(busy),
         .wp(1'b0), .fmt_wp(), .size_code(3'd1), .layout(1'b0), .side(1'b0),

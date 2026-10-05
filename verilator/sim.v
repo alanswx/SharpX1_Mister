@@ -11,6 +11,11 @@ module top #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0) (
     input [7:0] joya_n, joyb_n,
     input disk_ready, img_mounted, disk_wp,
     input [23:0] img_size,
+    input disk_ready_b, img_mounted_b, disk_wp_b,
+    input [23:0] img_size_b,
+    output sd_drive,
+    output [7:0] debug_disk_control,
+    output debug_disk_motor, debug_disk_ready,
     output [31:0] sd_lba,
     output sd_rd, sd_wr,
     input sd_ack,
@@ -44,6 +49,7 @@ module top #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0) (
         .ioctl_wr(ioctl_wr), .ioctl_addr(ioctl_addr), .ioctl_dout(ioctl_dout),
         .ps2_clk_in(ps2_clk_in), .ps2_data_in(ps2_data_in), .joya_n(joya_n), .joyb_n(joyb_n),
         .disk_ready(disk_ready), .img_mounted(img_mounted), .disk_wp(disk_wp), .img_size(img_size),
+        .disk_ready_b(disk_ready_b), .img_mounted_b(img_mounted_b), .disk_wp_b(disk_wp_b), .img_size_b(img_size_b), .sd_drive(sd_drive),
         .sd_lba(sd_lba), .sd_rd(sd_rd), .sd_wr(sd_wr), .sd_ack(sd_ack),
         .sd_buff_addr(sd_buff_addr), .sd_buff_dout(sd_buff_dout),
         .sd_buff_din(sd_buff_din), .sd_buff_wr(sd_buff_wr),
@@ -51,6 +57,9 @@ module top #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0) (
         .HSync(HSync), .VSync(VSync), .HBlank(HBlank), .VBlank(VBlank)
     );
     assign debug_ram = machine.RAM.mem[debug_addr];
+    assign debug_disk_control = machine.disk_control.control;
+    assign debug_disk_motor = machine.disk_motor;
+    assign debug_disk_ready = machine.fdc.media_ready;
     assign debug_text = machine.text_ram.mem[debug_addr[10:0]];
     assign debug_attr = machine.attr_ram.mem[debug_addr[10:0]];
     assign sub_pc = {machine.subCPU.sub_cpu.cpu.reg_pc,1'b0};

@@ -73,6 +73,15 @@ class DiskProgram:
         self.p.emit(0xED, 0x78, 0xE6, 1)
         self.p.jump(0xC2, label)
 
+    def ready(self):
+        # Switching physical media serializes an index rescan; wait for
+        # actual READY rather than issuing a command into the quarantine.
+        label = self.label("ready")
+        self.p.word(0x01, 0x0FF8)
+        self.p.label(label)
+        self.p.emit(0xED, 0x78, 0xE6, 0x80)
+        self.p.jump(0xC2, label)
+
     def drq(self):
         label = self.label("drq")
         self.p.word(0x01, 0x0FF8)
@@ -145,6 +154,7 @@ def basic():
     d.idle()
     d.equal(0x0FF8, 0x80, 0x80)
     d.output(0x0FFC, 0x80)
+    d.ready()
     d.output(0x0FFA, 1)
     d.output(0x0FF8, 0xA0)
     d.idle()

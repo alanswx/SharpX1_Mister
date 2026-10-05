@@ -4,6 +4,7 @@ module fdc_index_tb;
     always #5 clk = !clk;
     wire [7:0] status;
     wd1793 #(.RWMODE(0),.EDSK(0),.HEADLOAD_STATUS(1),.INDEX_CYCLES(800000)) dut (
+        .drive_select(1'b0), .drive_connected(1'b1), .transport_idle(),
         .clk_sys(clk),.ce(1'b1),.reset(reset),.io_en(1'b1),.rd(1'b0),.wr(wr),
         .addr(2'd0),.din(8'h08),.dout(status),.drq(),.intrq(),.busy(),.wp(1'b0),.fmt_wp(),
         .size_code(3'd1),.layout(1'b0),.side(1'b0),.ready(1'b1),.fm_mode(1'b0),

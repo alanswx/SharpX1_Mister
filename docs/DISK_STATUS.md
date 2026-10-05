@@ -3,6 +3,11 @@
 The shared `rtl/sharpx1.v` instantiates a WD1793-family replacement with the
 D88 image adapter, not a fully validated MB8877 implementation. Native IPL
 read-only CROSS Chase boot remains one software compatibility example.
+The newer [two-image increment](DUAL_DISK_STATUS.md) adds A/B mount slots,
+independent head/motor state, selection rescans and owner-stable SD routing.
+The historical single-image test description below is not a claim that B is
+still unimplemented; an **unmounted** B remains not-ready. Hardware and exact
+mechanical/controller timing remain unverified.
 
 Original generated D88 media and original Z80 fixtures in
 `verilator/tests/test_disk.py` verify the actual machine bus/controller/SD path:

@@ -23,6 +23,8 @@ def main():
     parser.add_argument("--manifest", type=pathlib.Path, default=pathlib.Path("../software/special-unpacked/manifest.json"))
     parser.add_argument("--rom", type=pathlib.Path, default=pathlib.Path("../bios/ipl_x1.hex"))
     parser.add_argument("--seconds", type=int, default=16)
+    parser.add_argument("--arcus-drive-b", type=int, choices=(2, 3, 4, 5),
+                        help="explicit staged Arcus disk for B; exploratory, not a verified release disk order")
     parser.add_argument("--keys", type=pathlib.Path, default=pathlib.Path("tests/commercial_boot.keys"))
     parser.add_argument("--output", type=pathlib.Path, required=True,
                         help="new ignored directory; contains private RAM/frame evidence")
@@ -46,8 +48,21 @@ def main():
     disk = manifest.parent / candidates[0]["path"]
     if digest(disk) != candidates[0]["sha256"]:
         parser.error("staged disk differs from manifest")
+    disk_b = None
+    member_b = None
+    if args.arcus_drive_b:
+        if args.title != "arcus":
+            parser.error("--arcus-drive-b is only applicable to Arcus")
+        member_b = next((f for f in candidates if f"Disk {args.arcus_drive_b}" in f["member"]), None)
+        if member_b is None:
+            parser.error("requested Arcus B disk is absent from the staging manifest")
+        disk_b = manifest.parent / member_b["path"]
+        if digest(disk_b) != member_b["sha256"]:
+            parser.error("staged B disk differs from manifest")
     exe, rom, keys = (p.resolve() for p in (args.executable, args.rom, args.keys))
     originals = {str(p): digest(p) for p in (disk, rom, keys, manifest)}
+    if disk_b:
+        originals[str(disk_b)] = digest(disk_b)
     folder = args.output.resolve()
     folder.mkdir(parents=True, exist_ok=False)
     # Freeze the executable while another agent rebuilds the shared runner.
@@ -58,11 +73,15 @@ def main():
         raise RuntimeError("runner changed during copy; rerun with a new output directory")
     runs = []
     artifacts = (".ram", ".text", ".attr", ".subram", ".cpu", ".ppm")
+    if args.io_trace:
+        artifacts += (".csv",)
     for name in ("cold", "repeat"):
         prefix = folder / name
         command = [str(frozen), "--cycles", str(args.seconds * 32000000),
                    "--rom", str(rom), "--disk", str(disk), "--keys", str(keys),
                    "--dump", str(prefix), "--frame", str(prefix) + ".ppm"]
+        if disk_b:
+            command += ["--disk-b", str(disk_b)]
         if args.io_trace:
             command += ["--bus-trace", str(prefix) + ".csv", "--io-only"]
             if args.bus_events:
@@ -84,6 +103,8 @@ def main():
                 and runs[0]["report"] == runs[1]["report"]
                 and runs[0]["artifacts"] == runs[1]["artifacts"])
     evidence = {"title": args.title, "disk_member": candidates[0]["member"],
+                "disk_b_member": member_b["member"] if member_b else None,
+                "disk_order_verified": False,
                 "archive_sha256": row.get("archive_sha256"), "inputs_sha256": originals,
                 "executable_sha256": executable_sha, "cycles_reference_hz": 32000000,
                 "duration_seconds": args.seconds, "runs": runs,

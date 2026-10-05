@@ -23,7 +23,7 @@ changes and runtime evidence.
 | Z80 CTC | Opt-in Turbo: CE-based four-channel timers/counters, vectors, priority/service and RETI connected; CPU IM2/keyboard coexistence and stretched ACK tested; exact pin timing/ASIC aliases/hardware pending | Present |
 | Z80 DMA | Disconnected scaffolding | Partial firmware emulation |
 | Z80 SIO | Missing | Stub |
-| MB8877 floppy controller | WD1793-family replacement boots D88; generated read/write/protection/drive/index tests pass; exact MB8877 timing/format/errors remain open | Partial firmware emulation |
+| MB8877 floppy controller | One WD1793-family engine boots D88; generated A/B image, independent head/motor, read/write/protection and owner-drain tests pass. Selection rescans, exact MB8877 mechanics/format/errors and hardware remain open; see [two-image status](DUAL_DISK_STATUS.md) | Partial firmware emulation |
 | Disk-image backend | D88 host preflight plus shared-RTL bounds/invalid not-ready and pending-read replacement/eject/reset quarantine tested; copy-only writes verified; physical faults/permanent stalls pending | Missing from historical harness |
 | RTC | Partial firmware state | Partial firmware state |
 | Cassette/APSS | Missing | Command-state stub |

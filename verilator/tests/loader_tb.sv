@@ -13,6 +13,7 @@ module loader_tb;
         .ps2_clk_in(1'b1), .ps2_data_in(1'b1), .joya_n(8'hff), .joyb_n(8'hff),
         .rgb(), .audio(),
         .disk_ready(1'b0), .img_mounted(1'b0), .disk_wp(1'b1), .img_size(24'd0),
+        .disk_ready_b(1'b0), .img_mounted_b(1'b0), .disk_wp_b(1'b1), .img_size_b(24'd0), .sd_drive(),
         .sd_lba(), .sd_rd(), .sd_wr(), .sd_ack(1'b0), .sd_buff_addr(9'd0),
         .sd_buff_dout(8'd0), .sd_buff_din(), .sd_buff_wr(1'b0),
         .ce_pix(), .HBlank(), .HSync(), .VBlank(), .VSync(), .video()

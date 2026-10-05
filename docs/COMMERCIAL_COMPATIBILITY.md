@@ -143,7 +143,7 @@ bounded transaction traces also compare byte-for-byte (889 reads each).
 The black framebuffer matches the earlier CTC-profile observation exactly.
 No fabricated readiness, injected game RAM,
 restored snapshots or game/ROM patches were used. Staged disks 2–5 are preserved,
-but are not mounted by the current single-drive host. See the
+but were not mounted by that checkpoint's single-image host. See the
 [dual-drive implementation/acceptance steps](TURBO_IMPLEMENTATION_PLAN.md#drive-b--disk-set-dependency).
 
 The same frozen executable also passed two fresh **8-second** Bastard Special
@@ -151,6 +151,36 @@ boots, retaining 1062 disk requests, zero writes, unchanged inputs and identical
 report/RAM/register/RGB repeats. The 640x200 title image matches the earlier
 native title (`22b566650e6207c3`); no gameplay/start acceptance is inferred.
 Evidence: `verilator/obj_dir_turbo_fast/special-probes/bastard-ctc-status-final-8s/`.
+
+### Two-image Arcus probe — October 5
+
+An explicit exploratory Disk 1 in A / Disk 2 in B probe removes the prior
+unmounted-B readiness wait. Disk order has **not** been verified against
+release instructions. The images are distinct staged originals, not mirrors;
+no RAM injection, writable copy, game/ROM patch or restored snapshot is used.
+
+Two cold **8-second** runs repeat reports, RAM/registers, actual RGB and the
+bounded **7,990–8,000 ms** I/O trace, with unchanged input hashes. Frozen runner
+SHA-256: `0a1ab3d93f4479c6aa925c1b9e9b356903d39fdc4a48ec202325a471afe90aaa`.
+Both record 2752 host requests, zero writes, six transmitted PS/2 bytes and
+4159 reset edges. The endpoint PC is `FAEC`; the final trace includes PPI/video
+status `1A01` and sub-CPU `1900` reads with drive control `90`, motor on and
+media-ready true. `FAE1/FAEB` are polling helpers for `1A01` bits 6/5; their
+presence at one endpoint is not proof of a new permanent stall.
+
+The captured 640x400 image is **not a recognizable game title**: a green
+background and a small severely misrendered rectangle replace the prior all-
+black framebuffer. Frame hash `25743cbe39750765`, HS/VS periods 60.500 us /
+27.095031250 ms. This is still incorrect high-resolution timing/rendering,
+not native gameplay or confirmed compatibility. Earlier and later shorter
+probes must retain their own clocks, executable hashes and durations.
+
+Private evidence: `verilator/obj_dir_turbo_fast/special-probes/arcus-dual-final-8s/`.
+This frozen executable includes the A/B head/motor/owner integration and
+unsupported-drive head protection, but predates the final previous-STEP-
+direction retention fix. A later source-bound repeat qualifies that fix
+separately; do not call this eight-second observation a test of subsequent RTL.
+See [two-image behavior and limits](DUAL_DISK_STATUS.md).
 
 ### Fresh CROSS receiver-profile regression (separate homebrew)
 

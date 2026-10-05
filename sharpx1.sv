@@ -209,6 +209,7 @@ localparam CONF_STR = {
 	"O[122:121],Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
 	"F0,ROM,Load IPL;",
 	"S0,D88,Drive A;",
+	"S1,D88,Drive B;",
 	"O[1],Disk writes,Protected,Enabled;",
 	"-;",
 	"T[0],Reset;",
@@ -231,23 +232,37 @@ wire [31:0] joy0, joy1;
 wire [7:0] joya_n, joyb_n;
 x1_joystick_map joya_map (.joystick(joy0), .pins_n(joya_n));
 x1_joystick_map joyb_map (.joystick(joy1), .pins_n(joyb_n));
-wire [31:0] sd_lba[1];
-wire [7:0] sd_buff_din[1];
-wire sd_rd, sd_wr, sd_ack, sd_buff_wr;
+wire [31:0] sd_lba[2];
+wire [7:0] sd_buff_din[2];
+wire [1:0] sd_rd, sd_wr, sd_ack;
+wire sd_buff_wr;
+wire fdc_sd_rd, fdc_sd_wr, fdc_sd_drive;
+wire [31:0] fdc_sd_lba;
+wire [7:0] fdc_sd_din;
+assign sd_lba[0] = fdc_sd_lba;
+assign sd_lba[1] = fdc_sd_lba;
+assign sd_buff_din[0] = fdc_sd_din;
+assign sd_buff_din[1] = fdc_sd_din;
+assign sd_rd = fdc_sd_rd ? (fdc_sd_drive ? 2'b10 : 2'b01) : 2'b00;
+assign sd_wr = fdc_sd_wr ? (fdc_sd_drive ? 2'b10 : 2'b01) : 2'b00;
 wire [13:0] sd_buff_addr;
 wire [7:0] sd_buff_dout;
-wire img_mounted, img_readonly;
+wire [1:0] img_mounted;
+wire img_readonly;
 wire [63:0] img_size;
-reg media_present = 0;
-reg media_readonly = 1;
-reg [23:0] media_size = 0;
-always @(posedge clk_sys) if(img_mounted) begin
-	media_present <= img_size != 0 && img_size <= 64'd1048575;
-	media_size <= img_size[23:0];
-	media_readonly <= img_readonly;
+reg [1:0] media_present = 0;
+reg [1:0] media_readonly = 2'b11;
+reg [23:0] media_size [0:1];
+initial begin media_size[0] = 0; media_size[1] = 0; end
+always @(posedge clk_sys) begin
+	for(integer d = 0; d < 2; d = d + 1) if(img_mounted[d]) begin
+		media_present[d] <= img_size != 0 && img_size <= 64'd1048575;
+		media_size[d] <= img_size[23:0];
+		media_readonly[d] <= img_readonly;
+	end
 end
 
-hps_io #(.CONF_STR(CONF_STR), .PS2DIV(1600)) hps_io
+hps_io #(.CONF_STR(CONF_STR), .PS2DIV(1600), .VDNUM(2)) hps_io
 (
 	.clk_sys(clk_sys),
 	.HPS_BUS(HPS_BUS),
@@ -278,7 +293,7 @@ hps_io #(.CONF_STR(CONF_STR), .PS2DIV(1600)) hps_io
 	.ps2_kbd_led_status(3'd0), .ps2_kbd_led_use(3'd0),
 	.ps2_mouse_clk_in(1'b1), .ps2_mouse_data_in(1'b1),
 	.img_mounted(img_mounted), .img_readonly(img_readonly), .img_size(img_size),
-	.sd_lba(sd_lba), .sd_blk_cnt('{6'd0}), .sd_rd(sd_rd), .sd_wr(sd_wr), .sd_ack(sd_ack),
+	.sd_lba(sd_lba), .sd_blk_cnt('{6'd0,6'd0}), .sd_rd(sd_rd), .sd_wr(sd_wr), .sd_ack(sd_ack),
 	.sd_buff_addr(sd_buff_addr), .sd_buff_dout(sd_buff_dout),
 	.sd_buff_din(sd_buff_din), .sd_buff_wr(sd_buff_wr),
 	
@@ -341,11 +356,13 @@ sharpx1 #(.SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ), .TURBO(TURBO_FOUND
 	.ioctl_dout(ioctl_data),
 	.ps2_clk_in(ps2_clk), .ps2_data_in(ps2_data),
 	.joya_n(joya_n), .joyb_n(joyb_n),
-	.disk_ready(media_present), .img_mounted(img_mounted),
-	.disk_wp(!status[1] || media_readonly), .img_size(media_size),
-	.sd_lba(sd_lba[0]), .sd_rd(sd_rd), .sd_wr(sd_wr), .sd_ack(sd_ack),
+	.disk_ready(media_present[0]), .img_mounted(img_mounted[0]),
+	.disk_wp(!status[1] || media_readonly[0]), .img_size(media_size[0]),
+	.disk_ready_b(media_present[1]), .img_mounted_b(img_mounted[1]),
+	.disk_wp_b(!status[1] || media_readonly[1]), .img_size_b(media_size[1]),
+	.sd_drive(fdc_sd_drive), .sd_lba(fdc_sd_lba), .sd_rd(fdc_sd_rd), .sd_wr(fdc_sd_wr), .sd_ack(sd_ack[fdc_sd_drive]),
 	.sd_buff_addr(sd_buff_addr[8:0]), .sd_buff_dout(sd_buff_dout),
-	.sd_buff_din(sd_buff_din[0]), .sd_buff_wr(sd_buff_wr),
+	.sd_buff_din(fdc_sd_din), .sd_buff_wr(sd_buff_wr),
 
 	.HBlank(HBlank),
 	.HSync(HSync),
@@ -365,6 +382,6 @@ assign VGA_G  = {8{machine_rgb[2]}};
 assign VGA_R  = {8{machine_rgb[1]}};
 assign VGA_B  = {8{machine_rgb[0]}};
 
-assign LED_USER = ioctl_download | sd_rd | sd_wr;
+assign LED_USER = ioctl_download | (|sd_rd) | (|sd_wr);
 
 endmodule

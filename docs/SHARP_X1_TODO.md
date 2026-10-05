@@ -102,6 +102,12 @@ support before optional Turbo extensions.
 - [x] Integrate WD1793-family replacement and read-only base 2D D88 adapter;
   verify native IPL loads CROSS Chase byte-exactly through the controller.
 - [ ] Verify exact MB8877 errors/status/timing, density/motor behavior and writes.
+- [x] Add two independently mounted A/B D88 images through one controller,
+  retained physical heads/shared registers, per-drive motor hold/protection,
+  serialized rescans and ACK-drained request ownership. Generated CPU A/B
+  reads/writes and connected pending-write/reset/malformed/eject tests pass.
+  Exact index/mechanics, selection latency, HPS replacement and hardware remain
+  open. See `DUAL_DISK_STATUS.md`; no complete Arcus/disk-set claim.
 - [x] Verify generated D88 variable/multi-sector reads, seek/side/RNF/not-ready,
   sticky lost-data, write protection and byte-exact cross-block write/readback.
 - [x] Add drive/density decode, motor hold and 300 rpm index/head-load tests.

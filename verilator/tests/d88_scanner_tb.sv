@@ -14,6 +14,7 @@ module d88_scanner_tb;
     wire [7:0] status;
     always #5 clk=!clk;
     wd1793 #(.RWMODE(1), .EDSK(1), .D88_ONLY(1)) dut(
+        .drive_select(1'b0), .drive_connected(1'b1), .transport_idle(),
         .clk_sys(clk), .ce(!reset), .reset(reset), .io_en(1'b1),
         .rd(1'b0), .wr(wr), .addr(addr), .din(din), .dout(status),
         .drq(), .intrq(), .busy(), .wp(1'b1), .fmt_wp(),

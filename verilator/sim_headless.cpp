@@ -84,6 +84,7 @@ int main(int argc, char **argv) {
         bool bus_events = false;
         const char *disk_path = nullptr, *keys_path = nullptr, *dump_path = nullptr;
         const char *disk_output = nullptr;
+        const char *disk_b_path = nullptr, *disk_b_output = nullptr;
         const char *save_path = nullptr, *restore_path = nullptr;
         bool progress = false, io_only = false, interactive = false, joystick_keys = false;
         FrameCapture frame;
@@ -108,6 +109,8 @@ int main(int argc, char **argv) {
             else if (!std::strcmp(argv[i], "--bus-events")) bus_events = true;
             else if (!std::strcmp(argv[i], "--disk") && i + 1 < argc) disk_path = argv[++i];
             else if (!std::strcmp(argv[i], "--disk-output") && i + 1 < argc) disk_output = argv[++i];
+            else if (!std::strcmp(argv[i], "--disk-b") && i + 1 < argc) disk_b_path = argv[++i];
+            else if (!std::strcmp(argv[i], "--disk-b-output") && i + 1 < argc) disk_b_output = argv[++i];
             else if (!std::strcmp(argv[i], "--keys") && i + 1 < argc) keys_path = argv[++i];
             else if (!std::strcmp(argv[i], "--frame") && i + 1 < argc) frame.path = argv[++i];
             else if (!std::strcmp(argv[i], "--audio") && i + 1 < argc) audio.path = argv[++i];
@@ -119,7 +122,7 @@ int main(int argc, char **argv) {
             else if (!std::strcmp(argv[i], "--save-state") && i + 1 < argc) save_path = argv[++i];
             else if (!std::strcmp(argv[i], "--restore-state") && i + 1 < argc) restore_path = argv[++i];
             else if (argv[i][0] != '-') cycles = number(argv[i]);
-            else throw std::runtime_error("usage: Vtop [cycles] [--cycles N] [--reset-cycles N] [--reset-at MS (repeatable) --reset-for-us US] [--video-hz N] [--trace output.fst] [--rom IMAGE] [--ram IMAGE --load-address A --entry A] [--disk IMAGE --disk-output NEW_COPY] [--keys SCRIPT] [--frame IMAGE.ppm] [--audio OUTPUT.wav] [--dump PREFIX] [--peek A] [--bus-trace CSV --io-only --bus-events --bus-start-ms N --bus-end-ms N] [--progress] [--interactive [--joystick-keys]] [--save-state FILE] [--restore-state FILE] [--joya BYTE --joyb BYTE]");
+            else throw std::runtime_error("usage: Vtop [cycles] [--cycles N] [--reset-cycles N] [--reset-at MS (repeatable) --reset-for-us US] [--video-hz N] [--trace output.fst] [--rom IMAGE] [--ram IMAGE --load-address A --entry A] [--disk IMAGE --disk-output NEW_COPY] [--disk-b IMAGE --disk-b-output NEW_COPY] [--keys SCRIPT] [--frame IMAGE.ppm] [--audio OUTPUT.wav] [--dump PREFIX] [--peek A] [--bus-trace CSV --io-only --bus-events --bus-start-ms N --bus-end-ms N] [--progress] [--interactive [--joystick-keys]] [--save-state FILE] [--restore-state FILE] [--joya BYTE --joyb BYTE]");
         }
         if (joystick_keys && !interactive)
             throw std::runtime_error("--joystick-keys requires --interactive");
@@ -183,15 +186,25 @@ int main(int argc, char **argv) {
             bus_pending = false;
         };
         std::vector<uint8_t> disk = disk_path ? image(disk_path) : std::vector<uint8_t>();
-        if (disk_output) {
-            if (!disk_path) throw std::runtime_error("--disk-output requires --disk");
-            if (std::filesystem::exists(disk_output))
+        std::vector<uint8_t> disk_b = disk_b_path ? image(disk_b_path) : std::vector<uint8_t>();
+        std::array<const char*,2> disk_paths{disk_path,disk_b_path};
+        std::array<const char*,2> disk_outputs{disk_output,disk_b_output};
+        for (size_t d = 0; d < 2; ++d) if (disk_outputs[d]) {
+            if (!disk_paths[d]) throw std::runtime_error("disk output requires its drive's input image");
+            if (std::filesystem::exists(disk_outputs[d]))
                 throw std::runtime_error("disk output already exists; choose a new copy path");
-            if (std::filesystem::weakly_canonical(disk_output) == std::filesystem::canonical(disk_path))
-                throw std::runtime_error("disk output must not overwrite input media");
+            for (const auto source : disk_paths) if (source &&
+                std::filesystem::weakly_canonical(disk_outputs[d]) == std::filesystem::canonical(source))
+                    throw std::runtime_error("disk output must not overwrite either input image");
         }
-        if (disk.size() > 1048575) throw std::runtime_error("disk exceeds current FDC addressing");
+        if (disk_output && disk_b_output && std::filesystem::weakly_canonical(disk_output)
+            == std::filesystem::weakly_canonical(disk_b_output))
+            throw std::runtime_error("drive outputs must be different paths");
+        if (disk_b_path && (save_path || restore_path))
+            throw std::runtime_error("dual-drive snapshots are not supported; use a fresh boot");
+        if (disk.size() > 1048575 || disk_b.size() > 1048575) throw std::runtime_error("disk exceeds current FDC addressing");
         if (disk_path) validate_d88(disk);
+        if (disk_b_path) validate_d88(disk_b);
         uint64_t disk_fingerprint = 14695981039346656037ULL;
         for (auto byte : disk) { disk_fingerprint ^= byte; disk_fingerprint *= 1099511628211ULL; }
         struct KeyEvent { uint64_t time; uint8_t byte; };
@@ -260,6 +273,10 @@ int main(int argc, char **argv) {
         top.img_mounted = !disk.empty();
         top.disk_wp = disk_output ? 0 : 1; // Writes only to an explicit new copy.
         top.img_size = disk.size();
+        top.disk_ready_b = !disk_b.empty();
+        top.img_mounted_b = !disk_b.empty();
+        top.disk_wp_b = disk_b_output ? 0 : 1;
+        top.img_size_b = disk_b.size();
         top.sd_ack = 0;
         top.sd_buff_addr = 0;
         top.sd_buff_dout = 0;
@@ -288,7 +305,7 @@ int main(int argc, char **argv) {
         // a reconstructed RAM bootstrap. Only quiescent host interfaces are
         // supported; disk contents must match and clocks keep absolute phase.
         uint64_t resume_time = 0;
-        constexpr uint64_t snapshot_magic = 0x5831534e41503031ULL ^ sys_hz;
+        constexpr uint64_t snapshot_magic = 0x5831534e41503032ULL ^ sys_hz;
 #ifdef X1_SAVABLE
         if (restore_path) {
             if (rom_path || ram_path) throw std::runtime_error("snapshot restore cannot also download ROM/RAM");
@@ -355,6 +372,7 @@ int main(int argc, char **argv) {
         bool old_hs = top.HSync, old_vs = top.VSync;
         unsigned disk_byte = 0, disk_cooldown = 0;
         uint64_t disk_offset = 0, disk_requests = 0, disk_writes = 0;
+        unsigned request_drive = 0;
         bool disk_active = false, disk_writing = false;
         uint16_t key_packet = 0;
         unsigned key_bit = 0;
@@ -395,22 +413,28 @@ int main(int argc, char **argv) {
                     set_download();
                 }
                 if (!sys_rise) {
-                    if (sys_edge >= 10) top.img_mounted = 0;
+                    if (sys_edge >= 10) { top.img_mounted = 0; top.img_mounted_b = 0; }
                     top.sd_buff_wr = 0;
                     if (disk_active) {
-                        if (disk_writing && disk_offset + disk_byte < disk.size())
-                            disk[disk_offset + disk_byte] = top.sd_buff_din;
+                        auto &medium = request_drive ? disk_b : disk;
+                        if (top.sd_drive != request_drive)
+                            throw std::runtime_error("disk request changed owner during ACK");
+                        if (disk_writing && disk_offset + disk_byte < medium.size())
+                            medium[disk_offset + disk_byte] = top.sd_buff_din;
                         if (++disk_byte == 512) {
                             disk_active = false;
                             top.sd_ack = 0;
                             disk_cooldown = 8;
                         } else if (!disk_writing) {
                             top.sd_buff_addr = disk_byte;
-                            top.sd_buff_dout = disk_offset + disk_byte < disk.size() ? disk[disk_offset + disk_byte] : 0;
+                            top.sd_buff_dout = disk_offset + disk_byte < medium.size() ? medium[disk_offset + disk_byte] : 0;
                             top.sd_buff_wr = 1;
                         }
                     } else if (disk_cooldown) --disk_cooldown;
                     else if (top.sd_rd) {
+                        request_drive = top.sd_drive;
+                        const auto &medium = request_drive ? disk_b : disk;
+                        if (medium.empty()) throw std::runtime_error("read request for empty drive");
                         disk_offset = uint64_t(top.sd_lba) * 512;
                         disk_byte = 0;
                         disk_active = true;
@@ -419,11 +443,13 @@ int main(int argc, char **argv) {
                         top.sd_ack = 1;
                         top.sd_buff_wr = 1;
                         top.sd_buff_addr = 0;
-                        top.sd_buff_dout = disk_offset < disk.size() ? disk[disk_offset] : 0;
+                        top.sd_buff_dout = disk_offset < medium.size() ? medium[disk_offset] : 0;
                     } else if (top.sd_wr) {
-                        if (!disk_output) throw std::runtime_error("unexpected write to read-only disk");
+                        request_drive = top.sd_drive;
+                        const auto &medium = request_drive ? disk_b : disk;
+                        if (!disk_outputs[request_drive]) throw std::runtime_error("unexpected write to read-only disk");
                         disk_offset = uint64_t(top.sd_lba) * 512;
-                        if (disk_offset >= disk.size()) throw std::runtime_error("disk write outside image");
+                        if (disk_offset >= medium.size()) throw std::runtime_error("disk write outside image");
                         disk_byte = 0;
                         disk_active = true;
                         disk_writing = true;
@@ -497,9 +523,7 @@ int main(int argc, char **argv) {
                         const std::array<uint64_t, 11> row{context.time(), top.cpu_address,
                             top.cpu_mreq_n, top.cpu_iorq_n, top.cpu_rd_n, top.cpu_wr_n,
                             top.cpu_in, top.cpu_out,
-                            top.rootp->top__DOT__machine__DOT__disk_control__DOT__control,
-                            top.rootp->top__DOT__machine__DOT__disk_motor,
-                            top.rootp->top__DOT__machine__DOT__fdc__DOT__media_ready};
+                            top.debug_disk_control, top.debug_disk_motor, top.debug_disk_ready};
                         // A transaction is a contiguous held address/strobe,
                         // not a data-value transition. Emit its last sampled
                         // data and timestamp; default remains every sys edge.
@@ -546,16 +570,17 @@ int main(int argc, char **argv) {
 #endif
         std::string peek;
         audio.finish();
-        if (disk_output) {
+        for (unsigned d = 0; d < 2; ++d) if (disk_outputs[d]) {
+            const auto &medium = d ? disk_b : disk;
             if ((disk_active && disk_writing) || top.sd_wr)
                 throw std::runtime_error("cannot export disk during a pending write");
             // Recheck atomically at export: never truncate a path created while
             // the simulation ran, including a newly introduced symlink.
-            const int copy_fd = ::open(disk_output, O_WRONLY | O_CREAT | O_EXCL, 0666);
+            const int copy_fd = ::open(disk_outputs[d], O_WRONLY | O_CREAT | O_EXCL, 0666);
             if (copy_fd < 0) throw std::runtime_error("cannot exclusively create disk output");
             size_t exported = 0;
-            while (exported < disk.size()) {
-                const ssize_t count = ::write(copy_fd, disk.data() + exported, disk.size() - exported);
+            while (exported < medium.size()) {
+                const ssize_t count = ::write(copy_fd, medium.data() + exported, medium.size() - exported);
                 if (count < 0 && errno == EINTR) continue;
                 if (count <= 0) {
                     ::close(copy_fd);

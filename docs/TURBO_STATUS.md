@@ -1,6 +1,6 @@
 # Experimental X1 Turbo foundation
 
-October 4, 2026. Active path is `rtl/sharpx1.v` beneath both wrappers.
+October 5, 2026. Active path is `rtl/sharpx1.v` beneath both wrappers.
 `TURBO=0` remains the default base-X1 machine. `TURBO=1` is a partial feature
 profile, **not a complete Turbo/Turbo II/Turbo Z model**. Legacy source macros
 are reference-only, not verification evidence.
@@ -15,6 +15,7 @@ are reference-only, not verification evidence.
 | Blackclip | Write-only `1FE0`: graphics raw indices 0/1, selected text color and blanking clip. Registered mixer fixture exhausts all 128 masks and nonzero text/all graphics colors before palette mapping. CPU-written RGB fixtures verify graphics/text clipping at both widths. |
 | IPL aperture | 32 KiB in Turbo versus 4 KiB in base. Bounds, no 4 KiB mirroring, writes under ROM and overlay off/on verified with an original synthetic IPL/RAM diagnostic; oversize CLI loads rejected. Authentic local Turbo archives inventoried, **not installed/booted**. |
 | CTC/IRQ | Enable-driven four-channel timers/counters, channel-0/3 cascade, vectors/service and RETI integrated. Schematic-based CTC-before-keyboard priority; both CPU clock profiles pass repeated IM2 and concurrent cold input. Stable stretched ACKs verified with connected CTC and real MR16 firmware. Exact phase/pin timing, ASIC aliases and hardware remain open. See [CTC evidence](CTC_STATUS.md). |
+| Two mounted disks | Shared one-controller A/B path, independent physical heads/motor hold, protected copies and ACK-stable ownership pass generated CPU/transport tests. Selection rescans temporarily deassert ready; exact mechanics/HPS replacement and native disk-set compatibility remain open. This base/Turbo-common increment is not in the current RBF. See [disk evidence](DUAL_DISK_STATUS.md). |
 
 Provenance: mode/bank and loader changes are local original integration code
 based on the documented map and inspected references; blackclip modifies the

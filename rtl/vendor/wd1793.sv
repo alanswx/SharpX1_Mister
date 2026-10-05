@@ -25,7 +25,7 @@
 // X1 integration: configurable head-load status/index period; MFM-only adapter
 // rejects selected FM access rather than silently reading an MFM sector.
 module wd1793 #(parameter RWMODE=0, EDSK=1, HEADLOAD_STATUS=0, INDEX_CYCLES=35001,
-               D88_ONLY=0)
+               D88_ONLY=0, PHYSICAL_DRIVES=1)
 (
 	input        clk_sys,     // sys clock
 	input        ce,          // ce at CPU clock rate
@@ -52,6 +52,11 @@ module wd1793 #(parameter RWMODE=0, EDSK=1, HEADLOAD_STATUS=0, INDEX_CYCLES=3500
 	input        side,
 	input        ready,
 	input        fm_mode,
+	// X1 addition: shared controller registers, independent physical heads.
+	// Default single-drive users do not need to connect this input.
+	input        drive_select,
+	input        drive_connected,
+	output       transport_idle,
 
 	// SD access (RWMODE == 1)
 	input        img_mounted, // signaling that new image has been mounted
@@ -123,6 +128,7 @@ reg [20:0] d88_end = 0;
 reg mount_pending = 0;
 wire media_ready = ready && (!D88_ONLY || d88_valid);
 wire transport_active = sd_busy || sd_ack || (|ack);
+assign transport_idle = !transport_active && !sd_rd && !sd_wr;
 assign sd_lba = request_lba;
 wire [31:0] next_lba = scan_active ? {21'd0, scan_addr[19:9]}
                                   : {21'd0, buff_a[19:9]} + {30'd0, sd_block};
@@ -334,7 +340,10 @@ end
 reg         buff_rd;
 reg         step_direction; // last step direction
 
-reg   [7:0] disk_track;		 // "real" heads position
+reg [7:0] head_track [0:PHYSICAL_DRIVES-1];
+wire head_select = PHYSICAL_DRIVES == 1 ? 1'b0 : drive_select;
+wire head_connected = PHYSICAL_DRIVES == 1 || drive_connected;
+wire [7:0] disk_track = head_connected ? head_track[head_select] : 8'd0;
 reg  [10:0]	data_length;	 // this many bytes to transfer during read/write ops
 io_state_t  state = STATE_IDLE;
 `ifdef DEBUG_FDC_SCAN
@@ -533,11 +542,16 @@ always @(posedge clk_sys) begin
 		read_data <= 0;
 		write_data <= 0;
 		multisector <= 0;
-		step_direction <= 0;
-		disk_track <= 0;
-		wdreg_track <= 0;
-		wdreg_sector <= 0;
-		wdreg_data <= 0;
+		if(reset || PHYSICAL_DRIVES == 1) step_direction <= 0;
+		// Rescanning after selecting another drive is not a controller reset
+		// and must not reset either physical head or the shared WD registers.
+		// Retain historical behavior for default single-drive instantiations.
+		if (reset || PHYSICAL_DRIVES == 1) begin
+			for (integer h = 0; h < PHYSICAL_DRIVES; h = h + 1) head_track[h] <= 0;
+			wdreg_track <= 0;
+			wdreg_sector <= 0;
+			wdreg_data <= 0;
+		end
 		data_length <= 0;
 		byte_addr <=0;
 		buff_rd <= 0;
@@ -971,7 +985,7 @@ always @(posedge clk_sys) begin
 									// head load as specified, index, track0
 									s_headloaded <= din[3];
 									wdreg_track <= 0;
-									disk_track <= 0;
+									if(head_connected) head_track[head_select] <= 0;
 
 									// some programs like it when FDC gets busy for a while
 									s_drq_busy <= 2'b01;
@@ -980,7 +994,7 @@ always @(posedge clk_sys) begin
 							'h1:	// SEEK
 								begin
 									// set real track to datareg
-									disk_track <= wdreg_data;
+									if(head_connected) head_track[head_select] <= wdreg_data;
 
 									// LOCAL CHANGE (FM-7_MiSTer): and update the TRACK
 									// REGISTER with it too. A real WD179x seeks by
@@ -1010,7 +1024,7 @@ always @(posedge clk_sys) begin
 									if (din[6] == 1) step_direction <= din[5]; // 0: forward/in
 
 									// perform step
-									disk_track <= next_track;
+									if(head_connected) head_track[head_select] <= next_track;
 
 									// update TRACK register too if asked to
 									if (din[4]) wdreg_track <= next_track;

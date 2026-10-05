@@ -6,7 +6,11 @@ module disk_control_tb;
     reg [7:0] data = 0;
     wire [1:0] drive;
     wire side, motor, fm;
+    wire dual_motor;
     x1_disk_control #(.MOTOR_HOLD_CYCLES(12)) dut(clk,reset,rd,wr,address,data,drive,side,motor,fm);
+    x1_disk_control #(.MOTOR_HOLD_CYCLES(12),.PHYSICAL_DRIVES(2)) dual_dut(
+        .clk(clk),.reset(reset),.io_read(rd),.io_write(wr),.address(address),.data(data),
+        .drive(),.side(),.motor_on(dual_motor),.fm_mode());
     task write_control(input [7:0] value);
         begin
             @(negedge clk); address = 16'h0ffc; data = value; wr = 1;
@@ -40,7 +44,21 @@ module disk_control_tb;
         reset = 1;
         @(negedge clk);
         assert (!motor && drive == 0 && !side && !fm) else $fatal(1, "reset did not clear drive state");
+        reset=0;
+        write_control(8'h80); assert(dual_motor) else $fatal(1,"A motor start");
+        write_control(8'h01); assert(!dual_motor) else $fatal(1,"A motor aliased unstarted B");
+        write_control(8'h81); assert(dual_motor) else $fatal(1,"B motor start");
+        write_control(8'h00); assert(dual_motor) else $fatal(1,"A motor did not retain state");
+        repeat(12) @(negedge clk); assert(!dual_motor) else $fatal(1,"A motor hold timeout");
+        write_control(8'h81); assert(dual_motor) else $fatal(1,"A shutdown stopped B");
+        write_control(8'h01);
+        repeat(4) @(negedge clk);
+        write_control(8'h81);
+        repeat(20) @(negedge clk); assert(dual_motor) else $fatal(1,"B restart failed");
+        write_control(8'h82); assert(!dual_motor) else $fatal(1,"unsupported motor aliased A/B");
+        reset=1; @(negedge clk); assert(!dual_motor) else $fatal(1,"dual motor reset");
         $display("PASS: X1 drive/side, FM/MFM selects, delayed motor stop/restart and reset");
+        $display("PASS: independent A/B motor state, hold expiry/restart and unsupported-drive isolation");
         $finish;
     end
 endmodule
