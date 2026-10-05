@@ -64,6 +64,7 @@ python3 tests/test_drive_selection.py ./obj_dir_headless/Vtop
 
 Generated CPU tests pass repeated distinct-pattern A/B reads, alternating seeks,
 head retention, shared register retention, logical/physical track mismatch RNF,
+retained shared STEP direction across selection, unsupported-drive head isolation,
 independent protection, isolated cross-block writes to **each** drive and
 unchanged originals. Baseline is delay-aware 32 MHz sys / 28.571428 MHz video;
 single is delay-aware 28.636364 MHz sys/video. Each six-trial suite uses

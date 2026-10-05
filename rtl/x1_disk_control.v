@@ -28,13 +28,14 @@ module x1_disk_control #(parameter MOTOR_HOLD_CYCLES = 38400000, PHYSICAL_DRIVES
     generate if (PHYSICAL_DRIVES == 2) begin : motors
         reg [1:0] running, commanded;
         reg [25:0] hold_count [0:1];
+        integer d;
         assign motor_on = control[1] ? 1'b0 : running[control[0]];
         always @(posedge clk or posedge reset) begin
             if (reset) begin
                 running <= 0; commanded <= 0;
                 hold_count[0] <= 0; hold_count[1] <= 0;
             end else begin
-                for(integer d=0; d<2; d=d+1) if(hold_count[d] != 0) begin
+                for(d=0; d<2; d=d+1) if(hold_count[d] != 0) begin
                     hold_count[d] <= hold_count[d] - 1'b1;
                     if(hold_count[d] == 1) running[d] <= 0;
                 end

@@ -168,9 +168,10 @@ status `1A01` and sub-CPU `1900` reads with drive control `90`, motor on and
 media-ready true. `FAE1/FAEB` are polling helpers for `1A01` bits 6/5; their
 presence at one endpoint is not proof of a new permanent stall.
 
-The captured 640x400 image is **not a recognizable game title**: a green
-background and a small severely misrendered rectangle replace the prior all-
-black framebuffer. Frame hash `25743cbe39750765`, HS/VS periods 60.500 us /
+The captured 640x400 endpoint image is **not a recognizable game title**:
+solid green replaces the prior all-black framebuffer. An earlier PNG taken
+while the first cold trial was still running shows a transient misrendered
+rectangle; it is not the endpoint frame. Frame hash `25743cbe39750765`, HS/VS periods 60.500 us /
 27.095031250 ms. This is still incorrect high-resolution timing/rendering,
 not native gameplay or confirmed compatibility. Earlier and later shorter
 probes must retain their own clocks, executable hashes and durations.
@@ -181,6 +182,20 @@ unsupported-drive head protection, but predates the final previous-STEP-
 direction retention fix. A later source-bound repeat qualifies that fix
 separately; do not call this eight-second observation a test of subsequent RTL.
 See [two-image behavior and limits](DUAL_DISK_STATUS.md).
+
+The final STEP-direction-inclusive RTL at implementation commit `c6eab7d`
+also passes two fresh **8-second** trials, frozen executable SHA-256
+`5b6bc412b56e74925a1d88249eb3afca71b15676e611251c29e58edfa912da5d`.
+Reports/RAM/register/RGB/I/O traces repeat exactly and both original disks,
+IPL and key script remain unchanged. Its PPM and bounded CSV also match the
+earlier eight-second observation byte-for-byte, with the same counters and
+frame hash above. This rules out a short-run regression for this disk/keyboard
+script, not complete software acceptance or correctness of all Turbo features.
+Evidence: `verilator/obj_dir_turbo_fast/special-probes/arcus-dual-stepdir-final-8s/`;
+the actual final PPM was converted to `cold.png` for local inspection.
+A separate four-second repeat with the same final executable stops earlier
+with only three PS/2 bytes transmitted, 958 requests and an all-black frame;
+do not compare that endpoint with a completed eight-second input sequence.
 
 ### Fresh CROSS receiver-profile regression (separate homebrew)
 
