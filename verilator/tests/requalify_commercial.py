@@ -1,8 +1,9 @@
 """Regenerate native states and run private release-bound controls.
 
 No bundled media, injected RAM, patched games or old-state conversion. Run
-from verilator/. Input sequences reproduce the historical action-game and
-Shanghai cursor/pair preparations; release-bound assertions still decide PASS.
+from verilator/. Input sequences reproduce historical action-game controls.
+Shanghai can prepare the fixed historical pair with native cursor feedback;
+release-bound assertions still decide PASS. The old timed replay is opt-in.
 """
 import argparse
 import hashlib
@@ -28,6 +29,8 @@ def main():
                         help="host timeout per native/control run; does not change simulation duration")
     parser.add_argument("--boot-chunk-ms", type=int, default=16000,
                         help="checkpoint interval; total 16-second boot and neutral-stage durations stay unchanged")
+    parser.add_argument("--shanghai-preparation", choices=("feedback", "historical"), default="feedback",
+                        help="feedback uses native joystick cursor observations; historical preserves the old timed replay")
     args = parser.parse_args()
     if args.timeout <= 0 or not 1 <= args.boot_chunk_ms <= 16000:
         parser.error("timeout must be positive and boot chunk must be 1..16000 ms")
@@ -49,6 +52,9 @@ def main():
     if args.resume:
         previous = json.loads((folder / "provenance.json").read_text())
         assert previous["title"] == args.title and not previous["gameplay_verified"]
+        if args.title == "shanghai":
+            assert previous.get("shanghai_preparation", "historical") == args.shanghai_preparation, \
+                "resume preparation differs; preserve old failure evidence and use a new output"
         assert previous["executable_sha256"] == exe_sha == sha(frozen), "runner identity changed"
         assert previous["inputs_sha256"] == originals, "native input identity changed"
         completed = previous["native_boot_chain"]
@@ -114,6 +120,7 @@ def main():
         runs.append(record)
         (folder / "provenance.json").write_text(json.dumps({
             "title": args.title, "executable_sha256": exe_sha,
+            "shanghai_preparation": args.shanghai_preparation if args.title == "shanghai" else None,
             "inputs_sha256": originals, "native_boot_chain": runs,
             "gameplay_verified": False}, indent=2) + "\n")
         if result.returncode:
@@ -149,6 +156,11 @@ def main():
         run(name, milliseconds, joy)
     if args.title == "shanghai":
         cursor_state = state
+        if args.shanghai_preparation == "feedback":
+            command = ["python3", "tests/prepare_shanghai_pair.py", str(frozen),
+                       str(cursor_state), str(disk), "--output", str(folder / "feedback")]
+        else:
+            command = None
         preparation = [("left1",100,0xfb),("left2",400,0xfb),
                        ("right1",200,0xf7),("right2",50,0xf7),("right3",70,0xf7),
                        ("select",300,0xbf),("cancel",200,0xdf),
@@ -156,14 +168,17 @@ def main():
         preparation += [(f"right{i}",20,0xf7) for i in range(13)]
         preparation += [(f"down{i}",20,0xfd) for i in range(22)]
         preparation += [("second",300,0xbf),("release",300,0xff)]
-        for i, (name, milliseconds, joy) in enumerate(preparation):
-            run(f"pair-{i:02d}-{name}", milliseconds, joy)
-        command = ["python3", "tests/test_shanghai_gameplay.py", str(frozen),
-                   str(cursor_state), str(state), str(disk)]
+        if command is None:
+            for i, (name, milliseconds, joy) in enumerate(preparation):
+                run(f"pair-{i:02d}-{name}", milliseconds, joy)
+            command = ["python3", "tests/test_shanghai_gameplay.py", str(frozen),
+                       str(cursor_state), str(state), str(disk)]
     else:
         command = ["python3", "tests/test_commercial_gameplay.py", str(frozen),
                    args.title, str(state), str(disk)]
-    command += ["--output", str(folder / "controls"), "--timeout", str(args.timeout)]
+    if not (args.title == "shanghai" and args.shanghai_preparation == "feedback"):
+        command += ["--output", str(folder / "controls")]
+    command += ["--timeout", str(args.timeout)]
     result = execute(command)
     (folder / "controls.stdout").write_text(result.stdout)
     (folder / "controls.stderr").write_text(result.stderr)
@@ -180,6 +195,7 @@ def main():
         print(fired.stdout, end="", flush=True)
     unchanged = all(sha(pathlib.Path(p)) == digest for p, digest in originals.items())
     evidence = {"title": args.title, "executable_sha256": exe_sha,
+                "shanghai_preparation": args.shanghai_preparation if args.title == "shanghai" else None,
                 "inputs_sha256": originals, "native_boot_chain": runs,
                 "control_command": command, "control_returncode": result.returncode,
                 "fire_check": fire_record,

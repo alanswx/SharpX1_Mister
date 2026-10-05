@@ -121,6 +121,13 @@ is historical. Subsequent
 require v07 and separate acceptance. The subsequent X3 PPI increment requires
 v08, text-raster work v09, and X3 reset release v10. Current CPU/DMA integration
 requires v11; do not convert or patch old snapshots.
+The v11 baseline qualification now passes all five titles. Shanghai's timed
+replay missed its fixed pair coordinates; [native cursor feedback](docs/SHANGHAI_FEEDBACK_STATUS.md)
+prepares the same pair and passes the unchanged removal/repeatability checks.
+The original failure is preserved. This does not establish Turbo/hardware play.
+An original [standalone SIO slice](docs/SIO_ASYNC_STATUS.md) now passes
+two-channel polled 8N1/x16 pin, FIFO/error and buffering tests at CE=1/4/7.
+It is not connected to the machine; IRQ/other formats/WAIT/Ready remain open.
 The simulator window now offers optional [live joystick keys](docs/PLAYING.md):
 arrows, Space (button 1) and Ctrl (button 2), through `--joystick-keys`.
 Independent CPU-programmed 40/80-column text and 320/640 graphics rasters now

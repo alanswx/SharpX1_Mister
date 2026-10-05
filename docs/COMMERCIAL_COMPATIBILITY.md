@@ -10,6 +10,16 @@ CROSS Chase is a separate homebrew regression and does not count toward five.
 All game media and native snapshots remain ignored private testing assets.
 Do not commit or redistribute them; collection availability is not a license.
 
+October 5 **v11**: fresh baseline Xevious, Druaga, Mappy and Galaga controls
+and Galaga firing pass on source `95c181c`. Shanghai's original timed replay
+failed, but [native cursor feedback](SHANGHAI_FEEDBACK_STATUS.md) now prepares
+the same historical pair and passes the unchanged removal/RGB/repeatability
+test. **Five v11 titles pass bounded gameplay checks.** The old failure is
+preserved; this is not Turbo or hardware acceptance. Frozen runner SHA-256:
+`ee270b8052a350528c0d16f69da119a4576769ad0fa026ae9b4bd29b8d9507c7`.
+Evidence: ignored `obj_dir_v11_fast/native-requalification/` and
+`obj_dir_v11_fast/shanghai-feedback/` beneath `verilator/`.
+
 October 5 X3/font-source follow-up: fresh baseline v03 native-boot
 requalification has passed all five baseline games at the X3/font checkpoint.
 Four action games use frozen executable

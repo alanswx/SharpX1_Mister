@@ -1,6 +1,8 @@
 # SIO implementation contract — research, not a device
 
-October 5, 2026. The active shared machine has no SIO implementation.
+October 5, 2026. The active shared machine has no connected SIO implementation.
+A subsequent [standalone polled 8N1 slice](SIO_ASYNC_STATUS.md) passes original
+pin/FIFO tests; interrupts, other formats and machine integration remain open.
 Do not replace missing behavior with a successful capability signature.
 
 ## Primary evidence and local comparison

@@ -3,6 +3,7 @@
 No firmware/game bytes, forced grants, patched model state or debug injection.
 Generated ROM and media travel through the normal loader/SD interfaces.
 """
+import argparse
 import json
 import pathlib
 import struct
@@ -81,20 +82,28 @@ def media(seed):
 
 
 def main():
-    exe = str(pathlib.Path(sys.argv[1]).resolve())
+    kinds = ("ram", "ram-overlay", "drive-a", "drive-b", "drive-a-write",
+             "drive-b-write-crc", "drive-b-protected")
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("executable", type=pathlib.Path)
+    parser.add_argument("--case", choices=kinds, action="append",
+                        help="select cases; each still runs the full original 8M cycles")
+    args = parser.parse_args()
+    exe = str(args.executable.resolve())
     with tempfile.TemporaryDirectory(prefix="x1-machine-dma-") as directory:
         root = pathlib.Path(directory)
-        for kind in ("ram", "drive-a", "drive-b", "drive-a-write",
-                     "drive-b-write-crc", "drive-b-protected"):
+        for kind in args.case or kinds:
             f = Fixture()
+            is_ram = kind.startswith("ram")
+            destination = 0 if kind == "ram-overlay" else 0x9100
             writing = "write" in kind or "protected" in kind
             protected = "protected" in kind
             drive_b = kind.startswith("drive-b")
-            if kind == "ram":
+            if is_ram:
                 payload = bytes((0x31 + i * 13) & 255 for i in range(16))
                 for i, byte in enumerate(payload):
                     f.p.store(0x9000 + i, byte)
-                f.configure(0x9000, 0x9100, len(payload))
+                f.configure(0x9000, destination, len(payload))
                 f.out(0x1F80, 0xB3)  # Force Ready only in continuous mode.
             else:
                 # Let mount scanning advance using real CPU instructions.
@@ -115,7 +124,7 @@ def main():
                 f.out(0x0FFA, 1)
                 f.out(0x0FF8, 0xA0 if writing else 0x80)
             f.out(0x1F80, 0x87)
-            if kind != "ram":
+            if not is_ram:
                 # Primary UM0081 Table 13 requires disabling before control
                 # reads in enabled/inactive state. Poll the FDC, not DMA,
                 # while byte-mode ownership returns to the CPU between bytes.
@@ -125,24 +134,27 @@ def main():
                 f.out(0x1F80, 0x83)
             else:
                 f.check(0x1F80, 0, 0x20)
-                if kind != "ram":
+                if not is_ram:
                     f.check(0x0FF8, 0, 0x9C)
                 # Counter readback is firmware-visible, not just a RAM copy.
                 f.out(0x1F80, 0xBB)
                 f.out(0x1F80, 0x7E)
                 f.out(0x1F80, 0xA7)
-                a_end = 0x9100 if writing else 0x0FFB if kind != "ram" else 0x9010
-                b_end = 0x0FFB if writing else 0x91FF if kind != "ram" else 0x910F
+                a_end = 0x9100 if writing else 0x0FFB if not is_ram else 0x9010
+                b_end = 0x0FFB if writing else 0x91FF if not is_ram else destination + 15
                 for byte in (len(payload)-1, 0, a_end & 255, a_end >> 8, b_end & 255, b_end >> 8):
                     f.check(0x1F80, byte)
-            if not writing:
+            if kind == "ram-overlay":
+                # CPU must still fetch/read the original IPL, not DMA bytes.
+                f.p.compare_memory(0, 0xF3)
+            elif not writing:
                 for i, byte in enumerate(payload):
                     f.p.compare_memory(0x9100 + i, byte)
             rom = root / f"{kind}.rom"
             rom.write_bytes(f.finish())
             args = [exe, "--rom", str(rom), "--cycles", "8000000",
                     "--peek", "0xf000", "--dump", str(root / kind)]
-            if kind != "ram":
+            if not is_ram:
                 originals = {}
                 for flag, seed in (("--disk", 0x21), ("--disk-b", 0x93)):
                     disk = root / f"{seed}.d88"
@@ -166,12 +178,12 @@ def main():
             count = 0 if protected else len(payload)
             assert report["dma_reads"] == count, (kind, report)
             assert report["dma_writes"] == count, (kind, report)
-            assert report["dma_grants"] == (0 if protected else 1 if kind == "ram" else 256), (kind, report)
+            assert report["dma_grants"] == (0 if protected else 1 if is_ram else 256), (kind, report)
             assert report["cpu_fdc_data_reads"] == 0, (kind, report)
             assert report["cpu_fdc_data_writes"] == 0, (kind, report)
             ram = (root / f"{kind}.ram").read_bytes()
             if not writing:
-                assert ram[0x9100:0x9100 + len(payload)] == payload, kind
+                assert ram[destination:destination + len(payload)] == payload, kind
             else:
                 for seed in (0x21, 0x93):
                     expected = bytearray(originals[seed])

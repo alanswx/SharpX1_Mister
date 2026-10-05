@@ -16,9 +16,9 @@ These are acceptance gates, not four completed checkboxes.
 | Priority | Confirmed increment | Still required |
 |---|---|---|
 | 1. Turbo video | X3 enables/raster mapping/16-row ANK; bounded high-speed PCG selector, frozen HSYNC-window transactions and CPU ANK8/16 selection pass focused simulation; HPS snapshot seam and X3 PPI level crossing tested, including real-CPU cold/warm polling | Route/timing/CDC/reset signoff and refit; exact ASIC selector/WAIT phase, text expansion/underline, Kanji CPU/glyph paths and native/hardware acceptance |
-| 2. Native games | All five baseline games requalified on deleted-data/v04 RTL, including Galaga firing and Shanghai pair removal | Native Arcus/Bastard playability, Turbo firmware/video and multi-disk continuity; delay-aware and hardware gameplay (Arcus A1/B2 remains exploratory) |
+| 2. Native games | Five v11 baseline titles pass, including Galaga firing and Shanghai pair removal using native cursor feedback; old timed-replay failure preserved | Native Arcus/Bastard playability, Turbo firmware/video and multi-disk continuity; polling-phase diagnosis, delay-aware and hardware gameplay (Arcus A1/B2 remains exploratory) |
 | 3. CTC/DMA/SIO | CTC/IM2/ACK/keyboard; standalone DMA and actual CPU/DMA tests; opt-in shared-machine bus/FDC DRQ, generated A/B transfer/count/protection/CRC and owned reset tests pass | DMA native/pending-SD reset/other-target/IRQ/search/exact timing acceptance; SIO serial/FIFO/IRQ implementation; physical daisy-chain timing |
-| 4. D88 robustness | Bounds/A/B ACK/eject/protected writes; CRC/READ ADDRESS; 75 metadata/short-reset direct groups and both complete frozen fast/delay-aware CPU matrices; four v05 native-control titles pass | Current-source/native metadata qualification; Shanghai failed pair check; safe format contract, density/HD mechanics, physical HPS epochs and native disk-change acceptance |
+| 4. D88 robustness | Bounds/A/B ACK/eject/protected writes; CRC/READ ADDRESS; 75 metadata/short-reset direct groups and both complete frozen fast/delay-aware CPU matrices; five v11 native-control titles pass | Broader native metadata/disk-change qualification; safe format contract, density/HD mechanics, physical HPS epochs |
 
 Turbo Z is a separate planned profile, not implied by these increments. Its
 manual-based feature/acceptance breakdown is in [TURBO_Z_PLAN.md](TURBO_Z_PLAN.md)
@@ -58,7 +58,9 @@ snapshot/timing coverage; source-bound refit/CDC and physical reset remain open.
 Do not mark text/underline/400-line/native acceptance complete from those units.
 SIO's inspected primary programming/FIFO/IRQ contract and ordered original
 tests are recorded in [SIO_REGISTER_CONTRACT.md](SIO_REGISTER_CONTRACT.md).
-The engine is still absent; that research does not complete priority 3.
+A subsequent standalone polled 8N1/x16 engine passes two-channel pin/FIFO/
+error/buffering/reset tests at CE=1/4/7; [SIO status](SIO_ASYNC_STATUS.md)
+records the subset. IRQ, other formats and machine integration remain open.
 Both complete frozen fast/delay-aware metadata CPU matrices now pass.
 Four v05 native-control titles pass; Shanghai's expected-pair assertion failed
 with unchanged inputs and retained evidence. None qualifies later v10 RTL.
@@ -78,18 +80,20 @@ current-source refit remain required; assembly is not timing closure.
 | Step | Current result | Next acceptance gate |
 |---|---|---|
 | 1. Timing/CDC | Frozen `15a0655` fit/path/retained-state audit completed; same-clock machine setup passes; real CDC/reset and mux-alternative failures classified | Review narrow first-stage recognition, held-bus bounds and mux exclusivity; refit current source; do not globally cut SYS↔VID paths |
-| 2. DMA | Separate opt-in machine integration passes six complete fast/delay-aware RAM/A/B read/write/protection/CRC/count cases and four real-machine reset cases | Pending-SD/reset and other target coverage, native Turbo IPL continuity, unsupported functions and fitted/hardware acceptance |
+| 2. DMA | Opt-in machine integration passes complete fast/delay-aware RAM/A/B read/write/protection/CRC/count cases, four real-machine reset cases, and subsequent RAM-under-IPL checks | Pending-SD/reset, PCG/GRAM targets, native Turbo IPL continuity, unsupported functions and fitted/hardware acceptance |
 | 3. Kanji/video | Existing ANK/expanded-text checks retained; Kanji attribute storage is not glyph support | Implement documented CPU latches/ROM mapping and glyph halves with synthetic assets; qualify expanded-attribute/PCG/native combinations |
-| 4. SIO | Primary register/FIFO/IRQ contract documented; engine remains absent | Original two-channel enable-clocked serial engine, corruption/FIFO/pin tests, actual-CPU IM2/service then machine integration |
-| 5. Native software | Fresh v11 base five-title batch launched from unchanged IPL/disks; no prior state conversion | Finish actual movement/firing/pair assertions, investigate retained Shanghai failure, reach Arcus/Bastard gameplay; hardware unavailable |
+| 4. SIO | Original standalone polled 8N1/x16 two-channel engine passes pin/FIFO/error/TX-buffer/parser/reset tests at CE=1/4/7 | Other formats, IRQ/service and actual-CPU IM2, WAIT/Ready, schematic clocks/pins and machine integration |
+| 5. Native software | Five v11 baseline titles pass movement/firing/pair checks; Shanghai feedback prepares the same pair and passes unchanged assertions, preserving old failure | Broader/delay-aware/hardware gameplay, polling-phase diagnosis, Arcus/Bastard playability; hardware unavailable |
 
 The v11 batch uses source `95c181c`, base SYS32/VID28,571,428 Hz, fast
 simulation, original 16-second cold boot and unchanged title/control durations.
 Executable SHA-256 is
 `ee270b8052a350528c0d16f69da119a4576769ad0fa026ae9b4bd29b8d9507c7`.
 Outputs are private/ignored `verilator/obj_dir_v11_fast/native-requalification/`;
-progress log is `/tmp/x1-v11-native-qualification.log`. A running batch is not
-a passing title. Preserve each frozen runner; do not rebuild historical v05.
+progress log is `/tmp/x1-v11-native-qualification.log`. The original batch has
+four passes and the timed-replay Shanghai failure. Subsequent native feedback
+passes its unchanged pair assertion; see [evidence](SHANGHAI_FEEDBACK_STATUS.md).
+Preserve each frozen runner; do not rebuild historical v05.
 
 ## Phase 0 — make simulation trustworthy
 

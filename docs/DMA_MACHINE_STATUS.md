@@ -41,6 +41,7 @@ No CPU PC/register forcing, fabricated grants or injected game RAM occurs.
 | Test | Result |
 |---|---|
 | Continuous Force-Ready high-RAM copy | 16 read/write pairs, one actual CPU grant, byte-exact RAM and primary address/count readback |
+| Subsequent copy to RAM beneath active IPL | Full 8M-cycle fast/delay-aware tests pass: 16 pairs/one grant and exact counters, underlying RAM bytes changed while CPU still reads original IPL |
 | DRQ-paced byte-mode drive A read | 256 pairs / 256 real grants, byte-exact sector and readback, zero CPU payload reads |
 | DRQ-paced byte-mode drive B read | Same assertions with distinct B payload |
 | Drive A write | 256 pairs/grants, fixed-destination two-LOAD workaround, whole-image output matches; B unchanged |
@@ -79,6 +80,9 @@ Both complete delay-aware and fast matrices pass all six cases with the same
 counts/payload/counter/whole-image assertions and original per-case duration.
 Fast ignores inherited intra-assignment delays; it is not the scheduling
 reference. Base wrapper lint passes with the PLL stand-in, not an Intel fit.
+The subsequent full seven-case fast matrix also passes after adding the
+RAM-under-IPL case; its separate full-duration delay-aware case passes too.
+Logs: `/tmp/x1-v11-dma-seven-fast.log`, `/tmp/x1-v11-dma-overlay-delay.log`.
 
 | Tested executable | SHA-256 |
 |---|---|
@@ -94,7 +98,7 @@ Local logs: `/tmp/x1-v11-machine-dma-expanded.log`,
 
 1. DMA read/write resets with outstanding SD ACK, partial payload/metadata
    publication, lost-data/CRC failure and no-ready/Ready-loss continuity.
-2. CPU and DMA accesses to RAM beneath IPL, PCG WAIT, graphics pages/DAM and
+2. Further CPU and DMA accesses to PCG WAIT, graphics pages/DAM and
    other side-effect targets; preserve single peripheral transaction semantics.
 3. X3/single combinations and programmable Ready polarity; current generated
    machine fixtures exercise active-low Ready only.

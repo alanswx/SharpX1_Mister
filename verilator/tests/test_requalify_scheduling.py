@@ -105,6 +105,22 @@ with tempfile.TemporaryDirectory(prefix="x1-requalify-schedule-") as directory:
                 assert error.code == 2
             else:
                 raise AssertionError("pending boot keys accepted")
+        # Shanghai changes preparation, not its release-bound assertions.
+        # These are mock route/schedule checks, never gameplay evidence.
+        for mode in ("feedback", "historical"):
+            calls.clear()
+            argv = ["requalify", str(exe), "shanghai", str(disk),
+                    "--shanghai-preparation", mode, "--output", str(root / mode)]
+            with mock.patch.object(sys, "argv", argv), mock.patch.object(subprocess, "run", fake_run), contextlib.redirect_stdout(io.StringIO()):
+                requalify_commercial.main()
+            native = [c for c, _ in calls if "--cycles" in c]
+            control = calls[-1][0]
+            assert len(native) == (4 if mode == "feedback" else 51)
+            assert control.count("--output") == 1
+            assert control[1] == ("tests/prepare_shanghai_pair.py" if mode == "feedback"
+                                  else "tests/test_shanghai_gameplay.py")
+            evidence = json.loads((root / mode / "provenance.json").read_text())
+            assert evidence["shanghai_preparation"] == mode
         def timeout(command, **kwargs):
             raise subprocess.TimeoutExpired(command, kwargs["timeout"], b"partial-native", b"partial-error")
         argv = ["requalify", str(exe), "xevious", str(disk), "--output", str(root / "timeout")]
