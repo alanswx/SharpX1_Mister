@@ -32,8 +32,12 @@ source macros; its presence does not imply complete Turbo compatibility.
 An explicit, opt-in `TURBO=1` foundation now adds two graphics pages, separate
 Kanji attribute RAM, blackclip controls and a 32 KiB IPL aperture to the shared
 machine. CPU diagnostics and actual RGB tests cover these extensions. It is
-**not full Turbo support**: 400-line clocks/addressing, glyph ROMs/high-speed
-PCG, DMA, SIO and native Turbo firmware acceptance remain open. The subsequent
+**not full Turbo support**: 400-line clocks, glyph ROMs/high-speed
+PCG, DMA, SIO and native Turbo firmware acceptance remain open. An
+experimental [graphics raster increment](docs/TURBO_RASTER_STATUS.md) separates
+text/graphics addresses and adds repeated/alternating-page raster mapping;
+it does not yet provide authentic 24 kHz timing or 16-row glyphs. The latest
+published RBF predates that increment. The earlier
 opt-in [CTC increment](docs/CTC_STATUS.md) adds enable-driven timers/counters,
 IM2 vectors, CTC-before-keyboard arbitration and stable stretched ACKs;
 focused unit/CPU/real-MR16 tests pass, not exact hardware timing. See the

@@ -99,7 +99,8 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0) (
 
     reg ipl_enabled;
     // Experimental Turbo foundation, not a complete Turbo machine selection.
-    // SCRN: display bank bit 3, CPU access bank bit 4; write-only on Turbo.
+    // SCRN: graphics raster mode bits 0/1, display page bit 3 (except mode
+    // 01's fixed even/odd pages), CPU access page bit 4; write-only on Turbo.
     reg [7:0] turbo_scrn;
     reg [6:0] turbo_black;
     always @(posedge clk_sys or posedge reset)
@@ -262,6 +263,8 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0) (
     );
 
     wire [13:0] vaddr;
+    wire [4:0] graphics_ra;
+    wire [14:0] graphics_addr;
     wire [10:0] cgaddr;
     wire [7:0] text_cpu, text_vid, attr_cpu, attr_vid, cg_data;
     wire [7:0] kan_cpu, kan_vid;
@@ -288,7 +291,11 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0) (
     x1_video_ram #(11) kan_ram(clk_sys,a[10:0],data_out,kan_write,kan_cpu,clk_28636,vaddr[10:0],kan_vid);
     localparam GRAM_AW = TURBO ? 15 : 14;
     wire [GRAM_AW-1:0] gram_cpu_addr = GRAM_AW'({turbo_scrn[4], a[13:0]});
-    wire [GRAM_AW-1:0] gram_video_addr = GRAM_AW'({turbo_scrn_video[3], vaddr});
+    x1_gram_address #(.TURBO(TURBO)) gram_address (
+        .scrn(turbo_scrn_video), .raster(graphics_ra),
+        .text_address(vaddr[10:0]), .graphics_address(graphics_addr)
+    );
+    wire [GRAM_AW-1:0] gram_video_addr = GRAM_AW'(graphics_addr);
     x1_video_ram #(GRAM_AW) gram_b(clk_sys,gram_cpu_addr,data_out,io_write && ((a[15:14] == 1) ^ dam),grb_cpu,clk_28636,gram_video_addr,grb_vid);
     x1_video_ram #(GRAM_AW) gram_r(clk_sys,gram_cpu_addr,data_out,io_write && ((a[15:14] == 2) ^ dam),grr_cpu,clk_28636,gram_video_addr,grr_vid);
     x1_video_ram #(GRAM_AW) gram_g(clk_sys,gram_cpu_addr,data_out,io_write && ((a[15:14] == 3) ^ dam),grg_cpu,clk_28636,gram_video_addr,grg_vid);
@@ -307,7 +314,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0) (
         .I_TXT_CS(1'b0), .I_ATT_CS(1'b0), .I_KAN_CS(1'b0),
         .I_GRB_CS(1'b0), .I_GRR_CS(1'b0), .I_GRG_CS(1'b0),
         .I_VCLK(clk_28636), .I_CLK1(clk1), .O_VQ(), .I_W40(mode_c[6]),
-        .O_VA(vaddr), .O_TXT_WE(), .O_ATT_WE(), .O_KAN_WE(),
+        .O_VA(vaddr), .O_GRAPHICS_RA(graphics_ra), .O_TXT_WE(), .O_ATT_WE(), .O_KAN_WE(),
         .I_TXT_D(text_vid), .I_ATT_D(attr_vid), .I_KAN_D(8'd0),
         .O_GRB_WE(), .O_GRR_WE(), .O_GRG_WE(),
         .I_GRB_D(grb_vid), .I_GRR_D(grr_vid), .I_GRG_D(grg_vid),

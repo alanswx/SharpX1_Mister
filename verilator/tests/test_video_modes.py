@@ -19,9 +19,15 @@ parser.add_argument("--transition", action="store_true",
                     help="run the opposite width for two frames before switching")
 parser.add_argument("--turbo-bank", type=int, choices=(0, 1),
                     help="experimental Turbo: display this page with opposite CPU access page")
+parser.add_argument("--turbo-raster", type=int, choices=(0, 1, 2, 3),
+                    help="SCRN low two bits, 16-raster graphics address fixture; NOT high-scan timing acceptance")
 parser.add_argument("--blackclip", type=lambda value: int(value, 0),
                     help="experimental Turbo blackclip mask, graphics/text fixtures only")
 args = parser.parse_args()
+if args.turbo_raster is not None:
+    if args.kind != "graphics" or args.transition or args.blackclip is not None:
+        parser.error("--turbo-raster requires --kind graphics without transition/blackclip")
+    if args.turbo_bank is None: args.turbo_bank = 0
 if args.blackclip is not None and (not 0 <= args.blackclip < 128 or args.kind not in ("graphics", "text")):
     parser.error("--blackclip needs graphics/text and a 7-bit mask")
 exe = str(args.executable.resolve())
@@ -65,11 +71,14 @@ def program(columns, kind):
         fill(0x2000, 2048, 0x17 if kind.startswith("blink-") else 0x27 if kind == "pcg" else 0xC7 if kind == "stretch" else 7 if kind == "text" else 15 if kind == "mixed" else 0)
         fill(0x3000, 2048, ord("A"))
     if kind in ("graphics", "mixed"):
-        for plane, base in enumerate((0x4000, 0x8000, 0xC000)):
-            for row in range(8):
-                value = (0xAA, 0xCC, 0xF0)[plane]
-                if row & (1 << plane): value ^= 255
-                fill(base + row * 2048, 2048, value)
+        for page in ((0, 1) if args.turbo_raster is not None else (args.turbo_bank,)):
+            if args.turbo_raster is not None: out(0x1FD0, page << 4)
+            for plane, base in enumerate((0x4000, 0x8000, 0xC000)):
+                for row in range(8):
+                    value = (0xAA, 0xCC, 0xF0)[plane]
+                    if row & (1 << plane): value ^= 255
+                    if args.turbo_raster is not None and page: value ^= 255
+                    fill(base + row * 2048, 2048, value)
     # Text/PCG raster cases mask every graphics color to black through real
     # palette writes, so they do not depend on uninitialized GRAM contents.
     # GRAM banking/plane storage is exercised by graphics/mixed and bus tests.
@@ -78,11 +87,13 @@ def program(columns, kind):
                         (0x1300, 255 if kind == "graphics" else 0xA5 if kind == "mixed" else 0)):
         out(port, value)
     if args.turbo_bank is not None:
-        out(0x1FD0, (args.turbo_bank << 3) | ((1 - args.turbo_bank) << 4))
+        out(0x1FD0, (args.turbo_bank << 3) | ((1 - args.turbo_bank) << 4) | (args.turbo_raster or 0))
     if args.blackclip is not None: out(0x1FE0, args.blackclip)
     registers = [55 if columns == 40 else 111, columns,
                  46 if columns == 40 else 92, 0x28, 31, 2, 25, 28, 0, 7,
                  0, 0, 0, 0, 0, 0]
+    if args.turbo_raster is not None:
+        registers[4:10] = [27, 0, 25, 26, 0, 15]
     if kind == "pattern": registers[12:14] = [7, 0xD5]  # Wrap across 2 KiB VRAM.
     if args.transition:
         opposite = 80 if columns == 40 else 40
@@ -124,6 +135,7 @@ font = {int(address, 16): int(bits, 2) for address, bits in
 def run(folder, columns, kind):
     name = f"{kind}-{columns}" + ("-transition" if args.transition else "")
     if args.turbo_bank is not None: name += f"-turbo-page{args.turbo_bank}"
+    if args.turbo_raster is not None: name += f"-raster{args.turbo_raster}"
     if args.blackclip is not None: name += f"-clip{args.blackclip:02x}"
     code, frame = folder / (name + ".bin"), folder / (name + ".ppm")
     code.write_bytes(program(columns, kind))
@@ -131,6 +143,7 @@ def run(folder, columns, kind):
     # 500 ms. Capture away from an edge, testing real firmware-driven reversal
     # rather than forcing the renderer's blink input.
     duration_ms = 700 if kind == "blink-on" else 1000 if kind in ("graphics", "mixed") else 300 if kind == "pcg" else 200
+    if args.turbo_raster is not None: duration_ms = 1800
     cycles = duration_ms * 32000
     result = subprocess.run([exe, "--cycles", str(cycles), "--ram", str(code),
                              "--frame", str(frame)], capture_output=True, text=True, timeout=args.timeout)
@@ -142,20 +155,26 @@ def run(folder, columns, kind):
     assert report["frames"] >= 3, (name, "too few completed frames", report)
     # R0+1 = 56/112 characters, 8 dots and /4 or /2 pixel rate: both
     # widths have 1792 video-master edges per line. R4=31, R9=7, R5=2
-    # produce 32*8+2 = 258 scanlines per frame. Periods are measured on
+    # produce 32*8+2 = 258 scanlines per frame (Turbo address fixtures use
+    # 28*16 = 448, but deliberately keep the old clock). Periods are measured on
     # clk_sys, so allow one system sampling edge, not arbitrary percentage.
     tolerance = (10**12 + report["sys_hz"] - 1) // report["sys_hz"] + 1
-    for field, master_edges in (("hs_period_ps", 1792), ("vs_period_ps", 1792 * 258)):
+    total_lines = 448 if args.turbo_raster is not None else 258
+    for field, master_edges in (("hs_period_ps", 1792), ("vs_period_ps", 1792 * total_lines)):
         expected = round(master_edges * 10**12 / report["video_hz"])
         assert abs(report[field] - expected) <= tolerance, (name, field, expected, report[field], tolerance)
     header, dimensions, maximum, pixels = frame.read_bytes().split(b"\n", 3)
     width, height = map(int, dimensions.split())
-    assert (header, maximum, width, height) == (b"P6", b"255", columns * 8, 200), (name, report)
+    assert (header, maximum, width, height) == (b"P6", b"255", columns * 8, 400 if args.turbo_raster is not None else 200), (name, report)
     mismatches = []
     for y in range(height):
         for x in range(width):
             color = ((7 - x % 8) ^ (y % 8)) if kind == "graphics" else (
                 7 if font[ord("A") * 8 + y % 8] & (128 >> (x % 8)) else 0)
+            if args.turbo_raster is not None:
+                page = y % 2 if args.turbo_raster == 1 else args.turbo_bank
+                row = (y // 2) % 8 if args.turbo_raster & 1 else y % 8
+                color = (7 - x % 8) ^ row ^ (7 if page else 0)
             if kind == "pattern":
                 offset = (0x7D5 + (y // 8) * columns + x // 8) & 0x7FF
                 address = 0x3000 + offset
@@ -185,6 +204,9 @@ def run(folder, columns, kind):
     print(json.dumps({"mode": name, "width": width, "height": height,
                       "frame_hash": report["frame_hash"], "frames": report["frames"],
                       "program_sha256": hashlib.sha256(code.read_bytes()).hexdigest(),
+                      "executable_sha256": hashlib.sha256(pathlib.Path(exe).read_bytes()).hexdigest(),
+                      "turbo_raster": args.turbo_raster,
+                      "high_scan_timing_verified": False if args.turbo_raster is not None else None,
                       "font_source_sha256": hashlib.sha256(font_source.encode()).hexdigest(),
                       "sys_hz": report["sys_hz"], "video_hz": report["video_hz"],
                       "reset_edges": report["reset_edges"], "reference_cycles": cycles,
@@ -197,7 +219,8 @@ def cases(folder):
     for columns in ((args.columns,) if args.columns else (40, 80)):
         for kind in ((args.kind,) if args.kind else ("graphics", "text", "mixed", "pattern", "stretch", "pcg", "blink-off", "blink-on")):
             run(folder, columns, kind)
-    print("PASS: CPU-programmed base video modes match independently calculated RGB pixels")
+    print("PASS: CPU-programmed RGB pixels and current-clock periods" +
+          ("; Turbo raster addressing only, NOT calibrated high-scan timing" if args.turbo_raster is not None else ""))
 
 if args.output:
     cases(args.output.resolve())

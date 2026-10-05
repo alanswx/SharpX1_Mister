@@ -44,7 +44,7 @@ obj_dir_turbo_single/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_captu
 
 .PHONY: turbo turbo-single turbo-fast
 
-test-turbo: turbo test-ctc $(HEADLESS_DIR)/turbo-video/Vturbo_video_tb
+test-turbo: turbo test-ctc test-gram-address $(HEADLESS_DIR)/turbo-video/Vturbo_video_tb
 	python3 tests/test_turbo_banks.py ./obj_dir_turbo/Vtop
 	python3 tests/test_turbo_ipl.py ./obj_dir_turbo/Vtop
 	python3 tests/test_ctc.py ./obj_dir_turbo/Vtop
@@ -60,6 +60,25 @@ $(HEADLESS_DIR)/turbo-video/Vturbo_video_tb: tests/turbo_video_tb.sv ../rtl/lega
 		-j 4 ../rtl/legacy/x1_vid.v ../rtl/legacy/crtc/crtc6845s.v tests/turbo_video_tb.sv -Wno-fatal
 
 .PHONY: test-turbo
+
+test-gram-address: $(HEADLESS_DIR)/gram-address/Vgram_address_tb
+	./$(HEADLESS_DIR)/gram-address/Vgram_address_tb
+
+$(HEADLESS_DIR)/gram-address/Vgram_address_tb: tests/gram_address_tb.sv ../rtl/x1_gram_address.sv
+	$(V) --binary --timing --assert --top-module gram_address_tb --Mdir $(HEADLESS_DIR)/gram-address \
+		-j 4 ../rtl/x1_gram_address.sv tests/gram_address_tb.sv -Wno-fatal
+
+.PHONY: test-gram-address
+
+# Full CPU-written address matrix. Uses the delay-aware Turbo model; clocks
+# remain the old profile, so this is not native 24 kHz timing acceptance.
+test-turbo-raster: turbo test-gram-address
+	@for mode in 0 1 2 3; do for bank in 0 1; do \
+		python3 tests/test_video_modes.py ./obj_dir_turbo/Vtop --kind graphics \
+		--turbo-raster $$mode --turbo-bank $$bank $(VIDEO_TEST_FLAGS) || exit 1; \
+		done; done
+
+.PHONY: test-turbo-raster
 
 SUB_IRQ_SRC = ../rtl/mr16core.v ../rtl/mr16_x1.v ../rtl/sub_rom.v ../rtl/sub_cpu.v ../rtl/dpram.sv ../rtl/x1_irq_bridge.sv tests/sub_irq_ack_tb.sv
 SUB_IRQ_HZ = 32000000 28636364 28571428

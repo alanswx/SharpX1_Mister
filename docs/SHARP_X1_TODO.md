@@ -143,6 +143,13 @@ support before optional Turbo extensions.
   ASIC alias decode, exact pin/phase timing and hardware remain open; SIO is
   still absent. See `CTC_STATUS.md`.
 - [ ] Implement X1 Turbo high-resolution/400-line behavior.
+  Graphics raster/page addressing is implemented separately from text MA;
+  calibrated high-scan clocks and 16-row glyphs remain open. See
+  `TURBO_RASTER_STATUS.md`; this does not close the 400-line milestone.
+- [x] Separate graphics RA from text MA; implement low/repeated/even-odd GRAM
+  page/raster addresses. Exhaustive address unit and sixteen CPU-written RGB
+  cases pass in fast baseline Turbo, with focused delay-aware single coverage.
+  Clock/font/hardware gates remain separate; latest RBF predates this change.
 - [x] Add explicit experimental Turbo foundation: independent GRAM access/display
   pages, 96 KiB GRAM, separate KVRAM, blackclip and 32 KiB IPL. CPU/boundary/DAM/
   warm-reset and actual RGB tests pass; no complete Turbo model claim.

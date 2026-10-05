@@ -67,6 +67,7 @@ module x1_vid #(parameter ENABLE_CRTC = 0, TURBO_SUPPORT = 0)(
 `endif
 // VRAM / GRAM
   O_VA,
+  O_GRAPHICS_RA,
 // VRAM
   O_TXT_WE, O_ATT_WE, O_KAN_WE,
   I_TXT_D,  I_ATT_D,  I_KAN_D,
@@ -127,6 +128,9 @@ output O_YM;
 // low  10bit for VRAM
 // full 13bit for GRAM
 output [13:0] O_VA;
+// Expose the full raster independently of the text/beam address. The active
+// machine applies Turbo GRAM paging without changing text or PCG selection.
+output [4:0] O_GRAPHICS_RA;
 
 // VRAM
 output      O_TXT_WE , O_ATT_WE , O_KAN_WE;
@@ -245,6 +249,7 @@ wire [10:0] vram_a = crtc_ma;
 // CPU / VRAM address mux
 //assign O_VA = QD ? I_A[13:0] : {crtc_ra[2:0],vram_a};
 assign O_VA  = {crtc_ra[2:0],vram_a};
+assign O_GRAPHICS_RA = crtc_ra;
 
 /****************************************************************************
   VRAM & CG LATCH

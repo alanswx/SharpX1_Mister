@@ -9,8 +9,8 @@ are reference-only, not verification evidence.
 
 | Feature | Behavior and coverage |
 |---|---|
-| Graphics pages | 96 KiB total: two 16 KiB pages per B/R/G plane. SCRN bit 4 selects CPU reads/writes; bit 3 independently selects display. CPU tests cover both pages/planes, boundaries, display/access combinations, DAM isolation and warm-reset selector clearing with storage retained. Actual 320/640 RGB fixtures show programmed page 1 while CPU access selects page 0, and page 0 with opposite access. |
-| SCRN | Non-DAM writes to `1FD0..1FDF` latch mode bits. Only bits 3/4 currently implement behavior; other bits are stored, not functional video support. Reset is zero. Reads remain unmapped (`FF`) for this experimental original-Turbo contract; see reference disagreements below. |
+| Graphics pages | 96 KiB total: two 16 KiB pages per B/R/G plane. SCRN bit 4 selects CPU reads/writes; bit 3 independently selects display in low/repeated modes. Mode 01 instead uses fixed even/odd display pages. CPU tests cover both pages/planes, boundaries, display/access combinations, DAM isolation and warm-reset selector clearing with storage retained. Actual 320/640 RGB fixtures show independently selected access/display pages. |
+| SCRN | Non-DAM writes to `1FD0..1FDF` latch mode bits. Bits 0/1 now select graphics raster addressing; bits 3/4 select display/CPU pages (mode 01 uses fixed even/odd display pages). Clocks and other mode bits are not implemented. Reset is zero. Reads remain unmapped (`FF`); see reference disagreements below and [raster contract](TURBO_RASTER_STATUS.md). |
 | Kanji attribute VRAM | Separate 2 KiB at `3800..3FFF`, independently readable/writable from text at `3000..37FF`. Base retains its text mirror. CPU tests cover boundaries/reset retention. **Kanji glyph rendering/ROM access is not implemented**. |
 | Blackclip | Write-only `1FE0`: graphics raw indices 0/1, selected text color and blanking clip. Registered mixer fixture exhausts all 128 masks and nonzero text/all graphics colors before palette mapping. CPU-written RGB fixtures verify graphics/text clipping at both widths. |
 | IPL aperture | 32 KiB in Turbo versus 4 KiB in base. Bounds, no 4 KiB mirroring, writes under ROM and overlay off/on verified with an original synthetic IPL/RAM diagnostic; oversize CLI loads rejected. Authentic local Turbo archives inventoried, **not installed/booted**. |
@@ -80,7 +80,12 @@ CRTC geometry, versus the schematic's 42.95454 MHz oscillator and inherited
 is raster expansion/200-line selection in these references; distinct 400-line
 behavior needs a clock/address contract, not PPM row duplication.
 
-Next: audit divider/mux and 400-line addressing; implement real 15/24 kHz
+The new [graphics raster increment](TURBO_RASTER_STATUS.md) separates full CRTC
+RA from text MA and implements low, repeated-raster and even/odd-page address
+paths. It does not change clocks/fonts or establish authentic high scan.
+The latest RBF predates this increment.
+
+Next: audit divider/mux and implement real 15/24 kHz
 timing, 8/16-raster ANK/PCG and Kanji glyph access. CTC/daisy-chain/RETI now
 has focused simulation acceptance, not exact hardware equivalence. Continue
 DMA BUSRQ/BUSACK/FDC DRQ pacing, SIO, and explicitly selected optional FM,

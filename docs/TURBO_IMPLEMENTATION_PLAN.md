@@ -213,7 +213,7 @@ address sequences through all b1:b0 modes and width switches. Scope native
 PLL and positive constrained timing still need coordinated physical output
 acceptance; neither a boot screenshot nor resampled rows closes this gate.
 
-### Follow-up video audit: concrete T2 contracts, not implemented
+### Follow-up video audit: T2 contracts, graphics addressing now implemented
 
 The October 4 read-only audit visually examined enlarged schematic pages 2/3
 and inspected local MAME/X Millennium. Page 3's X3 is 42.95454 MHz, feeding
@@ -244,8 +244,8 @@ horizontal sync is 2.9798946 us. The observed 60.468750 us / 27.095031250 ms
 capture is consistent with the existing low-rate master, not correct high scan.
 The CRTC's exact vertical-width/HD46505 behavior remains independently testable.
 
-Separate GRAM raster, text MA and glyph-row paths before T2. Current graphics
-wiring always uses `{SCRN[3], RA[2:0], MA[10:0]}` and therefore repeats RA0 at
+Separate GRAM raster, text MA and glyph-row paths before T2. At the audit,
+graphics wiring always used `{SCRN[3], RA[2:0], MA[10:0]}` and repeated RA0 at
 RA8. X Millennium provides this **proposed**, ASIC-review-gated display mapping:
 
 | SCRN b1:b0 | Display page | Plane offset |
@@ -255,9 +255,15 @@ RA8. X Millennium provides this **proposed**, ASIC-review-gated display mapping:
 | 11 | b3 | `{RA[3:1], MA[10:0]}`: adjacent graphics lines repeat |
 | 01 | RA0 | `{RA[3:1], MA[10:0]}`: even/odd physical lines alternate pages |
 
+The subsequent graphics-only increment implements this mapping; see
+`TURBO_RASTER_STATUS.md`. Further inspection of `width80x25_400h` resolves
+X Millennium's mode-01 precedence: it directly uses fixed BANK0/BANK1 rather
+than b3-swapped `disp1/disp2`. Clock/font and hardware gates remain open.
+
 Page 2 supports investigating raster-controlled banking, not the complete
-ASIC selection truth table. In particular b3 precedence in mode 01 needs
-confirmation. CPU/DAM access remains `{SCRN[4], port[13:0]}` in every mode.
+ASIC selection truth table. Hardware b3 precedence in mode 01 still needs
+confirmation independently of the inspected emulator. CPU/DAM access remains
+`{SCRN[4], port[13:0]}` in every mode.
 MAME does not correctly model the independent-page 01 path. See local
 `references/emulators/xmil-libretro/vram/make24.c` for the even/odd page reads.
 
