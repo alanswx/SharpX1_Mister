@@ -102,9 +102,14 @@ this is menu/input progress, not a playable scene or repeatable gameplay.
 The unchanged 28→32-second numeric-1 probe also completes without disk writes,
 but its actual RGB still shows the menu, frame `c3c8a386fbc61a81`.
 The saved state is `60bae891b030b5e44b09d41eedc33e7f12a463b1604009580a6a037f5f454723`;
-evidence is in `special-probes/bastard-v05-menu-one/`. An ordinary Enter
-continuation is running, not yet a gameplay result. No firmware/RAM patch
-or unsupported device-ready value was supplied to advance the menu.
+evidence is in `special-probes/bastard-v05-menu-one/`. The unchanged ordinary
+Enter continuation completes at 36 seconds and its actual RGB shows a
+name-entry panel containing “DAHAN”, frame `4d2751b05b089e53`, still not
+gameplay. Three PS/2 bytes, zero new disk requests/writes; state SHA-256
+`06c89bbadec12de1c119e1a7345d0d3211d2321e0bcbaadc61d78e4b79a1cd40`.
+Evidence: `special-probes/bastard-v05-menu-enter/`. A subsequent ordinary
+Enter/name confirmation toward 40 seconds is running. No firmware/RAM
+patch or unsupported device-ready value was supplied to advance the menu.
 `--from-continuation` verifies the parent
 chain's asset identities and saved-state hash, so longer probes can continue
 without reloading ROM/RAM or silently changing clocks/model/runner.
