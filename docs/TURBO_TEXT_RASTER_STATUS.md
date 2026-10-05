@@ -85,8 +85,10 @@ and delay-aware high-scan 40×20 cases with unique ignored outputs; override
 `TEXT_RASTER_TIMEOUT` on a busy host, not simulated duration/assertions.
 `test-text-raster-matrix` adds all fourteen documented scan/row/width cases
 (excluding unsupported high-scan 10 rows) and two standard-scan mode exits.
-The target's recipe was dry-run checked, not executed as a completed matrix;
-each case freezes its runner and retains a full second/every-pixel oracle.
+The target's recipe was dry-run checked and the full matrix is now running
+(`/tmp/x1-v09-text-full-matrix.log`), not a completed matrix. Each case freezes
+its runner and retains a full second/every-pixel oracle; only the wall timeout
+was raised to 7200 seconds on the contended host.
 The initial expanded high-scan 80×12 run failed the retained **384-line**
 assertion: actual height 416, consistent with a repeated 32-raster first row.
 An original output-only CRTC unit reproduces the defect at R9=31/R5=0:
@@ -106,12 +108,19 @@ the correct 640×384 dimensions but failed the pixel oracle on odd rasters
 mode 01 interleaves GRAM pages 0/1, whereas the ROM filled only page 0.
 The fixture now initializes both pages through real CPU/DAM writes before
 restoring the CPU page. No expected dimensions, pixels, duration or period
-tolerance changed. A new frozen-runner test is running; the corrected CRTC
-unit is not promoted to that machine gate.
+tolerance changed. The later corrected-fixture frozen-runner result is listed
+below; the CRTC unit alone was not promoted to that machine gate.
+The first two-page attempt also retained the same mismatch: it attempted to
+write SCRN while DAM was still active, so that OUT was redirected to graphics
+RAM instead of the page latch (`/tmp/x1-v09-text-high12-both-pages.log`).
+The ROM now exits DAM through a real IN before SCRN, re-enters with the PPI
+C5 falling edge for the second fill, and exits again before restoring SCRN.
+The unchanged every-pixel check subsequently passes; this corrects fixture setup,
+not the machine's established DAM exclusion contract.
 Pre-boundary low-scan 40×10 and underline-mode-exit completed their pixel
 assertions, but have the executable-provenance limitation below; a frozen
-corrected-source low-scan run is in progress. Corrected delay-aware high-scan
-40×20 is also running, not yet a pass.
+corrected-source low-scan 40×10 and delay-aware high-scan 40×20 now pass;
+details below.
 Those initial scripts did not freeze Vtop and calculated its hash at completion;
 concurrent rebuilds can therefore mislabel their executed binary. Preserve
 those raw artifacts, but do not attribute their late hashes to corrected-source
@@ -131,12 +140,25 @@ and v09 snapshot/SDL checks pass (`/tmp/x1-v09-boundary-timing.log`,
 | Fast base SDL/savable | `560d80e5748000811b4690f14da84528efb710dc01a2168850cfebf54080c366` |
 | Delay-aware base | `8e1458a9f354c881173f5c9dfa3cfc2abb1df28882f1b7d96f8ab12278e30ed1` |
 
+Corrected-source machine results at checkpoint `29755e7`, with those frozen
+runner hashes and original one-second / 32,000,000-cycle assertions:
+
+| Case | Result |
+|---|---|
+| Fast X3 standard-scan 40×10, global expansion and underline | All 320×200 pixels pass, including reverse cells and separately colored line/gap; 43 frames, hash `6318324a232e06e5`, HS=62.562500 us, VS=16.270218750 ms. `/tmp/x1-v09-text-low10-frozen-final.log`. |
+| Fast X3 high-scan 80×12, global expansion, both GRAM pages initialized via DAM | All 640×384 pixels pass; 25 frames, hash `8917c4ceac813725`, HS=41.718750 us, VS=20.024906250 ms. `/tmp/x1-v09-text-high12-page-dam.log`. Original ROM SHA-256 `966b87f3e95115ff0d8d785199738db2dcf799c7646753ed7cebaf7bc47ee7b7`; 4609 reset edges, 4545 download bytes. This is not a native BASIC row-setting procedure. |
+| Delay-aware X3 high-scan 40×20, underline | All 320×400 pixels pass; 36 frames, hash `707e5a7d89b05a25`, HS=41.718750 us, VS=19.190500000 ms. `/tmp/x1-v09-text-high20-fixed.log`. This ROM initialized only GRAM page 0, so it does not independently prove suppression of FF on odd-page rasters; the updated matrix fixture initializes both. |
+| Prior fast base 80×25, corrected CRTC | All 640×200 actual pixels/periods pass at the original 200 ms; nine frames, unchanged hash `38336804c6381245`, HS=62.718750 us, VS=16.181750 ms. Frozen base runner `560d80...c366`; `/tmp/x1-v09-base-boundary-pixels-final.log`. |
+| Prior delay-aware X3 ANK16 40-column/raster 3, corrected CRTC and warm reset | All 320×400 pixels/periods pass at the original 200 ms with 120 ms/10 us reset and retained font; six frames, unchanged hash `8ec9d6393e3dde65`, HS=41.718750 us, VS=18.689875000 ms. Frozen X3 runner `8843c2...c7f4`; `/tmp/x1-v09-ank16-boundary-warm-final.log`. |
+
 Mode exit deliberately leaves the same
 CRTC programmed and verifies compatible glyph wrap / retained visible GRAM;
 it is not execution of BASIC's full WIDTH mode-setting procedure.
 
 Still required before full acceptance: positive/negative rows at both widths/scans,
 mode exit and warm reset, blink/blackclip/priority/PCG/neighboring expanded
-attributes, prior base and X3 pixels, rebuilt snapshot rejection/continuity,
-wrapper lint and source-bound Quartus/CDC review. The frozen `15a0655` build
+attributes, expanded/underline-specific warm resets, X3 snapshot
+rejection/continuity and source-bound Quartus/CDC review. Base
+snapshot and wrapper-lint results above do not establish those other gates.
+The frozen `15a0655` build
 does not include this renderer or the later PPI synchronizer.

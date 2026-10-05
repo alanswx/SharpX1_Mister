@@ -44,8 +44,13 @@ still-required source-bound refit; the frozen `15a0655` Quartus worker excludes 
 The [digital text-raster increment](TURBO_TEXT_RASTER_STATUS.md) now implements
 provisional SCRN b2 expansion/b7 reserved underline/background mixing, with
 graphics suppression and independent line color. All 512 policy combinations
-and the prior mixer assertions pass, as do standard-scan 80×20 CPU pixels;
-remaining expanded/high-scan/mode-exit tests are in progress.
+and the prior mixer assertions pass, as do standard-scan 80×20 CPU pixels.
+Corrected-source standard-scan 40×10 expansion and delay-aware high-scan
+40×20 underline CPU pixel checks also pass. The R9=31/R5=0 CRTC extra-row
+fix passes 36 focused cases and the original enable-equivalence tests;
+expanded high-scan 80×12 now passes all 640×384 CPU pixels and periods with
+both graphics pages initialized through DAM. Full-matrix/mode-exit gates
+are still in progress.
 Do not mark text/underline/400-line/native acceptance complete from those units.
 SIO's inspected primary programming/FIFO/IRQ contract and ordered original
 tests are recorded in [SIO_REGISTER_CONTRACT.md](SIO_REGISTER_CONTRACT.md).

@@ -64,8 +64,14 @@ fill(0, 16384, 255)
 # Initialize page 1 through the same real DAM transactions, then restore the
 # CPU page. Otherwise odd rasters legitimately display uninitialized GRAM.
 if high:
+    # DAM redirects OUTs away from ordinary register decode. Leave DAM before
+    # changing SCRN, then re-enter it with a real C5 falling edge for page 1.
+    input_c()
     out(0x1FD0, 0x10)
+    out(0x1A02, mode_c | 0x20)
+    out(0x1A02, mode_c)
     fill(0, 16384, 255)
+    input_c()
     out(0x1FD0, 0)
 input_c()
 fill(0x3000, 2048, ord("A"))

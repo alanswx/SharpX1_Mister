@@ -62,7 +62,9 @@ level sampling only in the X3 profile; asynchronous and real-CPU cold/warm
 tests pass. It has not been refitted and does not establish timing closure.
 A further [digital text-raster increment](docs/TURBO_TEXT_RASTER_STATUS.md)
 implements provisional global vertical expansion and reserved underline/gap
-mixing. Focused units and standard-scan 80×20 CPU pixels pass; remaining
+mixing. Focused units, standard-scan 80×20 / expanded 40×10 CPU pixels,
+expanded high-scan 80×12 (640×384), and delay-aware high-scan 40×20
+underline pixels pass; remaining
 row/scan qualification is in progress, not
 complete Turbo text/Kanji compatibility. It advances the model to v09.
 The optional `turbo-video-savable` simulator target now supports fast X3
