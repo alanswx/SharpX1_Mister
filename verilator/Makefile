@@ -70,6 +70,20 @@ $(HEADLESS_DIR)/video-timing/Vvideo_timing_tb: ../rtl/x1_video_timing.sv tests/v
 
 .PHONY: test-video-timing
 
+test-video-status: $(HEADLESS_DIR)/video-status/Vvideo_status_tb
+	@for half in 3 7 31; do ./$(HEADLESS_DIR)/video-status/Vvideo_status_tb +VIDEO_HALF=$$half || exit 1; done
+
+$(HEADLESS_DIR)/video-status/Vvideo_status_tb: tests/video_status_tb.sv ../rtl/x1_video_status.sv
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module video_status_tb --Mdir $(HEADLESS_DIR)/video-status \
+		-j 2 tests/video_status_tb.sv ../rtl/x1_video_status.sv -Wno-fatal
+.PHONY: test-video-status
+
+test-video-status-cpu: turbo-video
+	python3 tests/test_video_status.py ./obj_dir_turbo_video/Vtop
+
+.PHONY: test-video-status-cpu
+
 test-font16: $(HEADLESS_DIR)/font16/Vfont16_tb
 	./$(HEADLESS_DIR)/font16/Vfont16_tb
 
@@ -123,7 +137,7 @@ obj_dir_turbo_single/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_captu
 
 .PHONY: turbo turbo-single turbo-fast
 
-test-turbo: turbo test-ctc test-gram-address test-video-timing test-turbo-pcg-access test-dma test-dma-cpu $(HEADLESS_DIR)/turbo-video/Vturbo_video_tb
+test-turbo: turbo test-ctc test-gram-address test-video-timing test-video-status test-turbo-pcg-access test-dma test-dma-cpu $(HEADLESS_DIR)/turbo-video/Vturbo_video_tb
 	python3 tests/test_turbo_banks.py ./obj_dir_turbo/Vtop
 	python3 tests/test_turbo_ipl.py ./obj_dir_turbo/Vtop
 	python3 tests/test_turbo_pcg.py ./obj_dir_turbo/Vtop

@@ -106,9 +106,15 @@ native 16-second boot, 0.5-second start and three-second live stage, then
 matching main RAM/report/RGB repeatability and unchanged media. The private
 provenance is `verilator/obj_dir_fast/d88-v05-requalification/xevious/`.
 The daemon restart interrupted the remaining batch; a hash/schedule-checked
-`requalify_commercial.py --resume` continues Druaga's successful prefix.
-The remaining four CRC qualifications are not yet accepted, and none of
-this v05 evidence qualifies the subsequent PCG/metadata/v06 machine.
+`requalify_commercial.py --resume` retained Druaga's verified native prefix
+and completed the unchanged 250 ms start, 14-second live continuation and
+300 ms idle/left/repeat checks. Coordinates `(68,32)` → `(67,32)`, RGB
+`052e84d3a9ef2ddb` / `17a6be7d42032c0f`, RAM/report/RGB repeatability and
+unchanged assets pass. Native state SHA-256:
+`315fd60fdad62858d154645f4b16644e377f0fd23a3e96a564b4f3fdbd7f0982`.
+Evidence: `verilator/obj_dir_fast/d88-v05-requalification/druaga/`.
+Mappy, Galaga and Shanghai CRC qualifications are not yet accepted, and none
+of this v05 evidence qualifies the subsequent PCG/metadata/v07 or PPI/v08 machine.
 
 The separate older v04 Z/1 16-second cold probe retained one host timeout and
 one completed run; its collector correctly reports **not repeatable**. That

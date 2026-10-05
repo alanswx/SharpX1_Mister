@@ -199,10 +199,18 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
 
     wire [7:0] ppi_data, mode_c;
     wire vdisp;
+    wire ppi_vdisp, ppi_vsync;
+    // The X3 profile has a genuinely separate faster video domain. Only its
+    // PPI status levels change latency; preserve the established base path.
+    x1_video_status #(.SYNCHRONIZE(TURBO_VIDEO_MASTER)) video_status (
+        .clk_sys(clk_sys), .reset(reset),
+        .video_vdisp(vdisp), .video_vsync(VSync),
+        .cpu_vdisp(ppi_vdisp), .cpu_vsync(ppi_vsync)
+    );
     i8255 ppi (
         .reset(reset), .clk_sys(clk_sys), .addr(a[1:0]), .idata(data_out),
         .odata(ppi_data), .cs(ppi_cs), .we(io_write), .oe(io_read),
-        .ipa(8'hff), .opa(), .ipb({vdisp,sub_tx_busy,sub_rx_busy,!ipl_enabled,1'b0,VSync,1'b0,1'b1}),
+        .ipa(8'hff), .opa(), .ipb({ppi_vdisp,sub_tx_busy,sub_rx_busy,!ipl_enabled,1'b0,ppi_vsync,1'b0,1'b1}),
         .opb(), .ipc(8'hff), .opc(mode_c),
         .sna_load(1'b0), .sna_opa(8'd0), .sna_opb(8'd0), .sna_opc(8'd0), .sna_control(8'd0)
     );

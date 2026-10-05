@@ -1,0 +1,8 @@
+# Exploratory ordinary Enter then Z from the native 24-second title/panel.
+# No release/manual confirmation; input progress is not gameplay acceptance.
+50 5a
+250 f0
+252 5a
+1000 1a
+1800 f0
+1802 1a

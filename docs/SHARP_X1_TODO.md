@@ -15,10 +15,10 @@ These are acceptance gates, not four completed checkboxes.
 
 | Priority | Confirmed increment | Still required |
 |---|---|---|
-| 1. Turbo video | X3 enables/raster mapping/16-row ANK; bounded high-speed PCG selector, frozen HSYNC-window transactions and CPU ANK8/16 selection pass focused simulation; HPS measurement snapshot seam tested | Route/timing/CDC/reset signoff and refit; exact ASIC selector/WAIT phase, text expansion/underline, Kanji CPU/glyph paths and native/hardware acceptance |
+| 1. Turbo video | X3 enables/raster mapping/16-row ANK; bounded high-speed PCG selector, frozen HSYNC-window transactions and CPU ANK8/16 selection pass focused simulation; HPS snapshot seam and X3 PPI level crossing tested, including real-CPU cold/warm polling | Route/timing/CDC/reset signoff and refit; exact ASIC selector/WAIT phase, text expansion/underline, Kanji CPU/glyph paths and native/hardware acceptance |
 | 2. Native games | All five baseline games requalified on deleted-data/v04 RTL, including Galaga firing and Shanghai pair removal | Native Arcus/Bastard playability, Turbo firmware/video and multi-disk continuity; delay-aware and hardware gameplay (Arcus A1/B2 remains exploratory) |
 | 3. CTC/DMA/SIO | CTC/IM2/ACK/keyboard tests; actual CPU BUSRQ seam; standalone DMA 32 groups and real CPU/DMA 18 ownership/reset cases plus a direct-read case pass | DMA machine integration/shared bus ownership/FDC DRQ and unsupported functions; SIO serial/FIFO/IRQ implementation; exact CTC pin/phase and physical daisy-chain timing |
-| 4. D88 robustness | Bounds/A/B ACK/eject/protected writes; CRC/READ ADDRESS; deleted/CRC metadata publication and short-reset drain pass 75 direct groups at two CE rates; fresh v05 Xevious controls pass | Full-machine metadata qualification; remaining native games; safe format contract, density/HD mechanics, physical HPS epochs and native disk-change acceptance |
+| 4. D88 robustness | Bounds/A/B ACK/eject/protected writes; CRC/READ ADDRESS; deleted/CRC metadata publication and short-reset drain pass 75 direct groups at two CE rates; fresh v05 Xevious and Druaga controls pass | Full-machine metadata qualification; remaining native games; safe format contract, density/HD mechanics, physical HPS epochs and native disk-change acceptance |
 
 Turbo Z is a separate planned profile, not implied by these increments. Its
 manual-based feature/acceptance breakdown is in [TURBO_Z_PLAN.md](TURBO_Z_PLAN.md)
@@ -35,8 +35,11 @@ the prior v04 results must not be promoted to current-RTL acceptance.
 See [high-speed PCG](TURBO_HIGH_SPEED_PCG_STATUS.md),
 [CPU/DMA bus diagnostic](DMA_CPU_BUS_STATUS.md) and
 [metadata publication](D88_WRITE_METADATA_STATUS.md) for exact test scopes.
-New PCG/metadata model state requires v07; fresh v05 game results remain source-bound
+New PCG/metadata model state requires v07, and the later X3 PPI crossing v08;
+fresh v05 game results remain source-bound
 historical acceptance, not acceptance of these later changes.
+See [X3 PPI crossing](TURBO_PPI_CDC_STATUS.md) for functional checks and the
+still-required source-bound refit; the frozen `15a0655` Quartus worker excludes it.
 SIO's inspected primary programming/FIFO/IRQ contract and ordered original
 tests are recorded in [SIO_REGISTER_CONTRACT.md](SIO_REGISTER_CONTRACT.md).
 The engine is still absent; that research does not complete priority 3.

@@ -57,6 +57,9 @@ A bounded [high-speed PCG increment](docs/TURBO_HIGH_SPEED_PCG_STATUS.md)
 adds selector shadows, frozen HSYNC-window access and CPU ANK8/16 selection.
 Original unit/CPU tests pass; ASIC fallback/WAIT phase, Kanji and hardware
 timing remain open, not full 400-line compatibility.
+The [X3 PPI crossing](docs/TURBO_PPI_CDC_STATUS.md) adds two-stage VSYNC/VDISP
+level sampling only in the X3 profile; asynchronous and real-CPU cold/warm
+tests pass. It has not been refitted and does not establish timing closure.
 The optional `turbo-video-savable` simulator target now supports fast X3
 single-drive diagnostic continuations with model-profile rejection; it does
 not enable dual-drive snapshots or replace delay-aware/hardware checks.
@@ -96,10 +99,11 @@ native firing/projectile travel. See the
 bounded checks and remaining compatibility gates; this is not hardware signoff.
 The subsequent [ID/data CRC increment](docs/D88_CRC_STATUS.md) passes direct
 controller and fast/delay-aware machine regressions and requires snapshot v05.
-Fresh CRC/v05 Xevious native/control qualification passes; the other four are
+Fresh CRC/v05 Xevious and Druaga native/control qualifications pass; the other three are
 still running. The five-game v04 evidence is historical. Subsequent
 [D88 metadata publication](docs/D88_WRITE_METADATA_STATUS.md) and PCG changes
-require v07 and separate acceptance; do not convert or patch old snapshots.
+require v07 and separate acceptance. The subsequent X3 PPI increment requires
+v08; do not convert or patch old snapshots.
 The simulator window now offers optional [live joystick keys](docs/PLAYING.md):
 arrows, Space (button 1) and Ctrl (button 2), through `--joystick-keys`.
 Independent CPU-programmed 40/80-column text and 320/640 graphics rasters now
