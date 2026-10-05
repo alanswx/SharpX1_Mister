@@ -73,6 +73,24 @@ has positive same-clock machine paths but fails cross-domain setup/recovery
 at all eight corners and hold at five. Narrow CDC/mux constraints and a
 current-source refit remain required; assembly is not timing closure.
 
+## Continuation steps 1–5 after `95c181c`
+
+| Step | Current result | Next acceptance gate |
+|---|---|---|
+| 1. Timing/CDC | Frozen `15a0655` fit/path/retained-state audit completed; same-clock machine setup passes; real CDC/reset and mux-alternative failures classified | Review narrow first-stage recognition, held-bus bounds and mux exclusivity; refit current source; do not globally cut SYS↔VID paths |
+| 2. DMA | Separate opt-in machine integration passes six complete fast/delay-aware RAM/A/B read/write/protection/CRC/count cases and four real-machine reset cases | Pending-SD/reset and other target coverage, native Turbo IPL continuity, unsupported functions and fitted/hardware acceptance |
+| 3. Kanji/video | Existing ANK/expanded-text checks retained; Kanji attribute storage is not glyph support | Implement documented CPU latches/ROM mapping and glyph halves with synthetic assets; qualify expanded-attribute/PCG/native combinations |
+| 4. SIO | Primary register/FIFO/IRQ contract documented; engine remains absent | Original two-channel enable-clocked serial engine, corruption/FIFO/pin tests, actual-CPU IM2/service then machine integration |
+| 5. Native software | Fresh v11 base five-title batch launched from unchanged IPL/disks; no prior state conversion | Finish actual movement/firing/pair assertions, investigate retained Shanghai failure, reach Arcus/Bastard gameplay; hardware unavailable |
+
+The v11 batch uses source `95c181c`, base SYS32/VID28,571,428 Hz, fast
+simulation, original 16-second cold boot and unchanged title/control durations.
+Executable SHA-256 is
+`ee270b8052a350528c0d16f69da119a4576769ad0fa026ae9b4bd29b8d9507c7`.
+Outputs are private/ignored `verilator/obj_dir_v11_fast/native-requalification/`;
+progress log is `/tmp/x1-v11-native-qualification.log`. A running batch is not
+a passing title. Preserve each frozen runner; do not rebuild historical v05.
+
 ## Phase 0 — make simulation trustworthy
 
 - [x] Repair the Verilator Makefile continuation and clean rules.

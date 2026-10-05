@@ -57,9 +57,9 @@ storage changes or complete Turbo/hardware compatibility.
 `tests/requalify_commercial.py` regenerates states through native IPL/disk
 and recorded controls rather than importing incompatible historical states.
 
-### CRC/v05 qualification in progress
+### CRC/v05 qualification — completed with one failure
 
-The `76d87a2` CRC/CPU-wrapper checkpoint requires fresh v05 states; old v04
+The `76d87a2` CRC/CPU-wrapper checkpoint required fresh v05 states; old v04
 passes below do not qualify it. Its frozen fast baseline runner is
 `2b48f7818c7fa584b82502c9fc2a99ed536fae2b923093eb387f0035a77ed1c0`.
 Fresh sequential qualifications for all five titles have been started under
