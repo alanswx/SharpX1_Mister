@@ -21,7 +21,7 @@ with tempfile.TemporaryDirectory(prefix="x1-probe-timeout-") as temporary:
     folder = root / "evidence"
     arguments = ["probe", str(root / "runner"), "bastard-special", "--manifest", str(manifest),
                  "--rom", str(root / "rom"), "--keys", str(root / "keys"),
-                 "--seconds", "1", "--timeout", "0.01", "--output", str(folder)]
+                 "--seconds", "1", "--save-state", "--timeout", "0.01", "--output", str(folder)]
     def timeout(command, **options):
         raise subprocess.TimeoutExpired(command, options["timeout"], b"partial stdout", b"partial stderr")
     with patch.object(sys, "argv", arguments), patch.object(subprocess, "run", timeout), contextlib.redirect_stdout(io.StringIO()):
@@ -33,6 +33,7 @@ with tempfile.TemporaryDirectory(prefix="x1-probe-timeout-") as temporary:
     evidence = json.loads((folder / "evidence.json").read_text())
     assert evidence["unchanged_inputs"] and not evidence["repeatable"] and not evidence["gameplay_verified"]
     assert [run["returncode"] for run in evidence["runs"]] == [124, 124]
+    assert all("--save-state" in run["command"] for run in evidence["runs"])
     for prefix in ("cold", "repeat"):
         assert (folder / f"{prefix}.stdout").read_text() == "partial stdout"
         assert "simulation did not complete" in (folder / f"{prefix}.stderr").read_text()

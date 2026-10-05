@@ -63,6 +63,14 @@ References actually inspected locally:
   these scans as proof of unreviewed register details.
 
 MAME is an implementation reference with explicit TODOs, not silicon proof.
+Further SCRN audit: CP932-decoded X Millennium `io/crtc.h` describes bit 2
+as vertical text expansion and bit 6 as CPU 8/16-raster font selection;
+`io/pcg.c::pcg_i` applies bit 6 in high-speed CPU ANK reads independently of
+display scan mode. That agrees with inherited `O_TEXT12`/`O_CG16` names but
+differs from MAME's display `ank_sel` usage. Treat the port table below as a
+reference inventory, not a settled hardware contract for those two bits.
+Verify mode/CPU-read/display combinations from the circuit/manual before
+adding independent font selection; high-scan-only ANK does not close it.
 Its screen-mode comments contain a bank-bit typo, while `scrn_w` unambiguously
 uses bit 3 for display and bit 4 for access. Its Turbo interrupt order is marked
 unverified and disagrees with the legacy chain. These are explicit review gates.

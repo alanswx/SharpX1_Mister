@@ -158,3 +158,18 @@ The latest fit predates this integration. Next audit synchronizer first stages
 and bounded held-payload paths, refit and check all corners; snapshot presence
 does not close the fitted path or reset/HDMI-mux failures. No blanket clock
 groups/false paths or new timing exceptions were added. No physical signoff.
+
+## Fast diagnostic continuations
+
+`make -C verilator turbo-video-savable` adds a separate no-timing X3 executable
+for native single-drive diagnostic continuations. It does not replace the
+delay-aware build or bypass the existing dual-drive snapshot prohibition.
+Snapshot identity now includes compiled Turbo/X3 profile flags before model
+deserialization; baseline v04 identity is unchanged. Equal clock frequencies
+alone no longer allow a base/Turbo state to reach incompatible deserialization.
+An original counter diagnostic passes X3 clock/RAM/CPU continuity, both-way
+same-rate profile rejection (exit 2, not framework abort), and restore/font
+download exclusion. Tested X3 executable SHA-256:
+`33ddb48f2b497f046a657148e804f975c0207c59a7c948313a367ee2436f7de9`.
+This synthetic diagnostic is not native firmware, disk or gameplay evidence.
+No state conversion or RAM bootstrap is used for native game trials.

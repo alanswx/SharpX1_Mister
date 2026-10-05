@@ -48,6 +48,9 @@ focused unit/CPU/real-MR16 tests pass, not exact hardware timing. See the
 An unchanged user-supplied 32 KiB Turbo IPL now executes to an IPL disk-search
 screen; see [native firmware evidence](docs/NATIVE_TURBO_FIRMWARE_STATUS.md).
 This does not establish native Turbo game or complete firmware compatibility.
+The optional `turbo-video-savable` simulator target now supports fast X3
+single-drive diagnostic continuations with model-profile rejection; it does
+not enable dual-drive snapshots or replace delay-aware/hardware checks.
 Turbo Z is a separate, unimplemented target with a
 [manual-based roadmap](docs/TURBO_Z_PLAN.md), including analog multi-color
 video, stereo FM, HD disks and capture effects.

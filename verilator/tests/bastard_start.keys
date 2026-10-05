@@ -1,0 +1,13 @@
+# Exploratory native input, not a documented release instruction or play gate.
+# Loaded game's title routine compares uppercase Z after its timed music loop;
+# later menu code compares ASCII 1/2. Hold Z across the estimated title window,
+# then try 1. Actual CPU/RGB observations decide progress; never patch RAM.
+1000 2b
+1200 f0
+1202 2b
+8000 1a
+13000 f0
+13002 1a
+14000 16
+15000 f0
+15002 16

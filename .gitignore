@@ -57,5 +57,6 @@ verilator/obj_dir_turbo_single/
 verilator/obj_dir_turbo_fast/
 verilator/obj_dir_turbo_video/
 verilator/obj_dir_turbo_video_fast/
+verilator/obj_dir_turbo_video_savable/
 software/
 references/software/private-downloads/

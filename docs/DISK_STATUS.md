@@ -197,11 +197,15 @@ rejection. Early header checks precede Verilator deserialization, avoiding
 its trailer-check abort on exception unwinding. No older state is converted.
 Fresh five-title v04 native requalification passes bounded baseline controls,
 Shanghai pair removal and Galaga firing; see [source-bound evidence](COMMERCIAL_COMPATIBILITY.md).
-The complete base regression remains in progress: its original 180-second
-mixed-video host timeout is retained, the same frozen executable passes that
-case with a larger wall-time limit, and remaining peripheral checks resume
-without reduced simulation durations/assertions. This storage increment has
-not been synthesized or tested on MiSTer.
+The complete base diagnostic set now passes across retained logs: original
+`/tmp/x1-d88-deleted-full-regression.log` stops at a 180-second mixed-video
+host timeout; the same frozen executable passes that unchanged case with
+900 seconds allowed in `/tmp/x1-d88-deleted-video-retry.log`, and every remaining
+peripheral check passes in `/tmp/x1-d88-deleted-peripherals.log` (exit 0).
+This is a completed set with one wall-time retry, not a single unbroken
+`make test` success. No simulation durations/assertions were reduced.
+This storage increment's FPGA audit is in progress; it has not been tested on
+MiSTer.
 
 Finish in this order, retaining default-profile and disposable-write checks:
 
@@ -209,6 +213,15 @@ Finish in this order, retaining default-profile and disposable-write checks:
    retain normal/deleted/status-clearing/multi-sector tests.
 2. Separate bad-ID search/READ ADDRESS behavior from post-data CRC completion;
    verify DRQ counts, CRC/RNF, INTRQ and subsequent recovery independently.
+   Fujitsu's Type-II/III status table (datasheet PDF page 7) distinguishes
+   bad-ID CRC with RNF from data CRC without RNF. Local MAME
+   `wd_fdc.cpp::read_sector_continue()` skips a matching bad-CRC ID but
+   continues multi-sector transfer after data CRC when RNF is clear; its
+   READ ADDRESS path returns six bytes and records ID CRC failure. This
+   conflicts with the inherited RTL comment saying real WD179x necessarily
+   aborts a multi-sector read at CRC. Do not change that behavior solely
+   from the comment: reconcile the selected Fujitsu command flow/timing,
+   duplicate-ID recovery and sticky error rules before implementing it.
 3. Update D88 mark/CRC metadata after successful normal/deleted sector writes,
    with protected/no-op, abort and cross-SD-block cases. Accepted writes may
    commit even when the controller aborts; never promise atomic rollback.

@@ -23,6 +23,8 @@ def main():
     parser.add_argument("--manifest", type=pathlib.Path, default=pathlib.Path("../software/special-unpacked/manifest.json"))
     parser.add_argument("--rom", type=pathlib.Path, default=pathlib.Path("../bios/ipl_x1.hex"))
     parser.add_argument("--seconds", type=int, default=16)
+    parser.add_argument("--save-state", action="store_true",
+                        help="retain each native cold state; requires a savable executable")
     parser.add_argument("--arcus-drive-b", type=int, choices=(2, 3, 4, 5),
                         help="explicit staged Arcus disk for B; exploratory, not a verified release disk order")
     parser.add_argument("--keys", type=pathlib.Path, default=pathlib.Path("tests/commercial_boot.keys"))
@@ -84,6 +86,8 @@ def main():
         raise RuntimeError("runner changed during copy; rerun with a new output directory")
     runs = []
     artifacts = (".ram", ".text", ".attr", ".subram", ".cpu", ".ppm")
+    if args.save_state:
+        artifacts += (".state",)
     if args.io_trace:
         artifacts += (".csv",)
     for name in ("cold", "repeat"):
@@ -91,6 +95,8 @@ def main():
         command = [str(frozen), "--cycles", str(args.seconds * 32000000),
                    "--rom", str(rom), "--disk", str(disk), "--keys", str(keys),
                    "--dump", str(prefix), "--frame", str(prefix) + ".ppm"]
+        if args.save_state:
+            command += ["--save-state", str(prefix) + ".state"]
         if disk_b:
             command += ["--disk-b", str(disk_b)]
         if font16:

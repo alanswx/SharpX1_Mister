@@ -26,6 +26,13 @@ turbo-single: obj_dir_turbo_single/Vtop
 turbo-fast: obj_dir_turbo_fast/Vtop
 turbo-video: obj_dir_turbo_video/Vtop
 turbo-video-fast: obj_dir_turbo_video_fast/Vtop
+turbo-video-savable: obj_dir_turbo_video_savable/Vtop
+
+# Fast X3 diagnostic continuations; not the delay-aware scheduling reference.
+obj_dir_turbo_video_savable/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
+	$(V) -cc --no-timing --savable --assert --trace-fst --exe --build -j 4 --Mdir obj_dir_turbo_video_savable --top-module top \
+		-GTURBO=1 -GTURBO_VIDEO_MASTER=1 -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_SAVABLE" \
+		-MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 
 obj_dir_turbo_video/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc --timing --assert --trace-fst --exe --build -j 4 --Mdir obj_dir_turbo_video --top-module top \
@@ -37,7 +44,12 @@ obj_dir_turbo_video_fast/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_c
 		-GTURBO=1 -GTURBO_VIDEO_MASTER=1 -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER" \
 		-MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 
-.PHONY: turbo-video turbo-video-fast
+.PHONY: turbo-video turbo-video-fast turbo-video-savable
+
+test-turbo-video-snapshot: turbo-video-savable fast
+	python3 tests/test_turbo_video_snapshot.py ./obj_dir_turbo_video_savable/Vtop ./obj_dir_fast/Vtop
+
+.PHONY: test-turbo-video-snapshot
 
 test-video-timing: $(HEADLESS_DIR)/video-timing/Vvideo_timing_tb
 	./$(HEADLESS_DIR)/video-timing/Vvideo_timing_tb

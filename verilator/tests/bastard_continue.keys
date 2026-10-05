@@ -1,0 +1,9 @@
+# Exploratory continuation from an unchanged, native 16-second cold state.
+# The 12-second stack returns to title music at 2783 with loop B=53h;
+# Z checks occur later. Try Z after 16 seconds, then native menu choice 1.
+50 1a
+1050 f0
+1052 1a
+1500 16
+2200 f0
+2202 16

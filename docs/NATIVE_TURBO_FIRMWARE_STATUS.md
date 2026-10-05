@@ -70,3 +70,15 @@ outputs and the partial second run are under ignored
 The collector now preserves partial logs, commands and explicit failed
 acceptance for timeouts. Its asset-free mocked timeout regression verifies
 that reporting behavior only; it does not simulate or validate a game.
+
+Offline examination of that first run's RAM/stack finds the title routine at
+`269D`: a timed music loop ending at `2783`, followed by a comparison with
+uppercase Z (`5A`). The later menu at `02C2` polls native E4/E6 responses and
+compares ASCII 1/2. The 12-second stack returns to `2783` with saved loop
+counter `53h`, consistent with still being in the music delay, not proof of
+a frozen input controller. These observations guide new native-key trials;
+they are not documented release instructions or proof those controls work.
+`tests/bastard_start.keys` and `tests/bastard_continue.keys` keep the exploratory
+sequences explicit. New optional probe `--save-state` retains each native cold
+state with its artifact hash, only when using a savable executable. It does
+not convert older states or inject game memory. Current trials remain pending.
