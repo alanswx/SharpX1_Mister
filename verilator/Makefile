@@ -73,6 +73,15 @@ test-probe-timeout:
 
 .PHONY: test-probe-timeout
 
+test-hps-video-cdc: $(HEADLESS_DIR)/hps-video-cdc/Vhps_video_cdc_tb
+	./$(HEADLESS_DIR)/hps-video-cdc/Vhps_video_cdc_tb
+
+$(HEADLESS_DIR)/hps-video-cdc/Vhps_video_cdc_tb: ../sys/hps_io.sv ../rtl/x1_cdc_snapshot.sv tests/hps_video_cdc_tb.sv
+	$(V) --binary --timing --assert --top-module hps_video_cdc_tb --Mdir $(HEADLESS_DIR)/hps-video-cdc \
+		-j 4 ../sys/hps_io.sv ../rtl/x1_cdc_snapshot.sv tests/hps_video_cdc_tb.sv -Wno-fatal
+
+.PHONY: test-hps-video-cdc
+
 # Native-software probes without snapshots; --timing remains the diagnostic
 # reference. Keep this separate from the base savable gameplay executable.
 obj_dir_turbo_fast/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
@@ -424,7 +433,14 @@ $(HEADLESS_DIR)/write-eject-during/Vdual_fdc_tb: ../rtl/x1_disk_media.sv ../rtl/
 
 lint-wrapper:
 	$(V) --lint-only --timing --top-module emu -Itests ../sharpx1.sv ../sys/hps_io.sv \
-		tests/board_pll_lint.v ../rtl/x1_joystick_map.v $(MACHINE_SRC) -Wno-fatal
+		tests/board_pll_lint.v ../rtl/x1_joystick_map.v ../rtl/x1_cdc_snapshot.sv $(MACHINE_SRC) -Wno-fatal
+
+lint-wrapper-turbo-video:
+	$(V) --lint-only --timing --top-module emu -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -Itests \
+		../sharpx1.sv ../sys/hps_io.sv tests/board_pll_lint.v ../rtl/x1_joystick_map.v \
+		../rtl/x1_cdc_snapshot.sv $(MACHINE_SRC) -Wno-fatal
+
+.PHONY: lint-wrapper-turbo-video
 
 clean:
 	# obj_dir is a tracked legacy GUI build artifact; preserve it.

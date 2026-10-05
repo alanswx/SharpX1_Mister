@@ -27,7 +27,7 @@
 // VDNUM 1..10
 // BLKSZ 0..7: 0 = 128, 1 = 256, 2 = 512(default), .. 7 = 16384
 //
-module hps_io #(parameter CONF_STR, CONF_STR_BRAM=1, PS2DIV=0, WIDE=0, VDNUM=1, BLKSZ=2, PS2WE=0)
+module hps_io #(parameter CONF_STR, CONF_STR_BRAM=1, PS2DIV=0, WIDE=0, VDNUM=1, BLKSZ=2, PS2WE=0, VIDEO_CDC=0)
 (
 	input             clk_sys,
 	inout      [48:0] HPS_BUS,
@@ -212,7 +212,7 @@ end
 /////////////////////////////////////////////////////////
 
 wire [15:0] vc_dout;
-video_calc video_calc
+video_calc #(.COHERENT_SNAPSHOTS(VIDEO_CDC)) video_calc
 (
 	.clk_100(HPS_BUS[43]),
 	.clk_vid(HPS_BUS[42]),
@@ -854,7 +854,7 @@ endmodule
 
 
 ///////////////// calc video parameters //////////////////
-module video_calc
+module video_calc #(parameter COHERENT_SNAPSHOTS = 0)
 (
 	input clk_100,
 	input clk_vid,
@@ -875,19 +875,19 @@ module video_calc
 
 always @(posedge clk_sys) begin
 	case(par_num)
-		1: dout <= {video_rotated, |vid_int, vid_nres};
-		2: dout <= vid_hcnt[15:0];
-		3: dout <= vid_hcnt[31:16];
-		4: dout <= vid_vcnt[15:0];
-		5: dout <= vid_vcnt[31:16];
-		6: dout <= vid_htime[15:0];
-		7: dout <= vid_htime[31:16];
-		8: dout <= vid_vtime[15:0];
-		9: dout <= vid_vtime[31:16];
-	  10: dout <= vid_pix[15:0];
-	  11: dout <= vid_pix[31:16];
-	  12: dout <= vid_vtime_hdmi[15:0];
-	  13: dout <= vid_vtime_hdmi[31:16];
+		1: dout <= {6'b0, video_rotated, |sys_int, sys_nres};
+		2: dout <= sys_hcnt[15:0];
+		3: dout <= sys_hcnt[31:16];
+		4: dout <= sys_vcnt[15:0];
+		5: dout <= sys_vcnt[31:16];
+		6: dout <= sys_htime[15:0];
+		7: dout <= sys_htime[31:16];
+		8: dout <= sys_vtime[15:0];
+		9: dout <= sys_vtime[31:16];
+	  10: dout <= sys_pix[15:0];
+	  11: dout <= sys_pix[31:16];
+	  12: dout <= sys_vtime_hdmi[15:0];
+	  13: dout <= sys_vtime_hdmi[31:16];
 	  default dout <= 0;
 	endcase
 end
@@ -896,6 +896,44 @@ reg [31:0] vid_hcnt = 0;
 reg [31:0] vid_vcnt = 0;
 reg  [7:0] vid_nres = 0;
 reg  [1:0] vid_int  = 0;
+
+// Sharp X1 opt-in: the inherited measurement return crosses unrelated clocks.
+// Transfer held atomic groups rather than sampling live multi-bit counters.
+// Register halves may still belong to different refreshes across an HPS poll;
+// this is not a whole-command snapshot/latch. Default framework behavior stays
+// unchanged. Physical synchronizer/bundled-path timing needs a separate audit.
+wire [31:0] sys_hcnt, sys_vcnt, sys_htime, sys_vtime, sys_pix, sys_vtime_hdmi;
+wire [7:0] sys_nres;
+wire [1:0] sys_int;
+wire measured_new_vmode;
+generate
+if(COHERENT_SNAPSHOTS) begin : coherent_measurements
+	wire [73:0] video_snapshot;
+	wire [127:0] timing_snapshot;
+	x1_cdc_snapshot #(.WIDTH(74)) dimensions_to_sys (
+		.source_clk(clk_vid), .destination_clk(clk_sys),
+		.source_data({vid_hcnt,vid_vcnt,vid_nres,vid_int}),
+		.destination_data(video_snapshot), .destination_valid()
+	);
+	x1_cdc_snapshot #(.WIDTH(128)) timings_to_sys (
+		.source_clk(clk_100), .destination_clk(clk_sys),
+		.source_data({vid_htime,vid_vtime,vid_pix,vid_vtime_hdmi}),
+		.destination_data(timing_snapshot), .destination_valid()
+	);
+	assign {sys_hcnt,sys_vcnt,sys_nres,sys_int} = video_snapshot;
+	assign {sys_htime,sys_vtime,sys_pix,sys_vtime_hdmi} = timing_snapshot;
+	(* async_reg = "true" *) reg mode_meta = 0, mode_sync = 0;
+	always @(posedge clk_vid) begin
+		mode_meta <= new_vmode;
+		mode_sync <= mode_meta;
+	end
+	assign measured_new_vmode = mode_sync;
+end else begin : legacy_measurements
+	assign {sys_hcnt,sys_vcnt,sys_nres,sys_int} = {vid_hcnt,vid_vcnt,vid_nres,vid_int};
+	assign {sys_htime,sys_vtime,sys_pix,sys_vtime_hdmi} = {vid_htime,vid_vtime,vid_pix,vid_vtime_hdmi};
+	assign measured_new_vmode = new_vmode;
+end
+endgenerate
 
 always @(posedge clk_vid) begin
 	integer hcnt;
@@ -915,12 +953,12 @@ always @(posedge clk_vid) begin
 		if(old_vs & ~vs) begin
 			vid_int <= {vid_int[0],f1};
 			if(~f1) begin
-				if(hcnt && vcnt) begin
-					old_vmode <= new_vmode;
+				if((hcnt != 0) && (vcnt != 0)) begin
+					old_vmode <= measured_new_vmode;
 
 					//report new resolution after timeout
-					if(resto) resto <= resto + 1'd1;
-					if(vid_hcnt != hcnt || vid_vcnt != vcnt || old_vmode != new_vmode) resto <= 1;
+					if(resto != 0) resto <= resto + 1'd1;
+					if(vid_hcnt != hcnt || vid_vcnt != vcnt || old_vmode != measured_new_vmode) resto <= 1;
 					if(&resto) vid_nres <= vid_nres + 1'd1;
 					vid_hcnt <= hcnt;
 					vid_vcnt <= vcnt;

@@ -15,7 +15,7 @@ These are acceptance gates, not four completed checkboxes.
 
 | Priority | Confirmed increment | Still required |
 |---|---|---|
-| 1. Turbo video | X3 enable cadence, synthetic graphics raster mapping, 16-row ANK pixels/reset; font refactor maps as 32K RAM bits | Route/timing/CDC/reset signoff; text expansion/CPU font selection/underline, high-speed PCG, Kanji CPU/glyph paths and native/hardware acceptance |
+| 1. Turbo video | X3 enable cadence, synthetic graphics raster mapping, 16-row ANK pixels/reset; font maps as 32K RAM bits; opt-in HPS measurement snapshot seam tests pass | Route/timing/CDC/reset signoff and refit; text expansion/CPU font selection/underline, high-speed PCG, Kanji CPU/glyph paths and native/hardware acceptance |
 | 2. Native games | All five baseline games requalified on deleted-data/v04 RTL, including Galaga firing and Shanghai pair removal | Native Arcus/Bastard playability, Turbo firmware/video and multi-disk continuity; delay-aware and hardware gameplay (Arcus A1/B2 remains exploratory) |
 | 3. CTC/DMA/SIO | Enable-driven CTC and focused IM2/ACK/keyboard arbitration tests pass | DMA/BUSRQ/BUSACK engine, shared bus ownership/FDC DRQ transfers; SIO serial/FIFO/IRQ implementation; exact CTC pin/phase and physical daisy-chain timing |
 | 4. D88 robustness | Malformed-image bounds, A/B ACK ownership/eject, protected/cross-block writes, new deleted-read record type/status isolation pass | Separate ID/data CRC semantics, deleted-write/CRC metadata updates, bounded format/write-track, density/HD mechanics, physical HPS media epochs and native disk-change acceptance |

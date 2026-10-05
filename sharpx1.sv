@@ -265,7 +265,7 @@ always @(posedge clk_sys) begin
 	end
 end
 
-hps_io #(.CONF_STR(CONF_STR), .PS2DIV(1600), .VDNUM(2)) hps_io
+hps_io #(.CONF_STR(CONF_STR), .PS2DIV(1600), .VDNUM(2), .VIDEO_CDC(TURBO_VIDEO_MASTER)) hps_io
 (
 	.clk_sys(clk_sys),
 	.HPS_BUS(HPS_BUS),

@@ -135,13 +135,26 @@ Wrapper lint uses a stand-in PLL and is not synthesis evidence.
 Physical MiSTer testing is unavailable while travelling. Older published
 RBFs do not contain these clock/font changes.
 
-The original `rtl/x1_cdc_snapshot.sv` helper is a **standalone protocol
-increment only**: held payload/request/acknowledgement, continuous refresh,
-four clock ratios and stopped-clock backpressure/recovery pass in
-`make -C verilator test-cdc-snapshot`. It is not yet instantiated by the
-machine or HPS framework and cannot resolve the fitted CDC failures by its
-presence. Next integrate atomic video/100 MHz measurement snapshots into
-the opt-in X3 HPS parameter path, verify returned register fields, and audit
-first-stage synchronization plus bounded payload paths in Quartus. The
-helper's power-on state is explicit; warm machine reset does not stop it.
-No blanket clock-group/false-path exceptions or physical signoff are implied.
+The original `rtl/x1_cdc_snapshot.sv` helper passes held-payload/request/ACK,
+continuous refresh, four clock ratios and stopped-clock recovery in
+`make -C verilator test-cdc-snapshot`. The new `hps_io.VIDEO_CDC` parameter
+now connects it to the HPS measurement return **only for the X3 wrapper**;
+the default parameter is zero. A 74-bit video-domain group and 128-bit
+100-MHz-domain group refresh coherent system-domain copies, and `new_vmode`
+uses two-stage video-domain sampling. This small framework edit is necessary
+because the inherited `video_calc` directly reads asynchronous counters;
+the protocol helper and board-only dependency remain core-specific.
+
+`make -C verilator test-hps-video-cdc` passes all sixteen selector values,
+both register halves, mode synchronization, four clock ratios, stopped-source
+retention/recovery and the default legacy mapping. This seam diagnostic forces
+internal measurements; it does not verify the inherited measurement algorithm
+or physical CDC. Both default/X3 wrapper lint targets pass, with inherited
+framework warnings visible. The helper's power-on state is explicit; warm
+machine reset does not stop it. Copies are atomic within each source group,
+not across both groups or an entire multi-register HPS polling transaction.
+
+The latest fit predates this integration. Next audit synchronizer first stages
+and bounded held-payload paths, refit and check all corners; snapshot presence
+does not close the fitted path or reset/HDMI-mux failures. No blanket clock
+groups/false paths or new timing exceptions were added. No physical signoff.
