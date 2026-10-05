@@ -130,6 +130,12 @@ support before optional Turbo extensions.
   remain safely quarantined; safe cancellation/timeouts need a transport contract.
 - [ ] Implement DMA bus arbitration and verify Z80 DMA transfers.
 - [ ] Add CTC/SIO behavior and interrupt priority/acknowledgement tests.
+- [x] Add opt-in Turbo CTC with enable-driven timers/counters, schematic-based
+  CTC-before-keyboard arbitration, stable vectors/single mailbox consumption,
+  nested channel IRQs and decoded RETI. Unit, connected bridge, real MR16
+  stretched ACK and CPU IM2/cold-input tests pass in both clock profiles.
+  ASIC alias decode, exact pin/phase timing and hardware remain open; SIO is
+  still absent. See `CTC_STATUS.md`.
 - [ ] Implement X1 Turbo high-resolution/400-line behavior.
 - [x] Add explicit experimental Turbo foundation: independent GRAM access/display
   pages, 96 KiB GRAM, separate KVRAM, blackclip and 32 KiB IPL. CPU/boundary/DAM/

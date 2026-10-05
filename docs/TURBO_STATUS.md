@@ -14,6 +14,7 @@ are reference-only, not verification evidence.
 | Kanji attribute VRAM | Separate 2 KiB at `3800..3FFF`, independently readable/writable from text at `3000..37FF`. Base retains its text mirror. CPU tests cover boundaries/reset retention. **Kanji glyph rendering/ROM access is not implemented**. |
 | Blackclip | Write-only `1FE0`: graphics raw indices 0/1, selected text color and blanking clip. Registered mixer fixture exhausts all 128 masks and nonzero text/all graphics colors before palette mapping. CPU-written RGB fixtures verify graphics/text clipping at both widths. |
 | IPL aperture | 32 KiB in Turbo versus 4 KiB in base. Bounds, no 4 KiB mirroring, writes under ROM and overlay off/on verified with an original synthetic IPL/RAM diagnostic; oversize CLI loads rejected. Authentic local Turbo archives inventoried, **not installed/booted**. |
+| CTC/IRQ | Enable-driven four-channel timers/counters, channel-0/3 cascade, vectors/service and RETI integrated. Schematic-based CTC-before-keyboard priority; both CPU clock profiles pass repeated IM2 and concurrent cold input. Stable stretched ACKs verified with connected CTC and real MR16 firmware. Exact phase/pin timing, ASIC aliases and hardware remain open. See [CTC evidence](CTC_STATUS.md). |
 
 Provenance: mode/bank and loader changes are local original integration code
 based on the documented map and inspected references; blackclip modifies the
@@ -77,7 +78,8 @@ is raster expansion/200-line selection in these references; distinct 400-line
 behavior needs a clock/address contract, not PPM row duplication.
 
 Next: audit divider/mux and 400-line addressing; implement real 15/24 kHz
-timing, 8/16-raster ANK/PCG and Kanji glyph access. Then CTC/daisy-chain/RETI,
+timing, 8/16-raster ANK/PCG and Kanji glyph access. CTC/daisy-chain/RETI now
+has focused simulation acceptance, not exact hardware equivalence. Continue
 DMA BUSRQ/BUSACK/FDC DRQ pacing, SIO, and explicitly selected optional FM,
 expansion/Turbo Z features. Authentic Turbo IPL/native software, disk changes,
 synthesis/CDC and physical video/input/audio are separate gates. Arcus loading

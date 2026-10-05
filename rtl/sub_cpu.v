@@ -79,7 +79,7 @@
 ****************************************************************************/
 // Preserve the inherited bidirectional profile by default. The shared MiSTer
 // machine explicitly selects receive-only because O_PS2CT/DT are disconnected.
-module x1_sub #(parameter CLOCK_HZ = 32000000, PS2_RECEIVE_ONLY = 0)(
+module x1_sub #(parameter CLOCK_HZ = 32000000, PS2_RECEIVE_ONLY = 0, IRQ_ACK_ONCE = 0)(
   I_reset,
   I_clk,  // 32MHz
 // MAIN-SUB communication port
@@ -454,7 +454,14 @@ end
 ////////////////////////////////////////////
 // SUB -> MAIN RD (8255 mode0)
 ////////////////////////////////////////////
-assign main_re = (I_cs & I_rd) | sub_ivec_cycle; // I/O or vector read
+// Optional shared-machine ACK: keep the vector address selected throughout
+// M1/IORQ, but consume exactly once after synchronous read data settles. The
+// default retains inherited level behavior for legacy/base configurations.
+reg [1:0] irq_ack_age;
+always @(posedge I_clk)
+  if (I_reset || !sub_ivec_cycle) irq_ack_age <= 0;
+  else if (irq_ack_age != 3) irq_ack_age <= irq_ack_age + 1'b1;
+assign main_re = (I_cs & I_rd) | (sub_ivec_cycle & (!IRQ_ACK_ONCE || irq_ack_age == 2));
 
 always @(posedge I_clk)
 begin

@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <array>
 #include <cerrno>
 #include <cstdint>
 #include <cstdio>
@@ -79,6 +80,8 @@ int main(int argc, char **argv) {
         const char *rom_path = nullptr, *ram_path = nullptr;
         uint64_t load_address = 0x8000, entry = 0x8000, peek_address = 0xf000;
         const char *bus_path = nullptr;
+        uint64_t bus_start_ms = 0, bus_end_ms = 0;
+        bool bus_events = false;
         const char *disk_path = nullptr, *keys_path = nullptr, *dump_path = nullptr;
         const char *disk_output = nullptr;
         const char *save_path = nullptr, *restore_path = nullptr;
@@ -100,6 +103,9 @@ int main(int argc, char **argv) {
             else if (!std::strcmp(argv[i], "--entry") && i + 1 < argc) entry = number(argv[++i]);
             else if (!std::strcmp(argv[i], "--peek") && i + 1 < argc) peek_address = number(argv[++i]);
             else if (!std::strcmp(argv[i], "--bus-trace") && i + 1 < argc) bus_path = argv[++i];
+            else if (!std::strcmp(argv[i], "--bus-start-ms") && i + 1 < argc) bus_start_ms = number(argv[++i]);
+            else if (!std::strcmp(argv[i], "--bus-end-ms") && i + 1 < argc) bus_end_ms = number(argv[++i]);
+            else if (!std::strcmp(argv[i], "--bus-events")) bus_events = true;
             else if (!std::strcmp(argv[i], "--disk") && i + 1 < argc) disk_path = argv[++i];
             else if (!std::strcmp(argv[i], "--disk-output") && i + 1 < argc) disk_output = argv[++i];
             else if (!std::strcmp(argv[i], "--keys") && i + 1 < argc) keys_path = argv[++i];
@@ -113,10 +119,15 @@ int main(int argc, char **argv) {
             else if (!std::strcmp(argv[i], "--save-state") && i + 1 < argc) save_path = argv[++i];
             else if (!std::strcmp(argv[i], "--restore-state") && i + 1 < argc) restore_path = argv[++i];
             else if (argv[i][0] != '-') cycles = number(argv[i]);
-            else throw std::runtime_error("usage: Vtop [cycles] [--cycles N] [--reset-cycles N] [--reset-at MS (repeatable) --reset-for-us US] [--video-hz N] [--trace output.fst] [--rom IMAGE] [--ram IMAGE --load-address A --entry A] [--disk IMAGE --disk-output NEW_COPY] [--keys SCRIPT] [--frame IMAGE.ppm] [--audio OUTPUT.wav] [--dump PREFIX] [--peek A] [--bus-trace CSV --io-only] [--progress] [--interactive [--joystick-keys]] [--save-state FILE] [--restore-state FILE] [--joya BYTE --joyb BYTE]");
+            else throw std::runtime_error("usage: Vtop [cycles] [--cycles N] [--reset-cycles N] [--reset-at MS (repeatable) --reset-for-us US] [--video-hz N] [--trace output.fst] [--rom IMAGE] [--ram IMAGE --load-address A --entry A] [--disk IMAGE --disk-output NEW_COPY] [--keys SCRIPT] [--frame IMAGE.ppm] [--audio OUTPUT.wav] [--dump PREFIX] [--peek A] [--bus-trace CSV --io-only --bus-events --bus-start-ms N --bus-end-ms N] [--progress] [--interactive [--joystick-keys]] [--save-state FILE] [--restore-state FILE] [--joya BYTE --joyb BYTE]");
         }
         if (joystick_keys && !interactive)
             throw std::runtime_error("--joystick-keys requires --interactive");
+        if ((bus_events || bus_start_ms || bus_end_ms) && !bus_path)
+            throw std::runtime_error("bus trace options require --bus-trace");
+        if (bus_start_ms > 1000000000ULL || bus_end_ms > 1000000000ULL
+                || (bus_end_ms && bus_end_ms <= bus_start_ms))
+            throw std::runtime_error("require bus-start-ms < bus-end-ms <= 1000000000 (end 0 means unbounded)");
         // Bound time arithmetic and avoid an entirely reset-only smoke run.
         if (cycles <= reset_cycles || reset_cycles == 0 || cycles > 1000000000000ULL)
             throw std::runtime_error("require 0 < reset-cycles < cycles <= 1000000000000");
@@ -162,6 +173,15 @@ int main(int argc, char **argv) {
                 ((static_cast<uint64_t>(downloads.size()) + 64) * 32000000 + sys_hz - 1) / sys_hz);
         if (cycles <= reset_cycles) throw std::runtime_error("cycles must exceed download plus reset duration");
         std::ofstream bus;
+        std::array<uint64_t, 11> bus_row{};
+        bool bus_pending = false;
+        auto flush_bus = [&]() {
+            if (!bus_pending) return;
+            for (size_t field = 0; field < bus_row.size(); ++field)
+                bus << (field ? "," : "") << bus_row[field];
+            bus << '\n';
+            bus_pending = false;
+        };
         std::vector<uint8_t> disk = disk_path ? image(disk_path) : std::vector<uint8_t>();
         if (disk_output) {
             if (!disk_path) throw std::runtime_error("--disk-output requires --disk");
@@ -205,7 +225,7 @@ int main(int argc, char **argv) {
         if (bus_path) {
             bus.open(bus_path);
             if (!bus) throw std::runtime_error("cannot open bus trace");
-            bus << "time_ps,address,mreq_n,iorq_n,rd_n,wr_n,data_in,data_out\n";
+            bus << "time_ps,address,mreq_n,iorq_n,rd_n,wr_n,data_in,data_out,drive_control,motor,media_ready\n";
         }
         VerilatedContext context;
 #ifdef X1_SDL
@@ -467,12 +487,27 @@ int main(int argc, char **argv) {
             }
 #endif
             if (sys_rise) {
-                if (bus && !top.reset && (!top.cpu_rd_n || !top.cpu_wr_n)
-                        && (!io_only || !top.cpu_iorq_n)) {
-                    bus << context.time() << ',' << top.cpu_address << ','
-                        << unsigned(top.cpu_mreq_n) << ',' << unsigned(top.cpu_iorq_n) << ','
-                        << unsigned(top.cpu_rd_n) << ',' << unsigned(top.cpu_wr_n) << ','
-                        << unsigned(top.cpu_in) << ',' << unsigned(top.cpu_out) << '\n';
+                if (bus) {
+                    const bool capture = !top.reset && (!top.cpu_rd_n || !top.cpu_wr_n)
+                        && (!io_only || !top.cpu_iorq_n)
+                        && context.time() >= bus_start_ms * 1000000000ULL
+                        && (!bus_end_ms || context.time() < bus_end_ms * 1000000000ULL);
+                    if (!capture) flush_bus();
+                    else {
+                        const std::array<uint64_t, 11> row{context.time(), top.cpu_address,
+                            top.cpu_mreq_n, top.cpu_iorq_n, top.cpu_rd_n, top.cpu_wr_n,
+                            top.cpu_in, top.cpu_out,
+                            top.rootp->top__DOT__machine__DOT__disk_control__DOT__control,
+                            top.rootp->top__DOT__machine__DOT__disk_motor,
+                            top.rootp->top__DOT__machine__DOT__fdc__DOT__media_ready};
+                        // A transaction is a contiguous held address/strobe,
+                        // not a data-value transition. Emit its last sampled
+                        // data and timestamp; default remains every sys edge.
+                        if (bus_pending && (!bus_events || !std::equal(row.begin()+1, row.begin()+6, bus_row.begin()+1)))
+                            flush_bus();
+                        bus_row = row;
+                        bus_pending = true;
+                    }
                 }
                 hash ^= static_cast<uint8_t>(top.video);
                 hash *= 1099511628211ULL;
@@ -494,6 +529,7 @@ int main(int argc, char **argv) {
                 old_vs = top.VSync;
             }
         }
+        flush_bus();
 #ifdef X1_SAVABLE
         if (save_path) {
             if (context.time() % 31250 || top.reset || disk_active || disk_cooldown

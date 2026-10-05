@@ -20,7 +20,7 @@ changes and runtime evidence.
 | Graphics RAM/palette | Base three 16 KiB planes; opt-in Turbo two pages/plane (96 KiB); CPU/DAM and actual page/blackclip RGB tested; 400-line modes pending | Partial |
 | AY/YM PSG | JT49; three tones/mute, deterministic noise, all envelope shapes/period scaling tested; full fidelity/hardware pending | Present; audio output incomplete |
 | Joystick ports | Both PSG inputs tested; MiSTer bit order corrected and 64 combinations verified; hardware pending | Partial |
-| Z80 CTC | Missing | Present |
+| Z80 CTC | Opt-in Turbo: CE-based four-channel timers/counters, vectors, priority/service and RETI connected; CPU IM2/keyboard coexistence and stretched ACK tested; exact pin timing/ASIC aliases/hardware pending | Present |
 | Z80 DMA | Disconnected scaffolding | Partial firmware emulation |
 | Z80 SIO | Missing | Stub |
 | MB8877 floppy controller | WD1793-family replacement boots D88; generated read/write/protection/drive/index tests pass; exact MB8877 timing/format/errors remain open | Partial firmware emulation |

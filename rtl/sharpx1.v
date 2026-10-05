@@ -43,7 +43,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0) (
     wire mreq, iorq, rd, wr, m1, halt_n;
     cpu Cpu (
         .reset_n(~reset), .clock(clk_sys), .cep(pe4M4), .cen(ne4M4),
-        .int_n(sub_int_n), .wait_n(cg_wait_n), .halt_n(halt_n),
+        .int_n(TURBO ? !machine_irq : sub_int_n), .wait_n(cg_wait_n), .halt_n(halt_n),
         .mreq(mreq), .iorq(iorq), .rd(rd), .wr(wr), .m1(m1),
         .di(di), .data_out(data_out), .a(a), .dir(16'd0), .dirset(1'b0)
     );
@@ -58,6 +58,41 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0) (
     wire ppi_cs = io_cycle && !dam && a[15:8] == 8'h1a;
     wire ipl_set_cs = io_write && !dam && a[15:8] == 8'h1d;
     wire ipl_clear_cs = io_write && !dam && a[15:8] == 8'h1e;
+
+    // CTC is opt-in with the experimental Turbo profile. Bus writes are
+    // edge-qualified, not repeated on every master edge of a Z80 strobe.
+    wire ctc_cs = TURBO && io_cycle && !dam && a[15:4] == 12'h1fa && !a[2];
+    reg ctc_write_old, ctc_trigger_2m;
+    always @(posedge clk_sys or posedge reset)
+        if (reset) begin ctc_write_old <= 0; ctc_trigger_2m <= 0; end
+        else begin
+            ctc_write_old <= ctc_cs && io_write;
+            if (pe4M4) ctc_trigger_2m <= !ctc_trigger_2m;
+        end
+    wire [7:0] ctc_data, ctc_vector, irq_vector;
+    wire [3:0] ctc_zc;
+    wire ctc_irq, ctc_ack, ctc_reti, ctc_iei, ctc_ieo, ctc_selected;
+    wire machine_irq, keyboard_ack;
+    // Legacy schematic-derived wiring: constant channel 0, 2 MHz channels
+    // 1/2 and channel-0 terminal-count cascade into channel 3. Physical
+    // phase/pulse-width and inter-chip priority remain hardware review gates.
+    x1_ctc ctc (
+        .clk(clk_sys), .reset(reset), .ce(pe4M4),
+        .wr(ctc_cs && io_write && !ctc_write_old), .channel(a[1:0]),
+        .din(data_out), .dout(ctc_data),
+        .trigger({ctc_zc[0],ctc_trigger_2m,ctc_trigger_2m,1'b1}),
+        .iei(ctc_iei), .irq(ctc_irq), .ieo(ctc_ieo), .ack(ctc_ack),
+        .reti(ctc_reti), .vector(ctc_vector), .zc(ctc_zc)
+    );
+    x1_irq_bridge irq_bridge (
+        .clk(clk_sys), .reset(reset), .m1_n(m1), .mreq_n(mreq),
+        .iorq_n(iorq), .rd_n(rd), .data(di),
+        .keyboard_irq(!sub_int_n), .ctc_irq(ctc_irq), .ctc_vector(ctc_vector),
+        .ctc_ieo(ctc_ieo), .keyboard_vector(sub_data),
+        .irq(machine_irq), .keyboard_ack(keyboard_ack), .ctc_ack(ctc_ack),
+        .ctc_iei(ctc_iei), .ctc_reti(ctc_reti),
+        .ctc_selected(ctc_selected), .ack_vector(irq_vector)
+    );
 
     reg ipl_enabled;
     // Experimental Turbo foundation, not a complete Turbo machine selection.
@@ -115,7 +150,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0) (
     // bus ownership is advertised until those devices have their own tests.
     wire [7:0] sub_data;
     wire sub_tx_busy, sub_rx_busy, sub_int_n, clk1;
-    x1_sub #(.CLOCK_HZ(SINGLE_CLOCK ? MASTER_HZ : 32000000), .PS2_RECEIVE_ONLY(1)) subCPU (
+    x1_sub #(.CLOCK_HZ(SINGLE_CLOCK ? MASTER_HZ : 32000000), .PS2_RECEIVE_ONLY(1), .IRQ_ACK_ONCE(TURBO)) subCPU (
         .I_reset(reset), .I_clk(clk_sys), .I_cs(sub_cs),
         .I_rd(io_read), .I_wr(io_write), .I_M1_n(m1),
         .I_D(data_out), .O_D(sub_data), .O_DOE(), .O_clk1(clk1),
@@ -128,7 +163,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0) (
         .O_DMA_INT_n(), .O_DMA_IEO(), .O_PCM(), .O_FD_LAMP(),
         .I_fa(13'd0), .I_fcs(1'b0), .I_PS2C(ps2_clk_in), .I_PS2D(ps2_data_in),
         .O_PS2CT(), .O_PS2DT(), .O_TX_BSY(sub_tx_busy), .O_RX_BSY(sub_rx_busy),
-        .O_KEY_BRK_n(), .I_SPM1(!m1 && !iorq), .I_RETI(1'b0),
+        .O_KEY_BRK_n(), .I_SPM1(TURBO ? keyboard_ack : !m1 && !iorq), .I_RETI(1'b0),
         .I_IEI(1'b1), .O_INT_n(sub_int_n), .O_JOY_A(), .O_JOY_B(),
         .dot_7seg(), .num_7seg()
     );
@@ -138,9 +173,10 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0) (
     wire rom_selected = ipl_enabled && !a[15];
     assign di = mem_read ? (rom_selected ? (TURBO || a < 16'h1000 ? ipl_data : 8'hff)
                                          : ram_data)
-              : !m1 && !iorq ? sub_data
+              : !m1 && !iorq ? (TURBO ? irq_vector : sub_data)
               : sub_cs && io_read && !dam ? sub_data
               : ppi_cs && io_read ? ppi_data
+              : ctc_cs && io_read ? ctc_data
               : io_read && !dam && a[15:2] == 14'h03fe ? fdc_data
               : io_read && !dam && a[15:8] == 8'h1b ? psg_data
               : cg_access && io_read ? cg_cpu_data

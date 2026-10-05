@@ -23,6 +23,14 @@ single-fast: obj_dir_single_fast/Vtop
 # Partial Turbo peripherals behind an explicit experimental model parameter.
 turbo: obj_dir_turbo/Vtop
 turbo-single: obj_dir_turbo_single/Vtop
+turbo-fast: obj_dir_turbo_fast/Vtop
+
+# Native-software probes without snapshots; --timing remains the diagnostic
+# reference. Keep this separate from the base savable gameplay executable.
+obj_dir_turbo_fast/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
+	$(V) -cc --no-timing --assert --trace-fst --exe --build -j 4 --Mdir obj_dir_turbo_fast --top-module top \
+		-GTURBO=1 -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION" -MAKEFLAGS "OPT_FAST=-O3" \
+		$(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 
 obj_dir_turbo/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc --timing --assert --trace-fst --exe --build -j 4 --Mdir obj_dir_turbo --top-module top \
@@ -34,11 +42,15 @@ obj_dir_turbo_single/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_captu
 		-GTURBO=1 -GSINGLE_CLOCK=1 -GMASTER_HZ=28636364 -CFLAGS "-std=c++20 -DX1_SINGLE_CLOCK -DX1_TURBO_FOUNDATION" \
 		-MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 
-.PHONY: turbo turbo-single
+.PHONY: turbo turbo-single turbo-fast
 
-test-turbo: turbo $(HEADLESS_DIR)/turbo-video/Vturbo_video_tb
+test-turbo: turbo test-ctc $(HEADLESS_DIR)/turbo-video/Vturbo_video_tb
 	python3 tests/test_turbo_banks.py ./obj_dir_turbo/Vtop
 	python3 tests/test_turbo_ipl.py ./obj_dir_turbo/Vtop
+	python3 tests/test_ctc.py ./obj_dir_turbo/Vtop
+	python3 tests/test_keyboard_irq.py ./obj_dir_turbo/Vtop
+	python3 tests/test_keyboard_poll.py ./obj_dir_turbo/Vtop
+	python3 tests/test_bus_trace.py ./obj_dir_turbo/Vtop
 	./$(HEADLESS_DIR)/turbo-video/Vturbo_video_tb
 
 $(HEADLESS_DIR)/turbo-video/Vturbo_video_tb: tests/turbo_video_tb.sv ../rtl/legacy/x1_vid.v ../rtl/legacy/crtc/crtc6845s.v
@@ -46,6 +58,35 @@ $(HEADLESS_DIR)/turbo-video/Vturbo_video_tb: tests/turbo_video_tb.sv ../rtl/lega
 		-j 4 ../rtl/legacy/x1_vid.v ../rtl/legacy/crtc/crtc6845s.v tests/turbo_video_tb.sv -Wno-fatal
 
 .PHONY: test-turbo
+
+SUB_IRQ_SRC = ../rtl/mr16core.v ../rtl/mr16_x1.v ../rtl/sub_rom.v ../rtl/sub_cpu.v ../rtl/dpram.sv ../rtl/x1_irq_bridge.sv tests/sub_irq_ack_tb.sv
+SUB_IRQ_HZ = 32000000 28636364 28571428
+SUB_IRQ_BINS = $(foreach hz,$(SUB_IRQ_HZ),$(HEADLESS_DIR)/subirq/$(hz)/Vsub_irq_ack_tb)
+
+test-ctc: $(HEADLESS_DIR)/ctc/Vx1_ctc_tb $(HEADLESS_DIR)/irq/Vx1_irq_bridge_tb $(HEADLESS_DIR)/ctcirq/Vx1_ctc_irq_tb $(SUB_IRQ_BINS)
+	./$(HEADLESS_DIR)/ctc/Vx1_ctc_tb
+	./$(HEADLESS_DIR)/irq/Vx1_irq_bridge_tb
+	./$(HEADLESS_DIR)/ctcirq/Vx1_ctc_irq_tb
+	@for hz in $(SUB_IRQ_HZ); do ./$(HEADLESS_DIR)/subirq/$$hz/Vsub_irq_ack_tb || exit 1; done
+
+$(HEADLESS_DIR)/subirq/%/Vsub_irq_ack_tb: $(SUB_IRQ_SRC)
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module sub_irq_ack_tb --Mdir $(HEADLESS_DIR)/subirq/$* \
+		-GCLOCK_HZ=$* -j 4 $(SUB_IRQ_SRC) -Wno-fatal
+
+$(HEADLESS_DIR)/ctc/Vx1_ctc_tb: ../rtl/x1_ctc.sv tests/x1_ctc_tb.sv
+	$(V) --binary --timing --assert --top-module x1_ctc_tb --Mdir $(HEADLESS_DIR)/ctc \
+		-j 4 ../rtl/x1_ctc.sv tests/x1_ctc_tb.sv -Wno-fatal
+
+$(HEADLESS_DIR)/irq/Vx1_irq_bridge_tb: ../rtl/x1_irq_bridge.sv tests/x1_irq_bridge_tb.sv
+	$(V) --binary --timing --assert --top-module x1_irq_bridge_tb --Mdir $(HEADLESS_DIR)/irq \
+		-j 4 ../rtl/x1_irq_bridge.sv tests/x1_irq_bridge_tb.sv -Wno-fatal
+
+$(HEADLESS_DIR)/ctcirq/Vx1_ctc_irq_tb: ../rtl/x1_ctc.sv ../rtl/x1_irq_bridge.sv tests/x1_ctc_irq_tb.sv
+	$(V) --binary --timing --assert --top-module x1_ctc_irq_tb --Mdir $(HEADLESS_DIR)/ctcirq \
+		-j 4 ../rtl/x1_ctc.sv ../rtl/x1_irq_bridge.sv tests/x1_ctc_irq_tb.sv -Wno-fatal
+
+.PHONY: test-ctc
 
 test-single: single test-clock-enables test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner
 	python3 tests/test_key_script.py ./obj_dir_single/Vtop $(VIDEO_TEST_FLAGS)
@@ -56,6 +97,7 @@ test-single: single test-clock-enables test-sub-timer test-fdc-abort test-fdc-sd
 	python3 tests/test_d88_bounds.py ./obj_dir_single/Vtop
 	python3 tests/test_single_clock.py ./obj_dir_single/Vtop
 	python3 tests/test_memory.py ./obj_dir_single/Vtop
+	python3 tests/test_ctc_base.py ./obj_dir_single/Vtop
 	python3 tests/test_subcpu.py ./obj_dir_single/Vtop
 	python3 tests/test_graphics_bus.py ./obj_dir_single/Vtop
 	python3 tests/test_keyboard_irq.py ./obj_dir_single/Vtop
@@ -162,6 +204,8 @@ test: headless test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner
 	python3 tests/test_d88_bounds.py ./$(HEADLESS_EXE)
 	python3 tests/test_timing.py ./$(HEADLESS_EXE)
 	python3 tests/test_memory.py ./$(HEADLESS_EXE)
+	python3 tests/test_ctc_base.py ./$(HEADLESS_EXE)
+	python3 tests/test_bus_trace.py ./$(HEADLESS_EXE)
 	python3 tests/test_subcpu.py ./$(HEADLESS_EXE)
 	python3 tests/test_graphics_bus.py ./$(HEADLESS_EXE)
 	python3 tests/test_keyboard_irq.py ./$(HEADLESS_EXE)
@@ -183,6 +227,7 @@ test-fast: fast test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner
 	python3 tests/test_warm_reset.py ./obj_dir_fast/Vtop
 	python3 tests/test_d88_bounds.py ./obj_dir_fast/Vtop
 	python3 tests/test_memory.py ./obj_dir_fast/Vtop
+	python3 tests/test_ctc_base.py ./obj_dir_fast/Vtop
 	python3 tests/test_subcpu.py ./obj_dir_fast/Vtop
 	python3 tests/test_graphics_bus.py ./obj_dir_fast/Vtop
 	python3 tests/test_keyboard_irq.py ./obj_dir_fast/Vtop

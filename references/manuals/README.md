@@ -54,3 +54,13 @@ description. PDF pages 5-6 cover status-read interrupt acknowledgement and
 Type IV ready/index/immediate condition bits; compare local MAME's
 `src/devices/machine/wd_fdc.cpp` for immediate-mask persistence and re-arming.
 Physical pin timing and exact Fujitsu silicon equivalence remain unvalidated.
+
+## Z80 peripherals manual
+
+Retrieved 2026-10-04 directly from [Zilog](https://www.zilog.com/docs/z80/um0081.pdf):
+`Z80_CPU_Peripherals_UM0081.pdf`, 330 pages, 2,401,861 bytes, ignored locally.
+SHA-256: `b4efc81540c05990883cf4c7792c2a3d49fb7471bb5502931383ab55b4540886`.
+UM008101-0601 includes CTC, DMA, SIO and PIO programming/timing. Printed CTC
+pages 15/30/31 describe deferred running time-constant reload; pages 21/29 cover
+software reset and interrupt service. It informed the original enable-based
+CTC and focused tests; it is not evidence of authentic X1 ASIC alias decode.

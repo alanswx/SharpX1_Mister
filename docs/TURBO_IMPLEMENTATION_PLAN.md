@@ -215,6 +215,13 @@ acceptance; neither a boot screenshot nor resampled rows closes this gate.
 
 ### DMA / CTC / SIO architecture
 
+The first CTC/IRQ increment is now implemented and simulation-tested; see
+[source, schematic decisions and acceptance](CTC_STATUS.md). Schematic pages
+1/5 support CTC above keyboard (after future SIO/DMA), not MAME's keyboard-first
+order. The new bridge has no keyboard service latch. ASIC alias decode and
+exact physical phase remain unresolved. T3 has focused unit/CPU acceptance,
+not complete hardware/native-software acceptance; T2/T4/T5/T6 remain open.
+
 Introduce a shared ordinary memory/I/O bus owner mux and explicit Z80
 BUSRQ/BUSACK connections through `rtl/cpu.v` before DMA can drive a transaction.
 The active machine currently ties MR16 DMA inactive; the inherited refresh

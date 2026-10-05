@@ -27,10 +27,15 @@ def main():
     parser.add_argument("--output", type=pathlib.Path, required=True,
                         help="new ignored directory; contains private RAM/frame evidence")
     parser.add_argument("--io-trace", action="store_true")
+    parser.add_argument("--bus-events", action="store_true", help="last sample per held bus transaction")
+    parser.add_argument("--bus-start-ms", type=int, default=0)
+    parser.add_argument("--bus-end-ms", type=int, default=0)
     parser.add_argument("--timeout", type=float, default=1800)
     args = parser.parse_args()
     if args.seconds < 1:
         parser.error("--seconds must be positive")
+    if (args.bus_events or args.bus_start_ms or args.bus_end_ms) and not args.io_trace:
+        parser.error("bus options require --io-trace")
     manifest = args.manifest.resolve()
     row = next(r for r in json.loads(manifest.read_text())["games"] if r["slug"] == args.title)
     candidates = sorted((f for f in row["files"] if f["native_candidate"]), key=lambda f: f["member"])
@@ -60,6 +65,9 @@ def main():
                    "--dump", str(prefix), "--frame", str(prefix) + ".ppm"]
         if args.io_trace:
             command += ["--bus-trace", str(prefix) + ".csv", "--io-only"]
+            if args.bus_events:
+                command += ["--bus-events"]
+            command += ["--bus-start-ms", str(args.bus_start_ms), "--bus-end-ms", str(args.bus_end_ms)]
         result = subprocess.run(command, capture_output=True, text=True, timeout=args.timeout)
         prefix.with_suffix(".stdout").write_text(result.stdout)
         prefix.with_suffix(".stderr").write_text(result.stderr)

@@ -33,7 +33,10 @@ An explicit, opt-in `TURBO=1` foundation now adds two graphics pages, separate
 Kanji attribute RAM, blackclip controls and a 32 KiB IPL aperture to the shared
 machine. CPU diagnostics and actual RGB tests cover these extensions. It is
 **not full Turbo support**: 400-line clocks/addressing, glyph ROMs/high-speed
-PCG, DMA, CTC/SIO and native Turbo firmware acceptance remain open. See the
+PCG, DMA, SIO and native Turbo firmware acceptance remain open. The subsequent
+opt-in [CTC increment](docs/CTC_STATUS.md) adds enable-driven timers/counters,
+IM2 vectors, CTC-before-keyboard arbitration and stable stretched ACKs;
+focused unit/CPU/real-MR16 tests pass, not exact hardware timing. See the
 [Turbo status](docs/TURBO_STATUS.md) and [implementation plan](docs/TURBO_IMPLEMENTATION_PLAN.md).
 
 The headless simulator has been compiled with Verilator 5.044 on macOS.
@@ -78,6 +81,8 @@ The new experimental foundation RBF is
 It fits with positive constrained-path timing at eight analyzed corners;
 external I/O, CDC and hardware acceptance remain open. See the
 [Turbo build report](docs/TURBO_QUARTUS_BUILD.md); it is not full Turbo support.
+This RBF predates the subsequent CTC/IRQ increment; do not attribute the new
+CTC tests to that artifact.
 
 MiSTer now wires keyboard, joystick, disk, RGB and audio paths and
 offers IPL/D88 OSD entries. Disk writes default to protected; enabling them
