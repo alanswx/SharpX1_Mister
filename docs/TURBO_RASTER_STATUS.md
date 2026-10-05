@@ -92,6 +92,18 @@ single profile. MiSTer-wrapper lint succeeds with inherited warnings; the
 new address unit has no width warnings and adds no suppressions. Compile/lint
 does not establish synthesis timing or hardware behavior.
 
+The complete delay-aware **base** `make -C verilator test` finishes with
+exit 0 after this increment, using executable SHA-256
+`80033e57088ef017c9ae37b37862abd153d2fd11701eb592d556723e597e757a`.
+It preserves all sixteen static video cases and both live-width transitions,
+and passes clock/FST, CPU memory/bus, keyboard/reset, PSG/audio/joystick, PCG,
+D88/scanner, A/B read/write/protection and stalled-ACK/reset fixtures. Base
+unit coverage also exhausts the mapper's isolation from every SCRN byte.
+No native commercial-game probe, Quartus build or physical test was run for
+this increment. Logs retained locally: `/tmp/x1-raster-base-suite.log`,
+`/tmp/x1-raster-matrix.log`, `/tmp/x1-raster-single-mode1.log`,
+`/tmp/x1-raster-single-mode3.log`, `/tmp/x1-raster-lint.log`.
+
 ## Remaining gates
 
 - Transcribe the schematic clock/mode divider and implement enabled high/low
