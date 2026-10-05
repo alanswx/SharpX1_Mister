@@ -58,8 +58,9 @@ python3 tests/test_video_modes.py ./obj_dir_turbo_video/Vtop --kind text --turbo
 The synthetic pixel test generates its own 4096-byte font and checks every
 active pixel, not just a screenshot. Native probes can use `--font16 PATH`;
 it requires an exact 4096-byte file and a Turbo model. Runner snapshot format
-is now v03: regenerate live native-boot snapshots instead of restoring older
-v02 model states. Never patch states to bypass that check.
+was v03 at the recorded X3 checkpoint; the later deleted-data index increment
+uses v04. Regenerate live native-boot snapshots instead of restoring older
+model states. Never patch states to bypass that check.
 
 ## Recorded evidence
 

@@ -73,10 +73,10 @@ See [bring-up progress](docs/BRINGUP_PROGRESS.md) for changes and remaining gate
 Private commercial-game test preparation and the top-32 shortlist are documented
 in [test media](docs/TEST_MEDIA.md). Locally extracted disks remain ignored
 assets; their presence is not proof of compatibility or gameplay.
-An earlier checkpoint established repeatable native gameplay-control evidence
+The X3/font checkpoint requalified repeatable native gameplay-control evidence
 for five commercial titles in fast baseline simulation: Druaga, Xevious,
-Mappy, Shanghai and Galaga. That set has not been fully requalified after the
-new disk/keyboard/Turbo increments. See the
+Mappy, Shanghai and Galaga. Subsequent storage changes require their own
+requalification. See the
 [commercial compatibility matrix](docs/COMMERCIAL_COMPATIBILITY.md) for the
 bounded checks and remaining compatibility gates; this is not hardware signoff.
 The simulator window now offers optional [live joystick keys](docs/PLAYING.md):

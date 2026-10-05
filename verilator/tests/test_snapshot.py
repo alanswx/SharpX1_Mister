@@ -30,6 +30,30 @@ with tempfile.TemporaryDirectory(prefix="x1-snapshot-") as folder:
     for suffix in ("ram", "text", "attr"):
         assert (folder / f"resumed.{suffix}").read_bytes() == (folder / f"straight.{suffix}").read_bytes(), suffix
     assert state.stat().st_size > 65536
+    # Invalid version headers must be rejected before model deserialization.
+    # This is a negative fixture, never a state conversion/bypass.
+    incompatible = folder / "incompatible-version.bin"
+    broken = bytearray(state.read_bytes())
+    magic = (0x5831534E41503034 ^ 32000000).to_bytes(8, "little")
+    position = broken.find(magic)
+    assert position >= 0, "v04 header absent"
+    broken[position] ^= 1
+    incompatible.write_bytes(broken)
+    rejected = subprocess.run([exe, "--cycles", "4096", "--restore-state", str(incompatible)],
+                              capture_output=True)
+    assert rejected.returncode == 2 and b"snapshot version" in rejected.stderr
+    bad_time = folder / "incompatible-time.bin"
+    broken = bytearray(state.read_bytes())
+    broken[position + 8] ^= 1  # Absolute picoseconds no longer align to a sys edge.
+    bad_time.write_bytes(broken)
+    rejected = subprocess.run([exe, "--cycles", "4096", "--restore-state", str(bad_time)],
+                              capture_output=True)
+    assert rejected.returncode == 2 and b"snapshot time" in rejected.stderr
+    short = folder / "truncated.bin"
+    short.write_bytes(state.read_bytes()[:32])
+    rejected = subprocess.run([exe, "--cycles", "4096", "--restore-state", str(short)],
+                              capture_output=True)
+    assert rejected.returncode == 2 and b"snapshot header" in rejected.stderr
     wrong_clock = subprocess.run([exe, "--cycles", "4096", "--restore-state", str(state),
                                   "--video-hz", "28636360"], capture_output=True)
     assert wrong_clock.returncode != 0

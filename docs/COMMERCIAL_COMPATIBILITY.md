@@ -10,7 +10,8 @@ All game media and native snapshots remain ignored private testing assets.
 Do not commit or redistribute them; collection availability is not a license.
 
 October 5 X3/font-source follow-up: fresh baseline v03 native-boot
-requalification has passed Xevious and Druaga (2/5 so far), using frozen executable
+requalification has passed all five baseline games at the X3/font checkpoint.
+Four action games use frozen executable
 `d3f6f53a852e82ddeccb3a12f5731484d86ad1f0ee4c2e6faf05378edccb1dda`.
 Its RTL matches `cd2695e`; the only subsequent runner change rejects combining
 font download with snapshot restore. Neutral/right coordinates remain
@@ -19,15 +20,39 @@ font download with snapshot restore. Neutral/right coordinates remain
 `6e77334a5908c02f2e9d29c78e0356aae885fe3cbfdfd72256e9b59020a21101`.
 Commands, cold/continuation reports and controls are retained under ignored
 `verilator/obj_dir_fast/x3-requalification/xevious/`. This does not establish
-Turbo-profile or hardware gameplay; the other three are not yet requalified.
+Turbo-profile or hardware gameplay.
 Druaga's fresh native live-state hash is
 `c66564df93fb731d25027995f223ae1e18f1ad49bd350131056765c2b0958687`;
 neutral/left coordinates are `(68,32)` / `(67,32)`, RGB hashes
 `052e84d3a9ef2ddb` / `17a6be7d42032c0f`. Its cold/continuation/control
 evidence is under `verilator/obj_dir_fast/x3-requalification/druaga/`.
-The first Mappy joystick-start trial reached attract/demo, not live gameplay,
-and correctly failed its player-state assertion. A native Space-start
-continuation is being checked without weakening that assertion.
+The first Mappy joystick-start trial and the 21/24-second Space/neutral
+continuations failed the live-player assertion. Native Space at 24 seconds,
+then a three-second continuation, reaches the live stage at 27 seconds without
+weakening that assertion. Neutral/left are `(129,84)` / `(125,84)`, RGB hashes
+`3479dbcfb5b7f078` / `fbb1f17f6eba2d58`, native state SHA-256
+`fe9a095481af03987ea556bb3c00e81c16a5e824ab5cd1c87b8e2cc09ef51824`.
+Failed and successful trials remain under `x3-requalification/mappy/`.
+
+Galaga's native 33-second movement state SHA-256 is
+`34f517c9968eacdbf28be97dc3ae02e31db25b70da27152090f476fdd82ecc53`;
+neutral/right `(32,24)` / `(41,24)`, RGB `7f98f926506a84a6` /
+`b5d2b564ec188ca6`. A six-second neutral continuation reaches the 39-second
+enemy wave: 16 active slots, zero/one shots for neutral/fire, projectile
+`(33,12)` → `(33,8)` after release. Full RAM/RGB/state/report repeats pass.
+Wave state SHA-256:
+`2750523b1955742147606785970034de1c8a95fca76c77dede59867990394c14`.
+
+Shanghai uses frozen executable
+`5e863541bdf32a9bbc09671c6f3c5961a53151362acf50c471937e13d079592b`
+(same RTL, additional runner restore guard). Native cursor and pair-state
+hashes are `dca082ed30997f57163e1aea978dcdb3e47a70e601ec37e6646f4d8d65f75070`
+and `6d5f09f447b1a6b5134506aa5d3142d23358ffc84066bfe9c652edcf9906f17f`.
+Cursor `(488,167)` → `(536,160)` and removed count `0` → `2` pass with
+repeatable actual RGB, RAM, state and reports. Each game's frozen runner,
+native boot chain and test outputs remain under `x3-requalification/`.
+These are **pre-deleted-data-index** results, not acceptance of subsequent
+storage changes or complete Turbo/hardware compatibility.
 `tests/requalify_commercial.py` regenerates states through native IPL/disk
 and recorded controls rather than importing incompatible historical states.
 

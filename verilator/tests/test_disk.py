@@ -12,7 +12,7 @@ from z80_fixture import Program
 exe = str(pathlib.Path(sys.argv[1]).resolve())
 
 
-def media(protected=False, crc=0, mixed=False):
+def media(protected=False, crc=0, mixed=False, deleted=0):
     image = bytearray(688)
     image[:8] = b"X1 TEST\0"
     image[26] = 0x10 if protected else 0
@@ -26,6 +26,7 @@ def media(protected=False, crc=0, mixed=False):
                 length = 128 << size_code
                 header[:4] = bytes((cylinder, side, number, size_code))
                 struct.pack_into("<H", header, 4, 16)
+                header[7] = deleted if (cylinder, side, number) == (0, 0, 1) else 0
                 header[8] = crc if (cylinder, side, number) == (0, 0, 1) else 0
                 struct.pack_into("<H", header, 14, length)
                 image.extend(header)
@@ -221,6 +222,40 @@ with tempfile.TemporaryDirectory(prefix="x1-disk-") as directory:
     crc = binascii.crc_hqx(bytes((0xA1, 0xA1, 0xA1, 0xFE)) + identifier[:4], 0xFFFF)
     assert identifier[4:] == crc.to_bytes(2, "big"), identifier.hex()
     assert report["disk_writes"] == 0
+    # D88 byte 7 (not dump-error byte 8) carries a deleted data mark.
+    # Both conventional 0x10 and other nonzero marks match the format reader.
+    for mark in (0x10, 0x01):
+        marked, marked_sectors = media(deleted=mark)
+        d = DiskProgram()
+        d.read(1, 0x9000)
+        d.equal(0x0FF8, 0x20, 0x3C)
+        d.read(2, 0x9100)
+        d.equal(0x0FF8, 0, 0x3C)  # Normal read replaces record type.
+        d.read(1, 0x9200)
+        d.equal(0x0FF8, 0x20, 0x3C)
+        d.output(0x0FF8, 0xC0)  # READ ADDRESS is not a data-record read.
+        for i in range(6):
+            d.drq()
+            d.p.word(0x01, 0x0FFB)
+            d.p.emit(0xED, 0x78)
+        d.idle()
+        d.equal(0x0FF8, 0, 0x3C)
+        # A deleted first sector must not stick across subsequent normal
+        # sectors. Missing R=17 ends the command with RNF, record type clear.
+        d.read(1, 0xA000, 4096, 0x90)
+        d.equal(0x0FF8, 0x10, 0x3C)
+        marked_report, marked_ram, _ = run(d.finish(), marked, f"deleted-{mark}")
+        assert marked_report["disk_writes"] == 0
+        for address, number in ((0x9000, 1), (0x9100, 2), (0x9200, 1)):
+            assert marked_ram[address:address+256] == marked_sectors[0, 0, number][1]
+        assert marked_ram[0xA000:0xB000] == b"".join(
+            marked_sectors[0, 0, n][1] for n in range(1, 17))
+    # Status byte 8 alone must never synthesize a deleted data mark.
+    status_only, _ = media(crc=0x10)
+    d = DiskProgram()
+    d.read(1, 0x9000)
+    d.equal(0x0FF8, 0, 0x3C)
+    run(d.finish(), status_only, "status-not-deleted")
     # Keep the mounted image and host service alive through a reset during
     # scanning, then reset again after scan completion. No ROM/media reload.
     recovered, memory, _ = run(basic(), data, "warm-scan-reset", resets=(1, 50))
@@ -271,4 +306,4 @@ with tempfile.TemporaryDirectory(prefix="x1-disk-") as directory:
         result = subprocess.run([exe, "--disk", str(disk), "--disk-output", str(output)], capture_output=True)
         assert result.returncode == 2
     assert subprocess.run([exe, "--disk-output", str(folder / "no-input.d88")], capture_output=True).returncode == 2
-print("PASS: native FDC variable/multi-sector reads, warm scanner/controller reset recovery, seek/side/ID CRC/RNF/density/not-ready/lost-data, safe cross-block writes, protection and CRC errors")
+print("PASS: native FDC variable/multi-sector/deleted reads and status isolation, warm reset, seek/side/READ ADDRESS CRC/RNF/density/not-ready/lost-data, cross-block writes, protection and dump CRC flags")

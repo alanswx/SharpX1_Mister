@@ -152,7 +152,7 @@ not been verified on hardware; use disposable media copies for bring-up.
 The original suite covers drive A and base MFM/2D; the subsequent
 [two-image increment](DUAL_DISK_STATUS.md) separately covers generated A/B
 reads/writes and ownership/ACK draining. Exact command/byte/seek timing,
-exact force-interrupt pin timing, deleted-data marks, metadata updates after writes,
+exact force-interrupt pin timing, deleted-write marks/metadata updates after writes,
 per-sector density, format/write-track, hardware malformed-image rejection,
 replacement during writes/all parser phases, permanent stalled-host recovery,
 native multi-disk continuity and Turbo 2HD/2DD remain unvalidated or incomplete. Pending-sector SD
@@ -166,16 +166,42 @@ storage milestone complete from these tests or a successful FPGA compile.
 Fujitsu's MB8876A/MB8877A datasheet, printed page 4-33, distinguishes
 Read Sector bit 5 (deleted-data record type) from Write Sector bit 5 (write
 fault), and distinguishes bad ID fields from bad data fields using CRC/RNF
-status. The current scanner retains only two CRC flags and ignores sector
-header byte 7's deleted mark; local MAME's D88 format reader treats any
-nonzero byte 7 as deleted. Current generated tests demonstrate sticky CRC
+status. The scanner now retains header byte 7's deleted mark separately from
+the two CRC flags; local MAME's D88 format reader treats any nonzero byte 7
+as deleted. The 57-bit sector index reports the selected record type through
+Read Sector bit 5; every matched sector replaces that bit, and command setup
+clears it. Generated CPU tests pass for byte-7 marks `10` and `01`, payload
+readback, a subsequent normal sector, READ ADDRESS isolation, mixed
+deleted/normal multi-sector reads and byte-8 `10` without a deleted mark.
+No game media were used or modified. This does **not** implement deleted
+writes, metadata updates or exact multi-sector CRC-stop behavior.
+Current generated tests demonstrate sticky CRC
 reporting for A0/B0, not these complete command semantics. READ ADDRESS
 currently emits a computed good ID CRC, not a damaged ID field's behavior.
 
+Deleted-read increment verification (October 5): expanded generated-media
+suite passes with delay-aware baseline and single-clock models. Logs:
+`/tmp/x1-d88-deleted-tests.log` and `/tmp/x1-d88-deleted-single-tests.log`.
+Frozen baseline acceptance executable SHA-256:
+`22c963187e028266bed212229b9a6a53d34adee8fe6ec34e670ea6f79db97d5d`;
+single-clock executable:
+`549e06cbffc563e1a7f5a51fbf31d4c493499e698b7bdd38c2fe88a8f6686268`.
+Base runs retain 32 MHz system / 28.571428 MHz video; single-clock runs use
+28.636364 MHz with compensated MR16 timer enables. Generated fixtures use
+8,000,000 reference cycles, native ioctl diagnostics and read-only input
+hash checks; writable cases use separate disposable output images.
+Expanded controller/owner/eject/index unit regression and wrapper lint pass.
+New index layout requires snapshot v04; the fast snapshot regression passes
+continuity, input persistence, incompatible-version/time and truncated-header
+rejection. Early header checks precede Verilator deserialization, avoiding
+its trailer-check abort on exception unwinding. No older state is converted.
+Complete base regression and fresh five-title v04 native requalification are
+in progress; this increment has not been synthesized or tested on MiSTer.
+
 Finish in this order, retaining default-profile and disposable-write checks:
 
-1. Preserve deleted/density/ID/data-error metadata in the sector index; test
-   normal/deleted reads, status clearing and mixed multi-sector boundaries.
+1. Complete density/error metadata beyond the implemented deleted-read bit;
+   retain normal/deleted/status-clearing/multi-sector tests.
 2. Separate bad-ID search/READ ADDRESS behavior from post-data CRC completion;
    verify DRQ counts, CRC/RNF, INTRQ and subsequent recovery independently.
 3. Update D88 mark/CRC metadata after successful normal/deleted sector writes,

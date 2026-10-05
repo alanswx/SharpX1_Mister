@@ -686,7 +686,13 @@ always @(posedge clk_sys) begin
 						// sector still reports the error when it ends. A real
 						// WD179x would also abort the run there; this one reads
 						// on to the end of the track.
-						if(~write & ~format) s_crcerr <= s_crcerr | (|edsk_crc);
+						if(~write & ~format) begin
+							s_crcerr <= s_crcerr | (|edsk_crc);
+							// MB8877 Type-II read status bit 5 is record type,
+							// not write fault. Each located sector replaces it;
+							// command setup already clears the shared bit.
+							s_wrfault <= edsk_deleted;
+						end
 `ifdef DEBUG_FDC_SCAN
 						$display("WDMATCH want trk=%0d side=%0d sec=%0d -> entry trk=%0d side=%0d sec=%0d off=%0d",
 									disk_track, side, wdreg_sector, edsk_track, edsk_side, edsk_sector, edsk_offset);
@@ -1187,6 +1193,7 @@ wire [1:0] edsk_sizecode;          // sector size: 0=128K, 1=256K, 2=512K, 3=102
 // from the .d77 per-sector status byte. Always 0 for EDSK, which has no
 // equivalent field.
 wire [1:0] edsk_crc;
+wire       edsk_deleted;           // D88 header byte 7: deleted data mark
 wire       edsk_side;              // Side number (0 or 1)
 wire [6:0] edsk_track;             // Track number
 wire [7:0] edsk_sector;            // Sector number 0..15
@@ -1226,11 +1233,11 @@ generate
 		// use the core's explicit Cyclone V altsyncram wrapper.
 		reg         edsk_wren = 0;
 		reg  [10:0] edsk_wraddr;
-		reg  [55:0] edsk_wrdata;
-		wire [55:0] edsk_q;
+		reg  [56:0] edsk_wrdata;
+		wire [56:0] edsk_q;
 
 		x1_fdc_index_ram #(
-			.DATAWIDTH(56),
+			.DATAWIDTH(57),
 			.ADDRWIDTH(11),
 			.NUMWORDS(2048)
 		) edsk_ram (
@@ -1240,13 +1247,13 @@ generate
 			.wren_a    (edsk_wren),
 			.q_a       (),
 			.address_b (edsk_addr),
-			.data_b    (56'd0),
+			.data_b    (57'd0),
 			.wren_b    (1'b0),
 			.q_b       (edsk_q)
 		);
 
 		assign {edsk_track,edsk_side,edsk_trackf,edsk_sidef,edsk_sector,
-		        edsk_sizecode,edsk_crc,edsk_offset} = edsk_q;
+		        edsk_sizecode,edsk_crc,edsk_deleted,edsk_offset} = edsk_q;
 
 		reg  [7:0] spt[166];
 
@@ -1341,6 +1348,7 @@ generate
 			reg  [7:0] d_C, d_H, d_R;          // header +0..+2, as recorded
 			reg  [1:0] d_N;                    // header +3, sector size code
 			reg  [1:0] d_crc;                  // header +8, {ID CRC err, data CRC err}
+			reg        d_deleted;              // header +7, deleted data mark
 			reg  [7:0] d_slo, d_llo;           // low halves of the 16-bit fields
 			reg  [6:0] d_track;                // physical track, from the table
 			reg        d_side;                 // physical side,  from the table
@@ -1632,12 +1640,13 @@ generate
 												end
 											end
 										end
+										 7: d_deleted <= (scan_data != 0);
 										 8: begin
 												// Status: $00 normal, $10 deleted but
 												// valid, $a0 ID CRC error, $b0 data
 												// CRC error, $e0/$f0 missing marks.
-												// Only the two CRC cases have anywhere
-												// to go in a WD179x status register.
+												// Deleted marks come from byte 7, not
+												// this dump-error status byte.
 												d_crc[1] <= (scan_data == 8'ha0);
 												d_crc[0] <= (scan_data == 8'hb0);
 										end
@@ -1663,7 +1672,7 @@ generate
 												if(edsk_size < 11'd1992) begin
 													edsk_wren   <= 1;
 													edsk_wraddr <= edsk_size;
-													edsk_wrdata <= {d_track, d_side, d_C, d_H, d_R, d_N, d_crc, scan_addr + 20'd1};
+													edsk_wrdata <= {d_track, d_side, d_C, d_H, d_R, d_N, d_crc, d_deleted, scan_addr + 20'd1};
 													edsk_size <= edsk_size + 1'd1;
 `ifdef DEBUG_FDC_SCAN
 													$display("D77SEC %0d %0d %0d %0d %0d %0d %0d %0d",
@@ -1736,7 +1745,7 @@ generate
 												if({scan_data, size_lo}) begin
 													edsk_wren   <= 1;
 													edsk_wraddr <= secpos;
-													edsk_wrdata <= {track,side,trackf,sidef,sector,sizecode,2'b00,offset1};
+													edsk_wrdata <= {track,side,trackf,sidef,sector,sizecode,2'b00,1'b0,offset1};
 													edsk_size <= edsk_size + 1'd1;
 													offset <= offset + {scan_data, size_lo};
 												end
@@ -1755,6 +1764,8 @@ generate
 				end
 			end
 		end
+	end else begin
+		assign edsk_deleted = 1'b0;
 	end
 endgenerate
 

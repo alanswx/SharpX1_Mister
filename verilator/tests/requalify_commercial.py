@@ -1,4 +1,4 @@
-"""Regenerate native v03 states and run private release-bound controls.
+"""Regenerate native states and run private release-bound controls.
 
 No bundled media, injected RAM, patched games or old-state conversion. Run
 from verilator/. Input sequences reproduce the historical action-game and
@@ -76,6 +76,8 @@ def main():
         sequence = [("start", 500, 0xdf), ("live", 3000, 0xff)]
     elif args.title == "mappy":
         run("title18s", 2000)
+        run("intro21s", 3000, continuation_keys=mappy_keys)
+        run("ready24s", 3000)
         run("live", 3000, continuation_keys=mappy_keys)
         sequence = []
     elif args.title == "galaga":

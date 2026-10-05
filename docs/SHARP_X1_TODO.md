@@ -114,6 +114,10 @@ support before optional Turbo extensions.
 - [ ] Validate deleted-data/format/force-interrupt/metadata/CRC edge cases,
   including conditional force-interrupt sources, abort during host SD I/O,
   malformed/eject/reset transfers, drive B and applicable 2HD/2DD media.
+- [x] Preserve D88 byte-7 deleted marks in the sector index and report Read
+  Sector record type; generated CPU payload/status-clearing, READ ADDRESS,
+  mixed multi-sector and byte-8 isolation checks pass. Deleted writes and
+  metadata/CRC/density behavior remain open; snapshots now require v04.
 - [x] Fix busy `$D0` falsely raising completion INTRQ; add idle/busy `$D0/$D8`,
   subsequent normal completion, status acknowledgement and reset regression.
 - [x] Cross-check Fujitsu MB8877A Type IV bits and status acknowledgement;

@@ -66,7 +66,7 @@ do not embed private font bytes. See `docs/TURBO_VIDEO_CLOCK_STATUS.md` for
 exact checks and missing Kanji/text/high-speed PCG behavior. The FPGA revision
 `sharpx1_turbo_video` requests its own PLL; record the fitted frequency,
 source-bound timing and hardware results separately from nominal simulation.
-Snapshot format v03 rejects old v02 states; regenerate from native boot,
+Snapshot format v04 rejects older states after D88 index widening; regenerate from native boot,
 never convert or patch state bytes to bypass model compatibility checks.
 Simulator disk writes require `--disk-output NEW_COPY`; private originals and
 snapshots remain ignored. See `docs/DISK_STATUS.md` for tested and missing cases.

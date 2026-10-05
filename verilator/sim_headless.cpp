@@ -323,10 +323,28 @@ int main(int argc, char **argv) {
         // a reconstructed RAM bootstrap. Only quiescent host interfaces are
         // supported; disk contents must match and clocks keep absolute phase.
         uint64_t resume_time = 0;
-        constexpr uint64_t snapshot_magic = 0x5831534e41503033ULL ^ sys_hz;
+        // v04: D88 index widened to retain deleted-data metadata. Never load
+        // an earlier serialized model into the new RAM layout.
+        constexpr uint64_t snapshot_magic = 0x5831534e41503034ULL ^ sys_hz;
 #ifdef X1_SAVABLE
         if (restore_path) {
             if (rom_path || ram_path || font16_path) throw std::runtime_error("snapshot restore cannot also download ROM/RAM/font16");
+            // Reject our application header before constructing VerilatedRestore:
+            // its destructor checks a trailer at the current read position,
+            // which can abort while unwinding an early header exception.
+            // Verilator save02 has a fixed 16-byte prefix; unknown versions
+            // fail closed instead of attempting incompatible deserialization.
+            std::ifstream header(restore_path, std::ios::binary);
+            char signature[16];
+            uint64_t fields[4];
+            header.read(signature, sizeof signature);
+            header.read(reinterpret_cast<char *>(fields), sizeof fields);
+            if (!header || std::memcmp(signature, "verilatorsave02\n", 16))
+                throw std::runtime_error("snapshot header missing, truncated or unsupported");
+            if (fields[0] != snapshot_magic || fields[2] != video_hz || fields[3] != disk_fingerprint)
+                throw std::runtime_error("snapshot version, video clock or disk fingerprint mismatch");
+            if (fields[1] % 31250 || fields[1] / 31250 + cycles > 1000000000000ULL)
+                throw std::runtime_error("snapshot time or resumed duration out of range");
             VerilatedRestore state;
             state.open(restore_path);
             if (!state.isOpen()) throw std::runtime_error("cannot open snapshot");
@@ -334,8 +352,6 @@ int main(int argc, char **argv) {
             state >> magic >> resume_time >> saved_video_hz >> saved_disk;
             if (magic != snapshot_magic || saved_video_hz != video_hz || saved_disk != disk_fingerprint)
                 throw std::runtime_error("snapshot version, video clock or disk fingerprint mismatch");
-            if (resume_time % 31250 || resume_time / 31250 + cycles > 1000000000000ULL)
-                throw std::runtime_error("snapshot time or resumed duration out of range");
             state >> top;
             state.close();
             // Retain saved pins unless an explicit new external input is given.
