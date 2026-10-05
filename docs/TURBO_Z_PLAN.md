@@ -92,9 +92,15 @@ extra GRAM. The digital RGB output reduces analog multi-mode colors to eight
   stereo panning, clipping and deterministic note WAVs. Manual page 3 routes
   PSG equally to L/R and combines FM channels for the internal mono speaker;
   MiSTer stereo and optional mono output need distinct tests.
-  Resolve the page-30 block diagram's FM 4 MHz label versus local MAME's
-  2 MHz YM configuration from the complete circuit sheets, not by copying
-  either rate without checking the actual input/divider.
+  The page-30 diagram's 4 MHz label is now corroborated by the adjoining
+  sub-board sheets 47/48: T-2 is labelled 4 MHz, and the visible YM2151
+  IC404 clock pin 24 is on that labelled net, with no intervening divider
+  drawn on these sheets. Use 4 MHz as the documented provisional input,
+  rather than silently copying local MAME's `MAIN_CLOCK/8` (2 MHz).
+  Trace the main-board clock source and measure the physical pin before
+  claiming oscillator/phase accuracy; the reference emulator discrepancy
+  remains explicit. Validate note pitch, busy duration and both timers
+  against that input frequency and preserve base PSG clock behavior.
 - [ ] Z6: dual 2HD/2D operation, mode-switch/DIP reset behavior, rates/index,
   media type and supported D88 track/sector layouts. Protect source images;
   validate native HD boot/reads/writes using disposable output copies.
@@ -165,6 +171,11 @@ CPU's DMA-ready path therefore depends on real FDC DRQ and wait/bus logic,
 not a replacement always-ready status bit. Disk connectors explicitly carry
 rate/mode, 48/96 TPI, index, ready and write-protect; add those relationships
 to the HD-media timing contract before merely accepting an HD D88 header.
+The October 5 clock follow-up visually rechecked both existing renders and
+rendered sheet 48 again from the same hashed local PDF. It inspected T-2 and
+YM2151 pin 24, not a complete main-board clock-generation trace. The original
+scan's online viewer again failed; this evidence comes from the local primary
+scan, not an emulator run or measured hardware.
 
 Continue a full signal/ASIC functional audit of sheets 43–46, connectors
 pages 11–29; capture adjustment page 40; sub-board page 47; telopper page 51; IC blocks

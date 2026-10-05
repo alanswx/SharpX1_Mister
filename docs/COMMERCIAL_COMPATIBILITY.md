@@ -95,6 +95,16 @@ changes the actual screen to a title overlay labelled “DIM”, frame hash
 `29ce8173ecbffc53`; still no game-play acceptance. The completed neutral
 20→24-second continuation shows the title and an empty bordered lower panel,
 frame hash `d4322a9b14ddbb53`, not a verified playable scene.
+The subsequent unchanged 24→28-second Enter/Z exploratory probe reaches an
+actual Japanese menu under the title, frame `7d0cc9430f23194a`.
+`special-probes/bastard-v05-confirm/` retains the native continuation and RGB;
+this is menu/input progress, not a playable scene or repeatable gameplay.
+The unchanged 28→32-second numeric-1 probe also completes without disk writes,
+but its actual RGB still shows the menu, frame `c3c8a386fbc61a81`.
+The saved state is `60bae891b030b5e44b09d41eedc33e7f12a463b1604009580a6a037f5f454723`;
+evidence is in `special-probes/bastard-v05-menu-one/`. An ordinary Enter
+continuation is running, not yet a gameplay result. No firmware/RAM patch
+or unsupported device-ready value was supplied to advance the menu.
 `--from-continuation` verifies the parent
 chain's asset identities and saved-state hash, so longer probes can continue
 without reloading ROM/RAM or silently changing clocks/model/runner.

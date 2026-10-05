@@ -84,6 +84,60 @@ test-video-status-cpu: turbo-video
 
 .PHONY: test-video-status-cpu
 
+test-text-raster: test-crtc-raster-boundary $(HEADLESS_DIR)/text-raster/Vtext_raster_tb $(HEADLESS_DIR)/turbo-video/Vturbo_video_tb
+	./$(HEADLESS_DIR)/text-raster/Vtext_raster_tb
+	./$(HEADLESS_DIR)/turbo-video/Vturbo_video_tb
+
+$(HEADLESS_DIR)/text-raster/Vtext_raster_tb: tests/text_raster_tb.sv ../rtl/x1_text_raster.sv
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module text_raster_tb --Mdir $(HEADLESS_DIR)/text-raster \
+		-j 2 tests/text_raster_tb.sv ../rtl/x1_text_raster.sv -Wno-fatal
+
+.PHONY: test-text-raster
+
+TEXT_RASTER_TIMEOUT ?= 1800
+test-text-raster-cpu: turbo-video-fast turbo-video
+	mkdir -p $(HEADLESS_DIR)
+	@run_root=$$(mktemp -d $(HEADLESS_DIR)/text-raster-cpu.XXXXXX); \
+	python3 tests/test_turbo_text_raster.py ./obj_dir_turbo_video_fast/Vtop --scan low --rows 20 --columns 80 --output $$run_root/low20 --timeout $(TEXT_RASTER_TIMEOUT) && \
+	python3 tests/test_turbo_text_raster.py ./obj_dir_turbo_video_fast/Vtop --scan high --rows 12 --columns 80 --output $$run_root/high12 --timeout $(TEXT_RASTER_TIMEOUT) && \
+	python3 tests/test_turbo_text_raster.py ./obj_dir_turbo_video/Vtop --scan high --rows 20 --columns 40 --output $$run_root/high20-delay --timeout $(TEXT_RASTER_TIMEOUT)
+
+.PHONY: test-text-raster-cpu
+
+# Expensive full documented row/width matrix. Each case retains one simulated
+# second and the every-pixel/period oracle; this is not native BASIC acceptance.
+test-text-raster-matrix: turbo-video-fast
+	mkdir -p $(HEADLESS_DIR)
+	@run_root=$$(mktemp -d $(HEADLESS_DIR)/text-raster-matrix.XXXXXX); \
+	for scan in low high; do \
+	  for rows in 10 12 20 25; do \
+	    if [ "$$scan" = high ] && [ "$$rows" = 10 ]; then continue; fi; \
+	    for columns in 40 80; do \
+	      python3 tests/test_turbo_text_raster.py ./obj_dir_turbo_video_fast/Vtop \
+	        --scan $$scan --rows $$rows --columns $$columns \
+	        --output $$run_root/$$scan-$$rows-$$columns --timeout $(TEXT_RASTER_TIMEOUT) || exit 1; \
+	    done; \
+	  done; \
+	done; \
+	for columns in 40 80; do \
+	  python3 tests/test_turbo_text_raster.py ./obj_dir_turbo_video_fast/Vtop \
+	    --scan low --rows 20 --columns $$columns --exit-underline \
+	    --output $$run_root/exit-$$columns --timeout $(TEXT_RASTER_TIMEOUT) || exit 1; \
+	done
+
+.PHONY: test-text-raster-matrix
+
+test-crtc-raster-boundary: $(HEADLESS_DIR)/crtc-boundary/Vcrtc_raster_boundary_tb
+	./$(HEADLESS_DIR)/crtc-boundary/Vcrtc_raster_boundary_tb
+
+$(HEADLESS_DIR)/crtc-boundary/Vcrtc_raster_boundary_tb: tests/crtc_raster_boundary_tb.sv ../rtl/legacy/crtc/crtc6845s.v
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module crtc_raster_boundary_tb --Mdir $(HEADLESS_DIR)/crtc-boundary \
+		-j 2 tests/crtc_raster_boundary_tb.sv ../rtl/legacy/crtc/crtc6845s.v -Wno-fatal
+
+.PHONY: test-crtc-raster-boundary
+
 test-font16: $(HEADLESS_DIR)/font16/Vfont16_tb
 	./$(HEADLESS_DIR)/font16/Vfont16_tb
 
@@ -137,7 +191,7 @@ obj_dir_turbo_single/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_captu
 
 .PHONY: turbo turbo-single turbo-fast
 
-test-turbo: turbo test-ctc test-gram-address test-video-timing test-video-status test-turbo-pcg-access test-dma test-dma-cpu $(HEADLESS_DIR)/turbo-video/Vturbo_video_tb
+test-turbo: turbo test-ctc test-gram-address test-video-timing test-video-status test-text-raster test-turbo-pcg-access test-dma test-dma-cpu $(HEADLESS_DIR)/turbo-video/Vturbo_video_tb
 	python3 tests/test_turbo_banks.py ./obj_dir_turbo/Vtop
 	python3 tests/test_turbo_ipl.py ./obj_dir_turbo/Vtop
 	python3 tests/test_turbo_pcg.py ./obj_dir_turbo/Vtop
@@ -149,9 +203,9 @@ test-turbo: turbo test-ctc test-gram-address test-video-timing test-video-status
 	python3 tests/test_dual_disk.py ./obj_dir_turbo/Vtop
 	./$(HEADLESS_DIR)/turbo-video/Vturbo_video_tb
 
-$(HEADLESS_DIR)/turbo-video/Vturbo_video_tb: tests/turbo_video_tb.sv ../rtl/legacy/x1_vid.v ../rtl/legacy/crtc/crtc6845s.v ../rtl/x1_video_timing.sv
+$(HEADLESS_DIR)/turbo-video/Vturbo_video_tb: tests/turbo_video_tb.sv ../rtl/legacy/x1_vid.v ../rtl/legacy/crtc/crtc6845s.v ../rtl/x1_video_timing.sv ../rtl/x1_text_raster.sv
 	$(V) --binary --timing --assert --top-module turbo_video_tb --Mdir $(HEADLESS_DIR)/turbo-video \
-		-j 4 ../rtl/x1_video_timing.sv ../rtl/legacy/x1_vid.v ../rtl/legacy/crtc/crtc6845s.v tests/turbo_video_tb.sv -Wno-fatal
+		-j 4 ../rtl/x1_video_timing.sv ../rtl/x1_text_raster.sv ../rtl/legacy/x1_vid.v ../rtl/legacy/crtc/crtc6845s.v tests/turbo_video_tb.sv -Wno-fatal
 
 .PHONY: test-turbo
 

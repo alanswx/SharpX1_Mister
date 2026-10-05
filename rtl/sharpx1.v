@@ -366,6 +366,8 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     x1_vid #(.ENABLE_CRTC(SINGLE_CLOCK || TURBO_VIDEO_MASTER), .TURBO_SUPPORT(TURBO), .TURBO_CLOCKS(TURBO_VIDEO_MASTER)) display (
         .I_TURBO_BLACK(turbo_black_video),
         .I_TURBO_HIGH_SCAN(TURBO && turbo_scrn_video[0]),
+        .I_TURBO_TEXT_Y2(TURBO && turbo_scrn_video[2]),
+        .I_TURBO_UNDERLINE(TURBO && turbo_scrn_video[7]),
         .I_RESET(reset), .I_CCLK(clk_sys), .I_A(a), .I_D(data_out), .O_D(), .O_DE(),
         .I_WR(io_write && !dam), .I_RD(io_read), .O_VWAIT(),
         .I_CRTC_CS(io_cycle && a[15:8] == 8'h18), .I_CG_CS(cg_access),

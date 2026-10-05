@@ -79,13 +79,23 @@ commit; the fix releases ownership without publishing another block.
 Existing CRC, force-interrupt, twelve SD abort/reset, scanner-boundary and
 active-A eject tests also pass with the first metadata implementation; log
 `/tmp/x1-v06-storage-final.log`. The new actual CPU metadata and remount
-fixtures in `test_disk.py` await final-source fast/delay-aware execution.
+fixtures in `test_disk.py` now pass the complete fast baseline matrix
+(`/tmp/x1-v06-fast-disk-final.log`, terminal exit 0). This used the frozen
+combined development executable, labelled v06 before the published v07 guard;
+the final controller hash below is unchanged. Each case retains 8,000,000
+reference cycles. Coverage includes all normal/deleted 128/256/512/1024-byte
+repairs, live readback, fresh remount and whole-image preservation, track-command
+rejection, H=0/1/5 C/S cases, wrong-side CRC isolation and prior disk cases.
+The delay-aware matrix is still running; this older frozen run does not
+qualify subsequent PPI/text state or native games. Its temporary frozen runner
+was removed on successful completion; no unrecorded runner SHA is asserted.
 An isolated final v07 fast-machine CPU case already passes a 1024-byte
 cross-block deleted write, B0 repair, FDC readback and byte-exact disposable
 image preservation in `/tmp/x1-metadata-cpu-large-fast.log`: 8,000,000
 reference cycles, 32 MHz system / 28,571,428 Hz video, 205 original diagnostic
 download bytes, 269 reset edges, four host writes. Its CRTC is unprogrammed,
-so zero frames are expected. This focused case is not the complete matrix.
+so zero frames are expected. Its specifically hashed runner is separate
+from the complete development-binary matrix above.
 The matrix fixtures retain 8,000,000 reference cycles and disposable output
 images; they do not modify original media.
 

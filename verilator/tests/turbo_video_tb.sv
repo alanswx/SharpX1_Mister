@@ -9,7 +9,9 @@ module turbo_video_tb;
     wire [11:0] ank_address;
     always #5 clk=!clk;
     x1_vid #(.TURBO_SUPPORT(1),.ENABLE_CRTC(1)) dut(
-        .I_RESET(reset), .I_TURBO_BLACK(black), .I_TURBO_HIGH_SCAN(high_scan), .I_CCLK(clk), .I_VCLK(clk), .O_GRAPHICS_RA(), .O_ANK16_ADDR(ank_address), .O_CGA(pcg_address),
+        .I_RESET(reset), .I_TURBO_BLACK(black), .I_TURBO_HIGH_SCAN(high_scan),
+        .I_TURBO_TEXT_Y2(1'b0), .I_TURBO_UNDERLINE(1'b0),
+        .I_CCLK(clk), .I_VCLK(clk), .O_GRAPHICS_RA(), .O_ANK16_ADDR(ank_address), .O_CGA(pcg_address),
         .I_A(16'd0), .I_D(8'd0), .I_WR(1'b0), .I_RD(1'b0),
         .I_CRTC_CS(1'b0), .I_CG_CS(1'b0), .I_PAL_CS(1'b0),
         .I_TXT_CS(1'b0), .I_ATT_CS(1'b0), .I_KAN_CS(1'b0),

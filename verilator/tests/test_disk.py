@@ -204,6 +204,8 @@ with tempfile.TemporaryDirectory(prefix="x1-disk-") as directory:
     shutil.copy2(exe, frozen_runner)
     assert hashlib.sha256(frozen_runner.read_bytes()).hexdigest() == executable_hash
     exe = str(frozen_runner)
+    print(json.dumps({"frozen_runner_sha256": executable_hash,
+                      "reference_cycles_per_case": 8000000}), flush=True)
     disk, rom = folder / "original.d88", folder / "test.bin"
 
     def run(program, data, name, writable=False, resets=()):

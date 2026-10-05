@@ -54,6 +54,33 @@ The combined reference contract is:
    enables, pin traces and source-bound fit. Physical RS-232 voltage levels,
    connector wiring and external loopback remain a separate hardware gate.
 
-Before coding, resolve WR1 WAIT/READY prose-versus-figure bit-label discrepancies,
-receive error/FIFO pop ordering and channel-reset spacing from the original
-figures and exact part timing. Do not copy ambiguous OCR tables into RTL.
+## WR1 WAIT/READY discrepancy audit
+
+The primary PDF's Figure 115 (printed 279 / PDF 299) was visually checked,
+alongside Table 15 (277) and printed 280–281 / PDF 300–301. Figure 115 and
+Table 15 agree on the following encodings, as do the inspected local MAME
+`WR1_WRDY_*` masks and `update_wait_ready`:
+
+| Bit | Proposed implementation contract |
+|---|---|
+| D7 | Enable WAIT/READY function. Disabled Ready stays inactive/high; disabled WAIT is released/open-drain. |
+| D6 | `1` Ready, `0` Wait. |
+| D5 | `1` receive buffer condition, `0` transmit holding-buffer condition. |
+
+Printed 279's prose calls the Ready selector D5, conflicting with its own
+figure and printed 280's explicit D6 Wait selector. Table 18 on printed 280
+also prints **D7=0 twice**: disabled and purported active-buffer behavior.
+Both errors are visible in the original, not just OCR. The active section is
+interpreted as enabled D7=1 by consistency with the enable description;
+that is an explicitly reasoned correction, not an official erratum.
+
+For the functional asynchronous subset, Ready is active low when the selected
+RX buffer has a character or TX holding buffer can accept one. Wait instead
+requests a stall on a selected data transaction that cannot complete. The
+prose describes Ready temporarily releasing on a CPU access, independent
+of selected channel, and particular half-clock edge delays. MAME's simple
+level function does not establish those bus-phase effects or open-drain
+physics. Test those separately before connecting WAIT/READY to machine DMA;
+do not reproduce the table typo or treat a steady readiness level as exact
+pin timing. Receive error/FIFO pop ordering and channel-reset spacing still
+need original serial/CPU fixtures and exact-part review before acceptance.

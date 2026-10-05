@@ -320,7 +320,10 @@ wire W_HD       = (R_H_CNT==I_Nht);
 
 // v return trigger
 wire W_VD       = (R_V_CNT==I_Nvt);
-wire W_ADJ_C    = R_LAST_LINE & (NEXT_R_RA==I_Nadj);
+// With zero adjustment the frame ends at the last programmed raster.
+// At R9=31 the five-bit NEXT_R_RA wraps to zero: treating that wrap as an
+// adjustment completion repeats the first character row in the next frame.
+wire W_ADJ_C    = R_LAST_LINE & (I_Nadj!=0) & (NEXT_R_RA==I_Nadj);
 wire W_VCNT_RET = ((R_RA==I_Nr) & (I_Nadj==0) & W_VD) | W_ADJ_C;
 
 // RA return trigger

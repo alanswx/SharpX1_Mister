@@ -30,6 +30,8 @@
 module x1_vid #(parameter ENABLE_CRTC = 0, TURBO_SUPPORT = 0, TURBO_CLOCKS = 0)(
   I_TURBO_BLACK,
   I_TURBO_HIGH_SCAN,
+  I_TURBO_TEXT_Y2,
+  I_TURBO_UNDERLINE,
   I_RESET,
 // CPU I/F
   I_CCLK,
@@ -88,6 +90,7 @@ module x1_vid #(parameter ENABLE_CRTC = 0, TURBO_SUPPORT = 0, TURBO_CLOCKS = 0)(
 input I_RESET;
 input [6:0] I_TURBO_BLACK;
 input I_TURBO_HIGH_SCAN;
+input I_TURBO_TEXT_Y2, I_TURBO_UNDERLINE;
 // CPU I/F
 input I_CCLK;
 input [15:0] I_A;
@@ -298,6 +301,28 @@ reg hsync_d , vsync_d , disp_d;
 reg [3:0] cg_line;
 reg old_ra0;
 reg pcg_paired;
+wire text_y2 = TURBO_SUPPORT && I_TURBO_TEXT_Y2;
+wire underline_mode = TURBO_SUPPORT && I_TURBO_UNDERLINE;
+wire [3:0] raster_font_row;
+wire raster_glyph_visible;
+wire [2:0] raster_reserved_color;
+reg glyph_visible_d;
+reg [2:0] reserved_color_d;
+x1_text_raster text_raster (
+  .high_scan(TURBO_SUPPORT && I_TURBO_HIGH_SCAN),
+  .text_y2(text_y2), .underline_mode(underline_mode),
+  .underline_cell(I_KAN_D[5]), .raster(crtc_ra),
+  .font_row(raster_font_row), .glyph_visible(raster_glyph_visible),
+  .reserved_color(raster_reserved_color)
+);
+wire font_ra0 = text_y2 ? crtc_ra[1] : crtc_ra[0];
+always @(posedge I_VCLK or posedge I_RESET) begin
+  if(I_RESET) begin glyph_visible_d <= 0; reserved_color_d <= 0; end
+  else if(video_step & ~QP & QA & ~QD & ~QC & ~QB) begin
+    glyph_visible_d <= raster_glyph_visible;
+    reserved_color_d <= raster_reserved_color;
+  end
+end
 
 always @(posedge I_VCLK)
 begin
@@ -327,14 +352,14 @@ begin
         pcg_paired <= TURBO_SUPPORT && ((I_KAN_D & 8'h90) != 0);
 
         // CG V pos
-        old_ra0 <= crtc_ra[0];
+        old_ra0 <= font_ra0;
         if( (att_d[6] | ~crtc_disptmg) & vdisp )
         begin
           // V2X
-          if(old_ra0 & ~crtc_ra[0])
+          if(old_ra0 & ~font_ra0)
             cg_line <= cg_line + 1;    // x2 increment CRTC 2V
         end else begin
-          cg_line <= TURBO_SUPPORT && I_TURBO_HIGH_SCAN ? crtc_ra[3:0] : {1'b0,crtc_ra[2:0]};
+          cg_line <= raster_font_row;
         end
       end
 `endif
@@ -346,14 +371,14 @@ begin
         att_d <= I_ATT_D;
 
         // CG V pos
-        old_ra0 <= crtc_ra[0];
+        old_ra0 <= font_ra0;
         if( (att_d[6] | ~crtc_disptmg) & vdisp )
         begin
           // V2X
-          if(old_ra0 & ~crtc_ra[0])
+          if(old_ra0 & ~font_ra0)
             cg_line <= cg_line + 1;        // x2 increment CRTC 2V
         end else begin
-          cg_line <= TURBO_SUPPORT && I_TURBO_HIGH_SCAN ? crtc_ra[3:0] : {1'b0,crtc_ra[2:0]};
+          cg_line <= raster_font_row;
         end
 `endif
         // CG load
@@ -436,7 +461,9 @@ wire cg_b = (att_pcg ? cgb_d[7] : cgg_d[7]) & att_b;
 wire cg_r = (att_pcg ? cgr_d[7] : cgg_d[7]) & att_r;
 wire cg_g = cgg_d[7] & att_g;
 
-wire [2:0] cg_col = {cg_g,cg_r,cg_b} ^ {col_rev,col_rev,col_rev};
+// Reserved interline pixels cannot acquire reverse/blink glyph ink.
+wire [2:0] cg_col = underline_mode && !glyph_visible_d ? 3'b000 :
+    {cg_g,cg_r,cg_b} ^ {col_rev,col_rev,col_rev};
 wire cg_trans = cg_col==3'b000;
 
 /****************************************************************************
@@ -466,7 +493,8 @@ begin
 end
 
 // palette table
-wire [2:0] gr_col = disp_d ? {grg_d[7],grr_d[7],grb_d[7]} : 3'b000;
+wire [2:0] gr_col = !disp_d ? 3'b000 : underline_mode ? reserved_color_d :
+    {grg_d[7],grr_d[7],grb_d[7]};
 
 `ifdef BORDER_BLACK
 wire [2:0] gr_pal = disp_d ? {PAL_G[gr_col],PAL_R[gr_col],PAL_B[gr_col]} : 3'b000;
@@ -474,8 +502,7 @@ wire [2:0] gr_pal = disp_d ? {PAL_G[gr_col],PAL_R[gr_col],PAL_B[gr_col]} : 3'b00
 wire [2:0] gr_pal = {PAL_G[gr_col],PAL_R[gr_col],PAL_B[gr_col]};
 `endif
 wire gr_sel = PRIO_R[gr_col] | cg_trans | ~disp_d;
-// Original active-path Turbo blackclip integration. SCRN high resolution,
-// Kanji glyph selection and underline are deliberately separate features.
+// Original active-path Turbo blackclip integration. Kanji remains separate.
 wire turbo_gr_black = (gr_col[2:1] == 0) &&
     ((I_TURBO_BLACK[4] && !gr_col[0]) || (I_TURBO_BLACK[5] && gr_col[0]));
 wire turbo_cg_black = I_TURBO_BLACK[3] && cg_col == I_TURBO_BLACK[2:0];

@@ -60,6 +60,11 @@ timing remain open, not full 400-line compatibility.
 The [X3 PPI crossing](docs/TURBO_PPI_CDC_STATUS.md) adds two-stage VSYNC/VDISP
 level sampling only in the X3 profile; asynchronous and real-CPU cold/warm
 tests pass. It has not been refitted and does not establish timing closure.
+A further [digital text-raster increment](docs/TURBO_TEXT_RASTER_STATUS.md)
+implements provisional global vertical expansion and reserved underline/gap
+mixing. Focused units and standard-scan 80×20 CPU pixels pass; remaining
+row/scan qualification is in progress, not
+complete Turbo text/Kanji compatibility. It advances the model to v09.
 The optional `turbo-video-savable` simulator target now supports fast X3
 single-drive diagnostic continuations with model-profile rejection; it does
 not enable dual-drive snapshots or replace delay-aware/hardware checks.
@@ -103,7 +108,7 @@ Fresh CRC/v05 Xevious and Druaga native/control qualifications pass; the other t
 still running. The five-game v04 evidence is historical. Subsequent
 [D88 metadata publication](docs/D88_WRITE_METADATA_STATUS.md) and PCG changes
 require v07 and separate acceptance. The subsequent X3 PPI increment requires
-v08; do not convert or patch old snapshots.
+v08, and the subsequent text-raster work v09; do not convert or patch old snapshots.
 The simulator window now offers optional [live joystick keys](docs/PLAYING.md):
 arrows, Space (button 1) and Ctrl (button 2), through `--joystick-keys`.
 Independent CPU-programmed 40/80-column text and 320/640 graphics rasters now

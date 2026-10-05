@@ -323,6 +323,7 @@ int main(int argc, char **argv) {
         // a reconstructed RAM bootstrap. Only quiescent host interfaces are
         // supported; disk contents must match and clocks keep absolute phase.
         uint64_t resume_time = 0;
+        // v09: Turbo text expansion and reserved underline raster state.
         // v08: X3 video-to-PPI status synchronizers.
         // v07: high-speed PCG/font transactions and payload/header metadata
         // publication/cancellation. v06 added the FDC ID-side flags.
@@ -340,7 +341,7 @@ int main(int argc, char **argv) {
             ^ (1ULL << 55)
 #endif
             ;
-        constexpr uint64_t snapshot_magic = 0x5831534e41503038ULL ^ sys_hz ^ snapshot_profile;
+        constexpr uint64_t snapshot_magic = 0x5831534e41503039ULL ^ sys_hz ^ snapshot_profile;
 #ifdef X1_SAVABLE
         if (restore_path) {
             if (rom_path || ram_path || font16_path) throw std::runtime_error("snapshot restore cannot also download ROM/RAM/font16");

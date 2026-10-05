@@ -46,6 +46,11 @@ expansion, ROM/RAM CG and underline restrictions. Introductory and contents
 pages were also sampled, not the complete 252-page manual. The resulting
 [software-visible acceptance matrix](../../docs/TURBO_IMPLEMENTATION_PLAN.md#primary-turbo-ii-textvideo-acceptance-contract)
 does not settle ASIC bit encodings or earlier-model equivalence.
+Later the BASIC reference's PDF 200–202 (printed 2-163–165) and PDF 214
+(2-177) were visually read for WIDTH and KSEN. They clarify graphics
+suppression, the high-scan 10-row exclusion and separate underline color;
+the provisional renderer policy and uncompleted verification gates are in
+[text-raster status](../../docs/TURBO_TEXT_RASTER_STATUS.md).
 
 ```text
 183e1e9e2d356ab7cba0491ab1784894bae7c4ec7ca82a2bf7421fe517168b3e  CZ-856C_ApplicationManual.pdf
