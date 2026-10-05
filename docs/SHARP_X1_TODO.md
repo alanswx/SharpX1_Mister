@@ -24,6 +24,9 @@ Turbo Z is a separate planned profile, not implied by these increments. Its
 manual-based feature/acceptance breakdown is in [TURBO_Z_PLAN.md](TURBO_Z_PLAN.md)
 and Phase 5 below. New X3 hardware artifacts currently fail timing; do not
 replace the previous timing-positive experimental RBF without a reviewed fit.
+The [Turbo II manual acceptance matrix](TURBO_IMPLEMENTATION_PLAN.md#primary-turbo-ii-textvideo-acceptance-contract)
+adds the documented row/scan combinations, underline graphics suppression
+and expansion placement gates; these are not yet completed behavior.
 
 ## Phase 0 — make simulation trustworthy
 

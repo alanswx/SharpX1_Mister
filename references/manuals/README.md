@@ -39,6 +39,14 @@ deleted-data contracts in [disk status](../../docs/DISK_STATUS.md).
 
 ## Integrity (SHA-256)
 
+October 5 Turbo II follow-up: selected CZ-856C user-manual pages were rendered
+and visually read, without Japanese OCR. PDF 69–70 (printed 58–59) cover the
+scan/text/graphics mode table; PDF 86–91 (printed 75–80) cover text attributes,
+expansion, ROM/RAM CG and underline restrictions. Introductory and contents
+pages were also sampled, not the complete 252-page manual. The resulting
+[software-visible acceptance matrix](../../docs/TURBO_IMPLEMENTATION_PLAN.md#primary-turbo-ii-textvideo-acceptance-contract)
+does not settle ASIC bit encodings or earlier-model equivalence.
+
 ```text
 183e1e9e2d356ab7cba0491ab1784894bae7c4ec7ca82a2bf7421fe517168b3e  CZ-856C_ApplicationManual.pdf
 e45eb7ce77f2a1c0d16f4030be3dddaea011473702bb3728913e84e43cf246e6  CZ-856C_BasicReferenceManual.pdf

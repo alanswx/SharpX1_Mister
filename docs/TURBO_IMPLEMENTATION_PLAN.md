@@ -54,8 +54,10 @@ References actually inspected locally:
   page 6 has the MB8877A and disk interface. This is a limited sheet inspection,
   not a complete timing/netlist audit. The original scan is available from
   [the manuals archive](https://eaw.app/Downloads/Manuals/Sharp/CZ851_2C_Schematic.pdf).
-- The local Turbo II user/BASIC manuals were checked for text extraction;
-  they are image scans without usable extracted text. The Turbo Z service
+- The local Turbo II user/BASIC manuals are image scans without usable
+  extracted text. Selected user-manual pages were subsequently inspected
+  visually; the software-visible display contract below records the scope.
+  The Turbo Z service
   manual pages 1–6, 9, 30 and 43–48 were subsequently visually audited for the
   separate [Turbo Z roadmap](TURBO_Z_PLAN.md). This is a feature/component
   survey, not a complete ASIC/register/netlist audit. See
@@ -80,6 +82,36 @@ The parent also cloned and inspected X Millennium at ignored
 `b07506c0cae31d260db28cb079148857d6ca2e93`. Its access/display bits agree with
 MAME, but SCRN readback/mirroring and high-resolution timing estimates differ;
 see `TURBO_STATUS.md`. It was not built/run and no code was imported from it.
+
+## Primary Turbo II text/video acceptance contract
+
+October 5 visual audit of the existing CZ-856C user manual, SHA-256
+`ae2f807aaeefcf9993cc705b7ea24015b121d976048ed9f65e2f0f15b37228ac`.
+PDF pages 69–70 are printed pages 58–59; PDF pages 86–91 are printed
+pages 75–80. These describe **Turbo II user-facing software behavior**, not
+a complete ASIC register specification or proof that earlier Turbo models
+have identical bit encodings. [Original Sharp manual scan](https://eaw.app/Downloads/Manuals/Sharp/CZ-856C_UsersManual.pdf).
+Only these selected pages and introductory/contents pages were read, not
+the whole manual; Japanese OCR was not performed.
+
+| Documented behavior | Required implementation/acceptance |
+|---|---|
+| Standard scan supports 40/80 columns with 25, 12, 20 or 10 text rows; high scan supports 40/80 with 25, 12 or 20 rows. BASIC defaults to 80×12 standard / 80×25 high. | CPU-programmed CRTC/SCRN mode matrix at both widths; independently predicted active pixels, glyph/raster addresses and HS/VS. Do not invent a general 50-row mode from a 400-line frame. |
+| Graphics variants are 200/192 rasters in standard scan and 400/384 in high scan; 40-column graphics is 320 pixels wide, 80-column is 640. Two 48-KiB graphics memories are specified. | Test both active-height variants, each display/access page and raster boundaries. Frame height alone does not establish text rows or glyph choice. |
+| Underline is available in 10/20-row text modes, which disable graphics display. `KSEN` controls underline in the reserved interline area. | Define raster reservation, underline position/color/attributes, graphics suppression and mode exit/reset. A line drawn over otherwise unchanged graphics is not this contract. Read the remaining KSEN syntax/register circuit before assigning SCRN bits. |
+| `CSIZE` selects normal 8×8, doubled height, doubled width or both. Double-height placement has row/pair restrictions; double-width odd columns map to the next even column. | Test row/column parity, neighboring cells, clipping, reverse/blink/color/ROM-vs-PCG and width transitions, not only a centered enlarged character. Reconcile BASIC software placement with hardware attribute semantics rather than changing CPU addresses by assumption. |
+| `CFLASH` alternates normal/reverse; text and graphics are independent overlapping displays with a console window. | Verify native blink phase and mixed priority/transparency, blanking, console boundaries and retained attributes. |
+| ROM CG is fixed ANK/kana/semigraphics; RAM CG has 256 programmable 8×8 patterns with three color planes and is volatile across power-off. Kanji KMODE has text-mode restrictions. | Preserve ordinary PCG access and warm-reset retention; test plane independence and CPU/display addressing. Add authentic Kanji read/glyph halves and mode restrictions separately; an allocated KVRAM is not Kanji support. |
+
+The WIDTH scan selector can follow the physical display switch or request
+standard/high explicitly. Wrong-scan output is not supported by an ordinary
+single-scan monitor; the manual names dual-scan Sharp displays separately.
+MiSTer scaler output must therefore not hide an incorrect native raster.
+
+This narrows T2's tests but does **not** resolve SCRN b2/b6: X Millennium and
+legacy identify vertical expansion and CPU 8/16-row selection, while MAME
+uses a display ANK selector. The current high-scan font16 increment remains
+partial. Complete circuit/CPU-read/display combinations before changing it.
 
 ## Register and memory contract
 
