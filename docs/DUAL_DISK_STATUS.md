@@ -66,10 +66,16 @@ Generated CPU tests pass repeated distinct-pattern A/B reads, alternating seeks,
 head retention, shared register retention, logical/physical track mismatch RNF,
 retained shared STEP direction across selection, unsupported-drive head isolation,
 independent protection, isolated cross-block writes to **each** drive and
-unchanged originals. Baseline is delay-aware 32 MHz sys / 28.571428 MHz video;
+unchanged originals. A separate B-only mount starts with A empty, verifies B
+data and checks that returning to A remains not-ready without any absent-image
+host request. Baseline is delay-aware 32 MHz sys / 28.571428 MHz video;
 single is delay-aware 28.636364 MHz sys/video. Each six-trial suite uses
 7,000,000 reference cycles (218.75 ms per trial), a recorded synthetic RAM
 download/reset and no private software bytes.
+The B-only checks add two 2,000,000-reference-cycle trials (62.5 ms each).
+All eight trials pass in baseline, single and fast Turbo builds. The Verilog
+loop-declaration compatibility fix was followed by fresh CPU/motor checks;
+it does not change the defined counter behavior.
 
 The descriptor bench passes pending-owner hold, inactive mount isolation,
 active eject/replacement, live protection and unsupported-drive recovery.
@@ -80,6 +86,11 @@ Default single-drive scanner and pending-read/write abort/reset regressions
 also pass. Existing generated variable-size/read/write disk tests pass in fast
 Turbo after explicitly waiting for ready on returning to A; no byte/status
 assertion was weakened. CTC IM2/cold-key coexistence and bus-trace identity pass.
+The full baseline `make test` exits successfully, including every calculated
+base-video pixel, keyboard, PSG, RAM/GRAM, PCG, disk and board-adapter fixture.
+It started before the final STEP-direction fix; the final disk/register/STEP,
+transport/reset and motor tests were requalified separately afterward. The
+earlier full-suite results are not represented as a single frozen final binary.
 
 ## Native software and next gates
 

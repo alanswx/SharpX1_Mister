@@ -195,8 +195,35 @@ with tempfile.TemporaryDirectory(prefix="x1-dual-") as tmp:
             assert ap.read_bytes() == a and bp.read_bytes() == b
             repeats.append((report, memory))
         assert repeats[0] == repeats[1], "cold repeats differ"
+    # Mount B alone: initial empty A must neither prevent B's later scan nor
+    # cause an accidental request to the absent A image.
+    f = Fixture(False)
+    f.select(1)
+    f.read(0x9000)
+    f.out(0x0FFC, 0x80)
+    f.check(0x0FF8, 0x80, 0x80)
+    for n, value in enumerate(b"ONLY"):
+        f.p.store(0xF000 + n, value)
+    f.p.emit(0x76)
+    f.p.label("fail")
+    f.p.store(0xF000, 0xEE)
+    f.p.emit(0x76)
+    ram.write_bytes(f.p.finish())
+    repeats = []
+    for n in range(2):
+        dump = root / f"only-b-{n}"
+        result = subprocess.run([exe, "--cycles", "2000000", "--ram", str(ram),
+                                 "--disk-b", str(bp), "--dump", str(dump)],
+                                check=True, capture_output=True, text=True, timeout=180)
+        report = json.loads(result.stdout.splitlines()[-1])
+        memory = dump.with_suffix(".ram").read_bytes()
+        assert report["halted"] and memory[0xF000:0xF004] == b"ONLY", report
+        assert memory[0x9000:0x9100] == pb[0]
+        assert report["disk_writes"] == 0 and bp.read_bytes() == b
+        repeats.append((report, memory))
+    assert repeats[0] == repeats[1], "B-only cold repeats differ"
     for args in (["--disk-b-output", str(root / "missing.d88")],
                  ["--disk", str(ap), "--disk-b", str(bp), "--disk-output", str(bp)],
                  ["--disk", str(ap), "--disk-b", str(bp), "--save-state", str(root / "state")]):
         assert subprocess.run([exe] + args, capture_output=True).returncode == 2
-print("PASS: distinct A/B sectors, retained physical heads/shared registers, RNF, independent protection, isolated A and B writes, unchanged originals and cold repeats")
+print("PASS: distinct A/B sectors, retained physical heads/shared registers/direction, RNF, isolated A/B writes and protection, B-only mount, unchanged originals and cold repeats")
