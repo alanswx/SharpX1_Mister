@@ -101,6 +101,12 @@ fields and appends actual drive-control, motor and effective media-ready state.
 Synthetic fixtures compare raw/event/window data and verify identical execution
 with tracing disabled/enabled, plus invalid-option rejection. Private native
 probe helpers accept these same switches with `--io-trace`.
+An additional generated D88 fixture repeatedly selects unsupported B and
+mounted A, checking actual drive/motor/ready/status fields, deterministic
+recovery and unchanged disk bytes. It explicitly guards against faking B ready.
+Two cold repeats pass in delay-aware baseline and single-clock builds, and
+in the fast Turbo profile. This checks the existing single-drive contract,
+not a completed second drive.
 
 ## Remaining limits
 
@@ -109,6 +115,13 @@ not reproduced: ZC is currently a one-master-edge event. Bus writes supersede
 counting on their selected channel, so coincident write/tick timing needs
 silicon-level review. Triggered-start delay is deterministic, not the exact
 datasheet T-state delay. Aliases and other-model daisy chains remain open.
+
+The [CTC-inclusive Quartus build](CTC_QUARTUS_BUILD.md) binds all 333 input
+hashes to implementation commit `0115a38`. It uses 20,115 ALMs (48%), 384 RAM
+blocks (69%) and the board's 28.571428 MHz master. All eight reported timing
+corners pass constrained paths, with worst global setup/hold +0.359/+0.055 ns.
+External I/O constraints, CDC/reset and physical tests remain open; no
+hardware acceptance is inferred from successful compilation/timing.
 
 SIO/DMA/external-slot/FM-board interrupts are absent. Authentic Turbo IPL,
 400-line clocks/addressing, glyph ROM/high-speed PCG, native game controls and

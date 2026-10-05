@@ -1,9 +1,10 @@
 # Isolated Quartus 17 build sidecar
 
 Latest experimental artifact: the source-bound `sharpx1_turbo_single`
-foundation build includes D88 guards and the receive-only keyboard fix.
+CTC build includes D88 guards, the receive-only keyboard fix and the new
+enable-driven CTC/IRQ path, binding all 333 inputs to commit `0115a38`.
 It fits with positive constrained timing at all eight analyzed corners; see
-[the Turbo build report](TURBO_QUARTUS_BUILD.md) for hashes, resources and
+[the CTC build report](CTC_QUARTUS_BUILD.md) for hashes, resources and
 remaining I/O/CDC/hardware gates. Older checkpoints below remain historical.
 
 Use the already-installed Apple container runtime from

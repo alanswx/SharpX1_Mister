@@ -51,6 +51,7 @@ test-turbo: turbo test-ctc $(HEADLESS_DIR)/turbo-video/Vturbo_video_tb
 	python3 tests/test_keyboard_irq.py ./obj_dir_turbo/Vtop
 	python3 tests/test_keyboard_poll.py ./obj_dir_turbo/Vtop
 	python3 tests/test_bus_trace.py ./obj_dir_turbo/Vtop
+	python3 tests/test_drive_selection.py ./obj_dir_turbo/Vtop
 	./$(HEADLESS_DIR)/turbo-video/Vturbo_video_tb
 
 $(HEADLESS_DIR)/turbo-video/Vturbo_video_tb: tests/turbo_video_tb.sv ../rtl/legacy/x1_vid.v ../rtl/legacy/crtc/crtc6845s.v
@@ -206,6 +207,7 @@ test: headless test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner
 	python3 tests/test_memory.py ./$(HEADLESS_EXE)
 	python3 tests/test_ctc_base.py ./$(HEADLESS_EXE)
 	python3 tests/test_bus_trace.py ./$(HEADLESS_EXE)
+	python3 tests/test_drive_selection.py ./$(HEADLESS_EXE)
 	python3 tests/test_subcpu.py ./$(HEADLESS_EXE)
 	python3 tests/test_graphics_bus.py ./$(HEADLESS_EXE)
 	python3 tests/test_keyboard_irq.py ./$(HEADLESS_EXE)

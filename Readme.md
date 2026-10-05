@@ -63,8 +63,10 @@ See [bring-up progress](docs/BRINGUP_PROGRESS.md) for changes and remaining gate
 Private commercial-game test preparation and the top-32 shortlist are documented
 in [test media](docs/TEST_MEDIA.md). Locally extracted disks remain ignored
 assets; their presence is not proof of compatibility or gameplay.
-Five commercial titles now have repeatable native gameplay-control evidence
-in fast baseline simulation: Druaga, Xevious, Mappy, Shanghai and Galaga. See the
+An earlier checkpoint established repeatable native gameplay-control evidence
+for five commercial titles in fast baseline simulation: Druaga, Xevious,
+Mappy, Shanghai and Galaga. That set has not been fully requalified after the
+new disk/keyboard/Turbo increments. See the
 [commercial compatibility matrix](docs/COMMERCIAL_COMPATIBILITY.md) for the
 bounded checks and remaining compatibility gates; this is not hardware signoff.
 The simulator window now offers optional [live joystick keys](docs/PLAYING.md):
@@ -83,6 +85,11 @@ external I/O, CDC and hardware acceptance remain open. See the
 [Turbo build report](docs/TURBO_QUARTUS_BUILD.md); it is not full Turbo support.
 This RBF predates the subsequent CTC/IRQ increment; do not attribute the new
 CTC tests to that artifact.
+The latest CTC-inclusive experimental RBF is
+`output_files/quartus-CEhveaur/source/output_files/sharpx1_turbo_single.rbf`.
+All 333 FPGA inputs match implementation commit `0115a38`; constrained paths
+pass all eight analyzed corners. It has not been tested on MiSTer. See the
+[CTC build report](docs/CTC_QUARTUS_BUILD.md) for hashes and remaining signoff gaps.
 
 MiSTer now wires keyboard, joystick, disk, RGB and audio paths and
 offers IPL/D88 OSD entries. Disk writes default to protected; enabling them

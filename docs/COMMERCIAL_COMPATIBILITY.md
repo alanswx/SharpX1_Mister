@@ -115,6 +115,43 @@ chip dependency to investigate with CPU/disassembly/IRQ traces, but does not
 prove the loading stall's cause. Bastard's initial trace includes a sweep of
 zero writes across `1Fxx`; that is not evidence of useful Turbo feature usage.
 
+### CTC/Turbo-profile Arcus initialization diagnosis
+
+The new opt-in Turbo/CTC fast executable is frozen as SHA-256
+`aab42386bd335511854f52e371f5b1497c09f569dfd3f962af003f9ff695ec71`.
+Both fresh 16-second Arcus Disk 1 runs retain 958 host requests, zero
+writes, unchanged original media, 4159 reset edges and six transmitted PS/2
+bytes. Actual RGB is entirely black at 640x400, frame hash
+`03702d99714c4325`; HS/VS periods are 60.468750 us / 27.095031250 ms.
+This is a different configuration from the base loading-message probe, not
+correct high-resolution timing or successful game boot. Turbo aperture/RAM,
+renderer controls and CTC all differ; this is not a CTC-only causal comparison.
+
+At the endpoint, CPU PC is `F9B2`, AF=`8090`, SP=`00EE`. The routine beginning
+`F9B0` reads FDC status `0FF8` and repeats while `status & 81` is nonzero.
+Saved stack/script pointers identify the earlier drive-control value `81`.
+A bounded, transaction-deduplicated trace from **15,990 to 16,000 ms** confirms
+889 status-read transactions, every one with actual drive-control `81`, motor
+on and effective media-ready false. Status values are `84/86`, both with
+not-ready set and busy clear. Thus the immediate observed wait is **unsupported
+drive B readiness**, not a CTC counter poll or a rendering loop.
+
+Evidence is retained privately in
+`verilator/obj_dir_turbo_fast/special-probes/arcus-ctc-status-final-16s/`.
+Both cold runs have identical reports, RAM/register dumps and RGB; their
+bounded transaction traces also compare byte-for-byte (889 reads each).
+The black framebuffer matches the earlier CTC-profile observation exactly.
+No fabricated readiness, injected game RAM,
+restored snapshots or game/ROM patches were used. Staged disks 2–5 are preserved,
+but are not mounted by the current single-drive host. See the
+[dual-drive implementation/acceptance steps](TURBO_IMPLEMENTATION_PLAN.md#drive-b--disk-set-dependency).
+
+The same frozen executable also passed two fresh **8-second** Bastard Special
+boots, retaining 1062 disk requests, zero writes, unchanged inputs and identical
+report/RAM/register/RGB repeats. The 640x200 title image matches the earlier
+native title (`22b566650e6207c3`); no gameplay/start acceptance is inferred.
+Evidence: `verilator/obj_dir_turbo_fast/special-probes/bastard-ctc-status-final-8s/`.
+
 ### Fresh CROSS receiver-profile regression (separate homebrew)
 
 After the special-title probes finished, two fresh 13-second native CROSS

@@ -213,6 +213,73 @@ address sequences through all b1:b0 modes and width switches. Scope native
 PLL and positive constrained timing still need coordinated physical output
 acceptance; neither a boot screenshot nor resampled rows closes this gate.
 
+### Follow-up video audit: concrete T2 contracts, not implemented
+
+The October 4 read-only audit visually examined enlarged schematic pages 2/3
+and inspected local MAME/X Millennium. Page 3's X3 is 42.95454 MHz, feeding
+IC17 inversion, coupled IC6 JK stages, IC9 width-dependent preset/clear,
+IC22/IC1 gating, IC33 mode selection and the IC7/IC8/IC18-to-IC19 divider path.
+MIX1/MIX3 enter this network. This supports a shared video oscillator rather
+than independently selected low/high PLLs, but the complete gate truth table,
+edge sequence and live-switch/reset phase are **not** yet transcribed.
+
+Exact nominal arithmetic from the printed crystal value:
+
+| Proposed steady mode | Dot rate | 80-column character rate | 40-column character rate |
+|---|---:|---:|---:|
+| Low scan | X3/3 = 14.318180 MHz | X3/24 = 1.7897725 MHz | X3/48 = 0.89488625 MHz |
+| High scan | X3/2 = 21.477270 MHz | X3/16 = 2.68465875 MHz | X3/32 = 1.342329375 MHz |
+
+These agree with inherited annotations, not measured oscillator tolerance or
+electrical equivalence. Preserve the earlier independently constrained Turbo
+video-master proposal and use enables *inside* that domain. A later unified
+machine master needs CPU/CTC/PSG/MR16/transport requalification; it is not a
+silent replacement of the current single profile.
+
+Arcus's stored CRTC table is `6B 50 59 88 1B 00 19 1A 00 0F 00 00 00 00`:
+108 characters/line, 448 total rasters, 80x25 characters with 16 rasters each.
+At the proposed high-scan 80-column rate it predicts **40.2285765 us HS period**
+and **18.0224023 ms VS period** (about 24.858 kHz / 55.4865 Hz). Its eight-character
+horizontal sync is 2.9798946 us. The observed 60.468750 us / 27.095031250 ms
+capture is consistent with the existing low-rate master, not correct high scan.
+The CRTC's exact vertical-width/HD46505 behavior remains independently testable.
+
+Separate GRAM raster, text MA and glyph-row paths before T2. Current graphics
+wiring always uses `{SCRN[3], RA[2:0], MA[10:0]}` and therefore repeats RA0 at
+RA8. X Millennium provides this **proposed**, ASIC-review-gated display mapping:
+
+| SCRN b1:b0 | Display page | Plane offset |
+|---|---|---|
+| 00 | b3 | `{RA[2:0], MA[10:0]}` |
+| 10 | b3 | Same low-scan mapping in X Millennium; distinct b1 hardware effect unresolved |
+| 11 | b3 | `{RA[3:1], MA[10:0]}`: adjacent graphics lines repeat |
+| 01 | RA0 | `{RA[3:1], MA[10:0]}`: even/odd physical lines alternate pages |
+
+Page 2 supports investigating raster-controlled banking, not the complete
+ASIC selection truth table. In particular b3 precedence in mode 01 needs
+confirmation. CPU/DAM access remains `{SCRN[4], port[13:0]}` in every mode.
+MAME does not correctly model the independent-page 01 path. See local
+`references/emulators/xmil-libretro/vram/make24.c` for the even/odd page reads.
+
+Font-control disagreement must be settled separately: MAME labels b2 as an
+8/16 ANK selection; X Millennium and inherited `x1t_mode.v` instead identify
+b2 with text-height expansion and b6 with CPU font selection. Do not turn b2
+into a ROM-bank selector just from MAME's comment. X Millennium's high-scan
+path uses distinct 16-row ANK, repeated ordinary eight-row PCG, and paired
+even/adjacent PCG glyphs when KVRAM `&90` is nonzero. Stored KVRAM is currently
+tied out of the renderer, and the active glyph address has only three row bits.
+Kanji half/bank ROM mapping also differs between references. High-speed PCG's
+selector fallback is 3FF in MAME versus 7FF in X Millennium; neither is yet a
+hardware-approved shortcut for the existing bundled transaction.
+
+Acceptance must cover all four SCRN modes and both widths: exact enable
+intervals/phase; coherent live mode/width switches; plane/page/raster patterns
+at RA7/8/15/16 and MA wrap; independent CPU bank/DAM; unique 8/16 ANK/PCG/Kanji
+rows; paired-glyph bounds; frozen PCG selection/single writes with asynchronous
+clocks and pending reset. Check Arcus totals within quantization/one observation
+clock, preserve base video and CTC acceptance, then bind Quartus constraints/CDC
+and physical native video measurements. Scaler output cannot close native timing.
+
 ### DMA / CTC / SIO architecture
 
 The first CTC/IRQ increment is now implemented and simulation-tested; see
@@ -253,6 +320,43 @@ Idle input levels, CTS/DCD behavior, FIFO overrun and reset values must be
 specified; an inert port that passes software detection is not SIO support.
 Consult original chip manuals for register-stream details before coding each
 engine; the machine schematic and MAME integration establish wiring only.
+
+### Drive B / disk-set dependency
+
+The experimental Arcus cold checkpoint reaches a driver routine at `F9B0`
+that reads `0FF8` and loops while status `81` bits are set. Its saved script
+pointer/stack identify an earlier `0FFC=81` selection (drive B, motor on).
+Only drive A has media support today. This is an initialization dependency to
+confirm with bounded traces, not a reason to report an empty drive as ready.
+The resulting black 640x400 capture is not title or video-mode acceptance.
+
+Next storage increment, before claiming Arcus/disk-set compatibility:
+
+1. Confirm selected drive, motor and effective ready together with repeated
+   status reads. The runner now exposes these in bounded event CSVs; retain
+   native RAM/CPU dumps and unchanged-media hashes alongside the trace.
+2. Add two independently mounted image descriptors and host channels to the
+   wrapper/runner, including per-drive size/read-only/mount generations. Keep
+   **one controller register/IRQ/DRQ state machine**, not two pretend FDCs.
+   `disk_index` selects concatenated volumes and is not a physical-drive ID.
+3. Specify per-drive head position, motor hold and index behavior. Preserve
+   the shared WD track register separately from physical heads; selecting a
+   drive must not manufacture a seek or erase the other head's position.
+4. Make scanner/index metadata drive-specific, or serialize rescans with a
+   documented not-ready interval. Latch host-request drive/generation through
+   ACK drain so a pending A request cannot read or write B. Accepted writes
+   remain associated with their original image; no speculative cancellation.
+5. Test A/B with deliberately different original sector patterns and head
+   positions: read/write protection, alternating seeks, empty/ejected B,
+   malformed B, replacement during pending A/B I/O, CE-stopped ACK/reset and
+   retention. No two-drive support claim until these pass through the shared
+   CPU/FDC/transport path. Review selection-during-command behavior against
+   the original controller before calling its timing hardware-equivalent.
+6. Mount the staged Arcus disks explicitly in their documented A/B order,
+   start fresh native IPL, inspect actual title/controls and required disk
+   changes, then repeat with unchanged originals. Do not patch the game or
+   mirror Disk 1 into both drives merely to pass a ready check. Authentic
+   Turbo IPL, 400-line/glyph rendering and DMA may still be independent gates.
 
 ### High-speed PCG remains a separate increment
 
@@ -300,8 +404,10 @@ Each invocation creates a new directory, freezes/hashes its executable, and
 runs two cold native IPL loads with the same disk and PS/2 script. It records
 commands, clock/reset counters, disk request/write counters, actual PPM,
 main/text/attribute/sub-CPU RAM and CPU registers. An optional I/O trace can
-identify attempted Turbo ports; traces contain repeated clock samples, not
-one row per bus transaction; prefer short trace trials to avoid large CSVs.
+identify attempted Turbo ports. Raw traces contain repeated clock samples;
+`--bus-events` instead retains the final sample of each contiguous held
+transaction. Use `--bus-start-ms`/`--bus-end-ms` with `--io-trace` for a bounded
+half-open observation window and manageable CSV sizes.
 Inputs must match the staging manifest and remain
 unchanged. `--cycles` is always 32 MHz reference duration, including for single.
 Runner errors/media preflight rejection are retained and reported as failures.
