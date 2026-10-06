@@ -632,9 +632,11 @@ $(HEADLESS_DIR)/cpu-busreq/Vcpu_busreq_tb: tests/cpu_busreq_tb.sv ../rtl/cpu.v $
 test-dma: $(HEADLESS_DIR)/dma/Vdma_tb
 	./$(HEADLESS_DIR)/dma/Vdma_tb
 
-$(HEADLESS_DIR)/dma/Vdma_tb: tests/dma_tb.sv ../rtl/x1_dma.sv
+DMA_TEST_CFLAGS ?= -O1
+$(HEADLESS_DIR)/dma/Vdma_tb: tests/dma_tb.sv ../rtl/x1_dma.sv Makefile
+	mkdir -p $(@D)
 	$(V) --binary --timing --assert --top-module dma_tb --Mdir $(HEADLESS_DIR)/dma \
-		-j 2 -CFLAGS -O1 tests/dma_tb.sv ../rtl/x1_dma.sv
+		-j 2 -CFLAGS "$(DMA_TEST_CFLAGS)" tests/dma_tb.sv ../rtl/x1_dma.sv
 
 .PHONY: test-dma
 

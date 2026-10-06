@@ -167,6 +167,10 @@ for the standalone SIO/DMA, D88, reset, bus-ownership and joystick fixtures.
 [Hosted run 37479171527](https://github.com/alanswx/SharpX1_Mister/actions/runs/37479171527)
 passes all 16 targets on commit `0e4e021`. It does not run private media,
 native firmware, Quartus or hardware acceptance.
+The expanded 19-target workflow adds idle Send Break and original DMA
+register/CPU units; its new hosted pass is pending. Targets have wall-clock
+limits, and the large DMA fixture uses host `-O0` in CI after a GCC compile
+bottleneck, with its full assertions and simulated duration unchanged.
 The simulator window now offers optional [live joystick keys](docs/PLAYING.md):
 arrows, Space (button 1) and Ctrl (button 2), through `--joystick-keys`.
 Independent CPU-programmed 40/80-column text and 320/640 graphics rasters now

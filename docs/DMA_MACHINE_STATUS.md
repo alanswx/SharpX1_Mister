@@ -231,3 +231,19 @@ make -C verilator test-machine-dma-reset test-machine-dma-pcg-reset \
 These are bounded functional reset tests, not exact ASIC/CDC or fitted timing.
 Partial CPU payload/Ready loss, further PCG phases, DAM and native firmware still
 need further acceptance; remote Quartus/MiSTer remain unavailable.
+
+### Expanded CI compiler qualification
+
+The earlier 16-target hosted gate passed on `0e4e021` and `7e2015f`.
+Adding the original DMA register/CPU units and idle Send Break expands the
+configured gate to 19 targets; its hosted terminal pass is still pending.
+The two unbounded expanded runs were canceled, not counted as failures of RTL
+or passes. Their final logs show Ubuntu GCC 13.3 / Verilator 5.020 still
+compiling the large DMA fixture coroutine at `-O1`, rather than executing it.
+The superseding workflow bounds targets, with extra time for the full-length
+DMA unit, and uses `DMA_TEST_CFLAGS=-O0` there. The local default remains `-O1`.
+No assertion, emulated clock, reference duration or large/wrap case is removed.
+The local O0 build/run also passes all **32 groups / 5,955,942 clock edges**,
+including 256/65,536/65,537 transfers at CE=1/4; log
+`/tmp/x1-dma-ci-o0-local.log`. This does not by itself establish hosted compiler
+acceptance; inspect the new CI result before promoting all 19 targets.
