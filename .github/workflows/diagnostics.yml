@@ -58,7 +58,7 @@ jobs:
             test-dma test-dma-compare test-dma-search test-dma-cpu test-dma-service test-dma-service-cpu \
             test-dma-native-irq test-dma-native-irq-cpu \
             test-dma-irq-bridge test-machine-dma-irq test-machine-dma-irq-nested test-machine-dma-irq-keyboard test-machine-dma-irq-snapshot \
-            test-kanji-address \
+            test-kanji-address test-kanji-rom \
             test-dma-reset test-cpu-busreq test-d88-scanner test-d88-crc \
             test-d88-metadata test-fdc-abort test-fdc-sd-abort test-joystick test-rgb12 test-fm test-fm-cpu; do
             # Bound each original fixture without changing its assertions or

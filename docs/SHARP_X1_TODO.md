@@ -14,9 +14,11 @@ support before optional Turbo extensions.
 The user requested completing the six remaining work groups below and Turbo Z. None is
 declared finished by the standalone SIO increments. Execute local gates in
 order, retain original regression failures/evidence, and push verified
-checkpoints. Hardware acceptance requires the build host/MiSTer; Quartus is
-not installed on this Mac. The user confirmed that both remote systems remain
-unavailable; continue local verification without claiming hardware acceptance.
+checkpoints. Physical acceptance requires MiSTer. The user confirmed that the
+remote build host/MiSTer remain unavailable; continue local verification without
+claiming hardware acceptance. The cached Apple-container Quartus 17 runtime
+and installation are available locally (rechecked October 6); use frozen-source
+builds and record synthesis, fit and timing separately.
 
 | Work group | Execution/acceptance still needed |
 |---|---|
@@ -49,8 +51,11 @@ Broader concurrent service/reset, native firmware, Ready/restart IRQ and
 hardware gates remain required; no work group is marked complete.
 The [Kanji contract audit](KANJI_CONTRACT_STATUS.md) now derives a tested
 first-level physical ROM address decoder from the model-20/30 schematic,
-covering all 131,072 bytes. It is not connected to storage/CPU/rendering;
-emulator port/format conflicts, native assets and Z storage remain required.
+covering all 131,072 bytes. Its connected standalone 128 KiB dual-clock ROM
+storage now passes exhaustive synthetic reads, exact ordered uploads, malformed
+stream rejection and retained warm/short-reset checks at three clock ratios.
+Neither component is wired into the shared machine: loader dispatch, CPU port,
+renderer/ASIC selection, native assets and Z storage remain required.
 Turbo Z is now explicitly part of the requested goal. Its Z0–Z9 milestones
 and acceptance gates are tracked in [TURBO_Z_PLAN.md](TURBO_Z_PLAN.md).
 It remains a separate capability profile; progress must not imply support
@@ -83,7 +88,9 @@ passes on `78888a7`. The
 [27-target service/vector run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37537567836)
 passes on `6151c0b`. The
 [29-target native-command run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37539251783)
-passes on `2bb779a`. New shared-IRQ hosted gates remain separate.
+passes on `2bb779a`. The
+[31-target shared-completion run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37540523729)
+passes on `a666232`. Later shared-IRQ/keyboard and new Kanji hosted gates remain separate.
 See [source-bound checks](TURBO_Z_RGB_STATUS.md).
 
 ## Current priorities 1–4 (October 5 checkpoint)

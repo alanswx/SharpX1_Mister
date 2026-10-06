@@ -20,6 +20,14 @@ $(HEADLESS_DIR)/kanji-address/Vkanji_address_tb: tests/kanji_address_tb.sv ../rt
 		-j 4 tests/kanji_address_tb.sv ../rtl/x1_kanji_address.sv
 .PHONY: test-kanji-address
 
+test-kanji-rom: $(HEADLESS_DIR)/kanji-rom/Vkanji_rom_tb
+	@for half in 17500 11640 25000; do ./$(HEADLESS_DIR)/kanji-rom/Vkanji_rom_tb +VIDEO_HALF_PS=$$half || exit 1; done
+$(HEADLESS_DIR)/kanji-rom/Vkanji_rom_tb: tests/kanji_rom_tb.sv ../rtl/x1_kanji_rom.sv ../rtl/x1_kanji_address.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module kanji_rom_tb --Mdir $(HEADLESS_DIR)/kanji-rom \
+		-j 4 tests/kanji_rom_tb.sv ../rtl/x1_kanji_rom.sv ../rtl/x1_kanji_address.sv
+.PHONY: test-kanji-rom
+
 test-fm: $(HEADLESS_DIR)/fm-$(FM_MASTER_HZ)/Vfm_tb
 	./$(HEADLESS_DIR)/fm-$(FM_MASTER_HZ)/Vfm_tb +OUTPUT=$(HEADLESS_DIR)/fm-$(FM_MASTER_HZ)/note
 	python3 tests/test_fm_audio.py $(HEADLESS_DIR)/fm-$(FM_MASTER_HZ)/note

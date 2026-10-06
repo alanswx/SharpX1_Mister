@@ -1,9 +1,12 @@
 # Kanji electrical address and CPU protocol audit
 
 October 6, 2026. Work group 3 and Turbo Z Z7 dependency. The new physical
-first-level address decoder is implemented/tested separately; there is **no
-new Kanji CPU port, ROM loader, glyph renderer or native support claim**.
-`rtl/x1_kanji_address.sv` is not yet a shared-machine dependency.
+first-level address decoder and dual-clock 128 KiB ROM storage/loader are
+implemented/tested separately; there is **no new shared-machine Kanji CPU port,
+loader dispatch, glyph renderer or native support claim**. Neither
+`rtl/x1_kanji_address.sv` nor `rtl/x1_kanji_rom.sv` is yet a shared-machine
+dependency. The physical-address CPU read port below is not the native
+`0E80..83` register interface.
 
 ## Primary first-level ROM wiring
 
@@ -44,6 +47,97 @@ Log `/tmp/x1-kanji-address-unit-qualified.log`; Verilator 5.044, original
 synthetic fixture, no fonts/firmware. This is address qualification, not
 display pixels, synthesis resource or hardware acceptance.
 
+## Standalone first-level storage qualification
+
+Original GPL-2.0-only `rtl/x1_kanji_rom.sv` implements byte-wide dual-clock
+storage with address width 17. Physical chip concatenation is
+IC106, IC105, IC104, IC103, each 32 KiB. This defines a synthetic/physical loader
+contract; native dump filenames and emulator-converted layouts are not assumed
+equivalent. No ROM/font bytes are embedded or redistributed.
+
+Uploads require both CPU and video resets held, exactly 131,072 ordered byte
+strobes, and a falling upload edge without a byte strobe while resets remain
+asserted. Readiness is published only on that commit edge, not the last byte.
+The first byte may coincide with upload start. Empty/short, missing-zero,
+gap/duplicate, out-of-range/trailing, live and orphan streams fail closed until
+a fresh valid upload. An upload start invalidates the preceding image; failed
+loads do not roll back a partial rewrite. Unsupported writes never touch RAM.
+
+Warm reset retains ROM and loaded status but asynchronously flushes local read
+validity. CPU reads have one local clock-edge latency; video availability crosses
+two metadata stages, followed by the local select stage. Once available, video
+reads have one video-edge latency. These are true clocks, not gated clocks.
+The CPU port has one physical address and forwards written data to its masked
+output during upload writes; the video port reads every edge. Same-address
+cross-clock read/write values are never used. Supported upload/reset sequencing
+prevents display access during rewriting; live invalidation may take metadata
+pipeline latency to reach video, and is not a live font-update interface.
+
+`make -C verilator test-kanji-address test-kanji-rom
+HEADLESS_DIR=obj_dir_v12_kanji_storage` passes with Verilator 5.044, strict RTL
+warnings and no suppressions. The ROM fixture connects the physical decoder,
+checks every byte on both ports with complementary addresses, retains/rechecks
+all bytes after warm reset, reloads a different synthetic pattern, and checks
+inactive selects, short between-edge reset, malformed streams, exact write
+counts, coincident first byte and commit-edge errors. Independent CPU/video
+reset tests stop each clock in turn, require asynchronous valid flushing, keep
+the other reader active, and require a fresh read after clock restart.
+CPU is 32 MHz; video half-periods are 17,500, 11,640 and 25,000 ps (synthetic ratios, not an exact
+nominal X3 or fitted PLL claim). Log:
+`/tmp/x1-kanji-storage-final-qualified.log`. This target is added to hosted CI;
+local success does not establish hosted success.
+
+Two pre-fix failures were preserved: short reset allowed an old CPU read-valid
+flag to return before a fresh edge; an orphan byte on the falling upload edge
+was overridden by the later commit assignment. Async read-valid reset and
+commit qualification using current inputs correct these behaviors. The latter
+failed with `upload commit status` before the fix; neither failure was waived
+or worked around by editing state bytes.
+
+### Source-bound Quartus inference audit
+
+The cached Apple-container runtime was actually queried and used locally,
+with installed Quartus 17.0 and Cyclone V 5CSEBA6U23I7; no new installation or
+license acceptance was performed. Initial frozen sources at
+`output_files/kanji-storage-map-AJ8TADcE/` synthesized successfully, but the
+inherited unconditional CPU read/write template inferred **two** 131,072×8
+memories: 2,097,152 block-memory bits and 256 RAM segments, not the intended
+single 128 KiB store. Source hash
+`f95d37a00ee2dcff42621e53af6d6e503e07040798977026553d4f4c19f8fd4e`.
+Log `/tmp/x1-kanji-storage-quartus-map.log`; resource evidence is its
+`output_files/kanji.map.rpt` RAM/hierarchy summary. Warnings were one-processor
+selection, unsupported `async_reg` attribute and undefined dual-clock collision
+behavior. The last is explicitly excluded by the loader/reset contract;
+synchronizer identification/constraints still require integration review.
+
+The intermediate exclusive CPU read/write template is frozen separately at
+`output_files/kanji-storage-map-ILSstLoc/`, source SHA-256
+`6fa73b58c622a668ee7429ba5ab4fda13d0d590d8237d7307ad43eb1ef595b4d`.
+It also mapped successfully but still used 256 RAM segments: separate read and
+write addresses did not establish a single physical CPU port. That change was
+therefore not accepted as a resource fix.
+
+The current two-address/new-data template is frozen at
+`output_files/kanji-storage-map-3jh0e6qj/`, source SHA-256
+`bef106df7e17f285e8322652ea809dad8f5264a2ae6f9496eba65ad958d8e9ae`.
+It muxes upload/read addresses before the CPU RAM port and forwards written
+data, while externally masking read validity during writes. This conforms to
+two-unique-address/new-data inference contract described by the
+[Intel Quartus handbook](https://cdrdv2-public.intel.com/653794/quartusii_handbook_121.pdf).
+The actual Quartus map exits zero: **one 131,072×8 bidirectional dual-port
+memory, 1,048,576 block-memory bits and 128 RAM segments**. The final synthetic
+fixture passes unchanged for reads/reset/commit checks after this storage
+correction. Log `/tmp/x1-kanji-storage-two-address-quartus-map.log`, RAM summary
+`output_files/kanji-storage-map-3jh0e6qj/output_files/kanji.map.rpt`.
+The same three warning categories remain and were not suppressed. This is an
+observed synthesis saving, not an estimate from the RTL. Standalone mapping is not a
+shared-machine fit, constrained timing result, RBF or hardware acceptance.
+
+Shared-machine loader index/signature, source ordering, CPU register protocol,
+KACE/PCG/ANK and raster selection, glyph/pixel latency, WAIT/concurrency and
+native fonts still need implementation and acceptance. Standalone physical
+storage is not full Kanji or Turbo Z support.
+
 ## CPU-port conflicts actually inspected
 
 Local MAME revision `f4bfc5a423f48d48e809c01fc70a47c0c00d40a2`,
@@ -75,9 +169,9 @@ conversion and eX1's TODO are explicit gaps, not acceptance oracles.
 
 ## Implementation sequence still required
 
-1. Connect the physical decoder to a defined first-level storage/loader and
-   video row/character pipeline. Specify source chip identities and file order;
-   test each bank/half/row with synthetic bytes before private fonts. Verify
+1. Connect the now-tested physical decoder/storage to the shared loader and
+   video row/character pipeline. Specify native source chip identities/file order;
+   standalone synthetic bank/half/row reads pass before private fonts. Verify
    latency, beam boundaries, blanking and CPU/DMA concurrency, not just address
    equality. No native archive reordering/conversion was performed here.
 2. Trace the remaining KACE/PCG/ANK/underline/row mux and Z level-2 nets from
