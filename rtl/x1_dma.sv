@@ -95,7 +95,7 @@ module x1_dma (
         write_event = cpu_cs && !cpu_wr_n && !write_seen;
         read_event = cpu_cs && !cpu_rd_n && !read_seen;
         unsupported = bad_command || wr0[1:0] != 2'b01 ||
-            wr3[5] || wr3[2] || wr4[6:5] == 2'b11 || wr5[5] ||
+            wr3[5] || wr3[2] || wr4[6:5] == 2'b11 ||
             timing_a_set || timing_b_set || interrupt_control != 0;
         follow_index = -1;
         for (integer j=13; j>=0; j=j-1)
@@ -211,10 +211,18 @@ module x1_dma (
                                 else counter_a <= address;
                                 destination_first <= 0;
                                 remaining <= remaining - 17'd1;
-                                if (remaining == 1) begin
+                                if (remaining == 1 && wr5[5] && enabled &&
+                                    !reset_pending && !reset && !soft_reset_pending && !write_event) begin
+                                    // Auto restart reloads BOTH address counters, unlike
+                                    // explicit LOAD's source-only immediate load. Fixed
+                                    // destinations therefore reload too (UM0081 p60).
+                                    counter_a <= start_a; counter_b <= start_b;
+                                    remaining <= block_size(length); byte_counter <= 0;
+                                    destination_first <= 1; end_of_block <= 0;
+                                end else if (remaining == 1) begin
                                     end_of_block <= 1; enabled <= 0;
                                 end else byte_counter <= byte_counter + 16'd1;
-                                if (remaining == 1 || !enabled || reset_pending || reset ||
+                                if ((remaining == 1 && !wr5[5]) || !enabled || reset_pending || reset ||
                                     soft_reset_pending || wr4[6:5] == 0 ||
                                     (wr4[6:5] == 2'b10 && !ready_now)) begin
                                     state <= RELEASE; force_ready <= 0;

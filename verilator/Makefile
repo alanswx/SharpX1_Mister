@@ -73,6 +73,9 @@ $(DMA_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_i
 
 test-machine-dma: turbo-dma test-machine-dma-reset
 	python3 tests/test_machine_dma.py ./$(DMA_DIR)/Vtop
+test-machine-dma-restart: turbo-dma
+	python3 tests/test_machine_dma_restart.py ./$(DMA_DIR)/Vtop
+.PHONY: test-machine-dma-restart
 test-machine-dma-reset: $(HEADLESS_DIR)/dma-machine-reset/Vdma_machine_reset_tb
 	@for kind in 0 1 2 3; do ./$(HEADLESS_DIR)/dma-machine-reset/Vdma_machine_reset_tb +RESET_KIND=$$kind || exit 1; done
 $(HEADLESS_DIR)/dma-machine-reset/Vdma_machine_reset_tb: $(V_SRC) tests/dma_machine_reset_tb.sv Makefile

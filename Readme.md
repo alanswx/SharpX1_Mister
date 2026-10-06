@@ -68,6 +68,10 @@ reset profiles, including a stopped-video WAIT and exact one-write drain.
 The full delay-aware baseline regression also completes successfully.
 Partial CPU payload/Ready loss and native firmware remain open; no hardware
 signoff is implied.
+The [DMA automatic-restart increment](docs/DMA_AUTO_RESTART_STATUS.md) passes
+40 standalone groups through 65,537-byte boundaries, real shared-CPU buffer
+updates without LOAD in both directions, and fast/delay-aware machine tests.
+IRQ/search/variable timing remain unsupported; default profiles keep DMA off.
 A bounded [high-speed PCG increment](docs/TURBO_HIGH_SPEED_PCG_STATUS.md)
 adds selector shadows, frozen HSYNC-window access and CPU ANK8/16 selection.
 Original unit/CPU tests pass; ASIC fallback/WAIT phase, Kanji and hardware
@@ -189,7 +193,9 @@ passes all 21 targets on `abda8ee`, including full DMA and FM waveform checks.
 This remains asset-free diagnostic acceptance, not complete machine support.
 [The 22-target follow-up](https://github.com/alanswx/SharpX1_Mister/actions/runs/37515820620)
 passes on `421f5c9`, adding actual CPU/FM. SIO interrupt-reset is the next
-added target; its hosted gate remains separate from local verification.
+added target: [the 23-target run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37522951169)
+passes on `c621133`, including all twelve SIO service-reset cases. The newer
+automatic-restart DMA matrix still needs its own hosted result.
 The simulator window now offers optional [live joystick keys](docs/PLAYING.md):
 arrows, Space (button 1) and Ctrl (button 2), through `--joystick-keys`.
 Independent CPU-programmed 40/80-column text and 320/640 graphics rasters now

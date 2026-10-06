@@ -16,14 +16,15 @@ module dma_tb;
     integer clock_edges=0, ce_period=1, ack_delay=4, ack_counter=0;
     integer reads=0, writes=0, io_reads=0, io_writes=0, grants=0;
     integer tests=0, ack_ce_edges=0, strobe_ce_edges=0;
+    integer stop_after_writes=0;
     logic pause_ce=0, allow_ack=1;
     logic previous_rd=1, previous_wr=1, previous_io=0;
     logic [15:0] previous_address;
     logic [7:0] previous_data;
-    logic [7:0] io_log [0:65536];
-    logic [15:0] write_log [0:65536];
-    logic [15:0] read_log [0:65536];
-    logic [7:0] write_data_log [0:65536];
+    logic [7:0] io_log [0:65537];
+    logic [15:0] write_log [0:65537];
+    logic [15:0] read_log [0:65537];
+    logic [7:0] write_data_log [0:65537];
     assign data_in = !iorq_n ? (8'(io_reads) ^ 8'ha6) : memory[address];
     always @(posedge clk) if (ce) begin
         if (!busak_n && !busrq_n) ack_ce_edges=ack_ce_edges+1;
@@ -58,6 +59,7 @@ module dma_tb;
                 io_writes = io_writes+1;
             end else memory[previous_address] = previous_data;
             writes = writes+1;
+            if(stop_after_writes!=0 && writes==stop_after_writes) rdy=1;
         end
         if (!rd_n || !wr_n) begin
             if (previous_rd && previous_wr) strobe_ce_edges=0;
@@ -109,6 +111,7 @@ module dma_tb;
         repeat (5) tick(); reset=0;
         repeat (6) ctick();
         reads=0; writes=0; io_reads=0; io_writes=0; grants=0;
+        stop_after_writes=0;
         for (integer j=0; j<65536; j=j+1) memory[j]=8'(j) ^ 8'(j>>8) ^ 8'h5d;
     endtask
     task automatic configure(input logic [15:0] a,b,n,
@@ -206,21 +209,20 @@ module dma_tb;
         put(8'hbb); put(8'h08); put(8'ha7); repeat(3) begin get(value); check(value==8'h34,"single read repeats"); end
         put(8'hc3); idle(); get(value); check(value==8'h34,"software RESET retains read sequence");
         passed("read masks/order/wrap/stretch and partial software RESET");
-        // Fail closed: search, IRQ, autorestart, forbidden mode, command.
-        for (integer option_id=0; option_id<6; option_id=option_id+1) begin
+        // Fail closed: search, IRQ, forbidden mode, command/timing.
+        for (integer option_id=0; option_id<5; option_id=option_id+1) begin
             fresh(); configure(16'h100,16'h200,1,8'h14,8'h10,0,8'h92,1); put(8'hcf);
             case(option_id)
                 0: put(8'h06);
                 1: put(8'ha0);
-                2: put(8'hb2);
-                3: put(8'he1);
-                4: put(8'hb7);
-                5: begin put(8'h54); put(8'hc0); end
+                2: put(8'he1);
+                3: put(8'hb7);
+                4: begin put(8'h54); put(8'hc0); end
             endcase
             put(8'h87); repeat(15) ctick();
             check(unsupported && busrq_n && writes==0,"unsupported ENABLE blocked");
         end
-        passed("unsupported search/IRQ/restart/mode/RETI/timing cannot enable");
+        passed("unsupported search/IRQ/mode/RETI/timing cannot enable");
     endtask
 
     task automatic memory_checks;
@@ -423,10 +425,105 @@ module dma_tb;
         passed("control-write precedence at request/pair boundary");
     endtask
 
+    task automatic autorestart_checks;
+        logic [15:0] a_read,b_read,count_read;
+        logic [7:0] status;
+        // Three repeated two-byte blocks, all ownership/address/direction
+        // combinations. Pause at the exact terminal strobe completion edge.
+        for(integer mode=0;mode<3;mode++)
+            for(integer direction=0;direction<2;direction++)
+                for(integer am=0;am<3;am++) for(integer bm=0;bm<3;bm++) begin
+                    fresh();
+                    configure(16'hffff,16'h3000,1,
+                        am==0?8'h14:am==1?8'h04:8'h24,
+                        bm==0?8'h10:bm==1?8'h00:8'h20,
+                        8'(mode<<5),8'hb2,1'(direction));
+                    put(direction!=0 ? 8'h01 : 8'h05);put(8'hcf);
+                    put(direction!=0 ? 8'h05 : 8'h01);put(8'hcf);
+                    check(!unsupported,"auto restart accepted without IRQ");
+                    stop_after_writes=6;put(8'h87);
+                    while(writes<6) tick();repeat(12) ctick();
+                    check(reads==6 && writes==6 && !dut.end_of_block,"three repeated blocks and cleared EOB");
+                    if(mode==1) check(!busrq_n && !busak_n,"continuous restart retains paused ownership");
+                    else check(busrq_n,"byte/burst restart releases on inactive Ready");
+                    put(8'h83);idle();
+                    for(integer j=0;j<6;j++) begin
+                        integer sm,dm;
+                        logic [15:0] source,destination;
+                        sm=direction!=0 ? am : bm;dm=direction!=0 ? bm : am;
+                        source=(direction!=0 ? 16'hffff : 16'h3000)+
+                            16'(sm==0 ? j%2 : sm==1 ? -(j%2) : 0);
+                        destination=(direction!=0 ? 16'h3000 : 16'hffff)+
+                            16'(dm==0 ? j%2 : dm==1 ? -(j%2) : 0);
+                        check(read_log[j]==source && write_log[j]==destination,"auto restart address wrap/direction/fixed");
+                    end
+                    read_word(8'h18,a_read);read_word(8'h60,b_read);read_word(8'h06,count_read);
+                    check(a_read==16'hffff && b_read==16'h3000 && count_read==0,"restart reloads both counters and byte count");
+                    put(8'hbf);get(status);check(status[5],"auto restart does not latch EOB status");
+                end
+        passed("54 auto-restart direction/address/ownership combinations, three blocks and primary reload/status");
+        // Program new buffers between byte-mode pairs, without LOAD. The
+        // active second pair uses old counters; restart uses the new buffers.
+        fresh();configure(16'h1000,16'h3000,1,8'h14,8'h10,0,8'hb2,1);
+        put(8'hcf);stop_after_writes=1;put(8'h87);
+        while(writes<1) tick();idle();
+        put(8'h7d);put(8'h00);put(8'h20);put(1);put(0);
+        put(8'h8d);put(8'h00);put(8'h40);
+        stop_after_writes=4;rdy=0;put(8'h87);
+        while(writes<4) tick();idle();put(8'h83);
+        check(reads==4 && read_log[0]==16'h1000 && read_log[1]==16'h1001 &&
+            read_log[2]==16'h2000 && read_log[3]==16'h2001 &&
+            write_log[0]==16'h3000 && write_log[1]==16'h3001 &&
+            write_log[2]==16'h4000 && write_log[3]==16'h4001,
+            "new buffers affect restart, not active counters");
+        // The documented autoreload includes a fixed destination too.
+        fresh();configure(16'h1000,16'h3000,1,8'h14,8'h20,0,8'hb2,1);
+        put(8'h01);put(8'hcf);put(8'h05);put(8'hcf);
+        stop_after_writes=1;put(8'h87);while(writes<1) tick();idle();
+        put(8'h8d);put(8'h00);put(8'h40);
+        stop_after_writes=4;rdy=0;put(8'h87);while(writes<4) tick();idle();put(8'h83);
+        check(write_log[0]==16'h3000 && write_log[1]==16'h3000 &&
+              write_log[2]==16'h4000 && write_log[3]==16'h4000,"fixed destination autoreloads new buffer");
+        passed("auto restart buffer updates preserve active block, including fixed destination");
+        for(integer size_case=0;size_case<3;size_case++) begin
+            integer count;
+            logic [15:0] terminal;
+            terminal=size_case==0 ? 16'd255 : size_case==1 ? 16'd65535 : 16'd0;
+            count=size_case==0 ? 256 : size_case==1 ? 65536 : 65537;
+            fresh();configure(16'h1000,16'h3000,terminal,8'h24,8'h20,8'h20,8'hb2,1);
+            put(8'h01);put(8'hcf);put(8'h05);put(8'hcf);
+            stop_after_writes=count;put(8'h87);while(writes<count) tick();
+            repeat(12) ctick();put(8'h83);idle();
+            read_word(8'h06,count_read);
+            check(reads==count && writes==count && count_read==0 && !dut.end_of_block &&
+                dut.remaining==17'(count),"large automatic reload count including special zero");
+            stop_after_writes=count+1;rdy=0;put(8'h87);while(writes<count+1) tick();
+            repeat(12) ctick();put(8'h83);idle();read_word(8'h06,count_read);
+            check(reads==count+1 && writes==count+1 && count_read==1 &&
+                read_log[count]==16'h1000 && write_log[count]==16'h3000 &&
+                dut.remaining==17'(count-1),"large restarted block executes next genuine pair");
+        end
+        passed("auto restart 256/65536/65537-byte boundaries and next-block pair/count");
+        for(integer abort_kind=0;abort_kind<3;abort_kind++) begin
+            fresh();configure(16'h1000,16'h3000,1,8'h14,8'h10,8'h20,8'hb2,1);
+            put(8'hcf);put(8'h87);
+            while(!(writes==1 && !wr_n)) tick();wait_n=0;repeat(8) ctick();
+            check(dut.remaining==1 && writes==1,"auto restart terminal write stalled");
+            if(abort_kind==2) begin
+                pause_ce=1;reset=1;repeat(20) tick();
+                check(!wr_n && !busrq_n && writes==1,"terminal reset retains stopped owned write");
+                pause_ce=0;
+            end else put(abort_kind==0 ? 8'h83 : 8'hc3);
+            wait_n=1;idle();reset=0;repeat(20) ctick();
+            check(reads==2 && writes==2 && busrq_n && !dut.enabled,"terminal disable/reset drains without autorestart");
+        end
+        passed("auto restart terminal DISABLE/software/hardware reset with WAIT/stopped CE");
+    endtask
+
     initial begin
         for(integer rate=0; rate<2; rate=rate+1) begin
             ce_period=rate==0?1:4;
-            parser_checks(); memory_checks(); io_and_ownership_checks();
+            parser_checks(); memory_checks(); io_and_ownership_checks();autorestart_checks();
         end
         $display("DMA PASS groups=%0d clock_edges=%0d",tests,clock_edges);
         $finish;

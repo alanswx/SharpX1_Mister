@@ -1,9 +1,13 @@
 # Standalone Z80 DMA first slice
 
-October 5, 2026. `rtl/x1_dma.sv` is an original, standalone functional
+Historical October 5 first slice. `rtl/x1_dma.sv` is an original, standalone functional
 implementation. It is **not connected to the shared machine**, included in
 `machine.qip`, or accepted as working Turbo/native-IPL DMA. The parent owns
 subsequent CPU arbitration, machine/FDC integration and build-list changes.
+That integration is now separately qualified in [DMA_MACHINE_STATUS.md](DMA_MACHINE_STATUS.md).
+The October 6 [automatic-restart increment](DMA_AUTO_RESTART_STATUS.md)
+adds positive WR5 D5 tests and shared-machine CPU qualification; the original
+first-slice rejection/evidence below is historical, not the current feature limit.
 
 ## Contract and provenance
 

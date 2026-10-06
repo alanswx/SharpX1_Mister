@@ -106,8 +106,10 @@ Local logs: `/tmp/x1-v11-machine-dma-expanded.log`,
    machine fixtures exercise active-low Ready only.
 4. Unchanged native Turbo IPL disk streams, authentic counter continuation
    and Turbo FDC aliases; native Arcus/Bastard remain unqualified.
-5. DMA IRQ/daisy/service, search, variable pin timing and auto restart remain
-   unsupported. Do not fake these capabilities or enable the default profile.
+5. DMA IRQ/daisy/service, search and variable pin timing remain unsupported.
+   [Automatic restart](DMA_AUTO_RESTART_STATUS.md) now passes standalone and
+   actual shared-CPU diagnostics, not native/pin-timing or IRQ combinations.
+   Do not fake missing capabilities or enable the default profile.
 6. Source-bound Quartus reset/CDC/bus fit and physical hardware validation.
    The frozen `15a0655` artifact predates this work and fails timing.
 

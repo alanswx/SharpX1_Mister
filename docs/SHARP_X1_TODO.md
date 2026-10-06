@@ -21,7 +21,7 @@ unavailable; continue local verification without claiming hardware acceptance.
 | Work group | Execution/acceptance still needed |
 |---|---|
 | 1. SIO | Owned serial read/write reset drain, idle Send Break and 12 actual-CPU stopped-CE ACK/handler/FIFO/RETI chip-reset cases pass separately; add channel/short-pulse and concurrent multi-device reset service; trace schematic clocks/modem/Ready/decode before opt-in shared-machine integration; finish remaining modes and native serial diagnostics |
-| 2. DMA | 64 payload/single-block/split-metadata held/pulsed resets, five owned PCG reset profiles and fast/delay-aware GRAM/PCG targets pass; broaden partial-payload/Ready-loss/DAM cases; implement/test IRQ/search/restart functions; unchanged native Turbo IPL transfer continuity and exact timing |
+| 2. DMA | 64 transport resets, five PCG reset profiles and video targets pass; automatic restart passes 40 standalone groups and fast/delay-aware shared CPU buffer/count/payload tests; broaden partial-payload/Ready-loss/DAM cases; implement IRQ/search/variable timing; unchanged native Turbo IPL continuity and hardware acceptance |
 | 3. Kanji/Turbo video | CPU latch/ROM/glyph paths with synthetic fixtures, then authorized native fonts; complete attribute/PCG/text combinations, ASIC behavior and native Turbo/400-line software |
 | 4. Timing/hardware | Narrow audited CDC/reset/mux constraints, current-source Quartus refit and positive setup/hold/recovery; hardware bandwidth/video/audio and Main/OSD reset verification |
 | 5. Disk/software | Format/density/HD/media-change contracts; native metadata qualification; Arcus/Bastard playability; delay-aware and hardware game matrix |
@@ -41,8 +41,9 @@ connected to the machine. The expanded 21-target hosted retry passes on
 `abda8ee`, using pinned Verilator 5.044 after 5.020 exceeds the DMA compilation
 limit even with Clang. No RTL assertions or simulated durations were reduced.
 A later [22-target run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37515820620)
-passes on `421f5c9`, including actual CPU/FM. The next workflow adds the 12
-SIO IRQ-reset cases as target 23; qualify that hosted result separately.
+passes on `421f5c9`, including actual CPU/FM. The [23-target run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37522951169)
+passes on `c621133`, including twelve SIO IRQ-reset cases. The newer DMA
+automatic-restart matrix is locally qualified; its hosted result remains open.
 See [source-bound checks](TURBO_Z_RGB_STATUS.md).
 
 ## Current priorities 1–4 (October 5 checkpoint)
