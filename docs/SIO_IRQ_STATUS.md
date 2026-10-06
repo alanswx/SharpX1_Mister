@@ -5,6 +5,9 @@ and `x1_sio_interrupt`, which connects it to both real serial channels from
 `rtl/x1_sio_async.sv`. **Neither wrapper is in `machine.qip` or instantiated
 by the shared X1 machine.** Base/Turbo/X3 behavior and v11 snapshots are
 unchanged. This is not native firmware, FPGA timing or physical acceptance.
+October 6: a separately opt-in [functional WAIT/Ready profile](SIO_FLOW_STATUS.md)
+passes pin and actual-CPU stalled-access checks. Default `FLOW_ENABLE=0`
+continues to reject WAIT/Ready settings; exact pin/DMA semantics remain open.
 
 ## Primary contract and scope
 
@@ -112,7 +115,8 @@ warning; no new suppression or unrelated CPU edit was added.
    auto-enables, live configuration, exact reset/error/pin-phase behavior.
 3. Schematic-qualified board serial clocks/pins, full-machine `1F90..93`
    decode, DAM/ACK isolation and qualified CTC/SIO/keyboard service arbitration.
-4. WAIT/Ready and DMA handshakes/serial transfers, actual CPU WAIT and
-   multi-device nested ACK/RETI diagnostics.
+4. Exact WAIT/Ready and DMA handshakes/serial transfers; the separate functional
+   experiment now passes actual CPU stalls, not machine/DMA acceptance.
+   Multi-device nested ACK/RETI diagnostics remain open.
 5. Unchanged native serial/firmware execution, current-source Quartus timing/
    CDC review, and physical connector/voltage/loopback tests.

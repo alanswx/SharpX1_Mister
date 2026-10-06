@@ -65,8 +65,9 @@ endmodule
 
 // Standalone connected serial/IRQ subset. Not in machine.qip or mapped into
 // the X1. RX first/all-character + TX + CTS/DCD supported. Other external
-// sources, break, WAIT/Ready and physical bus/pin phase remain separate gates.
-module x1_sio_interrupt (
+// sources, break and physical bus/pin phase remain separate gates.
+// FLOW_ENABLE defaults off; opt-in functional WAIT/Ready is not pin timing.
+module x1_sio_interrupt #(parameter FLOW_ENABLE=0) (
     input wire clk, ce, reset, cpu_cs, cpu_rd_n, cpu_wr_n,
     input wire [1:0] address,
     input wire [7:0] cpu_din,
@@ -76,7 +77,8 @@ module x1_sio_interrupt (
     output wire unsupported,
     input wire iei, acknowledge, reti,
     output wire irq, ieo,
-    output wire [7:0] ack_vector
+    output wire [7:0] ack_vector,
+    output wire [1:0] wait_n, ready_n
 );
     wire [7:0] channel_data[0:1], vector_register[0:1], rr2;
     wire [1:0] request_rx, request_tx, request_external, special_rx, status_vector;
@@ -93,7 +95,7 @@ module x1_sio_interrupt (
         .pending(pending), .rr2(rr2), .ack_vector(ack_vector)
     );
     for(genvar channel=0;channel<2;channel=channel+1) begin : channels
-        x1_sio_async_channel #(.IRQ_ENABLE(1), .CHANNEL_B(channel)) unit (
+        x1_sio_async_channel #(.IRQ_ENABLE(1), .CHANNEL_B(channel), .FLOW_ENABLE(FLOW_ENABLE)) unit (
             .clk(clk), .ce(ce), .reset(reset), .cpu_cs(cpu_cs && address[1]==1'(channel)),
             .control(address[0]), .cpu_rd_n(cpu_rd_n), .cpu_wr_n(cpu_wr_n),
             .cpu_din(cpu_din), .cpu_dout(channel_data[channel]),
@@ -105,7 +107,9 @@ module x1_sio_interrupt (
             .request_external(request_external[channel]),
             .special_rx(special_rx[channel]), .vector_register(vector_register[channel]),
             .status_vector(status_vector[channel]), .reset_channel(reset_channel[channel]),
-            .return_interrupt(return_interrupt[channel])
+            .return_interrupt(return_interrupt[channel]),
+            .bus_selected(cpu_cs && (!cpu_rd_n || !cpu_wr_n)),
+            .wait_n(wait_n[channel]), .ready_n(ready_n[channel])
         );
     end
 endmodule

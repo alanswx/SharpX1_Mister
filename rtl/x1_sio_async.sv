@@ -7,7 +7,9 @@
 // IRQ_ENABLE is used only by the separate standalone interrupt wrapper:
 // it adds first/all-character RX, TX-empty and CTS/DCD requests, B-only RR2, A-only return,
 // and channel command events. The default polled wrapper remains unchanged.
-module x1_sio_async_channel #(parameter IRQ_ENABLE=0, parameter CHANNEL_B=0) (
+// FLOW_ENABLE separately opts into functional selected-port WAIT and Ready
+// levels; this is not physical W/RDY bus-phase or open-drain implementation.
+module x1_sio_async_channel #(parameter IRQ_ENABLE=0, parameter CHANNEL_B=0, parameter FLOW_ENABLE=0) (
     input wire clk, ce, reset,
     input wire cpu_cs, control, cpu_rd_n, cpu_wr_n,
     input wire [7:0] cpu_din,
@@ -19,13 +21,29 @@ module x1_sio_async_channel #(parameter IRQ_ENABLE=0, parameter CHANNEL_B=0) (
     input wire [7:0] rr2,
     output wire request_rx, request_tx, request_external, special_rx,
     output wire [7:0] vector_register,
-    output wire status_vector, reset_channel, return_interrupt
+    output wire status_vector, reset_channel, return_interrupt,
+    input wire bus_selected,
+    output wire wait_n, ready_n
 );
     reg [7:0] wr1, wr2, wr3, wr4, wr5;
     reg [2:0] pointer;
     reg read_seen, write_seen;
-    wire read_event = cpu_cs && !cpu_rd_n && !read_seen;
-    wire write_event = cpu_cs && !cpu_wr_n && !write_seen;
+    wire read_attempt = cpu_cs && !cpu_rd_n && !read_seen;
+    wire write_attempt = cpu_cs && !cpu_wr_n && !write_seen;
+    wire wait_mode = FLOW_ENABLE && wr1[7] && !wr1[6];
+    wire read_blocked = wait_mode && wr1[5] && !control && fifo_count==0;
+    wire write_blocked = wait_mode && !wr1[5] && !control && tx_holding_full;
+    wire read_event = read_attempt && !read_blocked;
+    wire write_event = write_attempt && !write_blocked;
+    // Functional bus handshakes, not physical open-drain/half-clock timings.
+    // A completed held strobe never reasserts WAIT after consuming its buffer.
+    // Hold through the accepting edge as well: RX data is a clocked response.
+    // Releasing merely on FIFO arrival would let a waiting CPU sample the old
+    // response on the same edge that latches/pops the new byte.
+    assign wait_n = reset || !(wait_mode && !control &&
+        ((wr1[5] && read_attempt) || (!wr1[5] && write_attempt)));
+    assign ready_n = reset || !(FLOW_ENABLE && wr1[7] && wr1[6] && !bus_selected &&
+        (wr1[5] ? fifo_count!=0 : !tx_holding_full));
     wire channel_reset = ce && write_event && control && pointer == 0 && cpu_din[5:3] == 3;
     wire error_reset = ce && write_event && control && pointer==0 && cpu_din[5:3]==6;
     wire external_reset = ce && write_event && control && pointer==0 && cpu_din[5:3]==2;
@@ -58,7 +76,7 @@ module x1_sio_async_channel #(parameter IRQ_ENABLE=0, parameter CHANNEL_B=0) (
         if(parity_enable) transmit_frame[bits+1]=even_parity ? parity : !parity;
     endfunction
     wire supported_interrupts = IRQ_ENABLE ?
-        wr1[7:5]==0 : wr1==0;
+        (FLOW_ENABLE || wr1[7:5]==0) : wr1==0;
     wire polled_frame = supported_interrupts && wr4[7:6]!=0 && wr4[5:4]==0 && wr4[3:2]!=0;
     wire rx_enabled = polled_frame && wr3[0] && (wr3 & 8'h3e)==0;
     wire tx_enabled = polled_frame && wr5[3] && (wr5 & 8'h15)==0;
@@ -166,7 +184,7 @@ module x1_sio_async_channel #(parameter IRQ_ENABLE=0, parameter CHANNEL_B=0) (
                     case(pointer)
                         1: begin
                             wr1<=cpu_din;
-                            if(IRQ_ENABLE ? cpu_din[7:5]!=0 : cpu_din!=0)
+                            if(IRQ_ENABLE ? (!FLOW_ENABLE && cpu_din[7:5]!=0) : cpu_din!=0)
                                 unsupported<=1;
                             if(!cpu_din[1]) transmit_pending<=0;
                         end
@@ -333,7 +351,8 @@ module x1_sio_async (
             .cts_n(cts_n[channel]), .dcd_n(dcd_n[channel]), .txd(txd[channel]),
             .rts_n(rts_n[channel]), .dtr_n(dtr_n[channel]), .unsupported(unsupported_channel[channel]),
             .interrupt_pending(1'b0), .rr2(8'hff), .request_rx(), .request_tx(), .request_external(),
-            .special_rx(), .vector_register(), .status_vector(), .reset_channel(), .return_interrupt()
+            .special_rx(), .vector_register(), .status_vector(), .reset_channel(), .return_interrupt(),
+            .bus_selected(1'b0), .wait_n(), .ready_n()
         );
     end
 endmodule

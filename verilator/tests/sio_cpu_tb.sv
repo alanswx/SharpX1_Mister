@@ -6,7 +6,7 @@ module sio_cpu_tb;
     reg clk=0, ce=0, reset=1;
     always #5 clk=~clk;
     integer period=1,edges=0,pc=0,ack_count=0,reti_count=0;
-    reg first_status=0;
+    reg first_status=0,flow_profile=0;
     integer expected_irqs=3;
     always @(negedge clk) begin edges=edges+1; ce=(edges%period)==0; end
     wire m1_n,mreq_n,iorq_n,rd_n,wr_n,rfsh_n,halt_n,busak_n;
@@ -14,28 +14,34 @@ module sio_cpu_tb;
     wire [7:0] cpu_data,sio_data,ack_vector;
     reg [7:0] memory[0:65535];
     reg [7:0] memory_data=0;
+    reg io_response_active=0;
     wire cpu_cs=!iorq_n && m1_n && address[15:2]==14'(16'h1f90>>2);
     wire acknowledge=!iorq_n && !m1_n;
-    wire [7:0] cpu_di=acknowledge ? ack_vector : cpu_cs ? sio_data : memory_data;
+    // Keep a clocked I/O read response through bus release until the next
+    // memory read. TV80 can retain T2 for its automatic I/O wait after its
+    // external strobes release, so an idle-bus RAM mux is not a valid response.
+    wire [7:0] cpu_di=acknowledge ? ack_vector :
+        (cpu_cs || (io_response_active && mreq_n)) ? sio_data : memory_data;
     reg [1:0] rx_tick=0,tx_tick=0,rxd=3,cts_n=3,dcd_n=3;
     wire [1:0] txd,rts_n,dtr_n;
     wire unsupported,irq,ieo,reti;
+    wire [1:0] flow_wait_n;
     reg ack_old=0;
     reg [7:0] observed_vector;
     cpu processor (
         .clock(clk), .cep(ce), .cen(1'b0), .reset_n(!reset),
-        .int_n(!irq), .wait_n(1'b1), .busrq_n(1'b1), .busak_n(busak_n),
+        .int_n(!irq), .wait_n(&flow_wait_n), .busrq_n(1'b1), .busak_n(busak_n),
         .rfsh_n(rfsh_n), .halt_n(halt_n), .mreq(mreq_n), .iorq(iorq_n),
         .wr(wr_n), .rd(rd_n), .m1(m1_n), .di(cpu_di), .data_out(cpu_data),
         .a(address), .dir(16'b0), .dirset(1'b0)
     );
-    x1_sio_interrupt sio (
+    x1_sio_interrupt #(.FLOW_ENABLE(1)) sio (
         .clk(clk), .ce(ce), .reset(reset), .cpu_cs(cpu_cs),
         .cpu_rd_n(rd_n), .cpu_wr_n(wr_n), .address(address[1:0]),
         .cpu_din(cpu_data), .cpu_dout(sio_data), .rx_tick(rx_tick), .tx_tick(tx_tick),
         .rxd(rxd), .cts_n(cts_n), .dcd_n(dcd_n), .txd(txd), .rts_n(rts_n), .dtr_n(dtr_n),
         .unsupported(unsupported), .iei(1'b1), .acknowledge(acknowledge),
-        .reti(reti), .irq(irq), .ieo(ieo), .ack_vector(ack_vector)
+        .reti(reti), .irq(irq), .ieo(ieo), .ack_vector(ack_vector), .wait_n(flow_wait_n), .ready_n()
     );
     // Reuse the existing machine's stretched-fetch ED/4D decoder. Its CTC
     // and keyboard inputs are idle: no CTC exists in this standalone fixture.
@@ -47,7 +53,11 @@ module sio_cpu_tb;
         .irq(), .keyboard_ack(), .ctc_ack(), .ctc_iei(), .ctc_selected(), .ack_vector()
     );
     always @(posedge clk) begin
+        if(flow_profile && $test$plusargs("flow-trace") && ce && memory[16'h4000]==5)
+            $display("FLOW t=%0t a=%h rd=%b cs=%b wait=%b di=%h reg=%h data=%h fifo=%d seen=%b event=%b ts=%b",$time,address,rd_n,cpu_cs,flow_wait_n,cpu_di,processor.Z80CPU.di_reg,sio_data,sio.channels[0].unit.fifo_count,sio.channels[0].unit.read_seen,sio.channels[0].unit.read_event,processor.Z80CPU.tstate);
         memory_data<=memory[address];
+        if(reset || (!mreq_n && !rd_n)) io_response_active<=0;
+        else if(cpu_cs && !rd_n) io_response_active<=1;
         if(!reset && !mreq_n && !wr_n) memory[address]<=cpu_data;
         if(reset) begin ack_old<=0; ack_count<=0; reti_count<=0; end
         else begin
@@ -100,9 +110,20 @@ module sio_cpu_tb;
         wait(memory[16'h4000]==expected && !halt_n);
         @(negedge clk); #1;
     endtask
+    task automatic transmit_a(input reg [7:0] value);
+        reg [9:0] frame;
+        frame={1'b1,value,1'b0}; tx_tick=1;
+        for(integer i=0;i<10;i=i+1) repeat(16) begin
+            if(txd[0]!==frame[i]) $fatal(1,"CPU TX byte %h pin bit %0d mismatch",value,i);
+            step();
+        end
+        tx_tick=0;
+    endtask
     initial begin
         if(!$value$plusargs("CE_PERIOD=%d",period)) period=1;
         first_status=$test$plusargs("first-status"); expected_irqs=first_status ? 4 : 3;
+        flow_profile=$test$plusargs("flow");
+        if(flow_profile && first_status) $fatal(1,"separate fixture profiles required");
         for(integer i=0;i<65536;i=i+1) memory[i]=0;
         emit(8'hf3); emit(8'h31); emit(8'h00); emit(8'hff); // DI; LD SP,ff00
         load_a(2); emit(8'hed); emit(8'h47); emit(8'hed); emit(8'h5e); // LD I,A; IM 2
@@ -118,6 +139,12 @@ module sio_cpu_tb;
         port(16'h1f90); out_byte(8'h69);
         mark(3); emit(8'hfb); emit(8'h76); emit(8'hf3);
         if(first_status) begin mark(4); emit(8'hfb); emit(8'h76); emit(8'hf3); end
+        if(flow_profile) begin
+            port(16'h1f91); reg_write(1,8'ha0); mark(5);
+            port(16'h1f90); emit(8'hed); emit(8'h78); store(16'h4106);
+            port(16'h1f91); reg_write(1,8'h80);
+            port(16'h1f90); out_byte(8'h55); mark(6); out_byte(8'h17);
+        end
         mark(8'haa); emit(8'h76);
         pc=32'h0400; port(16'h1f92); emit(8'hed); emit(8'h78); store(16'h4100);
         load_a(8'he4); store(16'h4102); emit(8'hfb); emit(8'hed); emit(8'h4d);
@@ -151,7 +178,20 @@ module sio_cpu_tb;
             $fatal(1,"CPU repeated locked read/Error Reset failed");
         tx_tick=1; step(); tx_tick=0;
         if(txd[0]!==0) $fatal(1,"CPU TX data did not enter shifter");
-        stage(first_status ? 4 : 8'haa);
+        if(flow_profile) begin
+            wait(cpu_cs && !rd_n && !flow_wait_n[0]);
+            repeat(100) begin step();
+                if(address!==16'h1f90 || rd_n || flow_wait_n[0] || memory[16'h4000]!==5)
+                    $fatal(1,"CPU empty-RX WAIT did not hold its real read");
+            end
+            receive(0,8'h53,0);
+            wait(cpu_cs && !wr_n && !flow_wait_n[0] && memory[16'h4000]==6);
+            repeat(100) begin step();
+                if(address!==16'h1f90 || wr_n || cpu_data!==8'h17 || flow_wait_n[0] ||
+                   memory[16'h4106]!==8'h53 || memory[16'h4000]!==6)
+                    $fatal(1,"CPU full-TX WAIT/read response failed addr=%h wr=%b data=%h wait=%b RX=%h stage=%h",address,wr_n,cpu_data,flow_wait_n,memory[16'h4106],memory[16'h4000]);
+            end
+        end else stage(first_status ? 4 : 8'haa);
         if(memory[16'h4102]!==8'he8 || ack_count!=3 || reti_count!=3 || irq || !ieo)
             $fatal(1,"CPU TX pending reset/final RETI failed");
         if(first_status) begin
@@ -164,20 +204,16 @@ module sio_cpu_tb;
         end
         // Verify the actual transmitted character loaded by CPU, not merely
         // the interrupt handler marker. Advance each bit exactly 16 ticks.
-        tx_tick=1;
-        for(integer i=0;i<10;i=i+1) begin
-            reg [9:0] frame;
-            frame={1'b1,8'h69,1'b0};
-            repeat(16) begin
-                if(txd[0]!==frame[i]) $fatal(1,"CPU TX pin bit %0d mismatch",i);
-                step();
-            end
+        transmit_a(8'h69);
+        if(flow_profile) begin
+            tx_tick=1; step(); tx_tick=0; // holding 55 enters shifter, admits CPU 17
+            stage(8'haa);
+            transmit_a(8'h55); tx_tick=1; step(); tx_tick=0; transmit_a(8'h17);
         end
-        tx_tick=0;
         repeat(100) step();
         if(ack_count!=expected_irqs || reti_count!=expected_irqs || irq || unsupported || txd!==3)
             $fatal(1,"CPU IRQ reasserted without new traffic");
-        $display("PASS: actual Z80 IM2 B RX/A framing-special/TX, ISR bytes, ACK/decoded RETI=%0d, real TX pins CE=%0d first/status=%0d",expected_irqs,period,first_status);
+        $display("PASS: actual Z80 IM2/ISR bytes/ACK/RETI=%0d, TX pins CE=%0d first/status=%0d flow=%0d",expected_irqs,period,first_status,flow_profile);
         $finish;
     end
     initial begin #20000000; $fatal(1,"CPU SIO watchdog PC=%h stage=%h ACKs=%0d RETIs=%0d",address,memory[16'h4000],ack_count,reti_count); end
