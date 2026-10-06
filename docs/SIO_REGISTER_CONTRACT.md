@@ -9,7 +9,9 @@ RX/error locking and CTS/DCD snapshots. Native reset arming, remaining external
 sources, x1/break/live configuration and machine integration remain open.
 Do not replace missing behavior with a successful capability signature.
 October 6: [functional WAIT/Ready](SIO_FLOW_STATUS.md) is separately opt-in and
-passes pin/real-CPU stalls; exact timing, opposite-channel effects and DMA remain open.
+passes pin/real-CPU stalls; exact timing and opposite-channel effects remain open.
+Subsequent [standalone SIO/DMA checks](SIO_DMA_STATUS.md) pass bounded Ready-paced
+transfers and error-lock recovery, not machine/native or physical pin acceptance.
 
 ## Primary evidence and local comparison
 

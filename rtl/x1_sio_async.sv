@@ -43,7 +43,7 @@ module x1_sio_async_channel #(parameter IRQ_ENABLE=0, parameter CHANNEL_B=0, par
     assign wait_n = reset || !(wait_mode && !control &&
         ((wr1[5] && read_attempt) || (!wr1[5] && write_attempt)));
     assign ready_n = reset || !(FLOW_ENABLE && wr1[7] && wr1[6] && !bus_selected &&
-        (wr1[5] ? fifo_count!=0 : !tx_holding_full));
+        (wr1[5] ? (fifo_count!=0 && !(error_locked && error_read_seen)) : !tx_holding_full));
     wire channel_reset = ce && write_event && control && pointer == 0 && cpu_din[5:3] == 3;
     wire error_reset = ce && write_event && control && pointer==0 && cpu_din[5:3]==6;
     wire external_reset = ce && write_event && control && pointer==0 && cpu_din[5:3]==2;
@@ -125,6 +125,12 @@ module x1_sio_async_channel #(parameter IRQ_ENABLE=0, parameter CHANNEL_B=0, par
     wire rx_push = rx_tick && rx_enabled && rx_busy && rx_bit == rx_stop_bit &&
                    {1'b0,rx_phase} == rx_divisor-7'd1;
     wire error_locked = first_mode && fifo_count!=0 && (fifo_error[0][6] || overrun_latched);
+    // First-character special errors retain their word even after a read.
+    // Allow one Ready-paced transfer, then inhibit further DMA reads until
+    // Error Reset. CPU inspection remains readable; no FIFO pop is invented.
+    // UM008101-0601 printed 237 motivates this functional policy, not exact
+    // W/RDY edge timing. The default (FLOW_ENABLE=0) remains unchanged.
+    reg error_read_seen;
     wire rx_pop = fifo_count!=0 && ((read_event && !control && !error_locked) ||
         (error_reset && error_locked));
     wire incoming_first = first_mode && first_armed;
@@ -144,6 +150,7 @@ module x1_sio_async_channel #(parameter IRQ_ENABLE=0, parameter CHANNEL_B=0, par
         if (reset || channel_reset) begin
             wr1<=0; wr2<=0; wr3<=0; wr4<=0; wr5<=0; pointer<=0;
             read_seen<=0; write_seen<=channel_reset; cpu_dout<=0; unsupported<=0;
+            error_read_seen<=0;
             fifo_count<=0; overrun_latched<=0; parity_latched<=0; transmit_pending<=0;
             first_armed<=0; // Explicit WR0 next-character command arms this subset.
             for(integer i=0;i<3;i=i+1) begin fifo_data[i]<=0; fifo_error[i]<=0; fifo_first[i]<=0; end
@@ -154,6 +161,8 @@ module x1_sio_async_channel #(parameter IRQ_ENABLE=0, parameter CHANNEL_B=0, par
             tx_shift<=12'hfff; tx_phase<=0; tx_bit<=0; tx_stop_bit<=9;
             tx_divisor<=16; tx_stop_ticks<=16;
         end else if (ce) begin
+            if(error_reset || !error_locked) error_read_seen<=0;
+            else if(read_event && !control) error_read_seen<=1;
             if(!cpu_cs || cpu_rd_n) read_seen<=0;
             if(!cpu_cs || cpu_wr_n) write_seen<=0;
             if(read_event) begin

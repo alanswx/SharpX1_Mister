@@ -4,7 +4,10 @@ October 6, 2026. `x1_sio_interrupt` now has an explicitly opt-in
 `FLOW_ENABLE=1` profile. Its default stays off; existing default-wrapper
 WAIT/Ready rejection remains tested. Neither SIO wrapper is in `machine.qip`
 or instantiated by the X1. **No machine, DMA, native firmware, Quartus or
-physical handshake acceptance is claimed.** v11 machine states are unchanged.
+physical handshake acceptance is claimed by that checkpoint.** v11 machine states are unchanged.
+The subsequent [standalone SIO/DMA fixture](SIO_DMA_STATUS.md) separately
+qualifies bounded Ready-paced transfers and adds locked-error Ready inhibition;
+it does not connect the machine or establish exact pin timing.
 
 ## Contract and deliberate limits
 
@@ -38,10 +41,10 @@ or tri-state voltage modeling**. All inputs are synchronous to SYS.
 - Disabled flow and chip reset release both outputs. Reset clears stalled
   state on SYS even when advancement CE is stopped.
 
-The [interrupt subset](SIO_IRQ_STATUS.md) remains separately tested. First-mode
-error locking and Ready-on-RX reflect the same FIFO availability; real DMA
-behavior around a locked error character is not established by these fixtures.
-No fabricated DMA-ready connection or machine WAIT connection was added.
+The [interrupt subset](SIO_IRQ_STATUS.md) remains separately tested. The later
+SIO/DMA increment inhibits RX Ready after one accepted locked-error read until
+Error Reset; ordinary CPU inspection stays readable. This fixes the repeated
+DMA error-word copy exposed by that fixture. No machine WAIT connection was added.
 
 ## Executed checks
 
@@ -95,7 +98,8 @@ no new warning suppression or unrelated CPU changes were added.
 
 - Exact W/RDY bus edges/delays, open-drain pin handling and opposite-channel
   effects; broader RX/TX phase/cancellation/reset coverage.
-- Original SIO-to-DMA transfers, paced readiness and locked-error recovery.
+- Broader SIO-to-DMA readiness/error/reset collisions and actual CPU ownership;
+  bounded standalone paced transfers/locked-error recovery now pass separately.
 - Schematic-qualified machine pin/clock/decode integration, stretched CPU
   sampling/WAIT, DMA isolation and multi-device ACK/RETI ownership.
 - Remaining SYNC/break/EOM sources, modem auto-enable, x1/live configuration,

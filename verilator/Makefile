@@ -112,6 +112,14 @@ $(HEADLESS_DIR)/sio-flow/Vsio_flow_tb: tests/sio_flow_tb.sv ../rtl/x1_sio_async.
 		-j 4 tests/sio_flow_tb.sv ../rtl/x1_sio_async.sv ../rtl/x1_sio_irq.sv -Wno-fatal
 .PHONY: test-sio-flow
 
+test-sio-dma: $(HEADLESS_DIR)/sio-dma/Vsio_dma_tb
+	@for rate in 1 4 7; do ./$(HEADLESS_DIR)/sio-dma/Vsio_dma_tb +CE_PERIOD=$$rate || exit 1; done
+$(HEADLESS_DIR)/sio-dma/Vsio_dma_tb: tests/sio_dma_tb.sv ../rtl/x1_dma.sv ../rtl/x1_sio_async.sv ../rtl/x1_sio_irq.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module sio_dma_tb --Mdir $(HEADLESS_DIR)/sio-dma \
+		-j 4 tests/sio_dma_tb.sv ../rtl/x1_dma.sv ../rtl/x1_sio_async.sv ../rtl/x1_sio_irq.sv
+.PHONY: test-sio-dma
+
 # Fast X3 diagnostic continuations; not the delay-aware scheduling reference.
 obj_dir_turbo_video_savable/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc --no-timing --savable --assert --trace-fst --exe --build -j 4 --Mdir obj_dir_turbo_video_savable --top-module top \

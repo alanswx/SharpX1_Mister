@@ -133,7 +133,10 @@ held ACK/vector and actual-CPU IM2/RETI tests at the same enable rates, now
 including explicitly armed first-character/error locking and CTS/DCD snapshots.
 A separate opt-in [functional WAIT/Ready experiment](docs/SIO_FLOW_STATUS.md)
 passes pin tests and actual-CPU stalled IN/OUT tests at those rates; it does
-not establish exact pin timing or DMA handshakes.
+not establish exact pin timing. A subsequent [standalone SIO/DMA fixture](docs/SIO_DMA_STATUS.md)
+passes A/B RX/TX Ready-paced transfers, count readback and stopped-enable recovery;
+it fixes repeated copies of a locked error character in the opt-in flow model.
+Actual CPU/SIO/DMA ownership together and exact pin handshakes remain open.
 Neither is connected to the machine; native reset arming, remaining external
 sources, x1/break/exact WAIT/Ready and full multi-device arbitration remain open.
 The simulator window now offers optional [live joystick keys](docs/PLAYING.md):
