@@ -20,8 +20,8 @@ unavailable; continue local verification without claiming hardware acceptance.
 
 | Work group | Execution/acceptance still needed |
 |---|---|
-| 1. SIO | Owned serial read/write reset drain now passes separately; add reset during IRQ service, broader phases and full device arbitration; trace schematic clocks/modem/Ready/decode before opt-in shared-machine integration; finish remaining modes and run native serial diagnostics |
-| 2. DMA | Eight pending-SD held-reset cases and fast/delay-aware GRAM/PCG targets now pass; broaden partial metadata/short-pulse/PCG-reset/DAM cases; implement/test IRQ/search/restart functions; unchanged native Turbo IPL transfer continuity and exact timing |
+| 1. SIO | Owned serial read/write reset drain and bounded idle Send Break pass separately; add reset during IRQ service, broader phases and full device arbitration; trace schematic clocks/modem/Ready/decode before opt-in shared-machine integration; finish remaining modes and run native serial diagnostics |
+| 2. DMA | 32 single-block payload/metadata held/pulsed resets, five owned PCG reset profiles and fast/delay-aware GRAM/PCG targets pass; finish split metadata, partial-payload/Ready-loss/DAM cases; implement/test IRQ/search/restart functions; unchanged native Turbo IPL transfer continuity and exact timing |
 | 3. Kanji/Turbo video | CPU latch/ROM/glyph paths with synthetic fixtures, then authorized native fonts; complete attribute/PCG/text combinations, ASIC behavior and native Turbo/400-line software |
 | 4. Timing/hardware | Narrow audited CDC/reset/mux constraints, current-source Quartus refit and positive setup/hold/recovery; hardware bandwidth/video/audio and Main/OSD reset verification |
 | 5. Disk/software | Format/density/HD/media-change contracts; native metadata qualification; Arcus/Bastard playability; delay-aware and hardware game matrix |
@@ -308,6 +308,12 @@ Preserve each frozen runner; do not rebuild historical v05.
   simulation: 576/96 pairs, 36/6 real grants, CPU counters/readback, both GRAM
   pages/boundaries, three planes and real PCG WAIT. DAM, pending-PCG reset,
   exact native timing and hardware remain open; see [evidence](DMA_MACHINE_STATUS.md#october-6-pending-sd-reset-and-video-target-qualification).
+- [x] Extend whole-machine resets to 32 single-block payload/metadata held and
+  short-pulse cases, plus five PCG-owned profiles with exact one-write drain
+  and an 80-edge physically stopped-video WAIT. The original four RAM reset
+  cases and full delay-aware baseline also pass. Split metadata is still under
+  qualification; partial CPU payload/Ready loss, DAM, native and hardware remain
+  open. See [reset checkpoint](DMA_MACHINE_STATUS.md#october-6-reset-extension-checkpoint).
 - [x] Exercise real CPU-executed DMA register streams and a single-owner unit
   mux at CE=1/4/7, WAIT-stretched raw/accepted register writes, both transfer
   directions, count/readback/CONTINUE and drained read/write reset. This is
@@ -317,6 +323,10 @@ Preserve each frozen runner; do not rebuild historical v05.
   [CPU seam audit](CPU_BUSREQ_AUDIT.md); machine request stays inactive until
   DMA and shared-bus arbitration are implemented.
 - [ ] Add CTC/SIO behavior and interrupt priority/acknowledgement tests.
+- [x] Implement and test standalone idle/no-pending-data SIO Send Break on A/B
+  at CE=1/4/7, including stopped ticks/enables and reset isolation. Busy/queued
+  TX and receive-break behavior remain unsupported; full SIO/machine acceptance
+  is not complete. See [bounded contract](SIO_ASYNC_STATUS.md#october-6-idle-send-break-increment).
 - [x] Add opt-in Turbo CTC with enable-driven timers/counters, schematic-based
   CTC-before-keyboard arbitration, stable vectors/single mailbox consumption,
   nested channel IRQs and decoded RETI. Unit, connected bridge, real MR16

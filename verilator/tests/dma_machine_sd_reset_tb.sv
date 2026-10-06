@@ -15,21 +15,34 @@ module dma_machine_sd_reset_tb;
     wire host_drive, sd_rd, sd_wr;
     wire [31:0] lba;
     wire [7:0] host_read;
-    reg [7:0] rom[0:8191], image_a[0:1023], image_b[0:1023];
-    reg [7:0] original_a[0:1023], original_b[0:1023];
-    integer size=0, writing_arg=0, phase_arg=0, drive_arg=0, poll_at;
-    bit writing=0, phase=0, drive_b=0;
+    reg [7:0] rom[0:8191], image_a[0:1535], image_b[0:1535];
+    reg [7:0] original_a[0:1535], original_b[0:1535];
+    integer size=0, writing_arg=0, phase_arg=0, drive_arg=0, stage_arg=0, pulse_arg=0, split_arg=0, poll_at;
+    bit writing=0, phase=0, drive_b=0, short_reset=0, split_header=0;
+    // 0 payload, 1 first metadata read, 2 first published metadata write,
+    // 3 second (CRC) read, 4 second published CRC write.
+    integer capture_stage=0, sector_offset=688;
+    reg [23:0] image_size=960;
     reg captured=0, release_host=0, drained=0;
+    reg captured_ack_drained=0;
     reg [31:0] saved_lba;
     reg saved_drive, saved_write;
     integer reads_before, writes_before;
+    // Observe the old transfer's falling ACK before a legitimate drive-change
+    // rescan can publish a new request. This is an observation, not ACK forcing.
+    always @(posedge clk_sys)
+        if(captured && !drained && dut.machine.fdc.ack[5:4]==2'b10) begin
+            #1000;
+            assert(!dut.machine.fdc.sd_busy) else $fatal(1,"old ACK failed to release SD busy");
+            captured_ack_drained=1;
+        end
     top #(.TURBO(1), .TURBO_DMA(1)) dut (
         .clk_sys(clk_sys), .clk_28636(clk_video), .reset(reset),
         .ioctl_download(download), .ioctl_index(8'd0), .ioctl_wr(load_write),
         .ioctl_addr(load_address), .ioctl_dout(load_data), .ioctl_wait(),
         .ps2_clk_in(1'b1), .ps2_data_in(1'b1), .joya_n(8'hff), .joyb_n(8'hff),
-        .disk_ready(1'b1), .img_mounted(mounted), .disk_wp(1'b0), .img_size(24'd960),
-        .disk_ready_b(1'b1), .img_mounted_b(mounted), .disk_wp_b(1'b0), .img_size_b(24'd960),
+        .disk_ready(1'b1), .img_mounted(mounted), .disk_wp(1'b0), .img_size(image_size),
+        .disk_ready_b(1'b1), .img_mounted_b(mounted), .disk_wp_b(1'b0), .img_size_b(image_size),
         .sd_drive(host_drive), .sd_lba(lba), .sd_rd(sd_rd), .sd_wr(sd_wr),
         .sd_ack(ack), .sd_buff_addr(host_address), .sd_buff_dout(host_data),
         .sd_buff_din(host_read), .sd_buff_wr(host_wr), .debug_addr(16'hf100),
@@ -67,13 +80,21 @@ module dma_machine_sd_reset_tb;
         emit(8'hed); emit(8'h78); emit(8'he6); emit(mask); emit(8'hfe); emit(expected);
         emit(8'h28); emit(6); store(16'hf101,8'hee); emit(8'h76);
     endtask
-    task automatic verify_media;
+    task automatic verify_media(input bit fresh_complete);
         reg [7:0] expected_a, expected_b;
-        for(integer i=0;i<1024;i++) begin
+        for(integer i=0;i<1536;i++) begin
             expected_a=original_a[i]; expected_b=original_b[i];
-            if(writing && i>=704 && i<960) begin
+            if(writing && i>=sector_offset+16 && i<sector_offset+272) begin
                 if(drive_b) expected_b=expected_b^8'h5c;
                 else expected_a=expected_a^8'h5c;
+            end
+            // A published metadata write may commit despite reset. An aborted
+            // header read must leave both old fields intact until fresh retry.
+            if(writing && ((i==sector_offset+7 && (fresh_complete || capture_stage>=2)) ||
+                          (i==sector_offset+8 && (fresh_complete || capture_stage==4 ||
+                                                  (capture_stage==2 && !split_header))))) begin
+                if(drive_b) expected_b=0;
+                else expected_a=0;
             end
             assert(image_a[i]==expected_a && image_b[i]==expected_b)
                 else $fatal(1,"whole-image mismatch byte=%0d A=%h/%h B=%h/%h",
@@ -91,9 +112,13 @@ module dma_machine_sd_reset_tb;
         wait(sd_rd || sd_wr);
         @(negedge clk_sys);
         request_write=sd_wr; request_drive=host_drive; request_lba=int'(lba);
-        assert(request_lba<=1) else $fatal(1,"out-of-image LBA");
-        this_capture=!captured && !dut.machine.fdc.prepare &&
-            dut.machine.fdc.s_busy && (request_write==1'(writing));
+        assert(request_lba>=0 && request_lba*512<int'(image_size)) else $fatal(1,"out-of-image LBA");
+        this_capture=!captured && !dut.machine.fdc.prepare && dut.machine.fdc.s_busy &&
+            (capture_stage==0 ? (request_write==writing && !dut.machine.fdc.metadata_busy) :
+             capture_stage==1 ? (!request_write && dut.machine.fdc.metadata_busy && !dut.machine.fdc.metadata_second) :
+             capture_stage==2 ? (request_write && dut.machine.fdc.metadata_inflight && !dut.machine.fdc.metadata_second) :
+             capture_stage==3 ? (!request_write && dut.machine.fdc.metadata_busy && dut.machine.fdc.metadata_second) :
+                               (request_write && dut.machine.fdc.metadata_inflight && dut.machine.fdc.metadata_second));
         if(this_capture) begin
             saved_lba=lba; saved_drive=host_drive; saved_write=request_write;
             if(phase==0) begin captured=1; wait(release_host); end
@@ -105,6 +130,8 @@ module dma_machine_sd_reset_tb;
             host_wr=!request_write;
             // RAM host read port is synchronous; do not sample on address change.
             @(negedge clk_sys);
+            assert(lba==32'(request_lba) && host_drive==request_drive)
+                else $fatal(1,"host request owner/LBA changed while ACK held");
             if(request_write) begin
                 if(request_drive) image_b[request_lba*512+i]=host_read;
                 else image_a[request_lba*512+i]=host_read;
@@ -125,18 +152,33 @@ module dma_machine_sd_reset_tb;
         if(!$value$plusargs("WRITING=%d",writing_arg)) writing_arg=0;
         if(!$value$plusargs("PHASE=%d",phase_arg)) phase_arg=0;
         if(!$value$plusargs("DRIVE_B=%d",drive_arg)) drive_arg=0;
+        if(!$value$plusargs("CAPTURE_STAGE=%d",stage_arg)) stage_arg=0;
+        if(!$value$plusargs("SHORT_RESET=%d",pulse_arg)) pulse_arg=0;
+        if(!$value$plusargs("SPLIT_HEADER=%d",split_arg)) split_arg=0;
         assert((writing_arg==0 || writing_arg==1) && (phase_arg==0 || phase_arg==1) &&
-               (drive_arg==0 || drive_arg==1)) else $fatal(1,"invalid profile");
+               (drive_arg==0 || drive_arg==1) && (pulse_arg==0 || pulse_arg==1) &&
+               (split_arg==0 || split_arg==1) && stage_arg>=0 && stage_arg<=4 &&
+               (stage_arg<3 || split_arg==1) && (stage_arg==0 || writing_arg==1))
+            else $fatal(1,"invalid profile");
         writing=1'(writing_arg); phase=1'(phase_arg); drive_b=1'(drive_arg);
-        for(integer i=0;i<1024;i++) begin image_a[i]=0; image_b[i]=0; end
+        short_reset=1'(pulse_arg); capture_stage=stage_arg;
+        split_header=1'(split_arg); sector_offset=split_header ? 1016 : 688;
+        image_size=24'(sector_offset+272);
+        for(integer i=0;i<1536;i++) begin image_a[i]=0; image_b[i]=0; end
         // 688-byte D88 header, one 16-byte sector header, 256-byte payload.
-        image_a[28]=8'hc0; image_a[29]=3; image_a[32]=8'hb0; image_a[33]=2;
-        image_a[690]=1; image_a[691]=1; image_a[692]=1; image_a[703]=1;
-        for(integer i=0;i<704;i++) image_b[i]=image_a[i];
-        for(integer i=0;i<256;i++) begin
-            image_a[704+i]=8'(32'h21+i*7); image_b[704+i]=8'(32'h93+i*7);
+        image_a[28]=8'(image_size); image_a[29]=8'(image_size>>8);
+        image_a[32]=8'(sector_offset); image_a[33]=8'(sector_offset>>8);
+        image_a[sector_offset+2]=1; image_a[sector_offset+3]=1;
+        image_a[sector_offset+4]=1; image_a[sector_offset+15]=1;
+        for(integer i=0;i<sector_offset+16;i++) image_b[i]=image_a[i];
+        if(writing) begin
+            if(drive_b) begin image_b[sector_offset+7]=8'h10; image_b[sector_offset+8]=8'hb0; end
+            else begin image_a[sector_offset+7]=8'h10; image_a[sector_offset+8]=8'hb0; end
         end
-        for(integer i=0;i<1024;i++) begin original_a[i]=image_a[i]; original_b[i]=image_b[i]; end
+        for(integer i=0;i<256;i++) begin
+            image_a[sector_offset+16+i]=8'(32'h21+i*7); image_b[sector_offset+16+i]=8'(32'h93+i*7);
+        end
+        for(integer i=0;i<1536;i++) begin original_a[i]=image_a[i]; original_b[i]=image_b[i]; end
         emit(8'hf3); emit(8'h31); emit(8'hff); emit(8'hff);
         emit(8'h21); emit(0); emit(8'hf1); emit(8'h34); // INC retained entry count
         store(16'hf101,0);
@@ -181,25 +223,41 @@ module dma_machine_sd_reset_tb;
         reads_before=int'(dut.dma_reads); writes_before=int'(dut.dma_writes);
         assert(!dut.machine.dma_owner && dut.machine.core_reset)
             else $fatal(1,"unexpected owned bus at SD wait");
+        if(short_reset) begin
+            // End the 2 ns request before the next SYS rising edge. The
+            // ownership guard must retain it and restart the real CPU.
+            reset=0;
+            assert(dut.machine.core_reset) else $fatal(1,"short request not retained");
+        end
         repeat(80) begin
             @(negedge clk_sys);
-            assert(!dut.machine.cpu_ce && !dut.machine.fdc.ce &&
-                   lba==saved_lba && host_drive==saved_drive &&
+            if(!short_reset) assert(!dut.machine.cpu_ce && !dut.machine.fdc.ce)
+                else $fatal(1,"held reset did not stop CPU/FDC enables");
+            assert(lba==saved_lba && host_drive==saved_drive &&
                    (phase==0 ? (saved_write ? sd_wr : sd_rd) : ack))
                 else $fatal(1,"pending SD/reset instability");
             assert(dut.dma_reads==64'(reads_before) && dut.dma_writes==64'(writes_before))
-                else $fatal(1,"DMA progressed through held reset");
+                else $fatal(1,"DMA progressed before old host transfer drained");
         end
         release_host=1; wait(drained);
         repeat(80) @(negedge clk_sys);
-        assert(!dut.machine.fdc.transport_active && !sd_rd && !sd_wr &&
-               !dut.machine.cpu_ce && !dut.machine.fdc.ce)
-            else $fatal(1,"SD transport failed to drain with enables stopped");
+        assert(captured_ack_drained && !dut.machine.fdc.metadata_busy && !dut.machine.fdc.metadata_aborted)
+            else $fatal(1,"SD transport/metadata ownership failed to drain");
+        if(short_reset && drive_b) begin
+            // Reset returns the drive latch to A. With reset released, its
+            // queued scanner may already be using a distinct new request.
+            assert(!dut.machine.fdc.transport_active ||
+                   (host_drive==0 && dut.machine.fdc.prepare))
+                else $fatal(1,"old B request was reused outside the queued A rescan");
+        end else assert(!dut.machine.fdc.transport_active && !sd_rd && !sd_wr)
+            else $fatal(1,"old transport remained busy");
+        if(!short_reset) assert(!dut.machine.cpu_ce && !dut.machine.fdc.ce)
+            else $fatal(1,"held reset resumed CPU/FDC during ACK drain");
         assert(reads_before==(writing ? 256 : 0) && writes_before==reads_before)
             else $fatal(1,"unexpected pre-reset pair count");
         // A published write may commit during reset. Check it before reboot
         // so a later identical write cannot conceal a corrupted old buffer.
-        verify_media();
+        verify_media(0);
         reset=0;
         wait(!dut.machine.halt_n);
         assert(dut.machine.RAM.mem[16'hf100]==2 && dut.machine.RAM.mem[16'hf101]==8'ha5 &&
@@ -208,8 +266,8 @@ module dma_machine_sd_reset_tb;
                dut.cpu_fdc_data_reads==0 && dut.cpu_fdc_data_writes==0)
             else $fatal(1,"native reboot/count/payload failure entry=%h result=%h pairs=%0d/%0d",
                 dut.machine.RAM.mem[16'hf100],dut.machine.RAM.mem[16'hf101],dut.dma_reads,dut.dma_writes);
-        verify_media();
-        $display("PASS: shared-machine DMA SD reset drive=%0d write=%0d phase=%0d, stopped-CE ACK drain, retained native reboot, exact 256 fresh pairs",drive_b,writing,phase);
+        verify_media(1);
+        $display("PASS: shared-machine DMA SD reset drive=%0d write=%0d phase=%0d stage=%0d short=%0d split=%0d, transport/metadata drain, retained native reboot, exact 256 fresh pairs",drive_b,writing,phase,capture_stage,short_reset,split_header);
         $finish;
     end
     initial begin #1000000000000; $fatal(1,"whole-machine SD reset watchdog"); end

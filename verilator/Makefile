@@ -58,6 +58,10 @@ $(HEADLESS_DIR)/dma-machine-reset/Vdma_machine_reset_tb: $(V_SRC) tests/dma_mach
 		-j 4 $(V_SRC) tests/dma_machine_reset_tb.sv -Wno-fatal
 .PHONY: test-machine-dma test-machine-dma-reset
 
+test-machine-dma-pcg-reset: $(HEADLESS_DIR)/dma-machine-reset/Vdma_machine_reset_tb
+	@for kind in 0 1 2 3 4; do ./$(HEADLESS_DIR)/dma-machine-reset/Vdma_machine_reset_tb +RESET_KIND=$$kind +pcg || exit 1; done
+.PHONY: test-machine-dma-pcg-reset
+
 test-machine-dma-sd-reset: $(HEADLESS_DIR)/dma-machine-sd-reset/Vdma_machine_sd_reset_tb
 	@for drive in 0 1; do for writing in 0 1; do for phase in 0 1; do \
 		./$(HEADLESS_DIR)/dma-machine-sd-reset/Vdma_machine_sd_reset_tb +DRIVE_B=$$drive +WRITING=$$writing +PHASE=$$phase || exit 1; \
@@ -67,6 +71,22 @@ $(HEADLESS_DIR)/dma-machine-sd-reset/Vdma_machine_sd_reset_tb: $(V_SRC) tests/dm
 	$(V) --binary --timing --assert --top-module dma_machine_sd_reset_tb --Mdir $(HEADLESS_DIR)/dma-machine-sd-reset \
 		-j 4 $(V_SRC) tests/dma_machine_sd_reset_tb.sv -Wno-fatal
 .PHONY: test-machine-dma-sd-reset
+
+test-machine-dma-sd-short-reset: $(HEADLESS_DIR)/dma-machine-sd-reset/Vdma_machine_sd_reset_tb
+	@for drive in 0 1; do for writing in 0 1; do for phase in 0 1; do \
+		./$(HEADLESS_DIR)/dma-machine-sd-reset/Vdma_machine_sd_reset_tb +DRIVE_B=$$drive +WRITING=$$writing +PHASE=$$phase +SHORT_RESET=1 || exit 1; \
+	done; done; done
+test-machine-dma-metadata-reset: $(HEADLESS_DIR)/dma-machine-sd-reset/Vdma_machine_sd_reset_tb
+	@for drive in 0 1; do for stage in 1 2; do for pulse in 0 1; do for phase in 0 1; do \
+		./$(HEADLESS_DIR)/dma-machine-sd-reset/Vdma_machine_sd_reset_tb +DRIVE_B=$$drive +WRITING=1 +PHASE=$$phase +CAPTURE_STAGE=$$stage +SHORT_RESET=$$pulse || exit 1; \
+	done; done; done; done
+.PHONY: test-machine-dma-sd-short-reset test-machine-dma-metadata-reset
+
+test-machine-dma-split-metadata-reset: $(HEADLESS_DIR)/dma-machine-sd-reset/Vdma_machine_sd_reset_tb
+	@for drive in 0 1; do for stage in 1 2 3 4; do for pulse in 0 1; do for phase in 0 1; do \
+		./$(HEADLESS_DIR)/dma-machine-sd-reset/Vdma_machine_sd_reset_tb +DRIVE_B=$$drive +WRITING=1 +PHASE=$$phase +CAPTURE_STAGE=$$stage +SHORT_RESET=$$pulse +SPLIT_HEADER=1 || exit 1; \
+	done; done; done; done
+.PHONY: test-machine-dma-split-metadata-reset
 
 test-machine-dma-video: turbo-dma
 	python3 tests/test_machine_dma_video.py ./$(DMA_DIR)/Vtop
@@ -79,6 +99,14 @@ $(HEADLESS_DIR)/sio-async/Vsio_async_tb: tests/sio_async_tb.sv ../rtl/x1_sio_asy
 	$(V) --binary --timing --assert --top-module sio_async_tb --Mdir $(HEADLESS_DIR)/sio-async \
 		-j 4 tests/sio_async_tb.sv ../rtl/x1_sio_async.sv -Wno-fatal
 .PHONY: test-sio-async
+
+test-sio-break: $(HEADLESS_DIR)/sio-break/Vsio_break_tb
+	@for rate in 1 4 7; do ./$(HEADLESS_DIR)/sio-break/Vsio_break_tb +CE_PERIOD=$$rate || exit 1; done
+$(HEADLESS_DIR)/sio-break/Vsio_break_tb: tests/sio_break_tb.sv ../rtl/x1_sio_async.sv
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module sio_break_tb --Mdir $(HEADLESS_DIR)/sio-break \
+		-j 4 tests/sio_break_tb.sv ../rtl/x1_sio_async.sv
+.PHONY: test-sio-break
 
 test-sio-formats: $(HEADLESS_DIR)/sio-formats/Vsio_formats_tb
 	@for rate in 1 4 7; do ./$(HEADLESS_DIR)/sio-formats/Vsio_formats_tb +CE_PERIOD=$$rate || exit 1; done

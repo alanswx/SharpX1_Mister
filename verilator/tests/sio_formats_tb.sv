@@ -151,7 +151,10 @@ module sio_formats_tb;
         // Unsupported modes must remain explicit, not silently look complete.
         put(1,1); put(1,8'h18); if(!unsupported) $fatal(1,"IRQ mode falsely supported");
         configure(8,0,1,1);
-        put(1,5); put(1,8'hfa); if(!unsupported) $fatal(1,"break falsely supported");
+        put(1,5); put(1,8'hfa);
+        if(unsupported || txd!==2'b10) $fatal(1,"idle Send Break rejected/pin not spacing");
+        put(1,5); put(1,8'hea);
+        if(unsupported || txd!==2'b11) $fatal(1,"idle Send Break not released");
         configure(8,0,1,1);
         put(1,4); put(1,8'h40); if(!unsupported) $fatal(1,"sync mode falsely supported");
         configure(8,0,1,1);

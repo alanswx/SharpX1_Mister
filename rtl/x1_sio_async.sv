@@ -2,7 +2,8 @@
 // Original standalone SIO asynchronous slice. Public register contract:
 // Zilog UM008101-0601. Not translated from an emulator or wired to the X1.
 // Supported: polled asynchronous 5..8 bits, N/E/O, 1/1.5/2 TX stops,
-// x16/x32/x64 RX/TX event clocks. Interrupts, x1, WAIT/Ready, break/modem
+// x16/x32/x64 RX/TX event clocks and idle-transmitter Send Break.
+// Interrupts, x1, WAIT/Ready, receive/busy-transmit break and modem
 // gating, synchronous modes and live frame reconfiguration are unsupported.
 // IRQ_ENABLE is used only by the separate standalone interrupt wrapper:
 // it adds first/all-character RX, TX-empty and CTS/DCD requests, B-only RR2, A-only return,
@@ -141,7 +142,10 @@ module x1_sio_async_channel #(parameter IRQ_ENABLE=0, parameter CHANNEL_B=0, par
     reg [3:0] tx_bit, tx_stop_bit;
     reg [7:0] tx_stop_ticks;
     wire tx_take = tx_tick && tx_enabled && !tx_busy && tx_holding_full;
-    assign txd = tx_busy ? tx_shift[0] : 1'b1;
+    // UM0081 printed 288: Send Break forces TxD spacing independently of
+    // serial ticks and TX enable. Only idle/no-pending-data use is qualified;
+    // frame/queue behavior while breaking remains explicitly unsupported.
+    assign txd = wr5[4] ? 1'b0 : tx_busy ? tx_shift[0] : 1'b1;
     assign rts_n = !wr5[1];
     assign dtr_n = !wr5[7];
 
@@ -186,6 +190,7 @@ module x1_sio_async_channel #(parameter IRQ_ENABLE=0, parameter CHANNEL_B=0, par
             if(write_event) begin
                 write_seen<=1;
                 if(!control) begin
+                    if(wr5[4]) unsupported<=1;
                     transmit_pending<=0;
                     if(tx_holding_full && !tx_take) unsupported<=1;
                     else begin tx_holding<=cpu_din; tx_holding_full<=1; end
@@ -209,7 +214,7 @@ module x1_sio_async_channel #(parameter IRQ_ENABLE=0, parameter CHANNEL_B=0, par
                         end
                         5: begin
                             wr5<=cpu_din;
-                            if((cpu_din & 8'h15)!=0 || tx_busy) unsupported<=1;
+                            if((cpu_din & 8'h05)!=0 || tx_busy || (cpu_din[4] && tx_holding_full)) unsupported<=1;
                         end
                         default: unsupported<=1;
                     endcase

@@ -35,7 +35,7 @@ jobs:
       - name: Run original standalone fixtures
         run: |
           make -C verilator \
-            test-sio-async test-sio-formats test-sio-irq test-sio-first-status \
+            test-sio-async test-sio-break test-sio-formats test-sio-irq test-sio-first-status \
             test-sio-flow test-sio-cpu test-sio-dma test-sio-dma-cpu \
             test-dma test-dma-cpu \
             test-dma-reset test-cpu-busreq test-d88-scanner test-d88-crc \

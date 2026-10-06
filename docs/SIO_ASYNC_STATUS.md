@@ -39,6 +39,11 @@ outside the polled slice are not established by this increment.
 - TX has separate holding and shifting registers. RR0 holding-empty and
   RR1 all-sent are distinct while a character is being transmitted. Serial
   progression stops when serial tick enables stop, while CPU access continues.
+- Idle/no-pending-data WR5 D4 Send Break forces TxD low independently of
+  serial ticks and TX enable. Clearing it returns idle TxD high. Queued-data
+  writes during break, asserting break with pending data, and WR5 changes
+  during transmission remain explicitly unsupported; no frame continuity or
+  receive-break detection is claimed.
 - RR0 reports buffer state and actual active-low CTS/DCD inputs. RTS/DTR
   outputs follow WR5. No automatic modem gating is implied.
 - WR0 channel reset affects only that channel; Error Reset clears the
@@ -75,8 +80,10 @@ transmitted bit on every serial tick, including the final tick of 1/1½/2
 stops, and RR1 all-sent before/after completion. RX checks short-character
 one-fill/parity retention, deliberate A-only parity corruption, sticky error
 reset, delayed parity visibility behind a good word, and A-only framing error.
-A directed case receives five bits while transmitting eight. IRQ, break,
+A directed case receives five bits while transmitting eight. Polled IRQ,
 sync and live TX reconfiguration are explicitly detected as unsupported.
+The subsequent idle Send Break increment adds positive spacing/release checks;
+queued/busy break remain unsupported.
 
 The test is asset-free. Logs: `/tmp/x1-v11-sio-and-scheduling.log` and
 `/tmp/x1-v11-sio-async.log`; expanded formats/collisions:
@@ -86,7 +93,7 @@ the serialized machine or require conversion of v11 states.
 
 ## Next gates
 
-1. Externally synchronized x1 mode, break, auto-enable/modem latches and
+1. Externally synchronized x1 mode, receive/busy-transmit break, auto-enable/modem latches and
    exact error-reset effects outside this polled subset. Live frame changes
    are flagged unsupported and frame parameters are latched at start/take;
    the manual's live RX-length adjustment is **not implemented**. Validate
@@ -101,3 +108,30 @@ the serialized machine or require conversion of v11 states.
    fake WAIT/Ready/IRQ signal to firmware.
 5. Native firmware/serial diagnostics, source-bound fitted timing/CDC and
    physical connector/voltage/pin-loopback validation.
+
+## October 6 idle Send Break increment
+
+Reviewed Zilog UM008101-0601 printed 288 / PDF 308, WR5 D4, and the local MAME
+`z80sio.cpp` TxD override as a second implementation, not copied or run.
+The primary [manual](https://www.zilog.com/docs/z80/um0081.pdf) specifies the
+spacing override independently of transmitted data. This increment qualifies
+only the unambiguous idle/no-pending-data case, not active-frame handling.
+It changes only the standalone SIO slice; the shared machine does not include
+it, so no snapshot version, game requalification or new RBF is implied.
+
+`test-sio-break` passes on A/B at CE=1/4/7: held WR5 strobes, independent
+channels, 80 SYS edges with CE and serial ticks stopped, TX-enable clear,
+marking on release, channel reset isolation and chip reset with CE stopped.
+Negative cases require sticky unsupported status for queued/busy break.
+All other eight SIO targets pass unchanged except the format fixture's old
+assertion that **idle** break must be unsupported: it now verifies both actual
+spacing and release. Other unsupported-mode assertions remain intact.
+The original failed assertion is retained in `/tmp/x1-sio-break-regression.log`;
+passing full suite: `/tmp/x1-sio-break-regression2.log`. No warning suppressions
+were added. Neither connector timing nor native serial software is qualified.
+
+```sh
+make -C verilator test-sio-break test-sio-async test-sio-formats test-sio-irq \
+  test-sio-first-status test-sio-flow test-sio-cpu test-sio-dma test-sio-dma-cpu \
+  HEADLESS_DIR=obj_dir_v11_units
+```

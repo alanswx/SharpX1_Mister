@@ -6,7 +6,9 @@ A subsequent [standalone polled asynchronous slice](SIO_ASYNC_STATUS.md) passes
 an additional [standalone IRQ wrapper](SIO_IRQ_STATUS.md) passes connected
 service and actual-CPU IM2 tests, including explicitly armed first-character
 RX/error locking and CTS/DCD snapshots. Native reset arming, remaining external
-sources, x1/break/live configuration and machine integration remain open.
+sources, x1/receive-break/busy-break/live configuration and machine integration
+remain open. A subsequent [idle Send Break increment](SIO_ASYNC_STATUS.md#october-6-idle-send-break-increment)
+qualifies only the WR5 spacing override with no pending/active TX data.
 Do not replace missing behavior with a successful capability signature.
 October 6: [functional WAIT/Ready](SIO_FLOW_STATUS.md) is separately opt-in and
 passes pin/real-CPU stalls; exact timing and opposite-channel effects remain open.

@@ -60,8 +60,13 @@ functions remain open. Ordinary Turbo/X3 and board defaults do not enable it.
 Further [pending-SD reset and video-target checks](docs/DMA_MACHINE_STATUS.md#october-6-pending-sd-reset-and-video-target-qualification)
 pass eight held-reset A/B read/write cases, including stopped-enable ACK drain
 and native diagnostic reboot. Fast/delay-aware GRAM/selected PCG transfers pass
-CPU count/readback and isolation checks. Short reset/metadata/DAM/native timing
+CPU count/readback and isolation checks. Broader reset/metadata/DAM/native timing
 and hardware gates remain open.
+The [reset extension](docs/DMA_MACHINE_STATUS.md#october-6-reset-extension-checkpoint)
+passes 32 single-block held/pulsed payload/metadata cases and five PCG-owned
+reset profiles, including a stopped-video WAIT and exact one-write drain.
+The full delay-aware baseline regression also completes successfully.
+Split-header qualification is still in progress; no hardware signoff is implied.
 A bounded [high-speed PCG increment](docs/TURBO_HIGH_SPEED_PCG_STATUS.md)
 adds selector shadows, frozen HSYNC-window access and CPU ANK8/16 selection.
 Original unit/CPU tests pass; ASIC fallback/WAIT phase, Kanji and hardware
@@ -150,8 +155,12 @@ exact pin handshakes remain open; DMA's own IRQ engine is still absent.
 Its warm-reset extension also passes twelve owned serial read/write cases:
 retained short request, stopped enables, one-pair drain, reboot without reload
 and fresh byte/count checks. IRQ-service reset and machine integration remain open.
-The SIO wrappers are not connected to the machine; native reset arming, remaining external
-sources, x1/break/exact WAIT/Ready and full multi-device arbitration remain open.
+A bounded [idle Send Break increment](docs/SIO_ASYNC_STATUS.md#october-6-idle-send-break-increment)
+now passes A/B pin/register/reset tests at CE=1/4/7 with serial ticks stopped.
+Queued/busy break and receive-break detection remain unsupported.
+The SIO wrappers are not connected to the machine; native reset arming,
+remaining external sources, x1/full break/exact WAIT/Ready and full
+multi-device arbitration remain open.
 Asset-free [diagnostic CI](.github/workflows/diagnostics.yml) is configured
 for the standalone SIO/DMA, D88, reset, bus-ownership and joystick fixtures.
 [Hosted run 37479171527](https://github.com/alanswx/SharpX1_Mister/actions/runs/37479171527)

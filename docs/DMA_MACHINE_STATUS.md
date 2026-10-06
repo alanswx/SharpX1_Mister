@@ -96,10 +96,10 @@ Local logs: `/tmp/x1-v11-machine-dma-expanded.log`,
 
 ## Remaining gates
 
-1. Broaden the pending-SD reset cases below to short released pulses, partial
-   payload/metadata publication, lost-data/CRC failure and no-ready/Ready-loss
-   continuity. The whole-machine stopped-enable payload cases now pass.
-2. Broaden the video-target cases below to reset while PCG is waiting,
+1. Broaden the pending-SD reset cases below to split metadata, partial payload,
+   lost-data/CRC failure and no-ready/Ready-loss continuity. Single-block
+   payload/header held and short reset cases now pass.
+2. Broaden the video-target cases below to further PCG reset/phases,
    DAM/mixed side-effect targets and native raster traffic; preserve single
    peripheral transaction semantics.
 3. X3/single combinations and programmable Ready polarity; current generated
@@ -169,3 +169,54 @@ reset before settling; the first video emitter failed to mask the wrapped
 machine behavior or relax the runtime payload/count/transport assertions.
 Inherited machine warnings remain; the new SD fixture adds no suppressions.
 These whole-machine checks are not part of the standalone asset-free CI gate.
+
+## October 6 reset-extension checkpoint
+
+The full delay-aware base `make test` completes with exit 0 in
+`/tmp/x1-oct6-base-regression.log`, including the video matrix, peripherals,
+complete generated disk/metadata matrix and final motor/index units. The
+baseline runner SHA-256 is
+`17d3dcff8d9cf523084ea2f0e196a8e48668fbb07e49fa1a53f15fd50025352e`.
+SYS is 32 MHz, video 28.571428 MHz; this is not X3/Turbo or hardware evidence.
+
+The reset extension passes **32 single-block cases** on the shared opt-in
+v11 machine: the original eight held payload requests, eight 2 ns raw pulses,
+and sixteen first-header-read/published-metadata-write cases (A/B,
+before/mid-ACK, held/pulsed). Generated write media now starts deleted with
+data-CRC B0. Whole-image checks distinguish an aborted header read retaining
+those fields from a published metadata write committing their repair.
+After drain, the same CPU program reboots without loader/debug injection and
+completes 256 fresh pairs with native status/count/readback assertions.
+
+The pulse ends before the next SYS edge; the guard must retain it. Following a
+drive-B pulse, the reset drive latch returns to A and its queued scanner may
+legitimately publish a new request. The fixture checks the **old falling ACK**
+clears busy, and old owner/LBA remain stable throughout the held ACK, before
+accepting only that explicit A rescan. It does not require indefinite global
+idle after the original request drains. The overbroad prior assertion failed
+in `/tmp/x1-machine-dma-sd-expanded.log`; no machine fix or bypass was needed.
+The corrected 32-case run completes in `/tmp/x1-machine-dma-sd-expanded2.log`.
+An isolated final run also passes those 32; split-header extensions are still
+being executed and must not be promoted until their terminal result is checked.
+
+Five actual-machine PCG reset profiles also pass: source read, destination
+write, physically stopped SYS, blocked asset reload, and a granted PCG write
+with video physically stopped for **80 running SYS edges**. A retained 2 ns
+request keeps the real CPU ACK/address/data stable and CPU execution stopped.
+Video restart drains exactly one write; only then does machine reset occur.
+After the original program reboots, it completes the sixteen-row plane with
+**17 actual video-domain write edges**, matching the first drained pair plus
+16 fresh DMA pairs and two grants. No substituted grant, PCG RAM patch or
+WAIT forcing is used. The earlier four RAM reset profiles pass unchanged.
+Log: `/tmp/x1-machine-dma-pcg-reset2.log`.
+
+```sh
+make -C verilator test-machine-dma-sd-reset test-machine-dma-sd-short-reset \
+  test-machine-dma-metadata-reset HEADLESS_DIR=obj_dir_v11_units
+make -C verilator test-machine-dma-reset test-machine-dma-pcg-reset \
+  HEADLESS_DIR=obj_dir_v11_units
+```
+
+These are bounded functional reset tests, not exact ASIC/CDC or fitted timing.
+Split metadata, partial CPU payload/Ready loss, DAM and native firmware still
+need further acceptance; remote Quartus/MiSTer remain unavailable.
