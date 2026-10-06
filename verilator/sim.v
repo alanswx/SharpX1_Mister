@@ -1,6 +1,6 @@
 `timescale 1ps/1ps
 // Instantiate the same machine as the MiSTer wrapper.
-module top #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0) (
+module top #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0) (
     input clk_sys, clk_28636, reset,
     input ioctl_download,
     input [7:0] ioctl_index,
@@ -46,7 +46,7 @@ module top #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_
     output reg [63:0] dma_grants = 0, dma_reads = 0, dma_writes = 0,
     cpu_fdc_data_reads = 0, cpu_fdc_data_writes = 0
 );
-    sharpx1 #(.SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ), .TURBO(TURBO), .TURBO_VIDEO_MASTER(TURBO_VIDEO_MASTER), .TURBO_DMA(TURBO_DMA), .TURBO_DMA_IRQ(TURBO_DMA_IRQ)) machine (
+    sharpx1 #(.SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ), .TURBO(TURBO), .TURBO_VIDEO_MASTER(TURBO_VIDEO_MASTER), .TURBO_DMA(TURBO_DMA), .TURBO_DMA_IRQ(TURBO_DMA_IRQ), .TURBO_KANJI(TURBO_KANJI)) machine (
         .clk_sys(clk_sys), .clk_28636(clk_28636), .reset(reset),
         .pal(1'b0), .scandouble(1'b0),
         .ioctl_download(ioctl_download), .ioctl_index(ioctl_index),

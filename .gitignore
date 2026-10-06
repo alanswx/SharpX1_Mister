@@ -58,6 +58,10 @@ verilator/obj_dir_turbo_fast/
 verilator/obj_dir_turbo_video/
 verilator/obj_dir_turbo_video_fast/
 verilator/obj_dir_turbo_video_savable/
+verilator/obj_dir_turbo_kanji/
+verilator/obj_dir_turbo_kanji_fast/
+verilator/obj_dir_turbo_kanji_savable/
+verilator/obj_dir_turbo_kanji_plain_savable/
 verilator/obj_dir_v06_*/
 verilator/obj_dir_v08_*/
 verilator/obj_dir_v09_*/

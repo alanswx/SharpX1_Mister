@@ -54,8 +54,9 @@ first-level physical ROM address decoder from the model-20/30 schematic,
 covering all 131,072 bytes. Its connected standalone 128 KiB dual-clock ROM
 storage now passes exhaustive synthetic reads, exact ordered uploads, malformed
 stream rejection and retained warm/short-reset checks at three clock ratios.
-Neither component is wired into the shared machine: loader dispatch, CPU port,
-renderer/ASIC selection, native assets and Z storage remain required.
+The subsequent explicit `TURBO_KANJI` profile connects storage to shared-machine
+index-5 loading and CPU high-speed CG access; renderer/ASIC selection, native
+assets and Z storage remain required.
 Static inspection of a published hardware monitor now identifies a native
 high-speed `1400..140F` Kanji read sequence through selector-cell writes.
 The [optional CG selector output](KANJI_CONTRACT_STATUS.md#hardware-monitor-establishes-a-separate-high-speed-cg-access-sequence)
@@ -65,8 +66,11 @@ It does not resolve the independent `0E80..83` protocol conflicts.
 The subsequent [connected ROM/WAIT backend](KANJI_CG_ACCESS_STATUS.md) passes
 exhaustive reads at three ratios, delayed-valid/window/clock/reset cases and
 a failing validity-bypass negative control. Six actual-CPU IN/INI profiles
-pass cold/warm connected selector/ROM qualification; shared-machine loader/profile,
-native assets, snapshots and rendering remain required.
+pass cold/warm connected selector/ROM qualification. The opt-in shared-machine
+loader/profile now executes original CPU INI checks across all banks/halves
+on fast/delay-aware cold/warm runs. An executing CPU snapshot resumes with
+exact final dumps, additive sync counts and bidirectional profile rejection.
+Native assets, broader clock/reset coverage and rendering remain required.
 Turbo Z is now explicitly part of the requested goal. Its Z0–Z9 milestones
 and acceptance gates are tracked in [TURBO_Z_PLAN.md](TURBO_Z_PLAN.md).
 It remains a separate capability profile; progress must not imply support

@@ -81,7 +81,7 @@ int main(int argc, char **argv) {
         uint64_t joya = 0xff, joyb = 0xff;
         bool joya_override = false, joyb_override = false;
         const char *trace_path = nullptr;
-        const char *rom_path = nullptr, *ram_path = nullptr, *font16_path = nullptr;
+        const char *rom_path = nullptr, *ram_path = nullptr, *font16_path = nullptr, *kanji_path = nullptr;
         uint64_t load_address = 0x8000, entry = 0x8000, peek_address = 0xf000;
         const char *bus_path = nullptr;
         uint64_t bus_start_ms = 0, bus_end_ms = 0;
@@ -101,6 +101,7 @@ int main(int argc, char **argv) {
             else if (!std::strcmp(argv[i], "--reset-for-us") && i + 1 < argc) reset_for_us = number(argv[++i]);
             else if (!std::strcmp(argv[i], "--video-hz") && i + 1 < argc) video_hz = number(argv[++i]);
             else if (!std::strcmp(argv[i], "--font16") && i + 1 < argc) font16_path = argv[++i];
+            else if (!std::strcmp(argv[i], "--kanji-physical") && i + 1 < argc) kanji_path = argv[++i];
             else if (!std::strcmp(argv[i], "--joya") && i + 1 < argc) { joya = number(argv[++i]); joya_override = true; }
             else if (!std::strcmp(argv[i], "--joyb") && i + 1 < argc) { joyb = number(argv[++i]); joyb_override = true; }
             else if (!std::strcmp(argv[i], "--rom") && i + 1 < argc) rom_path = argv[++i];
@@ -161,6 +162,17 @@ int main(int argc, char **argv) {
             for (size_t i = 0; i < bytes.size(); ++i)
                 downloads.push_back({index, start + static_cast<uint32_t>(i), bytes[i]});
         };
+        if (kanji_path) {
+#ifdef X1_TURBO_KANJI
+            auto bytes = image(kanji_path);
+            if (bytes.size() != 131072) throw std::runtime_error("physical Kanji ROM must contain exactly 131072 bytes");
+            // A distinct index ends this upload before execution/reset release.
+            // Falling upload is observed even if other downloads follow.
+            enqueue(5, 0, bytes, 131072);
+#else
+            throw std::runtime_error("physical Kanji ROM requires the opt-in Kanji model");
+#endif
+        }
         if (ram_path) enqueue(2, load_address, image(ram_path), 65536);
         if (font16_path) {
 #ifdef X1_TURBO_FOUNDATION
@@ -349,11 +361,14 @@ int main(int argc, char **argv) {
 #ifdef X1_TURBO_DMA_IRQ
             ^ (1ULL << 47) ^ (1ULL << 46) // Completion IRQ revision 1: reset ACK quarantine.
 #endif
+#ifdef X1_TURBO_KANJI
+            ^ (1ULL << 45) // First-level physical CG backend revision 1.
+#endif
             ;
         constexpr uint64_t snapshot_magic = 0x5831534e41503132ULL ^ sys_hz ^ snapshot_profile;
 #ifdef X1_SAVABLE
         if (restore_path) {
-            if (rom_path || ram_path || font16_path) throw std::runtime_error("snapshot restore cannot also download ROM/RAM/font16");
+            if (rom_path || ram_path || font16_path || kanji_path) throw std::runtime_error("snapshot restore cannot also download ROM/RAM/font16/Kanji");
             // Reject our application header before constructing VerilatedRestore:
             // its destructor checks a trailer at the current read position,
             // which can abort while unwinding an early header exception.
@@ -709,7 +724,12 @@ int main(int argc, char **argv) {
 #else
         constexpr const char *turbo_dma_irq = "false";
 #endif
-        std::printf("{\"machine\":\"sharpx1\",\"turbo_foundation\":%s,\"turbo_video_master\":%s,\"turbo_dma\":%s,\"turbo_dma_irq\":%s,\"intra_assignment_delays\":%s,\"sys_hz\":%llu,\"video_hz\":%llu,"
+#ifdef X1_TURBO_KANJI
+        constexpr const char *turbo_kanji = "true";
+#else
+        constexpr const char *turbo_kanji = "false";
+#endif
+        std::printf("{\"machine\":\"sharpx1\",\"turbo_foundation\":%s,\"turbo_video_master\":%s,\"turbo_dma\":%s,\"turbo_dma_irq\":%s,\"turbo_kanji\":%s,\"intra_assignment_delays\":%s,\"sys_hz\":%llu,\"video_hz\":%llu,"
                     "\"time_ps\":%llu,\"sys_edges\":%llu,\"video_edges\":%llu,"
                     "\"reset_edges\":%llu,\"cpu_enables\":%llu,\"delayed_sys_edges\":%llu,"
                     "\"hs_edges\":%llu,\"vs_edges\":%llu,\"hs_period_ps\":%llu,\"vs_period_ps\":%llu,\"video_hash\":\"%016llx\","
@@ -717,7 +737,7 @@ int main(int argc, char **argv) {
                     "\"ps2_bytes_sent\":%llu,\"disk_requests\":%llu,\"disk_writes\":%llu,\"frames\":%llu,\"frame_width\":%u,\"frame_height\":%u,\"frame_hash\":\"%016llx\","
                     "\"sub_pc\":%u,\"sub_address\":%u,\"sub_control\":%u,\"sub_running\":%s,\"sub_tx_busy\":%s,\"sub_rx_empty\":%s,"
                     "\"dma_grants\":%llu,\"dma_reads\":%llu,\"dma_writes\":%llu,\"cpu_fdc_data_reads\":%llu,\"cpu_fdc_data_writes\":%llu}\n",
-                    turbo_foundation, turbo_video_master, turbo_dma, turbo_dma_irq, VM_TIMING ? "true" : "false",
+                    turbo_foundation, turbo_video_master, turbo_dma, turbo_dma_irq, turbo_kanji, VM_TIMING ? "true" : "false",
                     (unsigned long long)sys_hz,
                     (unsigned long long)video_hz, (unsigned long long)context.time(), (unsigned long long)top.sys_edges,
                     (unsigned long long)top.video_edges, (unsigned long long)top.reset_edges,

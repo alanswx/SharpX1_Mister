@@ -2,10 +2,11 @@
 
 October 6, 2026. Work group 3 and Turbo Z Z7 dependency. The new physical
 first-level address decoder and dual-clock 128 KiB ROM storage/loader are
-implemented/tested separately; there is **no new shared-machine Kanji CPU port,
-loader dispatch, glyph renderer or native support claim**. Neither
-`rtl/x1_kanji_address.sv` nor `rtl/x1_kanji_rom.sv` is yet a shared-machine
-dependency. The physical-address CPU read port below is not the native
+implemented/tested separately. The subsequent [opt-in CG profile](KANJI_CG_ACCESS_STATUS.md#shared-machine-physical-rom-profile)
+connects the ROM loader and CPU `1400..140F` backend to the shared machine;
+there is **no glyph renderer or native font support claim**. The ROM is now a
+shared-machine manifest dependency; the standalone electrical decoder remains
+a reference/verification component. The physical-address CPU port is not the native
 `0E80..83` register interface.
 
 ## Primary first-level ROM wiring
@@ -183,9 +184,9 @@ first-level physical address for that bounded CPU selector path:
 `half*65536 + bank*4096 + character*16 + row`. K b5 does not alter address;
 K b4 (absent level 2) fails closed rather than aliasing first-level bytes.
 PCG planes remain PCG and ANK exit clears the Kanji backend selection/address.
-Defaults retain `KANJI_SUPPORT=0`; the shared machine still uses that default
-and leaves the new backend outputs unconnected. No new loader dispatch, CPU
-read data, WAIT path or capability signature is advertised.
+Defaults retain `KANJI_SUPPORT=0`. The subsequent explicit `TURBO_KANJI`
+profile enables it with a physical-ROM loader/backend and distinct snapshot
+signature; ordinary machine/FPGA profiles still disable it.
 
 Strict-warning `test-kanji-cg-selector` passes **524,352** physical/attribute
 cases: every physical byte at both underline-bit/font-mode settings, default
@@ -206,10 +207,10 @@ new original fixture SHA-256
 
 The subsequent [connected Kanji CG backend](KANJI_CG_ACCESS_STATUS.md) now
 freezes its address/read selection and samples ROM bytes only on the CPU
-clock. Exhaustive ROM/WAIT and actual-CPU IN/INI fixtures are separate from
-the still-required opt-in machine loader/profile, asset/profile-bound snapshots
-and shared-machine execution. Glyph/display selection and the larger Z storage
-remain separate gates.
+clock. Exhaustive ROM/WAIT and actual-CPU IN/INI fixtures preceded the subsequent
+opt-in shared-machine loader/profile and CPU execution. See the linked status
+for snapshot and exact shared-machine acceptance. Glyph/display selection and
+the larger Z storage remain separate gates.
 
 Local MAME revision `f4bfc5a423f48d48e809c01fc70a47c0c00d40a2`,
 `src/mame/sharp/x1.cpp` functions `kanji_r/w`, `jis_convert`,

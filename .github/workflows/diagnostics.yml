@@ -19,7 +19,7 @@ permissions:
 jobs:
   standalone-diagnostics:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -59,6 +59,7 @@ jobs:
             test-dma-native-irq test-dma-native-irq-cpu \
             test-dma-irq-bridge test-machine-dma-irq test-machine-dma-irq-nested test-machine-dma-irq-keyboard test-machine-dma-irq-snapshot \
             test-kanji-address test-kanji-rom test-kanji-cg-selector test-kanji-cg-access test-kanji-cg-cpu \
+            test-machine-kanji test-machine-kanji-fast test-machine-kanji-snapshot \
             test-dma-reset test-cpu-busreq test-d88-scanner test-d88-crc \
             test-d88-metadata test-fdc-abort test-fdc-sd-abort test-joystick test-rgb12 test-fm test-fm-cpu; do
             # Bound each original fixture without changing its assertions or
@@ -70,6 +71,7 @@ jobs:
             if [ "${target}" = test-machine-dma-irq ]; then limit_s=300; fi
             if [ "${target}" = test-machine-dma-irq-nested ] || [ "${target}" = test-machine-dma-irq-snapshot ]; then limit_s=300; fi
             if [ "${target}" = test-machine-dma-irq-keyboard ]; then limit_s=300; fi
+            if [ "${target}" = test-machine-kanji ] || [ "${target}" = test-machine-kanji-fast ] || [ "${target}" = test-machine-kanji-snapshot ]; then limit_s=300; fi
             echo "Running ${target} (${limit_s}-second wall-clock limit)"
             # Verilator 5.020 exceeded the DMA compile limit even with Clang
             # at O0. Use the locally qualified pinned 5.044 generator above.

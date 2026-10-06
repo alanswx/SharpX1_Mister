@@ -119,8 +119,10 @@ its separate larger ROM path. No private font data is included.
 An optional, default-disabled high-speed CG Kanji selector now passes exhaustive
 physical addressing/isolation tests, informed by static inspection of a
 published hardware monitor. Its [ROM/WAIT backend](docs/KANJI_CG_ACCESS_STATUS.md)
-now passes connected synthetic tests and six cold/warm actual-CPU profiles; it is
-not yet enabled in the shared machine or a native glyph renderer.
+now passes connected synthetic tests and six cold/warm actual-CPU profiles.
+The separate opt-in `turbo-kanji` shared-machine profile adds physical-ROM
+loading and native CPU CG/INI checks; it is not a native glyph renderer or
+an enabled FPGA capability. Default profiles stay unchanged.
 A bounded [high-speed PCG increment](docs/TURBO_HIGH_SPEED_PCG_STATUS.md)
 adds selector shadows, frozen HSYNC-window access and CPU ANK8/16 selection.
 Original unit/CPU tests pass; ASIC fallback/WAIT phase, Kanji and hardware

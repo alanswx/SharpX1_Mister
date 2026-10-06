@@ -103,6 +103,36 @@ turbo-video: obj_dir_turbo_video/Vtop
 turbo-video-fast: obj_dir_turbo_video_fast/Vtop
 turbo-video-savable: obj_dir_turbo_video_savable/Vtop
 
+# Physical first-level CG ROM only; no renderer/0E80/Z capability implied.
+KANJI_DIR ?= obj_dir_turbo_kanji
+KANJI_TIMING ?= --timing
+turbo-kanji: $(KANJI_DIR)/Vtop
+$(KANJI_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
+	$(V) -cc $(KANJI_TIMING) --assert --trace-fst --exe --build -j 4 --Mdir $(KANJI_DIR) --top-module top \
+		-GTURBO=1 -GTURBO_KANJI=1 -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_TURBO_KANJI" \
+		-MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
+.PHONY: turbo-kanji
+test-machine-kanji: turbo-kanji
+	python3 tests/test_machine_kanji.py ./$(KANJI_DIR)/Vtop
+.PHONY: test-machine-kanji
+test-machine-kanji-fast:
+	$(MAKE) test-machine-kanji KANJI_DIR=obj_dir_turbo_kanji_fast KANJI_TIMING=--no-timing
+.PHONY: test-machine-kanji-fast
+KANJI_SAVE_DIR ?= obj_dir_turbo_kanji_savable
+KANJI_PLAIN_SAVE_DIR ?= obj_dir_turbo_kanji_plain_savable
+turbo-kanji-savable: $(KANJI_SAVE_DIR)/Vtop $(KANJI_PLAIN_SAVE_DIR)/Vtop
+$(KANJI_SAVE_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
+	$(V) -cc --no-timing --savable --assert --trace-fst --exe --build -j 4 --Mdir $(KANJI_SAVE_DIR) --top-module top \
+		-GTURBO=1 -GTURBO_KANJI=1 -CFLAGS "-std=c++20 -DX1_SAVABLE -DX1_TURBO_FOUNDATION -DX1_TURBO_KANJI" \
+		-MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
+$(KANJI_PLAIN_SAVE_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
+	$(V) -cc --no-timing --savable --assert --trace-fst --exe --build -j 4 --Mdir $(KANJI_PLAIN_SAVE_DIR) --top-module top \
+		-GTURBO=1 -CFLAGS "-std=c++20 -DX1_SAVABLE -DX1_TURBO_FOUNDATION" \
+		-MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
+test-machine-kanji-snapshot: turbo-kanji-savable
+	python3 tests/test_machine_kanji_snapshot.py ./$(KANJI_SAVE_DIR)/Vtop ./$(KANJI_PLAIN_SAVE_DIR)/Vtop
+.PHONY: turbo-kanji-savable test-machine-kanji-snapshot
+
 # Separate opt-in DMA profile. Board/default Turbo profiles remain unchanged.
 DMA_DIR ?= obj_dir_turbo_dma
 DMA_TIMING ?= --timing

@@ -1,6 +1,6 @@
 // Sharp X1 base-machine integration. Shared by MiSTer and simulation.
 // See docs/BASE_X1_CONTRACT.md for address-map sources and limitations.
-module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0) (
+module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0) (
     input clk_sys, clk_28636, reset,
     input pal, scandouble,
     input ioctl_download,
@@ -97,6 +97,8 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     initial begin
         if (TURBO_DMA_IRQ && !(TURBO && TURBO_DMA))
             $error("TURBO_DMA_IRQ requires TURBO and TURBO_DMA");
+        if (TURBO_KANJI && (!TURBO || TURBO_DMA))
+            $error("TURBO_KANJI requires TURBO; combined DMA profile is not qualified");
     end
     wire dma_cs = TURBO && TURBO_DMA && !dma_owner && io_cycle && !dam && a[15:4] == 12'h1f8;
     generate if (TURBO && TURBO_DMA) begin : turbo_dma
@@ -398,25 +400,30 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     wire [11:0] cg_selected_font_addr, cg_font_cpu_addr;
     wire cg_selected_font16, cg_selected_unsupported;
     wire [7:0] cg_font_cpu_data;
+    wire cg_selected_kanji, kanji_loaded, kanji_load_error, kanji_cpu_valid, kanji_cpu_read;
+    wire [16:0] cg_selected_kanji_addr, kanji_cpu_addr;
+    wire [7:0] kanji_cpu_data;
     wire text_write = io_write && !dam && a[15:12] == 4'h3 && (!TURBO || !a[11]);
     wire kan_write = TURBO && io_write && !dam && a[15:11] == 5'b00111;
     wire attr_write = io_write && !dam && a[15:12] == 4'h2;
     wire cg_access = io_cycle && !dam && a[15:10] == 6'b000101;
     generate if (TURBO) begin : turbo_pcg_selector
-        x1_pcg_selector selector (
+        x1_pcg_selector #(.KANJI_SUPPORT(TURBO_KANJI)) selector (
             .clk(clk_sys), .text_write(text_write), .attr_write(attr_write), .kan_write(kan_write),
             .address(a[10:0]), .data(data_out), .nibble(a[3:0]), .plane(a[9:8]),
             .font16_mode(turbo_scrn[6]), .byte_address(cg_selected_addr),
             .font_address(cg_selected_font_addr), .font16_select(cg_selected_font16),
-            .unsupported(cg_selected_unsupported), .kanji_select(), .kanji_address()
+            .unsupported(cg_selected_unsupported), .kanji_select(cg_selected_kanji), .kanji_address(cg_selected_kanji_addr)
         );
     end else begin : no_turbo_pcg_selector
         assign cg_selected_addr = 0;
         assign cg_selected_font_addr = 0;
         assign cg_selected_font16 = 0;
         assign cg_selected_unsupported = 0;
+        assign cg_selected_kanji = 0;
+        assign cg_selected_kanji_addr = 0;
     end endgenerate
-    x1_pcg_access #(.SEPARATE_VIDEO_RESET(TURBO_VIDEO_MASTER)) cg_bus (
+    x1_pcg_access #(.SEPARATE_VIDEO_RESET(TURBO_VIDEO_MASTER), .KANJI_SUPPORT(TURBO_KANJI)) cg_bus (
         .video_reset(video_reset),
         .reset(core_reset), .cpu_clk(clk_sys), .video_clk(clk_28636),
         .cpu_select(cg_access), .cpu_write(io_write), .cpu_plane(a[9:8]), .cpu_data(data_out),
@@ -427,10 +434,32 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         .selected_font16(cg_selected_font16), .selected_unsupported(cg_selected_unsupported),
         .selected_font_addr(cg_selected_font_addr), .video_window(HSync),
         .font_cpu_addr(cg_font_cpu_addr), .font_cpu_q(cg_font_cpu_data),
-        .cpu_read_hold(cg_read_hold), .selected_kanji(1'b0), .selected_kanji_addr(17'd0),
-        .kanji_available(1'b0), .kanji_cpu_valid(1'b0), .kanji_cpu_q(8'd0),
-        .kanji_cpu_addr(), .kanji_cpu_read()
+        .cpu_read_hold(cg_read_hold), .selected_kanji(cg_selected_kanji), .selected_kanji_addr(cg_selected_kanji_addr),
+        .kanji_available(kanji_loaded), .kanji_cpu_valid(kanji_cpu_valid), .kanji_cpu_q(kanji_cpu_data),
+        .kanji_cpu_addr(kanji_cpu_addr), .kanji_cpu_read(kanji_cpu_read)
     );
+    // Explicit physical first-level ROM upload, not an emulator filename/JIS
+    // conversion. The host must hold both resets through the falling commit.
+    // Display remains disconnected until ASIC/glyph arbitration is qualified.
+    generate if (TURBO && TURBO_KANJI) begin : turbo_kanji
+        x1_kanji_rom rom (
+            .cpu_clk(clk_sys), .video_clk(clk_28636),
+            .cpu_reset(core_reset), .video_reset(video_reset),
+            .upload(ioctl_download && ioctl_index == 5),
+            .load(ioctl_wr && !ioctl_wait && ioctl_index == 5),
+            .load_address(ioctl_addr), .load_data(ioctl_dout),
+            .cpu_read(kanji_cpu_read), .cpu_address(kanji_cpu_addr),
+            .cpu_data(kanji_cpu_data), .cpu_valid(kanji_cpu_valid),
+            .display_select(1'b0), .display_address(17'd0),
+            .display_data(), .display_valid(),
+            .loaded(kanji_loaded), .load_error(kanji_load_error)
+        );
+    end else begin : no_turbo_kanji
+        assign kanji_loaded = 0;
+        assign kanji_load_error = 0;
+        assign kanji_cpu_data = 0;
+        assign kanji_cpu_valid = 0;
+    end endgenerate
     x1_video_ram #(11) text_ram(clk_sys,a[10:0],data_out,text_write,text_cpu,clk_28636,vaddr[10:0],text_vid);
     x1_video_ram #(11) attr_ram(clk_sys,a[10:0],data_out,attr_write,attr_cpu,clk_28636,vaddr[10:0],attr_vid);
     x1_video_ram #(11) kan_ram(clk_sys,a[10:0],data_out,kan_write,kan_cpu,clk_28636,vaddr[10:0],kan_vid);

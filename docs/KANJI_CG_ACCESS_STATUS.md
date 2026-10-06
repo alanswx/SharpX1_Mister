@@ -2,9 +2,10 @@
 
 October 6, 2026. Work group 3 / Turbo Z dependency. An original opt-in
 `KANJI_SUPPORT=1` extension to `x1_pcg_access.v` connects the tested physical
-selector and synchronous ROM CPU port in standalone fixtures. The shared
-machine still disables it and ties off the new inputs. There is no machine
-loader/profile, glyph renderer, native font or hardware acceptance claim.
+selector and synchronous ROM CPU port in standalone fixtures. A subsequent
+explicit `TURBO_KANJI=1` shared-machine profile connects that backend and a
+physical ROM loader. Defaults remain disabled. There is no glyph renderer,
+native font or hardware acceptance claim.
 The independent `0E80..83` protocol is not implemented by this `1400..140F` path.
 
 ## Transaction contract
@@ -99,11 +100,9 @@ to hosted CI; their local success does not establish a completed hosted run.
 
 ## Required next gates
 
-1. Add an explicit opt-in shared-machine loader/backend profile, bind its
-   identity/assets and reject incompatible snapshots without editing state
-   bytes. Defaults must retain their old unsupported-Kanji response.
-2. Execute this native CG sequence in the shared CPU/machine, on delay-aware
-   and synthesis-style runners, including absent/malformed/reloaded ROM,
+1. Broaden the explicit shared-machine profile to nominal X3 and combined DMA
+   only after qualifying their independent reset/ownership/clock interactions.
+2. Broaden shared CPU/machine execution to malformed/reloaded ROM,
    pending-read short reset, held bus and retained warm state.
 3. Resolve native archive-to-physical chip identity and font order; qualify
    authorized assets instead of treating Shift-JIS exports as raw chip dumps.
@@ -113,3 +112,50 @@ to hosted CI; their local success does not establish a completed hosted run.
 5. Implement Turbo Z's larger first/second-level memory path, then source-bound
    resource/CDC/timing refit and physical video/OSD reset acceptance. The earlier
    single-store inference audit does not qualify this adapter's fitted timing.
+
+## Shared-machine physical-ROM profile
+
+`make -C verilator turbo-kanji` builds the delay-aware ordinary-clock Turbo
+profile, 32 MHz system / 28,571,428 Hz video. Set
+`KANJI_DIR=obj_dir_turbo_kanji_fast KANJI_TIMING=--no-timing` for a separate
+synthesis-style runner. Neither changes the existing base/Turbo/X3 targets
+or enables Kanji in any FPGA revision. `TURBO_KANJI` requires Turbo and rejects
+the currently unqualified combined DMA profile.
+
+`--kanji-physical PATH` accepts exactly 131,072 bytes in physical IC106,
+IC105, IC104, IC103 concatenation order, not Shift-JIS or an assumed emulator
+filename order. Index 5 feeds the real ordered ROM loader. Downloads occur
+under both resets; readiness commits on the first CPU edge after leaving
+index 5, before the startup reset releases. The renderer port stays disabled;
+the ROM source is now included in `rtl/machine.qip`. ROM absence remains a
+terminating FF response. No private bytes are embedded.
+
+`test-machine-kanji` executes original instructions on the actual shared
+TV80/machine, using native PPI/CRTC/SCRN/text/attribute/KVRAM writes and
+**1,024 INI bytes** across all halves/banks/rows at glyph codes 0/255.
+INI stores real D000 RAM, which the CPU compares against the synthetic
+physical pattern. Additional checks cover ignored ROM writes, absent level-2
+selection, ANK exit, missing ROM and exact CLI length rejection. Cold and
+100 ms warm-reset invocations require CPU-written KAN!/WARM markers. The fast
+and delay-aware matrices both exit zero; logs
+`/tmp/x1-kanji-machine-{fast,timing}-test.log`. Base/X3 wrapper lint and the
+existing disabled-Kanji PCG regression exit zero after this integration, log
+`/tmp/x1-kanji-machine-regression.log`. Warnings remain inherited; no new
+suppression was added. Three shared-machine targets are added to hosted CI;
+a push is not evidence of their completed hosted execution.
+
+`turbo-kanji-savable` builds separate opt-in/default Turbo executables.
+The opt-in application signature uses profile bit 45; existing profile bits
+remain unchanged. Restores cannot download another ROM and cross-profile
+states must be rejected before deserialization. The snapshot diagnostic saves
+an executing original CPU fixture, resumes without asset injection, and
+compares final CPU/RAM/VRAM/sub-RAM dumps. Sync counters are host-window values:
+pre-save plus restored counts must exactly equal the uninterrupted counts.
+This snapshot diagnostic exits zero, with exact reports (apart from documented
+host-window fields), additive sync counts and all five dump comparisons.
+Bidirectional default/opt-in rejection, default-loader rejection and rejection
+of a ROM download during restore pass. Log
+`/tmp/x1-kanji-machine-snapshot-qualified.log`. The first attempt's incorrect
+whole-run sync-count comparison remains recorded in
+`/tmp/x1-kanji-machine-snapshot.log`; no RTL or state was changed to fix that
+test expectation. Do not edit state bytes to bypass the profile checks.
