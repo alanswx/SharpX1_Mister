@@ -96,7 +96,7 @@ Local logs: `/tmp/x1-v11-machine-dma-expanded.log`,
 
 ## Remaining gates
 
-1. Broaden the pending-SD reset cases below to split metadata, partial payload,
+1. Broaden the pending-SD reset cases below to partial CPU payload,
    lost-data/CRC failure and no-ready/Ready-loss continuity. Single-block
    payload/header held and short reset cases now pass.
 2. Broaden the video-target cases below to further PCG reset/phases,
@@ -179,10 +179,11 @@ baseline runner SHA-256 is
 `17d3dcff8d9cf523084ea2f0e196a8e48668fbb07e49fa1a53f15fd50025352e`.
 SYS is 32 MHz, video 28.571428 MHz; this is not X3/Turbo or hardware evidence.
 
-The reset extension passes **32 single-block cases** on the shared opt-in
-v11 machine: the original eight held payload requests, eight 2 ns raw pulses,
-and sixteen first-header-read/published-metadata-write cases (A/B,
-before/mid-ACK, held/pulsed). Generated write media now starts deleted with
+The reset extension passes **64 cases** on the shared opt-in v11 machine:
+eight held payload requests, eight 2 ns raw pulses, sixteen single-block
+first-header-read/published-metadata-write cases, and thirty-two split-header
+cases (A/B, before/mid-ACK, held/pulsed, first/second read/write).
+Generated write media now starts deleted with
 data-CRC B0. Whole-image checks distinguish an aborted header read retaining
 those fields from a published metadata write committing their repair.
 After drain, the same CPU program reboots without loader/debug injection and
@@ -196,8 +197,17 @@ accepting only that explicit A rescan. It does not require indefinite global
 idle after the original request drains. The overbroad prior assertion failed
 in `/tmp/x1-machine-dma-sd-expanded.log`; no machine fix or bypass was needed.
 The corrected 32-case run completes in `/tmp/x1-machine-dma-sd-expanded2.log`.
-An isolated final run also passes those 32; split-header extensions are still
-being executed and must not be promoted until their terminal result is checked.
+The isolated final **64-case** run completes with exit 0 in
+`/tmp/x1-machine-dma-sd-final.log`. Its executable SHA-256 is
+`3fc214c1271d133b6e6ccf80bbb88993253c20e7da43ddbfb7693ecadf59c2aa`.
+The split fixture places the header at byte 1016, so deleted mark byte 1023
+and CRC status byte 1024 occupy different 512-byte blocks. Reset after a
+published first metadata write or during the second read must preserve the
+committed normal mark while retaining B0. An accepted second metadata write
+may commit the CRC repair. Both full generated images, padding and neighboring
+bytes are checked before fresh retry and after completion; later retry cannot
+hide a wrong intermediate image. This checks publication bytes, not physical
+HPS epochs or every cached-index/remount/command-retry behavior.
 
 Five actual-machine PCG reset profiles also pass: source read, destination
 write, physically stopped SYS, blocked asset reload, and a granted PCG write
@@ -212,11 +222,12 @@ Log: `/tmp/x1-machine-dma-pcg-reset2.log`.
 
 ```sh
 make -C verilator test-machine-dma-sd-reset test-machine-dma-sd-short-reset \
-  test-machine-dma-metadata-reset HEADLESS_DIR=obj_dir_v11_units
+  test-machine-dma-metadata-reset test-machine-dma-split-metadata-reset \
+  HEADLESS_DIR=obj_dir_v11_reset_qualification
 make -C verilator test-machine-dma-reset test-machine-dma-pcg-reset \
   HEADLESS_DIR=obj_dir_v11_units
 ```
 
 These are bounded functional reset tests, not exact ASIC/CDC or fitted timing.
-Split metadata, partial CPU payload/Ready loss, DAM and native firmware still
+Partial CPU payload/Ready loss, further PCG phases, DAM and native firmware still
 need further acceptance; remote Quartus/MiSTer remain unavailable.

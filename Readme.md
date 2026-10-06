@@ -63,10 +63,11 @@ and native diagnostic reboot. Fast/delay-aware GRAM/selected PCG transfers pass
 CPU count/readback and isolation checks. Broader reset/metadata/DAM/native timing
 and hardware gates remain open.
 The [reset extension](docs/DMA_MACHINE_STATUS.md#october-6-reset-extension-checkpoint)
-passes 32 single-block held/pulsed payload/metadata cases and five PCG-owned
+passes 64 held/pulsed payload/single-block/split-header metadata cases and five PCG-owned
 reset profiles, including a stopped-video WAIT and exact one-write drain.
 The full delay-aware baseline regression also completes successfully.
-Split-header qualification is still in progress; no hardware signoff is implied.
+Partial CPU payload/Ready loss and native firmware remain open; no hardware
+signoff is implied.
 A bounded [high-speed PCG increment](docs/TURBO_HIGH_SPEED_PCG_STATUS.md)
 adds selector shadows, frozen HSYNC-window access and CPU ANK8/16 selection.
 Original unit/CPU tests pass; ASIC fallback/WAIT phase, Kanji and hardware
