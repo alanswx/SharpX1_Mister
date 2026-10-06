@@ -44,6 +44,7 @@ module x1_dma (
     logic cycle_io;
     logic [15:0] destination_address;
     logic physical_ready, ready_now, pair_active, write_event, read_event;
+    logic byte_match_stop;
     integer follow_index;
 
     function automatic logic [15:0] step_address(
@@ -94,8 +95,11 @@ module x1_dma (
                       state == WRITE_SETUP || state == WRITE_CYCLE;
         write_event = cpu_cs && !cpu_wr_n && !write_seen;
         read_event = cpu_cs && !cpu_rd_n && !read_seen;
+        byte_match_stop = wr0[1] && wr3[2] &&
+            ((data_out | mask_byte) == (match_byte | mask_byte));
         unsupported = bad_command || !wr0[0] ||
-            wr3[5] || wr3[2] || wr4[6:5] == 2'b11 ||
+            wr3[5] || (wr3[2] && (!wr0[1] || wr4[6:5] != 0)) ||
+            wr4[6:5] == 2'b11 ||
             timing_a_set || timing_b_set || interrupt_control != 0;
         follow_index = -1;
         for (integer j=13; j>=0; j=j-1)
@@ -214,11 +218,12 @@ module x1_dma (
                                 destination_first <= 0;
                                 // Standard sequential transfer/search compares the
                                 // immutable source byte after its destination write.
-                                // Pure search and stop-on-match remain rejected.
+                                // Byte-mode Stop on Match completes this write,
+                                // then disables without reading the next byte.
                                 if (wr0[1] && ((data_out | mask_byte) == (match_byte | mask_byte)))
                                     match_found <= 1;
                                 remaining <= remaining - 17'd1;
-                                if (remaining == 1 && wr5[5] && enabled &&
+                                if (remaining == 1 && wr5[5] && !byte_match_stop && enabled &&
                                     !reset_pending && !reset && !soft_reset_pending && !write_event) begin
                                     // Auto restart reloads BOTH address counters, unlike
                                     // explicit LOAD's source-only immediate load. Fixed
@@ -229,9 +234,12 @@ module x1_dma (
                                     match_found <= 0;
                                 end else if (remaining == 1) begin
                                     end_of_block <= 1; enabled <= 0;
-                                end else byte_counter <= byte_counter + 16'd1;
+                                end else if (!byte_match_stop) byte_counter <= byte_counter + 16'd1;
+                                // Table 12 Byte sequential: M operations, count
+                                // M-1, source advanced M, destination M-1.
+                                if (byte_match_stop) enabled <= 0;
                                 if ((remaining == 1 && !wr5[5]) || !enabled || reset_pending || reset ||
-                                    soft_reset_pending || wr4[6:5] == 0 ||
+                                    soft_reset_pending || byte_match_stop || wr4[6:5] == 0 ||
                                     (wr4[6:5] == 2'b10 && !ready_now)) begin
                                     state <= RELEASE; force_ready <= 0;
                                 end else state <= PAUSE;
@@ -297,7 +305,8 @@ module x1_dma (
                             end else if ((cpu_data_in & 8'h83) == 8'h80) begin
                                 wr3 <= cpu_data_in;
                                 follows[MASK] <= cpu_data_in[3]; follows[MATCH] <= cpu_data_in[4];
-                                if (cpu_data_in[6] && !cpu_data_in[5] && !cpu_data_in[2] &&
+                                if (cpu_data_in[6] && !cpu_data_in[5] &&
+                                    (!cpu_data_in[2] || (wr0[1] && wr4[6:5] == 0)) &&
                                     !cpu_data_in[4] && !cpu_data_in[3] &&
                                     !unsupported) enabled <= 1;
                             end else if ((cpu_data_in & 8'h83) == 8'h81) begin

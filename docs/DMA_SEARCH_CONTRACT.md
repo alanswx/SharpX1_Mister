@@ -3,7 +3,9 @@
 October 6, 2026. Next work-group-2 gate after automatic restart.
 The [comparison increment](DMA_COMPARE_STATUS.md) now accepts sequential
 transfer/search without stopping and tests real masked/sticky status. Pure
-search and WR3 Stop on Match remain rejected. The remaining class/pipeline
+search and non-Byte WR3 Stop on Match remain rejected. The new
+[Byte stop increment](DMA_BYTE_STOP_STATUS.md) follows the untruncated
+sequential Byte row. The remaining class/pipeline
 requirements below are not made complete by those comparison tests.
 
 ## Primary evidence and unresolved details
@@ -22,6 +24,16 @@ itself has truncated sequential rows (`M+`, `M-`), not merely OCR damage;
 these need corroboration rather than literal arithmetic or silent correction.
 Pure search has no destination write. Simultaneous transfer relies on external
 hardware and is not a software-only extra destination transaction.
+
+The October 6 follow-up downloaded and inspected Zilog's **1982/83 Data
+Book**, printed 60, DMA Figure 19 prose: Burst/continuous match release is
+described at the following operation, including the following write for
+transfer/search. This is not clean corroboration of the later sequential
+Burst row's `M` transfers. Preserve this primary-reference disagreement
+before implementing those modes; do not extrapolate Byte stop to them.
+Local ignored `references/manuals/Zilog_1982_Data_Book.pdf`, SHA-256
+`f95c54fc8ff0e5524434132340e644b94ae7dc9ad861b0976114b6ba8a37bf84`,
+[publisher scan hosted at Bitsavers](https://bitsavers.trailing-edge.com/components/zilog/_dataBooks/1982_Zilog_Data_Book.pdf).
 
 These differences rule out enabling search simply by removing `unsupported`,
 or returning a fabricated match status after copying a block. The primary

@@ -119,3 +119,14 @@ documented in `docs/DMA_STATUS.md`.
 SIO printed 225–231 and 272–301 were inspected for the original
 [SIO contract](../../docs/SIO_REGISTER_CONTRACT.md); programming/FIFO/IRQ
 research is not device implementation, physical timing or native acceptance.
+# Additional DMA primary reference (October 6, 2026)
+
+Downloaded Zilog **1982/83 Data Book** to ignored
+`Zilog_1982_Data_Book.pdf` from the
+[publisher scan](https://bitsavers.trailing-edge.com/components/zilog/_dataBooks/1982_Zilog_Data_Book.pdf).
+SHA-256 `f95c54fc8ff0e5524434132340e644b94ae7dc9ad861b0976114b6ba8a37bf84`.
+Inspected text at printed 59–60: default/variable bus timing, two-sample
+grant, orderly Ready release and next-operation Burst/continuous match
+release. This older prose does not resolve the later UM0081 truncated
+counter table; see [search contract](../../docs/DMA_SEARCH_CONTRACT.md).
+No binary redistribution or hardware equivalence is implied.

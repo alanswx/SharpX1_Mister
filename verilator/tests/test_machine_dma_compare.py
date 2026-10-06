@@ -1,6 +1,6 @@
 """Original CPU-executed masked transfer/search on the shared DMA machine.
 
-Stop-on-match/pure-search/IRQ are not claimed. No firmware patch, private
+Byte stop-on-match is also tested; pure-search/IRQ are not claimed. No firmware patch, private
 assets, forced Ready/grants or debugger RAM results.
 """
 import json
@@ -67,3 +67,47 @@ with tempfile.TemporaryDirectory(prefix="x1-machine-dma-compare-") as directory:
                 assert ram[0x9100:0x9104] == payload and ram[0x90FF] == 0xBE and ram[0x9104] == 0xEF
                 print(f"PASS shared-CPU transfer/search source_A={direction} mode={mode} "
                       f"matched={positive}: payload/guards/status/counters/8B, grants={pairs}", flush=True)
+    for direction in (False, True):
+        for position in range(4):
+            f = Fixture()
+            payload = bytes(0xC5 if i == position else 0x36 for i in range(4))
+            for i, value in enumerate(payload):
+                f.p.store(0x9000 + i, value)
+                f.p.store(0x9100 + i, 0xEE)
+            a, b = (0x9000, 0x9100) if direction else (0x9100, 0x9000)
+            for value in (0xC3, 0x7F if direction else 0x7B,
+                          a & 255, a >> 8, 3, 0, 0x14, 0x10,
+                          0x9C, 0xF0, 0xA5, 0x8D, b & 255, b >> 8,
+                          0xB2, 0xCF):
+                f.out(0x1F80, value)
+            for pair in range(position + 1):
+                f.out(0x1F80, 0xB3)
+                f.out(0x1F80, 0x87)
+                f.out(0x1F80, 0xBF)
+                matched = pair == position
+                f.check(0x1F80, (0 if matched else 0x10) |
+                        (0 if pair == 3 else 0x20), 0x30)
+            f.out(0x1F80, 0xBB)
+            f.out(0x1F80, 0x7E)
+            f.out(0x1F80, 0xA7)
+            src, dst = 0x9000 + position + 1, 0x9100 + position
+            a_end, b_end = (src, dst) if direction else (dst, src)
+            for value in (position, 0, a_end & 255, a_end >> 8, b_end & 255, b_end >> 8):
+                f.check(0x1F80, value)
+            expected = payload[:position + 1] + bytes([0xEE] * (3 - position))
+            for i, value in enumerate(expected):
+                f.p.compare_memory(0x9100 + i, value)
+            stem = f"byte-stop-{int(direction)}-{position}"
+            rom = root / f"{stem}.rom"
+            rom.write_bytes(f.finish())
+            result = subprocess.run([exe, "--rom", str(rom), "--cycles", "8000000",
+                                     "--peek", "0xf000", "--dump", str(root / stem)],
+                                    capture_output=True, text=True, timeout=300)
+            assert result.returncode == 0, (stem, result.stderr)
+            report = json.loads(result.stdout.splitlines()[-1])
+            assert report["turbo_dma"] and report["halted"] and report["peek"].startswith(b"DMA!".hex()), (stem, report)
+            assert report["dma_reads"] == report["dma_writes"] == report["dma_grants"] == position + 1, (stem, report)
+            ram = (root / f"{stem}.ram").read_bytes()
+            assert ram[0x9100:0x9104] == expected
+            print(f"PASS shared-CPU Byte stop source_A={direction} match_position={position}: "
+                  "prefix/untouched suffix/status/all counters/no automatic reload", flush=True)

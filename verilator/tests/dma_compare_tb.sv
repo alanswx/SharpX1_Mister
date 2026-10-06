@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Original synthetic sequential transfer/search status fixture. No forced
-// engine state, CPU/native assets or approximate search-only/stop behavior.
+// engine state or CPU/native assets. Pure search remains fail-closed.
 `timescale 1ns/1ps
 module dma_compare_tb;
     logic clk=0,ce=0,reset=1;
@@ -58,13 +58,14 @@ module dma_compare_tb;
         repeat(8) tick();reset=0;repeat(4) ctick();reads=0;writes=0;stop_writes=0;
     endtask
     task automatic configure(input logic a_source,input integer mode,
-                             input logic [7:0] mask,value,input logic search);
+                             input logic [7:0] mask,value,input logic search,
+                             input logic stop_match=0);
         logic [15:0] a,b;
         a=a_source ? 16'h1000 : 16'h2000;b=a_source ? 16'h2000 : 16'h1000;
         put(a_source ? (search ? 8'h7f : 8'h7d) : (search ? 8'h7b : 8'h79));
         put(a[7:0]);put(a[15:8]);put(3);put(0);
         put(8'h14);put(8'h10); // Incrementing memory on both ports.
-        put(8'h98);put(mask);put(value); // WR3 mask/match, stop/IRQ disabled.
+        put(stop_match ? 8'h9c : 8'h98);put(mask);put(value);
         put(8'h8d | 8'(mode<<5));put(b[7:0]);put(b[15:8]);put(8'h92);put(8'hcf);
         assert(!unsupported) else $fatal(1,"valid compare stream rejected");
     endtask
@@ -131,10 +132,61 @@ module dma_compare_tb;
         fresh();for(integer i=0;i<4;i++) source[i]=8'h87;
         configure(1,1,0,8'h87,0);put(8'h87);finish_block();status(value);
         assert(value[4]) else $fatal(1,"plain transfer fabricated a match");
-        // Fail closed for stop/pure-search, not a partial successful command.
+        // Table 12's unambiguous Byte sequential stop contract: no extra
+        // source read, destination completes, count M-1, no automatic restart
+        // on a match even when it coincides with end of block.
+        for(integer direction=0;direction<2;direction++)
+        for(integer mask=0;mask<256;mask++)
+        for(integer position=0;position<4;position++) begin
+            integer operations;
+            fresh();
+            for(integer i=0;i<4;i++) source[i]=i==position ? 8'ha5 : (8'ha5 ^ ~8'(mask));
+            operations=mask==255 ? 1 : position+1;
+            configure(1'(direction),0,8'(mask),8'ha5,1,1);
+            put(8'hb2); // Auto restart must not override a match stop.
+            put(8'h87);
+            wait(dut.match_found && busrq_n && busak_n);repeat(20) ctick();
+            assert(!dut.enabled && reads==operations && writes==operations &&
+                   dut.byte_counter==16'(operations-1) && dut.remaining==17'(4-operations) &&
+                   dut.end_of_block==(operations==4) &&
+                   (direction!=0 ? dut.counter_a : dut.counter_b)==16'(32'h1000+operations) &&
+                   (direction!=0 ? dut.counter_b : dut.counter_a)==16'(32'h2000+operations-1))
+                else $fatal(1,"Byte stop count/address/restart mask=%0d position=%0d",mask,position);
+            status(value);
+            assert(!value[4] && value[5]==(operations!=4))
+                else $fatal(1,"Byte stop status");
+            tests++;
+        end
+        fresh();for(integer i=0;i<4;i++) source[i]=8'h87;
+        configure(1,0,0,8'h87,1,1);put(8'h87);
+        wait(!wr_n);wait_n=0;repeat(12) ctick();
+        assert(!dut.match_found && writes==0 && dut.enabled)
+            else $fatal(1,"Byte stop occurred before WAIT-stalled write completed");
+        // A stopped clock enable must not complete the held transaction.
+        begin
+            integer saved_period;
+            saved_period=period;period=100000000;
+            repeat(20) tick();
+            assert(!wr_n && !dut.match_found && writes==0)
+                else $fatal(1,"Byte stop ignored stopped CE");
+            period=saved_period;
+        end
+        wait_n=1;wait(dut.match_found && busrq_n && busak_n);repeat(20) ctick();
+        assert(reads==1 && writes==1 && !dut.enabled && dut.byte_counter==0)
+            else $fatal(1,"Byte WAIT stop did not drain exactly one pair");
+        fresh();for(integer i=0;i<4;i++) source[i]=8'h36;
+        configure(1,0,0,8'h87,1,1);put(8'h87);finish_block();status(value);
+        assert(value[4] && !value[5]) else $fatal(1,"Byte nonmatching stop did not reach EOB");
+        fresh();for(integer i=0;i<4;i++) source[i]=8'h87;
+        configure(1,0,0,8'h87,1,1);put(8'hc4); // WR3 enable + Stop on Match.
+        wait(dut.match_found && busrq_n && busak_n);repeat(20) ctick();
+        assert(reads==1 && writes==1 && !dut.enabled)
+            else $fatal(1,"WR3 immediate Byte stop enable failed");
+        // Fail closed for ambiguous continuous stop/pure search.
+        fresh();configure(1,1,0,8'h87,1);
         put(8'h84);assert(unsupported) else $fatal(1,"stop-on-match accepted without stop engine");
         put(8'h80);put(8'h06);assert(unsupported) else $fatal(1,"pure-search accepted as a copy");
-        $display("PASS DMA sequential comparison %0d mask/direction/mode/polarity cases, sticky/status/LOAD/CONTINUE/8B/WAIT, CE=%0d",tests,period);
+        $display("PASS DMA comparison/Byte-stop %0d mask/direction/mode/position cases, sticky/status/LOAD/CONTINUE/8B/WAIT/stopped CE/WR3 enable, CE=%0d",tests,period);
         $finish;
     end
 endmodule

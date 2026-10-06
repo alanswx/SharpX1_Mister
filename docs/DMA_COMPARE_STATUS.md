@@ -2,7 +2,9 @@
 
 October 6, 2026. Ordered search-plan increment: WR0 sequential transfer/search
 now compares actual transferred bytes and reports a real sticky match flag.
-**Pure search, Stop on Match and DMA IRQ/service remain unimplemented.**
+This is a source-bound historical comparison checkpoint. The subsequent
+[Byte stop increment](DMA_BYTE_STOP_STATUS.md) supports bounded Byte-mode
+Stop on Match. **Pure search, non-Byte stop and DMA IRQ/service remain unimplemented.**
 The full search classes remain part of the active goal, not replaced by this
 non-stopping increment. [Remaining pipeline contract](DMA_SEARCH_CONTRACT.md).
 
@@ -87,6 +89,8 @@ byte-identical to the five-game-qualified v12 base executable, SHA-256
 fresh snapshot/negative-header/clock/joystick tests pass in
 `/tmp/x1-dma-compare-base-snapshot.log`. This does not qualify Turbo DMA games.
 
-The prior full base delay-aware rerun remains live; hosted automatic-restart
-run `37529441225` is pending. The next workflow adds comparison as target 24;
+The prior full base delay-aware rerun subsequently exited zero (session 4266,
+`/tmp/x1-dma-autorestart-base.log`); hosted automatic-restart
+run [37529441225](https://github.com/alanswx/SharpX1_Mister/actions/runs/37529441225)
+subsequently passed on `d203dd5`. The next workflow adds comparison as target 24;
 its hosted gate requires its own terminal result.

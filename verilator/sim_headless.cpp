@@ -344,7 +344,7 @@ int main(int argc, char **argv) {
             ^ (1ULL << 55)
 #endif
 #ifdef X1_TURBO_DMA
-            ^ (1ULL << 54) ^ (1ULL << 53) // DMA revision 1: serialized match latch.
+            ^ (1ULL << 54) ^ (1ULL << 53) ^ (1ULL << 52) // DMA revision 2: Byte match-stop policy.
 #endif
             ;
         constexpr uint64_t snapshot_magic = 0x5831534e41503132ULL ^ sys_hz ^ snapshot_profile;
