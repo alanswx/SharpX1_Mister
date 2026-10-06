@@ -21,6 +21,16 @@ $(HEADLESS_DIR)/fm-$(FM_MASTER_HZ)/Vfm_tb: $(FM_SRC) tests/fm_tb.sv $(FM_MANIFES
 	$(V) --binary --timing --assert --top-module fm_tb -GMASTER_HZ=$(FM_MASTER_HZ) \
 		--Mdir $(HEADLESS_DIR)/fm-$(FM_MASTER_HZ) -j 4 $(FM_SRC) tests/fm_tb.sv -Wno-fatal
 .PHONY: test-fm
+
+test-fm-cpu: $(HEADLESS_DIR)/fm-cpu-$(FM_MASTER_HZ)/Vfm_cpu_tb
+	@for rate in 1 4 8; do ./$(HEADLESS_DIR)/fm-cpu-$(FM_MASTER_HZ)/Vfm_cpu_tb +CE_PERIOD=$$rate || exit 1; done
+
+$(HEADLESS_DIR)/fm-cpu-$(FM_MASTER_HZ)/Vfm_cpu_tb: $(FM_SRC) tests/fm_cpu_tb.sv $(FM_MANIFEST) ../rtl/cpu.v $(wildcard ../rtl/tv80/*.v) Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module fm_cpu_tb -GMASTER_HZ=$(FM_MASTER_HZ) \
+		--Mdir $(HEADLESS_DIR)/fm-cpu-$(FM_MASTER_HZ) -j 4 $(FM_SRC) tests/fm_cpu_tb.sv \
+		../rtl/cpu.v $(wildcard ../rtl/tv80/*.v) -Wno-fatal
+.PHONY: test-fm-cpu
 headless: $(HEADLESS_EXE)
 
 interactive: obj_dir_interactive/Vtop

@@ -98,6 +98,57 @@ where emitted, remain visible and no new suppression was added.
 
 ## Integration/acceptance still required
 
+### Actual CPU bus qualification (October 6)
+
+`make -C verilator test-fm-cpu HEADLESS_DIR=obj_dir_v12_fm` exits zero,
+as do separate `FM_MASTER_HZ=28636364` and `28571428` invocations.
+An original generated RAM program executes on the same `cpu`/TV80 as the
+machine at CPU CE periods 1, 4 and 8 (nine clock combinations). Real OUT/IN
+instructions poll busy, program CT1/CT2 and Timer A, wait for its flag,
+stop/clear it, read both status ports and reject an unselected address.
+Each completed program dispatches exactly ten writes; busy reads and CPU
+WAIT stalls are observed, not assumed.
+
+The first data write stops FM enables for 200 master edges while the CPU
+continues; address/data/strobe remain held until dispatch. Retained-program
+warm resets restart the CPU from HALT and from an asserted timer flag, the
+latter with FM enables stopped. Once the CPU owns its queued write, another
+200-edge hold passes before it resumes and completes independently.
+Raw between-edge reset pulses are simulation stress, not silicon minimum
+reset-width acceptance. No CPU/chip state is forced; RAM results are written
+only by executed CPU stores. CPU interrupt service is not tested here.
+
+| Master Hz | Executed `Vfm_cpu_tb` SHA-256 |
+|---|---|
+| 32,000,000 | `cee729850ca99c950f0779a004775a21c3baab7934b5088dfa13b58dc26a204b` |
+| 28,636,364 | `54acb052a826ea42e1771b8e6277fd0a24e2891678d5f0d285f297397bdd8838` |
+| 28,571,428 | `02232659742128420baf3cd3f209eee95ba2b9d93b86db371a0bf109904130d4` |
+
+Logs: `/tmp/x1-v12-fm-cpu-32000000-4.log`,
+`/tmp/x1-v12-fm-cpu-28636364-3.log`, `/tmp/x1-v12-fm-cpu-28571428-3.log`.
+The original first-run watchdog is preserved: its clocked read-only response
+presented the prior instruction byte during TV80 I/O sampling. The fixture
+now selects live FM status during the read and retains it through the trailing
+I/O wait, as in the existing CPU/SIO diagnostic. A later reset fixture checked
+for a queue after 200 edges before slower CPUs had executed the write; it now
+waits for real ownership before the unchanged 200-edge hold. Neither fix
+changed the adapter or bypassed WAIT.
+
+Exact test addresses `0700/0701` agree with local MAME and X Millennium,
+not a proof of board ASIC aliases, DAM exclusion or IRQ routing. X Millennium
+`io/sndboard.c` returns constant zero status, so it cannot qualify busy/timers;
+its `io/ctc.c` selects an OPM CTC at `0704..0707`. MAME exposes this CTC but
+marks interrupt wiring/order unverified and programs YM2151 at 2 MHz.
+CZ-880 sheets 47/48 were reread for clock/data/analog mixing; visible sections
+do not settle the optional-board CTC/daisy-chain contract. Do not invent IRQ
+wiring from agreement between incomplete emulators.
+
+The [21-target hosted run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37497785084)
+passes on `abda8ee`, including the earlier FM waveform fixture. The subsequent
+workflow adds CPU/FM; record that result separately, not as an inferred pass.
+
+### Remaining machine gates
+
 Trace native decode/aliases, CTC IRQ input/polarity, CT outputs and bus/WAIT
 connections against the actual board. Add a separate capability/profile only
 with real behavior; no fake identification/readback. Connect genuine CPU and

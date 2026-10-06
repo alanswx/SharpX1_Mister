@@ -83,7 +83,7 @@ The preceding [19-target run on `35fd51d`](https://github.com/alanswx/SharpX1_Mi
 failed at its 600-second DMA build limit. All nine SIO targets completed, but
 GCC remained inside the generated DMA coroutine compilation even with `-O0`;
 there was no DMA simulator execution or RTL assertion failure in that run.
-The next 20-target workflow selects Clang and adds the capture test. It
+The initial 20-target retry selected Clang and added the capture test. It
 does not remove delays/assertions, shorten transfers or relax acceptance.
 [Verilator's compiler option](https://verilator.org/guide/latest/exe_verilator.html#cmdoption-compiler)
 tunes generated code but does not select the make compiler; the workflow also
@@ -92,10 +92,14 @@ Hosted execution remains an independent acceptance gate.
 The [C++20 Clang run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37493377112)
 still exceeds the 600-second DMA compilation limit with Ubuntu's Verilator
 5.020; all nine SIO targets pass before that build, but DMA does not execute.
-The next retry builds upstream Verilator **5.044**, pinned to
+The successful retry builds upstream Verilator **5.044**, pinned to
 `8df584ca1ddde5c8afbd15dc5fdcb677a78f9af2`, matching the locally qualified
-generator version. It adds the standalone FM target for 21 targets total;
-hosted acceptance remains pending. No RTL checks or simulation durations are reduced.
+generator version. [Hosted run 37497785084](https://github.com/alanswx/SharpX1_Mister/actions/runs/37497785084)
+on `abda8ee` exits zero for **all 21 targets**, including full DMA and FM
+waveform verification. Tool build took 8 minutes 5 seconds; the diagnostics
+step took 7 minutes 14 seconds. Full log: `/tmp/x1-ci-37497785084-full.log`.
+No RTL checks or simulation durations were reduced. This closes the expanded
+hosted diagnostic gate, not native media or physical machine acceptance.
 The [first Clang retry](https://github.com/alanswx/SharpX1_Mister/actions/runs/37490381146)
 failed before simulation because Ubuntu's GCC-configured Verilator passed
 `-fcoroutines` without a C++20 language selection. Clang warns that this GCC

@@ -37,9 +37,9 @@ The RGB12 port advances simulator states to v12. Fresh baseline Xevious,
 Druaga, Mappy, Galaga and Shanghai gameplay qualifications and the full
 delay-aware baseline suite exit zero. The standalone [FM foundation](TURBO_Z_FM_STATUS.md)
 passes bus/timer/stereo/mixer checks at three master frequencies, but is not
-connected to the machine. The expanded 21-target hosted retry now pins
-Verilator 5.044 after 5.020 exceeds the DMA compilation limit even with Clang;
-do not promote the old 16-target pass to acceptance of this expanded suite.
+connected to the machine. The expanded 21-target hosted retry passes on
+`abda8ee`, using pinned Verilator 5.044 after 5.020 exceeds the DMA compilation
+limit even with Clang. No RTL assertions or simulated durations were reduced.
 See [source-bound checks](TURBO_Z_RGB_STATUS.md).
 
 ## Current priorities 1–4 (October 5 checkpoint)
@@ -195,6 +195,8 @@ Preserve each frozen runner; do not rebuild historical v05.
   `/tmp/x1-sio-reset-guard.log`, `/tmp/x1-ci-local-extra.log`).
   [Hosted run 37479171527](https://github.com/alanswx/SharpX1_Mister/actions/runs/37479171527)
   passed all 16 selected targets on implementation commit `0e4e021`.
+  The [expanded run 37497785084](https://github.com/alanswx/SharpX1_Mister/actions/runs/37497785084)
+  passes all 21 targets on `abda8ee`, including full DMA and standalone FM.
   This is not private-media/native firmware, Quartus/hardware acceptance or
   full repository license clearance.
 

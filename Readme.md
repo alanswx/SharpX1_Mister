@@ -177,11 +177,12 @@ native firmware, Quartus or hardware acceptance.
 The expanded workflow adds idle Send Break, original DMA register/CPU units
 and exhaustive RGB12 capture. The 19-target GCC run timed out compiling DMA
 even at host `-O0`; it did not execute that simulator. Clang/C++20 with Ubuntu's
-Verilator 5.020 also exceeds that compile limit. The next 21-target retry pins
+Verilator 5.020 also exceeds that compile limit. The successful 21-target retry pins
 Verilator 5.044, selects Clang explicitly and adds standalone FM. It keeps
-per-target limits and all original assertions/simulated durations; hosted
-acceptance remains pending. Earlier 16-target passes are not
-promoted to acceptance of the expanded suite.
+per-target limits and all original assertions/simulated durations.
+[Hosted run 37497785084](https://github.com/alanswx/SharpX1_Mister/actions/runs/37497785084)
+passes all 21 targets on `abda8ee`, including full DMA and FM waveform checks.
+This remains asset-free diagnostic acceptance, not complete machine support.
 The simulator window now offers optional [live joystick keys](docs/PLAYING.md):
 arrows, Space (button 1) and Ctrl (button 2), through `--joystick-keys`.
 Independent CPU-programmed 40/80-column text and 320/640 graphics rasters now

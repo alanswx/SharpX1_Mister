@@ -57,7 +57,7 @@ jobs:
             test-sio-flow test-sio-cpu test-sio-dma test-sio-dma-cpu \
             test-dma test-dma-cpu \
             test-dma-reset test-cpu-busreq test-d88-scanner test-d88-crc \
-            test-d88-metadata test-fdc-abort test-fdc-sd-abort test-joystick test-rgb12 test-fm; do
+            test-d88-metadata test-fdc-abort test-fdc-sd-abort test-joystick test-rgb12 test-fm test-fm-cpu; do
             # Bound each original fixture without changing its assertions or
             # simulated duration. A stall must fail with an identifiable target.
             limit_s=180
