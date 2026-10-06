@@ -9,6 +9,26 @@ ordering, test coverage, and acceptance gates. These checklist phases are broad
 work buckets; the plan gives the execution order, including base-X1 floppy
 support before optional Turbo extensions.
 
+## Requested completion of items 1–6 (October 6)
+
+The user requested completing the six remaining work groups below. None is
+declared finished by the standalone SIO increments. Execute local gates in
+order, retain original regression failures/evidence, and push verified
+checkpoints. Hardware acceptance requires the build host/MiSTer; Quartus is
+not installed on this Mac and current hardware availability is unconfirmed.
+
+| Work group | Execution/acceptance still needed |
+|---|---|
+| 1. SIO | Owned serial read/write reset drain now passes separately; add reset during IRQ service, broader phases and full device arbitration; trace schematic clocks/modem/Ready/decode before opt-in shared-machine integration; finish remaining modes and run native serial diagnostics |
+| 2. DMA | Pending SD ACK/reset and PCG/GRAM targets; implement/test IRQ/search/restart functions; unchanged native Turbo IPL transfer continuity and exact timing |
+| 3. Kanji/Turbo video | CPU latch/ROM/glyph paths with synthetic fixtures, then authorized native fonts; complete attribute/PCG/text combinations, ASIC behavior and native Turbo/400-line software |
+| 4. Timing/hardware | Narrow audited CDC/reset/mux constraints, current-source Quartus refit and positive setup/hold/recovery; hardware bandwidth/video/audio and Main/OSD reset verification |
+| 5. Disk/software | Format/density/HD/media-change contracts; native metadata qualification; Arcus/Bastard playability; delay-aware and hardware game matrix |
+| 6. Base completeness/CI | Finish keyboard/sub-CPU, cassette and PPI functions; exact PCG/scanline/audio fidelity; BASIC compatibility and provenance; add asset-free diagnostic CI and verify its hosted execution |
+
+No legacy notices or private assets may be removed/bundled to claim completion.
+Turbo Z remains a separate seventh roadmap, not this request's completion gate.
+
 ## Current priorities 1–4 (October 5 checkpoint)
 
 These are acceptance gates, not four completed checkboxes.
@@ -83,6 +103,10 @@ Its new IM2 profile passes one SIO error handler/ACK/RETI after burst release
 and 80 stopped-enable ACK edges, preserving DI checks. Broader IRQ/BUSRQ
 phases, reset/daisy-chain and schematic-qualified machine integration remain
 open; DMA's own IRQ engine is still missing. This is not native/hardware acceptance.
+The reset extension now passes twelve A/B source-read/destination-write cases
+at CE=1/4/7, with stopped advancement, retained short reset, one drained pair,
+real CPU reboot and subsequent complete diagnostics. Reset during IRQ service
+and actual machine serial integration remain open; see [reset contract](SIO_DMA_CPU_STATUS.md#warm-resetdrain-extension).
 Both complete frozen fast/delay-aware metadata CPU matrices now pass.
 Four v05 native-control titles pass; Shanghai's expected-pair assertion failed
 with unchanged inputs and retained evidence. None qualifies later v10 RTL.
@@ -148,7 +172,12 @@ Preserve each frozen runner; do not rebuild historical v05.
 - [x] Establish nonzero HS/VS with an actual renderer and IPL-programmed CRTC.
 - [ ] Resolve all Verilator warnings instead of relying on broad suppression.
 - [x] Document Verilator 5.x headless and new SDL builds/play commands.
-- [ ] Add CI for the freely redistributable diagnostic fixtures.
+- [ ] Verify hosted CI for asset-free diagnostic fixtures. A read-only,
+  immutable-checkout-pinned workflow is now configured under
+  `.github/workflows/diagnostics.yml`; all selected targets pass locally
+  (Verilator 5.044, logs `/tmp/x1-sio-dma-reset-suite.log`,
+  `/tmp/x1-sio-reset-guard.log`, `/tmp/x1-ci-local-extra.log`).
+  Configuration alone is not a hosted pass or full repository license clearance.
 
 ## Phase 1 — prove the existing machine boots
 

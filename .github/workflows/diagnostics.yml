@@ -1,0 +1,44 @@
+name: Asset-free RTL diagnostics
+
+on:
+  push:
+    paths:
+      - 'rtl/**'
+      - 'verilator/**'
+      - '.github/workflows/diagnostics.yml'
+  pull_request:
+    paths:
+      - 'rtl/**'
+      - 'verilator/**'
+      - '.github/workflows/diagnostics.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  standalone-diagnostics:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - name: Install simulator and compiler
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y verilator build-essential
+          verilator --version
+          g++ --version
+      - name: Run original standalone fixtures
+        run: |
+          make -C verilator \
+            test-sio-async test-sio-formats test-sio-irq test-sio-first-status \
+            test-sio-flow test-sio-cpu test-sio-dma test-sio-dma-cpu \
+            test-dma-reset test-cpu-busreq test-d88-scanner test-d88-crc \
+            test-d88-metadata test-fdc-abort test-fdc-sd-abort test-joystick \
+            HEADLESS_DIR=obj_dir_ci
+      - name: Check whitespace
+        run: git diff --check HEAD^ HEAD

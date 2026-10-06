@@ -142,8 +142,15 @@ error inspection/reset on both channels at CE=1/4/7. Its new IM2 profile
 passes one genuine SIO error ACK/handler/RETI after burst release, including
 80 stopped-enable ACK edges. Broader IRQ/reset/multi-device service and
 exact pin handshakes remain open; DMA's own IRQ engine is still absent.
+Its warm-reset extension also passes twelve owned serial read/write cases:
+retained short request, stopped enables, one-pair drain, reboot without reload
+and fresh byte/count checks. IRQ-service reset and machine integration remain open.
 The SIO wrappers are not connected to the machine; native reset arming, remaining external
 sources, x1/break/exact WAIT/Ready and full multi-device arbitration remain open.
+Asset-free [diagnostic CI](.github/workflows/diagnostics.yml) is configured
+for the standalone SIO/DMA, D88, reset, bus-ownership and joystick fixtures;
+hosted execution must be verified separately. It does not run private media,
+native firmware, Quartus or hardware acceptance.
 The simulator window now offers optional [live joystick keys](docs/PLAYING.md):
 arrows, Space (button 1) and Ctrl (button 2), through `--joystick-keys`.
 Independent CPU-programmed 40/80-column text and 320/640 graphics rasters now

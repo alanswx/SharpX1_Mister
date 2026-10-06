@@ -8,6 +8,13 @@ module sio_dma_cpu_tb;
     integer period=1,edges=0,channel=0,pc=0,fail_count=0;
     integer fixups[0:31];
     reg im2_profile=0;
+    integer reset_kind=-1,drained_pairs=0;
+    reg warm_reset=0;
+    wire guard_reset,guard_cpu_run,guard_dma_reset,draining;
+    wire reset_profile=reset_kind>=0;
+    wire core_reset=reset_profile ? guard_reset : reset;
+    wire cpu_ce=ce && (!reset_profile || guard_cpu_run);
+    wire dma_reset=reset_profile ? guard_dma_reset : reset;
     always @(negedge clk) begin edges=edges+1; ce=!pause_ce && edges%period==0; end
     wire cpu_m1_n,cpu_mreq_n,cpu_iorq_n,cpu_rd_n,cpu_wr_n,cpu_rfsh_n,halt_n;
     wire busrq_n,busak_n,dma_mreq_n,dma_iorq_n,dma_rd_n,dma_wr_n;
@@ -22,8 +29,8 @@ module sio_dma_cpu_tb;
     wire wr_n=owner ? dma_wr_n : cpu_wr_n;
     wire acknowledge=!owner && !cpu_m1_n && !cpu_iorq_n;
     wire active=!acknowledge && (!mreq_n || !iorq_n) && (!rd_n || !wr_n);
-    wire sio_cs=!reset && !iorq_n && (owner || cpu_m1_n) && address[15:2]==14'(16'h1f90>>2);
-    wire dma_cs=!reset && !owner && !cpu_iorq_n && cpu_m1_n &&
+    wire sio_cs=!core_reset && !iorq_n && (owner || cpu_m1_n) && address[15:2]==14'(16'h1f90>>2);
+    wire dma_cs=!core_reset && !owner && !cpu_iorq_n && cpu_m1_n &&
         cpu_address[15:4]==12'h1f8;
     reg [7:0] memory[0:65535];
     reg [7:0] response=0;
@@ -49,18 +56,21 @@ module sio_dma_cpu_tb;
     integer cpu_effects=0,owned_edges=0;
     integer error_inspections=0,error_status_reads=0,error_irq_edges=0;
     integer owned_irq_edges=0;
-    cpu processor(.clock(clk),.cep(ce),.cen(1'b0),.reset_n(!reset),
+    x1_dma_reset reset_guard(.clk(clk),.reset_request(reset || warm_reset),
+        .dma_busak_n(busak_n),.dma_busrq_n(busrq_n),.machine_reset(guard_reset),
+        .cpu_run(guard_cpu_run),.dma_reset(guard_dma_reset),.draining(draining));
+    cpu processor(.clock(clk),.cep(cpu_ce),.cen(1'b0),.reset_n(!core_reset),
         .int_n(!irq),.wait_n(cpu_wait_n),.busrq_n(busrq_n),.busak_n(busak_n),
         .rfsh_n(cpu_rfsh_n),.halt_n(halt_n),.mreq(cpu_mreq_n),.iorq(cpu_iorq_n),
         .wr(cpu_wr_n),.rd(cpu_rd_n),.m1(cpu_m1_n),.di(cpu_di),
         .data_out(cpu_dout),.a(cpu_address),.dir(16'b0),.dirset(1'b0));
-    x1_dma dma(.clk(clk),.ce(ce),.reset(reset),.cpu_cs(dma_cs),
+    x1_dma dma(.clk(clk),.ce(ce),.reset(dma_reset),.cpu_cs(dma_cs),
         .cpu_rd_n(cpu_rd_n),.cpu_wr_n(cpu_wr_n),.cpu_data_in(cpu_dout),
         .cpu_data_out(dma_cpu_dout),.busrq_n(busrq_n),.busak_n(busak_n),
         .mreq_n(dma_mreq_n),.iorq_n(dma_iorq_n),.rd_n(dma_rd_n),.wr_n(dma_wr_n),
         .address(dma_address),.data_out(dma_dout),.data_in(response),
         .wait_n(dma_wait_n),.rdy(ready_n[channel]),.unsupported(dma_bad));
-    x1_sio_interrupt #(.FLOW_ENABLE(1)) sio(.clk(clk),.ce(ce),.reset(reset),
+    x1_sio_interrupt #(.FLOW_ENABLE(1)) sio(.clk(clk),.ce(ce),.reset(core_reset),
         .cpu_cs(sio_cs),.cpu_rd_n(rd_n),.cpu_wr_n(wr_n),.address(address[1:0]),
         .cpu_din(dout),.cpu_dout(sio_dout),.rx_tick(rx_tick),.tx_tick(tx_tick),
         .rxd(rxd),.cts_n(2'b11),.dcd_n(2'b11),.txd(txd),.rts_n(rts_n),.dtr_n(dtr_n),
@@ -68,17 +78,17 @@ module sio_dma_cpu_tb;
         .irq(irq),.ieo(ieo),.ack_vector(vector),.wait_n(flow_wait_n),.ready_n(ready_n));
     // Existing fetch decoder, with idle CTC/keyboard. RETI is qualified only
     // to this sole interrupt device; this is not shared daisy-chain wiring.
-    x1_irq_bridge opcode_decoder(.clk(clk),.reset(reset),.m1_n(cpu_m1_n),
+    x1_irq_bridge opcode_decoder(.clk(clk),.reset(core_reset),.m1_n(cpu_m1_n),
         .mreq_n(cpu_mreq_n),.iorq_n(cpu_iorq_n),.rd_n(cpu_rd_n),.data(cpu_di),
         .keyboard_irq(1'b0),.ctc_irq(1'b0),.ctc_ieo(1'b1),
         .keyboard_vector(8'hff),.ctc_vector(8'hff),.ctc_reti(reti),
         .irq(),.keyboard_ack(),.ctc_ack(),.ctc_iei(),.ctc_selected(),.ack_vector());
     always @(posedge clk) begin
-        if(reset) begin ack_old<=0; ack_count<=0; reti_count<=0; end
+        if(core_reset) begin ack_old<=0; ack_count<=0; reti_count<=0; end
         else begin
             ack_old<=acknowledge;
             if(acknowledge) begin
-                if(!im2_profile || owner || !busrq_n || io_reads!=5 ||
+                if(!im2_profile || owner || !busrq_n || io_reads!=drained_pairs+5 ||
                    memory[16'h9200]!==8'h37)
                     $fatal(1,"IRQ ACK before DMA error pair drained/released");
                 if(!ack_old) begin
@@ -102,7 +112,7 @@ module sio_dma_cpu_tb;
     // first latch on their enabled edge, then settle while target WAIT holds.
     // Four enabled target intervals precede one accepted memory side effect.
     always @(posedge clk) begin
-        if(reset) begin pending<=0; accepted<=0; age<=0; response<=0; end
+        if(core_reset) begin pending<=0; accepted<=0; age<=0; response<=0; end
         else if(!active) begin pending<=0; accepted<=0; age<=0; end
         else if(!pending) begin
             pending<=1; accepted<=0; age<=0;
@@ -141,7 +151,8 @@ module sio_dma_cpu_tb;
                 if(!wr_n && !mreq_n) begin
                     if(address<16'h8000) $fatal(1,"write to original ROM");
                     memory[address]<=dout;
-                    if(address==16'h8001 && dout!==8'ha5)
+                    if(address==16'h8001 && dout!==8'ha5 &&
+                       !(reset_profile && dout==8'hcc && memory[16'h8000]==0))
                         $fatal(1,"CPU byte/count assertion failed PC=%h",processor.Z80CPU.i_tv80_core.PC);
                 end
                 if(!iorq_n && !sio_cs && !dma_cs) $fatal(1,"unknown I/O target");
@@ -150,12 +161,12 @@ module sio_dma_cpu_tb;
     end
     // Observe pre/post enabled edges; do not synthesize or force ACK. CPU must
     // finish its current WAIT-stretched OUT before entering bus release.
-    always @(posedge clk) if(!reset) begin : ownership_checks
+    always @(posedge clk) if(!core_reset) begin : ownership_checks
         reg was_owner,blocked;
         reg [15:0] old_pc;
         integer old_effects;
         was_owner=owner; old_pc=processor.Z80CPU.i_tv80_core.PC; old_effects=cpu_effects;
-        blocked=ce && !busrq_n && !owner && active && !cpu_wait_n;
+        blocked=cpu_ce && !busrq_n && !owner && active && !cpu_wait_n;
         if(blocked) blocked_grants=blocked_grants+1;
         #2;
         if(blocked && owner) $fatal(1,"CPU granted before WAIT cycle completed");
@@ -238,13 +249,49 @@ module sio_dma_cpu_tb;
         end
         @(negedge clk); #1; pause_ce=0;
     endtask
+    task automatic request_warm_reset;
+        reg [15:0] saved_address,saved_pc;
+        reg [7:0] saved_response;
+        integer saved_reads,saved_writes;
+        if(reset_kind==0) wait(owner && !dma_iorq_n && !dma_rd_n && pending && age>=2);
+        else wait(owner && !dma_mreq_n && !dma_wr_n && pending && age>=2);
+        // Freeze advancement before requesting reset. The sub-SYS pulse
+        // must be retained; neither actual ACK nor the target is revoked.
+        @(negedge clk); #1; pause_ce=1; ce=0;
+        saved_address=address; saved_pc=processor.Z80CPU.i_tv80_core.PC;
+        saved_response=response; saved_reads=dma_reads; saved_writes=dma_writes;
+        warm_reset=1; #2; warm_reset=0;
+        repeat(80) begin @(posedge clk); #3;
+            if(ce || cpu_ce || !draining || core_reset || !dma_reset || !owner || busrq_n ||
+               address!==saved_address || processor.Z80CPU.i_tv80_core.PC!==saved_pc ||
+               dma_reads!=saved_reads || dma_writes!=saved_writes || response!==saved_response)
+                $fatal(1,"reset discarded stopped-enable SIO pair/response/grant");
+        end
+        @(negedge clk); #1; pause_ce=0;
+        wait(core_reset); #3;
+        if(dma_reads!=1 || dma_writes!=1 || memory[16'h9000]!==8'h53)
+            $fatal(1,"warm reset did not drain exactly one actual serial pair r=%0d w=%0d",dma_reads,dma_writes);
+        drained_pairs=1;
+        wait(!core_reset);
+    endtask
     initial begin : run
         integer loop_pc,fail_pc;
         if(!$value$plusargs("CE_PERIOD=%d",period)) period=1;
         if(!$value$plusargs("CHANNEL=%d",channel)) channel=0;
         im2_profile=$test$plusargs("im2");
+        if(!$value$plusargs("RESET_KIND=%d",reset_kind)) reset_kind=-1;
+        if(reset_kind>1 || (reset_kind>=0 && im2_profile)) $fatal(1,"separate supported reset profiles required");
         for(integer i=0;i<65536;i=i+1) memory[i]=8'hcc;
         emit(8'hf3); emit(8'h31); word_emit(16'hff00); // DI; LD SP,FF00
+        if(reset_kind>=0) begin
+            // Genuine CPU reboot entry count and sentinel initialization.
+            // Retained RAM is never patched by the host after cold reset.
+            memory[16'h8003]=0;
+            emit(8'h21); word_emit(16'h8003); emit(8'h34); // INC (HL)
+            load_a(0); store(16'h8000); load_a(8'hcc); store(16'h8001);
+            for(integer i=0;i<4;i=i+1) store(16'h9000+16'(i));
+            store(16'h9200); store(16'h9201);
+        end
         port(channel==0 ? 16'h1f91 : 16'h1f93);
         out_byte(8'h18); wr_sio(4,8'h44); wr_sio(3,8'hc1); wr_sio(5,8'hea); wr_sio(1,8'he0);
         if(im2_profile) begin
@@ -293,11 +340,19 @@ module sio_dma_cpu_tb;
         end
         repeat(8) step(); reset=0;
         wait(memory[16'h8000]==1 && dma.enabled);
-        repeat(80) begin step(); if(!busrq_n || dma_reads!=0 || dma_writes!=0) $fatal(1,"empty RX DMA request"); end
+        if(reset_profile) begin
+            fork
+                receive_byte(8'h53,0);
+                request_warm_reset();
+            join
+            rx_tick=0; rxd=3;
+            wait(memory[16'h8003]==2 && memory[16'h8000]==1 && dma.enabled);
+        end
+        repeat(80) begin step(); if(!busrq_n || dma_reads!=drained_pairs || dma_writes!=drained_pairs) $fatal(1,"empty RX DMA request"); end
         for(integer i=0;i<4;i=i+1) begin
-            receive_byte(8'h53+8'(i*17),0); wait(dma_writes==i+1);
+            receive_byte(8'h53+8'(i*17),0); wait(dma_writes==drained_pairs+i+1);
             if(i<3) repeat(80) begin step();
-                if(!owner || dma_reads!=i+1 || dma_writes!=i+1) $fatal(1,"continuous RX ownership/pacing");
+                if(!owner || dma_reads!=drained_pairs+i+1 || dma_writes!=drained_pairs+i+1) $fatal(1,"continuous RX ownership/pacing");
             end
         end
         wait(memory[16'h8000]==2 && io_writes==1);
@@ -317,11 +372,13 @@ module sio_dma_cpu_tb;
         if(paused_ack_edges!=(im2_profile ? 80 : 0) ||
            ack_count!=(im2_profile ? 1 : 0) || reti_count!=(im2_profile ? 1 : 0) ||
            error_inspections!=2 || error_status_reads!=1 || error_irq_edges==0 || owned_irq_edges==0 ||
-           grants!=4 || blocked_grants==0 || owned_edges==0 || dma_reads!=10 || dma_writes!=10 ||
-           io_reads!=6 || io_writes!=4 || owner || !busrq_n || irq || !ieo || sio_bad || dma_bad || txd!==3)
+           grants!=drained_pairs+4 || blocked_grants==0 || owned_edges==0 ||
+           dma_reads!=drained_pairs+10 || dma_writes!=drained_pairs+10 ||
+           io_reads!=drained_pairs+6 || io_writes!=4 || owner || !busrq_n || irq || !ieo || sio_bad || dma_bad || txd!==3 ||
+           (reset_profile && memory[16'h8003]!==2))
             $fatal(1,"final CPU/DMA result grants=%0d blocked=%0d pairs=%0d/%0d",grants,blocked_grants,dma_reads,dma_writes);
-        $display("PASS: actual CPU/SIO/DMA continuous RX/TX + burst error, grants/WAIT/pins/counts CE=%0d channel=%0d blocked=%0d IM2=%0d ACK/RETI=%0d/%0d",period,channel,blocked_grants,im2_profile,ack_count,reti_count);
+        $display("PASS: actual CPU/SIO/DMA continuous RX/TX + burst error, grants/WAIT/pins/counts CE=%0d channel=%0d blocked=%0d IM2=%0d ACK/RETI=%0d/%0d reset=%0d drained=%0d",period,channel,blocked_grants,im2_profile,ack_count,reti_count,reset_kind,drained_pairs);
         $finish;
     end
-    initial begin #20000000; $fatal(1,"CPU SIO DMA watchdog PC=%h stage=%h pairs=%0d/%0d",processor.Z80CPU.i_tv80_core.PC,memory[16'h8000],dma_reads,dma_writes); end
+    initial begin #20000000; $fatal(1,"CPU SIO DMA watchdog PC=%h stage=%h pairs=%0d/%0d entry=%h reset=%b/%b drained=%0d enabled=%b",processor.Z80CPU.i_tv80_core.PC,memory[16'h8000],dma_reads,dma_writes,memory[16'h8003],core_reset,draining,drained_pairs,dma.enabled); end
 endmodule

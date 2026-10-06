@@ -124,11 +124,13 @@ test-sio-dma-cpu: $(HEADLESS_DIR)/sio-dma-cpu/Vsio_dma_cpu_tb
 	@for rate in 1 4 7; do for channel in 0 1; do \
 		./$(HEADLESS_DIR)/sio-dma-cpu/Vsio_dma_cpu_tb +CE_PERIOD=$$rate +CHANNEL=$$channel || exit 1; \
 		./$(HEADLESS_DIR)/sio-dma-cpu/Vsio_dma_cpu_tb +CE_PERIOD=$$rate +CHANNEL=$$channel +im2 || exit 1; \
+		./$(HEADLESS_DIR)/sio-dma-cpu/Vsio_dma_cpu_tb +CE_PERIOD=$$rate +CHANNEL=$$channel +RESET_KIND=0 || exit 1; \
+		./$(HEADLESS_DIR)/sio-dma-cpu/Vsio_dma_cpu_tb +CE_PERIOD=$$rate +CHANNEL=$$channel +RESET_KIND=1 || exit 1; \
 	done; done
-$(HEADLESS_DIR)/sio-dma-cpu/Vsio_dma_cpu_tb: tests/sio_dma_cpu_tb.sv ../rtl/x1_dma.sv ../rtl/x1_sio_async.sv ../rtl/x1_sio_irq.sv ../rtl/x1_irq_bridge.sv ../rtl/cpu.v $(wildcard ../rtl/tv80/*.v) Makefile
+$(HEADLESS_DIR)/sio-dma-cpu/Vsio_dma_cpu_tb: tests/sio_dma_cpu_tb.sv ../rtl/x1_dma.sv ../rtl/x1_dma_reset.sv ../rtl/x1_sio_async.sv ../rtl/x1_sio_irq.sv ../rtl/x1_irq_bridge.sv ../rtl/cpu.v $(wildcard ../rtl/tv80/*.v) Makefile
 	mkdir -p $(@D)
 	$(V) --binary --timing --assert --top-module sio_dma_cpu_tb --Mdir $(HEADLESS_DIR)/sio-dma-cpu \
-		-j 4 tests/sio_dma_cpu_tb.sv ../rtl/x1_dma.sv ../rtl/x1_sio_async.sv ../rtl/x1_sio_irq.sv ../rtl/x1_irq_bridge.sv ../rtl/cpu.v \
+		-j 4 tests/sio_dma_cpu_tb.sv ../rtl/x1_dma.sv ../rtl/x1_dma_reset.sv ../rtl/x1_sio_async.sv ../rtl/x1_sio_irq.sv ../rtl/x1_irq_bridge.sv ../rtl/cpu.v \
 		../rtl/tv80/tv80e.v ../rtl/tv80/tv80_core.v ../rtl/tv80/tv80_mcode.v ../rtl/tv80/tv80_alu.v ../rtl/tv80/tv80_reg.v -Wno-fatal
 .PHONY: test-sio-dma-cpu
 

@@ -11,6 +11,8 @@ default profiles and v11 machine states remain unchanged.
 A subsequent `+im2` profile now qualifies one genuine vectored error service
 after burst release, including stopped-enable ACK and decoded RETI. This is
 SIO IRQ service during DMA work, **not implementation of DMA's own IRQ engine**.
+The later reset profiles qualify owned serial read/write drain and real CPU
+reboot separately, not reset while IM2 service is active.
 
 ## Executed result
 
@@ -21,8 +23,9 @@ make -C verilator test-sio-dma-cpu test-sio-dma test-sio-async \
 ```
 
 All eight targets pass. The combined diagnostic runs both A/B at CE=1/4/7,
-with original DI and new `+im2` profiles: twelve executions, three blocks /
-ten pairs / four real grants each. SYS is
+with DI, `+im2`, and two reset profiles: twenty-four executions. The DI/IM2
+runs have three blocks / ten pairs / four real grants each; reset runs add
+one drained pre-reboot pair and one grant. SYS is
 100 MHz (10 ns), with eight initial enabled reset edges and deterministic
 enable phase. Original 8N1/x16 serial patterns are event-driven on the same
 SYS domain. These frequencies test digital behavior, not X1 baud/clock wiring.
@@ -127,7 +130,8 @@ One memory side effect is accepted per stretched transaction. This implements
 the response-persistence requirement found in the earlier
 [CPU WAIT tests](SIO_FLOW_STATUS.md), not a fix to the unconnected machine.
 
-Current complete-suite log: `/tmp/x1-sio-dma-im2-suite.log`. Earlier DI-only
+Current complete-suite log: `/tmp/x1-sio-dma-reset-suite.log`. IM2 checkpoint:
+`/tmp/x1-sio-dma-im2-suite.log`. Earlier DI-only
 checkpoint: `/tmp/x1-sio-dma-cpu-suite.log`; initial IM2 development:
 `/tmp/x1-sio-dma-im2.log`. The build retains the inherited
 TV80 missing `DIRSET` pin warning; there are no new default warnings or
@@ -136,10 +140,50 @@ source suppressions. The earlier continuous-only run remains in
 `/tmp/x1-sio-dma-cpu-recovery.log`. Existing SIO regression assertions were
 not weakened or removed.
 
+## Warm-reset/drain extension
+
+`RESET_KIND=0/1` adds twelve cases: A/B, CE=1/4/7, reset during the owned SIO
+source read or its RAM destination write. Existing `x1_dma_reset` supplies
+the reset retention/drain contract used by the shared machine. Its CPU-run
+output gates CPU CE, while DMA/target advancement remains independent of
+that CPU-run gate. SIO, target adapter and opcode decoder get the guarded
+core reset, not the raw request: clearing their response/FIFO prematurely
+could destroy the pair already in progress. Default DI/IM2 fixture connections
+remain unchanged; no machine/peripheral/CPU RTL was edited.
+
+Each reset fixture waits until the target has progressed two enabled response
+intervals (not an unprepared read), stops shared advancement, and issues a
+**2 ns request between SYS rising edges**. Eighty SYS edges must retain the
+short request, actual CPU ACK/PC/address/response, with no target completion,
+CPU CE or early core reset. After advancement resumes, exactly one serial
+`53` pair commits to `9000`; only then may core reset assert and clear the
+SIO. The reset guard supplies its inherited four-SYS-edge release hold.
+An already-started write is committed, not rolled back.
+
+The retained original program reboots without ROM reload. CPU instructions
+increment an entry counter and initialize RAM sentinels, preventing stale
+pre-reset bytes from passing post-reset polls. The host never patches retained
+RAM or CPU state. It then supplies all fresh RX/TX/error frames and requires
+the complete original diagnostic: entry count two, eleven read/write pairs,
+five actual grants, exact serial bytes/counts, final `A5` and HALT.
+These reset profiles stay DI; combining reset with the IM2-service profile
+is explicitly rejected until that phase has its own assertions.
+
+Development watchdog failures in `/tmp/x1-sio-dma-reset.log` and
+`/tmp/x1-sio-dma-reset2.log` are retained. The fixture initially used a
+continuous profile wire immediately after parsing plusargs, before its delta
+update, so it omitted the reboot-entry program and waited forever for the
+entry counter. Original program generation now branches directly on the
+parsed value; no RTL repair or byte/count assertion relaxation was needed.
+Response stability is checked after target preparation rather than assuming
+an unprepared read response is already valid. Final directed log:
+`/tmp/x1-sio-dma-reset3.log`; original guard fixture also passes separately in
+`/tmp/x1-sio-reset-guard.log`.
+
 ## Remaining gates
 
 - Broader IRQ/BUSRQ phases, nesting and shared CTC/SIO/keyboard daisy-chain
-  service, DMA's own unimplemented IRQ engine, reset/drain and
+  service, DMA's own unimplemented IRQ engine, reset during IRQ service and
   independent CPU/DMA enable stoppage in the combined fixture.
 - Multiple queued RX bytes in bursts, error/arrival/reset collisions and
   exact W/RDY phase, opposite-channel and open-drain handling.
