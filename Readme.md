@@ -57,6 +57,11 @@ The [real CPU/DMA unit diagnostic](docs/DMA_CPU_BUS_STATUS.md) passes
 ownership and FDC DRQ pacing. Generated A/B reads, writes, CRC repair,
 protection and owned-pair reset tests pass; native firmware and full DMA
 functions remain open. Ordinary Turbo/X3 and board defaults do not enable it.
+Further [pending-SD reset and video-target checks](docs/DMA_MACHINE_STATUS.md#october-6-pending-sd-reset-and-video-target-qualification)
+pass eight held-reset A/B read/write cases, including stopped-enable ACK drain
+and native diagnostic reboot. Fast/delay-aware GRAM/selected PCG transfers pass
+CPU count/readback and isolation checks. Short reset/metadata/DAM/native timing
+and hardware gates remain open.
 A bounded [high-speed PCG increment](docs/TURBO_HIGH_SPEED_PCG_STATUS.md)
 adds selector shadows, frozen HSYNC-window access and CPU ANK8/16 selection.
 Original unit/CPU tests pass; ASIC fallback/WAIT phase, Kanji and hardware
@@ -148,8 +153,9 @@ and fresh byte/count checks. IRQ-service reset and machine integration remain op
 The SIO wrappers are not connected to the machine; native reset arming, remaining external
 sources, x1/break/exact WAIT/Ready and full multi-device arbitration remain open.
 Asset-free [diagnostic CI](.github/workflows/diagnostics.yml) is configured
-for the standalone SIO/DMA, D88, reset, bus-ownership and joystick fixtures;
-hosted execution must be verified separately. It does not run private media,
+for the standalone SIO/DMA, D88, reset, bus-ownership and joystick fixtures.
+[Hosted run 37479171527](https://github.com/alanswx/SharpX1_Mister/actions/runs/37479171527)
+passes all 16 targets on commit `0e4e021`. It does not run private media,
 native firmware, Quartus or hardware acceptance.
 The simulator window now offers optional [live joystick keys](docs/PLAYING.md):
 arrows, Space (button 1) and Ctrl (button 2), through `--joystick-keys`.

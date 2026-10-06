@@ -96,10 +96,12 @@ Local logs: `/tmp/x1-v11-machine-dma-expanded.log`,
 
 ## Remaining gates
 
-1. DMA read/write resets with outstanding SD ACK, partial payload/metadata
-   publication, lost-data/CRC failure and no-ready/Ready-loss continuity.
-2. Further CPU and DMA accesses to PCG WAIT, graphics pages/DAM and
-   other side-effect targets; preserve single peripheral transaction semantics.
+1. Broaden the pending-SD reset cases below to short released pulses, partial
+   payload/metadata publication, lost-data/CRC failure and no-ready/Ready-loss
+   continuity. The whole-machine stopped-enable payload cases now pass.
+2. Broaden the video-target cases below to reset while PCG is waiting,
+   DAM/mixed side-effect targets and native raster traffic; preserve single
+   peripheral transaction semantics.
 3. X3/single combinations and programmable Ready polarity; current generated
    machine fixtures exercise active-low Ready only.
 4. Unchanged native Turbo IPL disk streams, authentic counter continuation
@@ -108,3 +110,62 @@ Local logs: `/tmp/x1-v11-machine-dma-expanded.log`,
    unsupported. Do not fake these capabilities or enable the default profile.
 6. Source-bound Quartus reset/CDC/bus fit and physical hardware validation.
    The frozen `15a0655` artifact predates this work and fails timing.
+
+## October 6 pending-SD reset and video-target qualification
+
+No machine RTL changes were needed for this increment. The shared machine is
+still the opt-in v11 subset, with SYS 32 MHz / VID 28.571428 MHz, ordinary
+4 MHz CPU/DMA/FDC enables and X3/single disabled. These are original generated
+programs/media, not unchanged native Turbo IPL or physical hardware evidence.
+
+`dma_machine_sd_reset_tb.sv` runs eight delay-aware cases: drive A/B × read/write
+× unacknowledged/mid-ACK request. Each case loads an original program through
+ioctl and serves two distinct generated 960-byte D88 images through SD.
+The reset is held through an 80-SYS-edge host stall and the eventual ACK drain;
+CPU/FDC enables remain stopped, while the host uses SYS without their enables.
+During that stall the old LBA, drive owner and request/ACK remain stable and
+no DMA pair advances. The transport clears while reset is still held.
+
+For reads, no old pair has started; for writes, 256 genuine byte-mode pairs
+have already filled the published payload buffer. Accepted writes may commit
+during reset, not roll back. Both whole images, including headers, padding
+and the untouched drive, are checked **before reboot**, so a later identical
+write cannot conceal old-buffer corruption. After releasing reset, the same
+loaded program re-enters from IPL without asset reload, records its second
+entry in retained RAM and completes another 256 exact pairs/grants. The CPU
+checks status/address/count readback; read cases also compare every byte.
+The images are checked again, and CPU FDC payload accesses must remain zero.
+This requests reset while DMA is waiting for a disk/host transaction, not an
+owned pair; owned read/write drain is covered by the earlier separate fixture.
+It does not cover metadata writes, released-short-reset retry or physical HPS.
+
+`test_machine_dma_video.py` also passes on both frozen fast and delay-aware v11
+runners above, at the original **8,000,000 reference cycles per case**:
+
+| Target | Executed checks |
+|---|---|
+| GRAM | 576 read/write pairs / 36 genuine continuous grants; both CPU-access pages, all three planes, starts at 0/1FFF/3FF0, 16-byte spans, opposite-page guards and source-counter wrap at FFFF |
+| Selected PCG | 96 pairs / 6 genuine continuous grants; three independent paired sixteen-row planes, real synchronized WAIT/HSYNC-window transactions and post-transfer plane isolation |
+
+CPU-generated Force Ready paces these continuous video transfers. The CPU
+checks each transfer's terminal/address/count registers and every returned
+RAM byte; a stale destination sentinel cannot satisfy the checks. Exact native
+ASIC/scanline timing, PCG reset/CDC signoff, DAM and hardware bandwidth remain
+open. Pin-level single-write semantics remain qualified by the existing PCG
+fixtures, not by a duplicate-side-effect counter in this new runner.
+
+```sh
+make -C verilator test-machine-dma-sd-reset HEADLESS_DIR=obj_dir_v11_units
+python3 verilator/tests/test_machine_dma_video.py verilator/obj_dir_turbo_dma/Vtop
+python3 verilator/tests/test_machine_dma_video.py verilator/obj_dir_v11_dma_fast/Vtop
+```
+
+Logs: `/tmp/x1-machine-dma-sd-reset4.log`,
+`/tmp/x1-machine-dma-video-delay.log`, `/tmp/x1-machine-dma-video-fast2.log`.
+Earlier failed fixture-construction logs are retained: the initial SD fixture
+exceeded its mistakenly chosen 4 KiB ROM buffer, then sampled combinational
+reset before settling; the first video emitter failed to mask the wrapped
+16-bit counter's high byte. Correcting those fixture errors did not change
+machine behavior or relax the runtime payload/count/transport assertions.
+Inherited machine warnings remain; the new SD fixture adds no suppressions.
+These whole-machine checks are not part of the standalone asset-free CI gate.

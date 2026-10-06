@@ -58,6 +58,20 @@ $(HEADLESS_DIR)/dma-machine-reset/Vdma_machine_reset_tb: $(V_SRC) tests/dma_mach
 		-j 4 $(V_SRC) tests/dma_machine_reset_tb.sv -Wno-fatal
 .PHONY: test-machine-dma test-machine-dma-reset
 
+test-machine-dma-sd-reset: $(HEADLESS_DIR)/dma-machine-sd-reset/Vdma_machine_sd_reset_tb
+	@for drive in 0 1; do for writing in 0 1; do for phase in 0 1; do \
+		./$(HEADLESS_DIR)/dma-machine-sd-reset/Vdma_machine_sd_reset_tb +DRIVE_B=$$drive +WRITING=$$writing +PHASE=$$phase || exit 1; \
+	done; done; done
+$(HEADLESS_DIR)/dma-machine-sd-reset/Vdma_machine_sd_reset_tb: $(V_SRC) tests/dma_machine_sd_reset_tb.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module dma_machine_sd_reset_tb --Mdir $(HEADLESS_DIR)/dma-machine-sd-reset \
+		-j 4 $(V_SRC) tests/dma_machine_sd_reset_tb.sv -Wno-fatal
+.PHONY: test-machine-dma-sd-reset
+
+test-machine-dma-video: turbo-dma
+	python3 tests/test_machine_dma_video.py ./$(DMA_DIR)/Vtop
+.PHONY: test-machine-dma-video
+
 test-sio-async: $(HEADLESS_DIR)/sio-async/Vsio_async_tb
 	@for rate in 1 4 7; do ./$(HEADLESS_DIR)/sio-async/Vsio_async_tb +CE_PERIOD=$$rate || exit 1; done
 $(HEADLESS_DIR)/sio-async/Vsio_async_tb: tests/sio_async_tb.sv ../rtl/x1_sio_async.sv

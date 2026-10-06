@@ -15,16 +15,17 @@ The user requested completing the six remaining work groups below. None is
 declared finished by the standalone SIO increments. Execute local gates in
 order, retain original regression failures/evidence, and push verified
 checkpoints. Hardware acceptance requires the build host/MiSTer; Quartus is
-not installed on this Mac and current hardware availability is unconfirmed.
+not installed on this Mac. The user confirmed that both remote systems remain
+unavailable; continue local verification without claiming hardware acceptance.
 
 | Work group | Execution/acceptance still needed |
 |---|---|
 | 1. SIO | Owned serial read/write reset drain now passes separately; add reset during IRQ service, broader phases and full device arbitration; trace schematic clocks/modem/Ready/decode before opt-in shared-machine integration; finish remaining modes and run native serial diagnostics |
-| 2. DMA | Pending SD ACK/reset and PCG/GRAM targets; implement/test IRQ/search/restart functions; unchanged native Turbo IPL transfer continuity and exact timing |
+| 2. DMA | Eight pending-SD held-reset cases and fast/delay-aware GRAM/PCG targets now pass; broaden partial metadata/short-pulse/PCG-reset/DAM cases; implement/test IRQ/search/restart functions; unchanged native Turbo IPL transfer continuity and exact timing |
 | 3. Kanji/Turbo video | CPU latch/ROM/glyph paths with synthetic fixtures, then authorized native fonts; complete attribute/PCG/text combinations, ASIC behavior and native Turbo/400-line software |
 | 4. Timing/hardware | Narrow audited CDC/reset/mux constraints, current-source Quartus refit and positive setup/hold/recovery; hardware bandwidth/video/audio and Main/OSD reset verification |
 | 5. Disk/software | Format/density/HD/media-change contracts; native metadata qualification; Arcus/Bastard playability; delay-aware and hardware game matrix |
-| 6. Base completeness/CI | Finish keyboard/sub-CPU, cassette and PPI functions; exact PCG/scanline/audio fidelity; BASIC compatibility and provenance; add asset-free diagnostic CI and verify its hosted execution |
+| 6. Base completeness/CI | Asset-free diagnostic CI now passes hosted execution; finish keyboard/sub-CPU, cassette and PPI functions; exact PCG/scanline/audio fidelity; BASIC compatibility and provenance |
 
 No legacy notices or private assets may be removed/bundled to claim completion.
 Turbo Z remains a separate seventh roadmap, not this request's completion gate.
@@ -37,7 +38,7 @@ These are acceptance gates, not four completed checkboxes.
 |---|---|---|
 | 1. Turbo video | X3 enables/raster mapping/16-row ANK; bounded high-speed PCG selector, frozen HSYNC-window transactions and CPU ANK8/16 selection pass focused simulation; HPS snapshot seam and X3 PPI level crossing tested, including real-CPU cold/warm polling | Route/timing/CDC/reset signoff and refit; exact ASIC selector/WAIT phase, text expansion/underline, Kanji CPU/glyph paths and native/hardware acceptance |
 | 2. Native games | Five v11 baseline titles pass, including Galaga firing and Shanghai pair removal using native cursor feedback; old timed-replay failure preserved | Native Arcus/Bastard playability, Turbo firmware/video and multi-disk continuity; polling-phase diagnosis, delay-aware and hardware gameplay (Arcus A1/B2 remains exploratory) |
-| 3. CTC/DMA/SIO | CTC/IM2/ACK/keyboard; standalone DMA and actual CPU/DMA tests; opt-in shared-machine bus/FDC DRQ, generated A/B transfer/count/protection/CRC and owned reset tests; standalone SIO formats/FIFO/collisions, first/all-RX/TX/CTS/DCD IRQ and actual-CPU IM2 pass | DMA native/pending-SD reset/other-target/IRQ/search/exact timing acceptance; SIO native reset arming/remaining external sources/x1/break/live configuration/machine integration; physical daisy-chain timing |
+| 3. CTC/DMA/SIO | CTC/IM2/ACK/keyboard; standalone DMA and actual CPU/DMA tests; opt-in shared-machine bus/FDC DRQ, generated A/B transfer/count/protection/CRC, owned/pending-SD reset and bounded GRAM/PCG tests; standalone SIO formats/FIFO/collisions, first/all-RX/TX/CTS/DCD IRQ and actual-CPU IM2 pass | DMA native/partial-metadata/short-reset/DAM/IRQ/search/exact timing acceptance; SIO native reset arming/remaining external sources/x1/break/live configuration/machine integration; physical daisy-chain timing |
 | 4. D88 robustness | Bounds/A/B ACK/eject/protected writes; CRC/READ ADDRESS; 75 metadata/short-reset direct groups and both complete frozen fast/delay-aware CPU matrices; five v11 native-control titles pass | Broader native metadata/disk-change qualification; safe format contract, density/HD mechanics, physical HPS epochs |
 
 Turbo Z is a separate planned profile, not implied by these increments. Its
@@ -114,7 +115,9 @@ Current model state is v11; reject older snapshots, do not convert them.
 The separate [shared-machine DMA subset](DMA_MACHINE_STATUS.md) now connects
 real CPU ownership, DRQ pacing, shared decode and retained reset drain.
 Generated A/B read/write/protected/CRC and actual-machine owned-reset checks
-pass. It remains opt-in, with native firmware, pending-SD reset, other targets,
+pass. Eight subsequent pending-SD held-reset cases and bounded GRAM/PCG targets
+now pass too. It remains opt-in, with native firmware, broader
+reset/metadata/DAM targets,
 IRQ/search/exact timing and fitted/hardware qualification still open.
 The completed [frozen PCG/metadata fit](TURBO_PCG_METADATA_QUARTUS_BUILD.md)
 has positive same-clock machine paths but fails cross-domain setup/recovery
@@ -126,7 +129,7 @@ current-source refit remain required; assembly is not timing closure.
 | Step | Current result | Next acceptance gate |
 |---|---|---|
 | 1. Timing/CDC | Frozen `15a0655` fit/path/retained-state audit completed; same-clock machine setup passes; real CDC/reset and mux-alternative failures classified | Review narrow first-stage recognition, held-bus bounds and mux exclusivity; refit current source; do not globally cut SYS↔VID paths |
-| 2. DMA | Opt-in machine integration passes complete fast/delay-aware RAM/A/B read/write/protection/CRC/count cases, four real-machine reset cases, and subsequent RAM-under-IPL checks | Pending-SD/reset, PCG/GRAM targets, native Turbo IPL continuity, unsupported functions and fitted/hardware acceptance |
+| 2. DMA | Opt-in machine integration passes fast/delay-aware RAM/A/B read/write/protection/CRC/count cases, four owned and eight pending-SD reset cases, RAM-under-IPL and bounded GRAM/PCG checks | Partial metadata/short-reset/pending-PCG/DAM targets, native Turbo IPL continuity, unsupported functions and fitted/hardware acceptance |
 | 3. Kanji/video | Existing ANK/expanded-text checks retained; Kanji attribute storage is not glyph support | Implement documented CPU latches/ROM mapping and glyph halves with synthetic assets; qualify expanded-attribute/PCG/native combinations |
 | 4. SIO | Standalone formats/FIFO/IRQ/error/service, opt-in flow and A/B SIO/DMA pacing pass; combined CPU ownership/error recovery plus directed SIO IM2 ACK/handler/RETI and stopped-CE ACK pass at CE=1/4/7 | Native reset arming/remaining external sources, x1/break/live configuration, exact WAIT/Ready, broader DMA/reset/IRQ phases, multi-device qualification, schematic clocks/pins and machine integration |
 | 5. Native software | Five v11 baseline titles pass movement/firing/pair checks; Shanghai feedback prepares the same pair and passes unchanged assertions, preserving old failure | Broader/delay-aware/hardware gameplay, polling-phase diagnosis, Arcus/Bastard playability; hardware unavailable |
@@ -172,12 +175,15 @@ Preserve each frozen runner; do not rebuild historical v05.
 - [x] Establish nonzero HS/VS with an actual renderer and IPL-programmed CRTC.
 - [ ] Resolve all Verilator warnings instead of relying on broad suppression.
 - [x] Document Verilator 5.x headless and new SDL builds/play commands.
-- [ ] Verify hosted CI for asset-free diagnostic fixtures. A read-only,
+- [x] Verify hosted CI for asset-free diagnostic fixtures. A read-only,
   immutable-checkout-pinned workflow is now configured under
   `.github/workflows/diagnostics.yml`; all selected targets pass locally
   (Verilator 5.044, logs `/tmp/x1-sio-dma-reset-suite.log`,
   `/tmp/x1-sio-reset-guard.log`, `/tmp/x1-ci-local-extra.log`).
-  Configuration alone is not a hosted pass or full repository license clearance.
+  [Hosted run 37479171527](https://github.com/alanswx/SharpX1_Mister/actions/runs/37479171527)
+  passed all 16 selected targets on implementation commit `0e4e021`.
+  This is not private-media/native firmware, Quartus/hardware acceptance or
+  full repository license clearance.
 
 ## Phase 1 — prove the existing machine boots
 
@@ -294,6 +300,14 @@ Preserve each frozen runner; do not rebuild historical v05.
   to the test host's retained old media. Real HPS replacement epochs, physical
   mounts, rollback and exhaustive scanner-phase coverage remain open.
 - [ ] Implement DMA bus arbitration and verify Z80 DMA transfers.
+- [x] Qualify opt-in shared-machine pending payload SD read/write reset on A/B
+  before/during ACK: stopped CPU/FDC enables, stable old transport, retained
+  native diagnostic reboot and 256 fresh pairs. Check both whole images before
+  and after reboot; short released pulses and metadata publication remain open.
+- [x] Qualify opt-in shared-machine GRAM/selected PCG DMA in fast and delay-aware
+  simulation: 576/96 pairs, 36/6 real grants, CPU counters/readback, both GRAM
+  pages/boundaries, three planes and real PCG WAIT. DAM, pending-PCG reset,
+  exact native timing and hardware remain open; see [evidence](DMA_MACHINE_STATUS.md#october-6-pending-sd-reset-and-video-target-qualification).
 - [x] Exercise real CPU-executed DMA register streams and a single-owner unit
   mux at CE=1/4/7, WAIT-stretched raw/accepted register writes, both transfer
   directions, count/readback/CONTINUE and drained read/write reset. This is
