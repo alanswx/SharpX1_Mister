@@ -1,7 +1,9 @@
 # Completion DMA IRQ: next shared-machine integration gates
 
 October 6, 2026. The [native-command device increment](DMA_COMMAND_IRQ_STATUS.md)
-is executed; the machine connection below is a plan. Preserve ordinary
+is executed; the [initial machine connection](DMA_IRQ_MACHINE_STATUS.md) now
+passes connected pin and generated shared-CPU checks. The remaining gates
+below stay required; do not treat the whole plan as complete. Preserve ordinary
 Turbo/DMA and base defaults until the new profile has independent acceptance.
 
 ## Model-specific evidence

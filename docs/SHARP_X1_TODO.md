@@ -21,7 +21,7 @@ unavailable; continue local verification without claiming hardware acceptance.
 | Work group | Execution/acceptance still needed |
 |---|---|
 | 1. SIO | Owned serial read/write reset drain, idle Send Break and 12 actual-CPU stopped-CE ACK/handler/FIFO/RETI chip-reset cases pass separately; add channel/short-pulse and concurrent multi-device reset service; trace schematic clocks/modem/Ready/decode before opt-in shared-machine integration; finish remaining modes and native serial diagnostics |
-| 2. DMA | Reset/video/restart/comparison, search/stop and actual-CPU fast/delay-aware profiles pass; opt-in device completion IRQ adds 36,864 register/vector cases, twelve actual-CPU profiles and owned-pair reset; connect schematic-qualified shared IRQ/ACK/RETI, implement Ready/restart IRQ and variable timing, resolve sequential non-Byte stop; broaden payload/Ready/DAM/native Turbo IPL and hardware acceptance |
+| 2. DMA | Reset/video/restart/comparison, search/stop and actual-CPU fast/delay-aware profiles pass; opt-in completion IRQ has real command and initial shared-machine IM2/HALT/RETI acceptance; broaden concurrent-service/reset/savable gates, implement Ready/restart IRQ and variable timing, resolve sequential non-Byte stop; broaden payload/Ready/DAM/native Turbo IPL and hardware acceptance |
 | 3. Kanji/Turbo video | CPU latch/ROM/glyph paths with synthetic fixtures, then authorized native fonts; complete attribute/PCG/text combinations, ASIC behavior and native Turbo/400-line software |
 | 4. Timing/hardware | Narrow audited CDC/reset/mux constraints, current-source Quartus refit and positive setup/hold/recovery; hardware bandwidth/video/audio and Main/OSD reset verification |
 | 5. Disk/software | Format/density/HD/media-change contracts; native metadata qualification; Arcus/Bastard playability; delay-aware and hardware game matrix |
@@ -38,6 +38,11 @@ The subsequent [DMA completion command path](DMA_COMMAND_IRQ_STATUS.md)
 passes 36,864 real-register cases and twelve actual-CPU WR4/vector/RR0/RETI
 profiles, plus owned-pair stopped-CE/WAIT resets. It is device-only and opt-in;
 Ready/restart IRQ and shared-machine priority/ACK integration remain open.
+The [shared-machine completion increment](DMA_IRQ_MACHINE_STATUS.md) now
+connects that opt-in path: connected DMA/CTC priority/nested RETI tests and
+four actual shared-CPU IM2/HALT/RR0 profiles pass on fast/delay-aware builds.
+Broader concurrent service/reset, native firmware, Ready/restart IRQ, savable
+profile and hardware gates remain required; no work group is marked complete.
 Turbo Z is now explicitly part of the requested goal. Its Z0–Z9 milestones
 and acceptance gates are tracked in [TURBO_Z_PLAN.md](TURBO_Z_PLAN.md).
 It remains a separate capability profile; progress must not imply support
@@ -66,7 +71,9 @@ passes on `b890f93`. The
 [25-target non-Byte-search run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37535229239)
 passes on `953c076`. The
 [25-target match-pipeline run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37536491304)
-passes on `78888a7`. New service/command-path hosted gates remain separate.
+passes on `78888a7`. The
+[27-target service/vector run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37537567836)
+passes on `6151c0b`. New command-path/shared-IRQ hosted gates remain separate.
 See [source-bound checks](TURBO_Z_RGB_STATUS.md).
 
 ## Current priorities 1–4 (October 5 checkpoint)

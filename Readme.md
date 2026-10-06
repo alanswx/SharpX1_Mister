@@ -100,6 +100,11 @@ The subsequent [completion-IRQ command path](docs/DMA_COMMAND_IRQ_STATUS.md)
 adds an explicit device-only `COMPLETION_IRQ=1` profile: 36,864 register/vector
 cases and twelve real-CPU WR4/IM2/RR0/RETI cases pass. Machine/board defaults
 still disable it; Ready/restart interrupts and shared-machine IRQ remain open.
+The subsequent [shared-machine completion IRQ increment](docs/DMA_IRQ_MACHINE_STATUS.md)
+adds an explicit `TURBO_DMA_IRQ=1` profile with schematic-qualified DMA/CTC
+ownership and isolated nested RETI. Four generated CPU/IM2/HALT/RR0/RETI
+profiles pass on fast and delay-aware runners. Defaults remain disabled;
+native firmware, broader reset/concurrent-service and hardware gates remain open.
 A bounded [high-speed PCG increment](docs/TURBO_HIGH_SPEED_PCG_STATUS.md)
 adds selector shadows, frozen HSYNC-window access and CPU ANK8/16 selection.
 Original unit/CPU tests pass; ASIC fallback/WAIT phase, Kanji and hardware

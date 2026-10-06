@@ -71,6 +71,18 @@ $(DMA_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_i
 		-MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 .PHONY: turbo-dma
 
+# Completion IRQ has its own model and output directory; no default promotion.
+DMA_IRQ_DIR ?= obj_dir_turbo_dma_irq
+turbo-dma-irq: $(DMA_IRQ_DIR)/Vtop
+$(DMA_IRQ_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
+	$(V) -cc $(DMA_TIMING) --assert --trace-fst --exe --build -j 4 --Mdir $(DMA_IRQ_DIR) --top-module top \
+		-GTURBO=1 -GTURBO_DMA=1 -GTURBO_DMA_IRQ=1 -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_TURBO_DMA -DX1_TURBO_DMA_IRQ" \
+		-MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
+.PHONY: turbo-dma-irq
+test-machine-dma-irq: turbo-dma-irq
+	python3 tests/test_machine_dma_irq.py ./$(DMA_IRQ_DIR)/Vtop
+.PHONY: test-machine-dma-irq
+
 test-machine-dma: turbo-dma test-machine-dma-reset
 	python3 tests/test_machine_dma.py ./$(DMA_DIR)/Vtop
 test-machine-dma-restart: turbo-dma
@@ -95,12 +107,13 @@ test-machine-dma-search-nonbyte-boundaries: turbo-dma
 	python3 tests/test_machine_dma_search.py ./$(DMA_DIR)/Vtop --nonbyte --short
 	python3 tests/test_machine_dma_search.py ./$(DMA_DIR)/Vtop --nonbyte --zero
 .PHONY: test-machine-dma-search-nonbyte-boundaries
+DMA_TEST_IRQ ?= 0
 test-machine-dma-reset: $(HEADLESS_DIR)/dma-machine-reset/Vdma_machine_reset_tb
 	@for kind in 0 1 2 3; do ./$(HEADLESS_DIR)/dma-machine-reset/Vdma_machine_reset_tb +RESET_KIND=$$kind || exit 1; done
 $(HEADLESS_DIR)/dma-machine-reset/Vdma_machine_reset_tb: $(V_SRC) tests/dma_machine_reset_tb.sv Makefile
 	mkdir -p $(@D)
 	$(V) --binary --timing --assert --top-module dma_machine_reset_tb --Mdir $(HEADLESS_DIR)/dma-machine-reset \
-		-j 4 $(V_SRC) tests/dma_machine_reset_tb.sv -Wno-fatal
+		-GDMA_IRQ=$(DMA_TEST_IRQ) -j 4 $(V_SRC) tests/dma_machine_reset_tb.sv -Wno-fatal
 .PHONY: test-machine-dma test-machine-dma-reset
 
 test-machine-dma-pcg-reset: $(HEADLESS_DIR)/dma-machine-reset/Vdma_machine_reset_tb
@@ -114,7 +127,7 @@ test-machine-dma-sd-reset: $(HEADLESS_DIR)/dma-machine-sd-reset/Vdma_machine_sd_
 $(HEADLESS_DIR)/dma-machine-sd-reset/Vdma_machine_sd_reset_tb: $(V_SRC) tests/dma_machine_sd_reset_tb.sv Makefile
 	mkdir -p $(@D)
 	$(V) --binary --timing --assert --top-module dma_machine_sd_reset_tb --Mdir $(HEADLESS_DIR)/dma-machine-sd-reset \
-		-j 4 $(V_SRC) tests/dma_machine_sd_reset_tb.sv -Wno-fatal
+		-GDMA_IRQ=$(DMA_TEST_IRQ) -j 4 $(V_SRC) tests/dma_machine_sd_reset_tb.sv -Wno-fatal
 .PHONY: test-machine-dma-sd-reset
 
 test-machine-dma-sd-short-reset: $(HEADLESS_DIR)/dma-machine-sd-reset/Vdma_machine_sd_reset_tb
@@ -450,14 +463,17 @@ $(HEADLESS_DIR)/subirq/%/Vsub_irq_ack_tb: $(SUB_IRQ_SRC)
 		-GCLOCK_HZ=$* -j 4 $(SUB_IRQ_SRC) -Wno-fatal
 
 $(HEADLESS_DIR)/ctc/Vx1_ctc_tb: ../rtl/x1_ctc.sv tests/x1_ctc_tb.sv
+	mkdir -p $(@D)
 	$(V) --binary --timing --assert --top-module x1_ctc_tb --Mdir $(HEADLESS_DIR)/ctc \
 		-j 4 ../rtl/x1_ctc.sv tests/x1_ctc_tb.sv -Wno-fatal
 
 $(HEADLESS_DIR)/irq/Vx1_irq_bridge_tb: ../rtl/x1_irq_bridge.sv tests/x1_irq_bridge_tb.sv
+	mkdir -p $(@D)
 	$(V) --binary --timing --assert --top-module x1_irq_bridge_tb --Mdir $(HEADLESS_DIR)/irq \
 		-j 4 ../rtl/x1_irq_bridge.sv tests/x1_irq_bridge_tb.sv -Wno-fatal
 
 $(HEADLESS_DIR)/ctcirq/Vx1_ctc_irq_tb: ../rtl/x1_ctc.sv ../rtl/x1_irq_bridge.sv tests/x1_ctc_irq_tb.sv
+	mkdir -p $(@D)
 	$(V) --binary --timing --assert --top-module x1_ctc_irq_tb --Mdir $(HEADLESS_DIR)/ctcirq \
 		-j 4 ../rtl/x1_ctc.sv ../rtl/x1_irq_bridge.sv tests/x1_ctc_irq_tb.sv -Wno-fatal
 
@@ -738,6 +754,15 @@ $(HEADLESS_DIR)/dma-native-irq/Vdma_native_irq_tb: tests/dma_native_irq_tb.sv ..
 	$(V) --binary --timing --assert --top-module dma_native_irq_tb --Mdir $(HEADLESS_DIR)/dma-native-irq \
 		-j 4 tests/dma_native_irq_tb.sv ../rtl/x1_dma.sv ../rtl/x1_dma_service.sv ../rtl/x1_dma_vector.sv
 .PHONY: test-dma-native-irq
+
+test-dma-irq-bridge: $(HEADLESS_DIR)/dma-irq-bridge/Vdma_irq_bridge_tb
+	@for rate in 1 4 7; do ./$(HEADLESS_DIR)/dma-irq-bridge/Vdma_irq_bridge_tb +CE_PERIOD=$$rate || exit 1; done
+$(HEADLESS_DIR)/dma-irq-bridge/Vdma_irq_bridge_tb: tests/dma_irq_bridge_tb.sv ../rtl/x1_dma.sv ../rtl/x1_dma_service.sv ../rtl/x1_dma_vector.sv ../rtl/x1_ctc.sv ../rtl/x1_irq_bridge.sv ../rtl/x1_dma_irq_bridge.sv
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module dma_irq_bridge_tb --Mdir $(HEADLESS_DIR)/dma-irq-bridge \
+		-j 4 tests/dma_irq_bridge_tb.sv ../rtl/x1_dma.sv ../rtl/x1_dma_service.sv ../rtl/x1_dma_vector.sv \
+		../rtl/x1_ctc.sv ../rtl/x1_irq_bridge.sv ../rtl/x1_dma_irq_bridge.sv
+.PHONY: test-dma-irq-bridge
 
 DMA_TEST_CFLAGS ?= -O1
 $(HEADLESS_DIR)/dma/Vdma_tb: tests/dma_tb.sv ../rtl/x1_dma.sv Makefile

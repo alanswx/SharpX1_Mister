@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Original whole-machine reset/loader diagnostic. Real CPU grants only.
 `timescale 1ps/1ps
-module dma_machine_reset_tb;
+module dma_machine_reset_tb #(parameter DMA_IRQ = 0);
     reg clk_sys=0, clk_video=0, sys_running=1, video_running=1, reset=1;
     always begin #15625; if (sys_running) clk_sys=~clk_sys; end
     always begin #17500; if(video_running) clk_video=~clk_video; end
@@ -17,7 +17,7 @@ module dma_machine_reset_tb;
     reg [7:0] stalled_data;
     always @(posedge clk_video)
         if(dut.machine.cg_access_write[0]) pcg_writes++;
-    top #(.TURBO(1), .TURBO_DMA(1)) dut (
+    top #(.TURBO(1), .TURBO_DMA(1), .TURBO_DMA_IRQ(DMA_IRQ)) dut (
         .clk_sys(clk_sys), .clk_28636(clk_video), .reset(reset),
         .ioctl_download(download), .ioctl_index(8'd0), .ioctl_wr(load_write),
         .ioctl_addr(load_address), .ioctl_dout(load_data), .ioctl_wait(load_wait),

@@ -8,6 +8,10 @@ Board, ordinary Turbo and existing opt-in machine DMA leave this parameter
 **zero**. The manifest includes the dependencies, not permission to expose
 unqualified machine interrupt behavior.
 
+Subsequent work adds a separate [shared-machine opt-in profile](DMA_IRQ_MACHINE_STATUS.md)
+with connected priority and actual shared-CPU IM2 diagnostics; the device
+checkpoint described here remains independently scoped.
+
 ## Observable contract
 
 - WR3 b5 and WR6 AB/AF control delivery. WR4 b4 selects the associated

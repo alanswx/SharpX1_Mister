@@ -1,6 +1,6 @@
 // Sharp X1 base-machine integration. Shared by MiSTer and simulation.
 // See docs/BASE_X1_CONTRACT.md for address-map sources and limitations.
-module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0) (
+module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0) (
     input clk_sys, clk_28636, reset,
     input pal, scandouble,
     input ioctl_download,
@@ -91,11 +91,19 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     assign rd = dma_owner ? dma_rd : cpu_rd;
     assign wr = dma_owner ? dma_wr : cpu_wr;
     assign m1 = dma_owner ? 1'b1 : cpu_m1;
+    wire dma_irq, dma_ieo, dma_irq_pending, dma_in_service;
+    wire dma_ack, dma_iei, dma_reti;
+    wire [7:0] dma_vector;
+    initial begin
+        if (TURBO_DMA_IRQ && !(TURBO && TURBO_DMA))
+            $error("TURBO_DMA_IRQ requires TURBO and TURBO_DMA");
+    end
     wire dma_cs = TURBO && TURBO_DMA && !dma_owner && io_cycle && !dam && a[15:4] == 12'h1f8;
     generate if (TURBO && TURBO_DMA) begin : turbo_dma
-        x1_dma engine (
-            .iei(1'b1),.acknowledge(1'b0),.reti(1'b0),
-            .irq(),.ieo(),.irq_pending(),.irq_in_service(),.ack_vector(),
+        x1_dma #(.COMPLETION_IRQ(TURBO_DMA_IRQ)) engine (
+            .iei(dma_iei),.acknowledge(dma_ack),.reti(dma_reti),
+            .irq(dma_irq),.ieo(dma_ieo),.irq_pending(dma_irq_pending),
+            .irq_in_service(dma_in_service),.ack_vector(dma_vector),
             .clk(clk_sys), .ce(pe4M4), .reset(dma_reset),
             .cpu_cs(dma_cs), .cpu_rd_n(cpu_rd), .cpu_wr_n(cpu_wr),
             .cpu_data_in(cpu_data_out), .cpu_data_out(dma_data),
@@ -110,6 +118,9 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         assign dma_rd = 1; assign dma_wr = 1;
         assign dma_a = 0; assign dma_data_out = 0;
         assign dma_data = 8'hff; assign dma_unsupported = 0;
+        assign dma_irq = 0; assign dma_ieo = 1;
+        assign dma_irq_pending = 0; assign dma_in_service = 0;
+        assign dma_vector = 8'hff;
     end endgenerate
 
     wire mem_read = !mreq && !rd;
@@ -148,14 +159,40 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         .iei(ctc_iei), .irq(ctc_irq), .ieo(ctc_ieo), .ack(ctc_ack),
         .reti(ctc_reti), .vector(ctc_vector), .zc(ctc_zc)
     );
+    generate if (TURBO_DMA_IRQ) begin : completion_irq_chain
+        // Inspected CZ-851/852 chain; upstream SIO/external are absent here.
+        x1_dma_irq_bridge irq_bridge (
+            .clk(clk_sys),.reset(core_reset),.m1_n(m1),.mreq_n(mreq),
+            .iorq_n(iorq),.rd_n(rd),.data(di),.upstream_iei(1'b1),
+            .dma_irq(dma_irq),.dma_ieo(dma_ieo),.dma_in_service(dma_in_service),
+            .dma_vector(dma_vector),.dma_ack(dma_ack),.dma_iei(dma_iei),.dma_reti(dma_reti),
+            .ctc_irq(ctc_irq),.ctc_ieo(ctc_ieo),.ctc_vector(ctc_vector),
+            .keyboard_irq(!sub_int_n),.keyboard_vector(sub_data),
+            .irq(machine_irq),.keyboard_ack(keyboard_ack),.ctc_ack(ctc_ack),
+            .ctc_iei(ctc_iei),.ctc_reti(ctc_reti),.ack_vector(irq_vector)
+        );
+        assign ctc_selected = !m1 && !iorq && !dma_irq && ctc_irq;
+    end else begin : compatible_irq_chain
+        assign dma_iei = 1; assign dma_ack = 0; assign dma_reti = 0;
+        assign machine_irq = compatible_irq;
+        assign keyboard_ack = compatible_keyboard_ack;
+        assign ctc_ack = compatible_ctc_ack; assign ctc_iei = compatible_ctc_iei;
+        assign ctc_reti = compatible_ctc_reti; assign ctc_selected = compatible_ctc_selected;
+        assign irq_vector = compatible_vector;
+    end endgenerate
+    // Keep the default instance path/state layout unchanged for v12 snapshots.
+    wire compatible_irq, compatible_keyboard_ack, compatible_ctc_ack;
+    wire compatible_ctc_iei, compatible_ctc_reti, compatible_ctc_selected;
+    wire [7:0] compatible_vector;
     x1_irq_bridge irq_bridge (
         .clk(clk_sys), .reset(core_reset), .m1_n(m1), .mreq_n(mreq),
         .iorq_n(iorq), .rd_n(rd), .data(di),
-        .keyboard_irq(!sub_int_n), .ctc_irq(ctc_irq), .ctc_vector(ctc_vector),
-        .ctc_ieo(ctc_ieo), .keyboard_vector(sub_data),
-        .irq(machine_irq), .keyboard_ack(keyboard_ack), .ctc_ack(ctc_ack),
-        .ctc_iei(ctc_iei), .ctc_reti(ctc_reti),
-        .ctc_selected(ctc_selected), .ack_vector(irq_vector)
+        .keyboard_irq(TURBO_DMA_IRQ ? 1'b0 : !sub_int_n),
+        .ctc_irq(TURBO_DMA_IRQ ? 1'b0 : ctc_irq), .ctc_vector(ctc_vector),
+        .ctc_ieo(TURBO_DMA_IRQ ? 1'b1 : ctc_ieo), .keyboard_vector(sub_data),
+        .irq(compatible_irq), .keyboard_ack(compatible_keyboard_ack), .ctc_ack(compatible_ctc_ack),
+        .ctc_iei(compatible_ctc_iei), .ctc_reti(compatible_ctc_reti),
+        .ctc_selected(compatible_ctc_selected), .ack_vector(compatible_vector)
     );
 
     reg ipl_enabled;

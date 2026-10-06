@@ -2,7 +2,7 @@
 // Original CPU program and generated D88, through real loader/SD interfaces.
 // No private assets, forced ownership, register edits or injected Ready.
 `timescale 1ps/1ps
-module dma_machine_sd_reset_tb;
+module dma_machine_sd_reset_tb #(parameter DMA_IRQ = 0);
     reg clk_sys=0, clk_video=0, reset=1, mounted=0;
     always #15625 clk_sys=~clk_sys;
     always #17500 clk_video=~clk_video;
@@ -36,7 +36,7 @@ module dma_machine_sd_reset_tb;
             assert(!dut.machine.fdc.sd_busy) else $fatal(1,"old ACK failed to release SD busy");
             captured_ack_drained=1;
         end
-    top #(.TURBO(1), .TURBO_DMA(1)) dut (
+    top #(.TURBO(1), .TURBO_DMA(1), .TURBO_DMA_IRQ(DMA_IRQ)) dut (
         .clk_sys(clk_sys), .clk_28636(clk_video), .reset(reset),
         .ioctl_download(download), .ioctl_index(8'd0), .ioctl_wr(load_write),
         .ioctl_addr(load_address), .ioctl_dout(load_data), .ioctl_wait(),
