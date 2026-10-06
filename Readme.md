@@ -71,7 +71,13 @@ signoff is implied.
 The [DMA automatic-restart increment](docs/DMA_AUTO_RESTART_STATUS.md) passes
 40 standalone groups through 65,537-byte boundaries, real shared-CPU buffer
 updates without LOAD in both directions, and fast/delay-aware machine tests.
-IRQ/search/variable timing remain unsupported; default profiles keep DMA off.
+IRQ, pure search, Stop on Match and variable timing remain unsupported;
+default profiles keep DMA off.
+A [sequential comparison increment](docs/DMA_COMPARE_STATUS.md) now reports
+real masked/sticky match status: 6,144 unit cases and 12 actual shared-CPU
+profiles pass, including delay-aware/fast agreement. Pure search, Stop on Match
+and IRQ/service remain open. DMA serialized state has a distinct revision;
+ordinary non-DMA v12 snapshots and defaults remain unchanged.
 A bounded [high-speed PCG increment](docs/TURBO_HIGH_SPEED_PCG_STATUS.md)
 adds selector shadows, frozen HSYNC-window access and CPU ANK8/16 selection.
 Original unit/CPU tests pass; ASIC fallback/WAIT phase, Kanji and hardware

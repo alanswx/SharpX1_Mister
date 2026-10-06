@@ -76,6 +76,9 @@ test-machine-dma: turbo-dma test-machine-dma-reset
 test-machine-dma-restart: turbo-dma
 	python3 tests/test_machine_dma_restart.py ./$(DMA_DIR)/Vtop
 .PHONY: test-machine-dma-restart
+test-machine-dma-compare: turbo-dma
+	python3 tests/test_machine_dma_compare.py ./$(DMA_DIR)/Vtop
+.PHONY: test-machine-dma-compare
 test-machine-dma-reset: $(HEADLESS_DIR)/dma-machine-reset/Vdma_machine_reset_tb
 	@for kind in 0 1 2 3; do ./$(HEADLESS_DIR)/dma-machine-reset/Vdma_machine_reset_tb +RESET_KIND=$$kind || exit 1; done
 $(HEADLESS_DIR)/dma-machine-reset/Vdma_machine_reset_tb: $(V_SRC) tests/dma_machine_reset_tb.sv Makefile
@@ -663,6 +666,14 @@ $(HEADLESS_DIR)/cpu-busreq/Vcpu_busreq_tb: tests/cpu_busreq_tb.sv ../rtl/cpu.v $
 
 test-dma: $(HEADLESS_DIR)/dma/Vdma_tb
 	./$(HEADLESS_DIR)/dma/Vdma_tb
+
+test-dma-compare: $(HEADLESS_DIR)/dma-compare/Vdma_compare_tb
+	@for rate in 1 4; do ./$(HEADLESS_DIR)/dma-compare/Vdma_compare_tb +CE_PERIOD=$$rate || exit 1; done
+$(HEADLESS_DIR)/dma-compare/Vdma_compare_tb: tests/dma_compare_tb.sv ../rtl/x1_dma.sv
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module dma_compare_tb --Mdir $(HEADLESS_DIR)/dma-compare \
+		-j 4 tests/dma_compare_tb.sv ../rtl/x1_dma.sv
+.PHONY: test-dma-compare
 
 DMA_TEST_CFLAGS ?= -O1
 $(HEADLESS_DIR)/dma/Vdma_tb: tests/dma_tb.sv ../rtl/x1_dma.sv Makefile

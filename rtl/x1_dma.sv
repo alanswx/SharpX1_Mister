@@ -37,7 +37,7 @@ module x1_dma (
     logic [6:0] read_mask;
     logic [2:0] read_index;
     logic write_seen, read_seen, enabled, loaded, force_ready;
-    logic requested, end_of_block, destination_first;
+    logic requested, end_of_block, destination_first, match_found;
     logic reset_pending, soft_reset_pending;
     logic [1:0] grant_samples;
     logic [2:0] cycle_left;
@@ -75,7 +75,7 @@ module x1_dma (
     function automatic logic [7:0] read_register(input logic [2:0] which);
         case (which)
             // Undefined bits 7,6,2 are deterministic zero. D1 follows prose.
-            0: read_register = {2'b00, !end_of_block, 1'b1, 1'b1,
+            0: read_register = {2'b00, !end_of_block, !match_found, 1'b1,
                                 1'b0, physical_ready, requested};
             1: read_register = byte_counter[7:0];
             2: read_register = byte_counter[15:8];
@@ -94,7 +94,7 @@ module x1_dma (
                       state == WRITE_SETUP || state == WRITE_CYCLE;
         write_event = cpu_cs && !cpu_wr_n && !write_seen;
         read_event = cpu_cs && !cpu_rd_n && !read_seen;
-        unsupported = bad_command || wr0[1:0] != 2'b01 ||
+        unsupported = bad_command || !wr0[0] ||
             wr3[5] || wr3[2] || wr4[6:5] == 2'b11 ||
             timing_a_set || timing_b_set || interrupt_control != 0;
         follow_index = -1;
@@ -123,6 +123,7 @@ module x1_dma (
         write_seen <= 0; read_seen <= 0; cpu_data_out <= 0;
         enabled <= 0; loaded <= 0; force_ready <= 0;
         requested <= 0; end_of_block <= 0; destination_first <= 0;
+        match_found <= 0;
         reset_pending <= 0; soft_reset_pending <= 0;
         grant_samples <= 0; cycle_left <= 0; cycle_io <= 0;
         address <= 0; destination_address <= 0; data_out <= 0;
@@ -140,6 +141,7 @@ module x1_dma (
         timing_a_set <= 0; timing_b_set <= 0;
         timing_a <= 0; timing_b <= 0;
         bad_command <= 0; requested <= 0; end_of_block <= 0;
+        match_found <= 0;
         soft_reset_pending <= 0; grant_samples <= 0;
     endtask
 
@@ -210,6 +212,11 @@ module x1_dma (
                                 if (wr0[2]) counter_b <= address;
                                 else counter_a <= address;
                                 destination_first <= 0;
+                                // Standard sequential transfer/search compares the
+                                // immutable source byte after its destination write.
+                                // Pure search and stop-on-match remain rejected.
+                                if (wr0[1] && ((data_out | mask_byte) == (match_byte | mask_byte)))
+                                    match_found <= 1;
                                 remaining <= remaining - 17'd1;
                                 if (remaining == 1 && wr5[5] && enabled &&
                                     !reset_pending && !reset && !soft_reset_pending && !write_event) begin
@@ -219,6 +226,7 @@ module x1_dma (
                                     counter_a <= start_a; counter_b <= start_b;
                                     remaining <= block_size(length); byte_counter <= 0;
                                     destination_first <= 1; end_of_block <= 0;
+                                    match_found <= 0;
                                 end else if (remaining == 1) begin
                                     end_of_block <= 1; enabled <= 0;
                                 end else byte_counter <= byte_counter + 16'd1;
@@ -310,17 +318,19 @@ module x1_dma (
                                         remaining <= block_size(length); byte_counter <= 0;
                                         loaded <= 1; force_ready <= 0;
                                         requested <= 0; end_of_block <= 0;
+                                        match_found <= 0;
                                     end
                                     8'hd3: begin
                                         remaining <= block_size(length); byte_counter <= 0;
                                         end_of_block <= 0; force_ready <= 0;
+                                        match_found <= 0;
                                     end
                                     8'haf: wr3[5] <= 0;
                                     8'hab: wr3[5] <= 1;
                                     8'ha3: begin wr3[5] <= 0; force_ready <= 0; end
                                     8'hb7: bad_command <= 1;
                                     8'hbf: begin read_mask <= 1; read_index <= 0; end
-                                    8'h8b: end_of_block <= 0;
+                                    8'h8b: begin end_of_block <= 0; match_found <= 0; end
                                     8'ha7: read_index <= first_read(read_mask);
                                     8'hb3: force_ready <= 1;
                                     8'h87: if (!unsupported && loaded && remaining != 0) enabled <= 1;

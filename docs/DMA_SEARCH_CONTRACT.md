@@ -1,8 +1,10 @@
-# DMA search implementation contract (not implemented)
+# DMA search implementation contract (partial comparison increment)
 
 October 6, 2026. Next work-group-2 gate after automatic restart.
-Current RTL still rejects WR0 search/transfer-search and WR3 Stop on Match.
-No tests or emulator execution below establish these as working features.
+The [comparison increment](DMA_COMPARE_STATUS.md) now accepts sequential
+transfer/search without stopping and tests real masked/sticky status. Pure
+search and WR3 Stop on Match remain rejected. The remaining class/pipeline
+requirements below are not made complete by those comparison tests.
 
 ## Primary evidence and unresolved details
 
