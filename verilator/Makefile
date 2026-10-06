@@ -699,6 +699,26 @@ $(HEADLESS_DIR)/dma-search/Vdma_search_tb: tests/dma_search_tb.sv ../rtl/x1_dma.
 		-j 4 tests/dma_search_tb.sv ../rtl/x1_dma.sv
 .PHONY: test-dma-search
 
+test-dma-service: $(HEADLESS_DIR)/dma-service/Vdma_service_tb
+	./$(HEADLESS_DIR)/dma-service/Vdma_service_tb
+$(HEADLESS_DIR)/dma-service/Vdma_service_tb: tests/dma_service_tb.sv ../rtl/x1_dma_service.sv ../rtl/x1_dma_vector.sv
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module dma_service_tb --Mdir $(HEADLESS_DIR)/dma-service \
+		-j 4 tests/dma_service_tb.sv ../rtl/x1_dma_service.sv ../rtl/x1_dma_vector.sv
+.PHONY: test-dma-service
+
+test-dma-service-cpu: $(HEADLESS_DIR)/dma-service-cpu/Vdma_service_cpu_tb
+	@for rate in 1 4 7; do for profile in 0 1 2 3; do \
+		./$(HEADLESS_DIR)/dma-service-cpu/Vdma_service_cpu_tb +CE_PERIOD=$$rate +PROFILE=$$profile || exit 1; \
+	done; done
+$(HEADLESS_DIR)/dma-service-cpu/Vdma_service_cpu_tb: tests/dma_service_cpu_tb.sv ../rtl/x1_dma_service.sv ../rtl/x1_dma_vector.sv ../rtl/x1_dma.sv ../rtl/cpu.v $(wildcard ../rtl/tv80/*.v)
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module dma_service_cpu_tb --Mdir $(HEADLESS_DIR)/dma-service-cpu \
+		-j 4 tests/dma_service_cpu_tb.sv ../rtl/x1_dma_service.sv ../rtl/x1_dma_vector.sv ../rtl/x1_dma.sv \
+		../rtl/cpu.v ../rtl/tv80/tv80e.v ../rtl/tv80/tv80_core.v ../rtl/tv80/tv80_mcode.v \
+		../rtl/tv80/tv80_alu.v ../rtl/tv80/tv80_reg.v -Wno-fatal
+.PHONY: test-dma-service-cpu
+
 DMA_TEST_CFLAGS ?= -O1
 $(HEADLESS_DIR)/dma/Vdma_tb: tests/dma_tb.sv ../rtl/x1_dma.sv Makefile
 	mkdir -p $(@D)

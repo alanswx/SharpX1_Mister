@@ -39,6 +39,16 @@ deleted-data contracts in [disk status](../../docs/DISK_STATUS.md).
 
 ## Integrity (SHA-256)
 
+October 6 DMA-service follow-up: retrieved Zilog's February 1980
+[Z80 DMA Product Specification](https://bitsavers.trailing-edge.com/components/zilog/z80/Z80_DMA_Product_Specification_Feb80.pdf)
+as ignored `Z80_DMA_Product_Specification_Feb80.pdf` (19 pages), SHA-256
+`5941201bddb9ce1edb1ad0d130b73076129d66b402761f4d41461b567dd1f05c`.
+The original www.bitsavers.org host returned 403 and the web screenshot cache
+missed; the mirror download, pdfinfo and local rendering succeeded. PDF page 9,
+Figure 8b was visually inspected to corroborate the cause-modified vector
+bits missing from the later UM008101 scan. This is not a complete audit of
+its counters, IRQ timing or commands; see [DMA service](../../docs/DMA_SERVICE_STATUS.md).
+
 October 6 FM follow-up: retrieved two Yamaha primary documents for the
 [standalone FM foundation](../../docs/TURBO_Z_FM_STATUS.md). PDFs remain ignored.
 

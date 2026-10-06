@@ -29,6 +29,11 @@ unavailable; continue local verification without claiming hardware acceptance.
 | 7. Turbo Z | RGB12 output/capture foundation passes exhaustive capture/wrapper and snapshot checks; implement/qualify Z0–Z9 model, palette/multi-mode, text, FM, HD, Kanji/devices, capture and native/hardware gates |
 
 No legacy notices or private assets may be removed/bundled to claim completion.
+The new standalone [DMA service engine](DMA_SERVICE_STATUS.md) passes 4,096
+arbitration and 2,048 status-vector cases, plus twelve connected CPU/DMA
+completion/IM2/RETI profiles. Native
+interrupt-control programming, IOR/Ready, restart service and shared-machine
+IRQ integration remain required; the machine still rejects IRQ configuration.
 Turbo Z is now explicitly part of the requested goal. Its Z0–Z9 milestones
 and acceptance gates are tracked in [TURBO_Z_PLAN.md](TURBO_Z_PLAN.md).
 It remains a separate capability profile; progress must not imply support
@@ -53,7 +58,9 @@ passes on `4261ee6`. The
 [25-target pure-Byte-search run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37533028668)
 passes on `1f692b3`. The
 [25-target search-restart run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37533835690)
-passes on `b890f93`. New non-Byte/pipeline hosted gates remain separate.
+passes on `b890f93`. The
+[25-target non-Byte-search run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37535229239)
+passes on `953c076`. New pipeline/service hosted gates remain separate.
 See [source-bound checks](TURBO_Z_RGB_STATUS.md).
 
 ## Current priorities 1–4 (October 5 checkpoint)
