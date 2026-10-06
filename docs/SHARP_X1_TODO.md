@@ -60,8 +60,13 @@ Static inspection of a published hardware monitor now identifies a native
 high-speed `1400..140F` Kanji read sequence through selector-cell writes.
 The [optional CG selector output](KANJI_CONTRACT_STATUS.md#hardware-monitor-establishes-a-separate-high-speed-cg-access-sequence)
 passes 524,352 synthetic cases with default isolation and level-2 rejection;
-shared ROM/ACK/WAIT/loader integration and actual-CPU execution remain required.
+shared-machine ROM/ACK/WAIT/loader integration and native execution remain required.
 It does not resolve the independent `0E80..83` protocol conflicts.
+The subsequent [connected ROM/WAIT backend](KANJI_CG_ACCESS_STATUS.md) passes
+exhaustive reads at three ratios, delayed-valid/window/clock/reset cases and
+a failing validity-bypass negative control. Six actual-CPU IN/INI profiles
+pass cold/warm connected selector/ROM qualification; shared-machine loader/profile,
+native assets, snapshots and rendering remain required.
 Turbo Z is now explicitly part of the requested goal. Its Z0–Z9 milestones
 and acceptance gates are tracked in [TURBO_Z_PLAN.md](TURBO_Z_PLAN.md).
 It remains a separate capability profile; progress must not imply support
@@ -98,7 +103,9 @@ passes on `2bb779a`. The
 [31-target shared-completion run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37540523729)
 passes on `a666232`. The
 [33-target reset/nesting/snapshot run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37541237934)
-passes on `b048041`. Later keyboard and new Kanji hosted gates remain separate.
+passes on `b048041`. The
+[35-target keyboard/address run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37542263824)
+passes on `328d58c`. Later Kanji hosted gates remain separate.
 See [source-bound checks](TURBO_Z_RGB_STATUS.md).
 
 ## Current priorities 1–4 (October 5 checkpoint)

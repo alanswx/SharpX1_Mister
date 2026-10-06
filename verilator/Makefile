@@ -36,6 +36,24 @@ $(HEADLESS_DIR)/kanji-cg-selector/Vkanji_cg_selector_tb: tests/kanji_cg_selector
 		-j 4 tests/kanji_cg_selector_tb.sv ../rtl/x1_pcg_selector.sv
 .PHONY: test-kanji-cg-selector
 
+test-kanji-cg-access: $(HEADLESS_DIR)/kanji-cg-access/Vkanji_cg_access_tb
+	@for half in 17500 11640 25000; do ./$(HEADLESS_DIR)/kanji-cg-access/Vkanji_cg_access_tb +VIDEO_HALF_PS=$$half || exit 1; done
+$(HEADLESS_DIR)/kanji-cg-access/Vkanji_cg_access_tb: tests/kanji_cg_access_tb.sv ../rtl/x1_kanji_rom.sv ../rtl/x1_pcg_access.v ../rtl/x1_reset_release.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module kanji_cg_access_tb --Mdir $(HEADLESS_DIR)/kanji-cg-access \
+		-j 4 tests/kanji_cg_access_tb.sv ../rtl/x1_kanji_rom.sv ../rtl/x1_pcg_access.v ../rtl/x1_reset_release.sv
+.PHONY: test-kanji-cg-access
+
+KANJI_CG_CPU_SRC = ../rtl/cpu.v ../rtl/tv80/tv80e.v ../rtl/tv80/tv80_core.v ../rtl/tv80/tv80_mcode.v ../rtl/tv80/tv80_alu.v ../rtl/tv80/tv80_reg.v
+test-kanji-cg-cpu: $(HEADLESS_DIR)/kanji-cg-cpu/Vkanji_cg_cpu_tb
+	@for half in 17500 11640; do for rate in 1 4 8; do ./$(HEADLESS_DIR)/kanji-cg-cpu/Vkanji_cg_cpu_tb +CE_PERIOD=$$rate +VIDEO_HALF_PS=$$half || exit 1; done; done
+$(HEADLESS_DIR)/kanji-cg-cpu/Vkanji_cg_cpu_tb: tests/kanji_cg_cpu_tb.sv ../rtl/x1_kanji_rom.sv ../rtl/x1_pcg_selector.sv ../rtl/x1_pcg_access.v ../rtl/x1_reset_release.sv $(KANJI_CG_CPU_SRC) Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module kanji_cg_cpu_tb --Mdir $(HEADLESS_DIR)/kanji-cg-cpu \
+		-j 4 tests/kanji_cg_cpu_tb.sv ../rtl/x1_kanji_rom.sv ../rtl/x1_pcg_selector.sv ../rtl/x1_pcg_access.v \
+		../rtl/x1_reset_release.sv $(KANJI_CG_CPU_SRC) -Wno-fatal
+.PHONY: test-kanji-cg-cpu
+
 test-fm: $(HEADLESS_DIR)/fm-$(FM_MASTER_HZ)/Vfm_tb
 	./$(HEADLESS_DIR)/fm-$(FM_MASTER_HZ)/Vfm_tb +OUTPUT=$(HEADLESS_DIR)/fm-$(FM_MASTER_HZ)/note
 	python3 tests/test_fm_audio.py $(HEADLESS_DIR)/fm-$(FM_MASTER_HZ)/note

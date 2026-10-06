@@ -4,7 +4,7 @@
 // response stays stable until the next request. This is CDC latency WAIT,
 // not the optional inherited scanline AUTO_WAIT trap. Turbo high-speed mode
 // uses a frozen CPU-selected address and provisional asserted-HSYNC window.
-module x1_pcg_access #(parameter SEPARATE_VIDEO_RESET = 0) (
+module x1_pcg_access #(parameter SEPARATE_VIDEO_RESET = 0, KANJI_SUPPORT = 0) (
     input reset, cpu_clk, video_clk,
     input cpu_select, cpu_write,
     input [1:0] cpu_plane,
@@ -24,13 +24,20 @@ module x1_pcg_access #(parameter SEPARATE_VIDEO_RESET = 0) (
     output reg [11:0] font_cpu_addr,
     input [7:0] font_cpu_q,
     output reg cpu_read_hold,
-    input video_reset
+    input video_reset,
+    input selected_kanji,
+    input [16:0] selected_kanji_addr,
+    input kanji_available, kanji_cpu_valid,
+    input [7:0] kanji_cpu_q,
+    output reg [16:0] kanji_cpu_addr,
+    output kanji_cpu_read
 );
     wire video_reset_active = SEPARATE_VIDEO_RESET ? video_reset : reset;
     reg request, busy, done, ack;
     reg [1:0] plane;
     reg write_request;
     reg high_speed_request, font16_request, unsupported_request;
+    reg kanji_request, kanji_absent;
     reg [10:0] frozen_addr;
     reg [7:0] payload, response;
     (* async_reg = "true" *) reg ack_meta, ack_sync;
@@ -39,6 +46,7 @@ module x1_pcg_access #(parameter SEPARATE_VIDEO_RESET = 0) (
     reg [1:0] stage;
     assign wait_n = !cpu_select || done;
     assign access_data = payload;
+    assign kanji_cpu_read = !reset && busy && kanji_request && !kanji_absent && !write_request;
     // One video edge writes exactly one byte. ANK ROM writes are ignored.
     assign access_write = !reset && !video_reset_active && stage == 1 && write_request && !unsupported_request
                         ? (plane == 1 ? 3'b001 : plane == 2 ? 3'b010
@@ -52,6 +60,7 @@ module x1_pcg_access #(parameter SEPARATE_VIDEO_RESET = 0) (
             high_speed_request <= 0; font16_request <= 0;
             unsupported_request <= 0; frozen_addr <= 0; font_cpu_addr <= 0;
             cpu_read_hold <= 0;
+            kanji_request <= 0; kanji_absent <= 1; kanji_cpu_addr <= 0;
         end else begin
             ack_meta <= ack;
             ack_sync <= ack_meta;
@@ -65,15 +74,25 @@ module x1_pcg_access #(parameter SEPARATE_VIDEO_RESET = 0) (
                 font16_request <= high_speed && selected_font16 && cpu_plane == 0;
                 unsupported_request <= high_speed && selected_unsupported;
                 font_cpu_addr <= selected_font_addr;
+                kanji_request <= KANJI_SUPPORT && high_speed && selected_kanji &&
+                                 cpu_plane == 0 && !selected_unsupported;
+                kanji_absent <= !kanji_available;
+                kanji_cpu_addr <= selected_kanji_addr;
                 cpu_read_hold <= 0;
                 request <= !request;
                 busy <= 1;
             end
-            if (busy && ack_sync == request) begin
+            if (busy && ack_sync == request &&
+                (!kanji_request || kanji_absent || write_request || kanji_cpu_valid)) begin
                 // Font CPU port has been held at its frozen address since
                 // acceptance. Window/ACK roundtrip exceeds its registered read
                 // latency; no sys-clock font data crosses into a video latch.
-                cpu_q <= unsupported_request ? 8'hff : font16_request ? font_cpu_q : response;
+                // Kanji data stays entirely in the CPU domain. A loaded
+                // backend must deliver valid data before WAIT can release;
+                // absent ROM terminates with FF rather than a false glyph.
+                cpu_q <= unsupported_request ? 8'hff :
+                         kanji_request ? (kanji_absent || write_request ? 8'hff : kanji_cpu_q) :
+                         font16_request ? font_cpu_q : response;
                 cpu_read_hold <= high_speed_request && !write_request;
                 busy <= 0;
                 done <= cpu_select;

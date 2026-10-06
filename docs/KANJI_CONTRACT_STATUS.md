@@ -204,11 +204,12 @@ Quartus, PLL behavior or physical acceptance. Log:
 new original fixture SHA-256
 `12cf4cd7a472ce8c057e7a8eeae61c855aede7d0538e61f616a009d5b65f59a3`.
 
-Next connect frozen Kanji address/read selection to the synchronous ROM CPU
-port and high-speed ACK/WAIT adapter, with no sys-clock data captured in video.
-Then add the opt-in machine loader/profile and original real-CPU diagnostic
-using this sequence, asset/profile-bound snapshots and default-profile negative
-checks. Glyph/display selection and the larger Z storage remain separate gates.
+The subsequent [connected Kanji CG backend](KANJI_CG_ACCESS_STATUS.md) now
+freezes its address/read selection and samples ROM bytes only on the CPU
+clock. Exhaustive ROM/WAIT and actual-CPU IN/INI fixtures are separate from
+the still-required opt-in machine loader/profile, asset/profile-bound snapshots
+and shared-machine execution. Glyph/display selection and the larger Z storage
+remain separate gates.
 
 Local MAME revision `f4bfc5a423f48d48e809c01fc70a47c0c00d40a2`,
 `src/mame/sharp/x1.cpp` functions `kanji_r/w`, `jis_convert`,

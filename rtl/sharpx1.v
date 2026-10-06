@@ -427,7 +427,9 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         .selected_font16(cg_selected_font16), .selected_unsupported(cg_selected_unsupported),
         .selected_font_addr(cg_selected_font_addr), .video_window(HSync),
         .font_cpu_addr(cg_font_cpu_addr), .font_cpu_q(cg_font_cpu_data),
-        .cpu_read_hold(cg_read_hold)
+        .cpu_read_hold(cg_read_hold), .selected_kanji(1'b0), .selected_kanji_addr(17'd0),
+        .kanji_available(1'b0), .kanji_cpu_valid(1'b0), .kanji_cpu_q(8'd0),
+        .kanji_cpu_addr(), .kanji_cpu_read()
     );
     x1_video_ram #(11) text_ram(clk_sys,a[10:0],data_out,text_write,text_cpu,clk_28636,vaddr[10:0],text_vid);
     x1_video_ram #(11) attr_ram(clk_sys,a[10:0],data_out,attr_write,attr_cpu,clk_28636,vaddr[10:0],attr_vid);
