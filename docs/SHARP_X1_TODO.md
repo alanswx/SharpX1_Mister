@@ -43,8 +43,14 @@ connects that opt-in path: connected DMA/CTC priority/nested RETI tests and
 four actual shared-CPU IM2/HALT/RR0 profiles pass on fast/delay-aware builds.
 Subsequent reset guard, real shared-CPU DMA-over-CTC/queued CTC nesting and
 native handler-service snapshots with cross-profile rejection now pass.
+Real CPU/MR16 three-device pending now passes fast/delay-aware cold repeats,
+with ordered keyboard make/break and a failing priority-bypass negative control.
 Broader concurrent service/reset, native firmware, Ready/restart IRQ and
 hardware gates remain required; no work group is marked complete.
+The [Kanji contract audit](KANJI_CONTRACT_STATUS.md) now derives a tested
+first-level physical ROM address decoder from the model-20/30 schematic,
+covering all 131,072 bytes. It is not connected to storage/CPU/rendering;
+emulator port/format conflicts, native assets and Z storage remain required.
 Turbo Z is now explicitly part of the requested goal. Its Z0–Z9 milestones
 and acceptance gates are tracked in [TURBO_Z_PLAN.md](TURBO_Z_PLAN.md).
 It remains a separate capability profile; progress must not imply support
@@ -75,7 +81,9 @@ passes on `953c076`. The
 [25-target match-pipeline run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37536491304)
 passes on `78888a7`. The
 [27-target service/vector run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37537567836)
-passes on `6151c0b`. New command-path/shared-IRQ hosted gates remain separate.
+passes on `6151c0b`. The
+[29-target native-command run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37539251783)
+passes on `2bb779a`. New shared-IRQ hosted gates remain separate.
 See [source-bound checks](TURBO_Z_RGB_STATUS.md).
 
 ## Current priorities 1–4 (October 5 checkpoint)

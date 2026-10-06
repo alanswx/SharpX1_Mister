@@ -27,7 +27,7 @@ changes and runtime evidence.
 | Disk-image backend | D88 host preflight plus shared-RTL bounds/invalid not-ready and pending-read replacement/eject/reset quarantine tested; copy-only writes verified; physical faults/permanent stalls pending | Missing from historical harness |
 | RTC | Partial firmware state | Partial firmware state |
 | Cassette/APSS | Missing | Command-state stub |
-| Kanji | Experimental 2 KiB KVRAM storage tested; glyph ROM/readback/rendering missing | Fake register |
+| Kanji | Experimental 2 KiB KVRAM storage tested; [schematic-derived first-level address component](KANJI_CONTRACT_STATUS.md) passes all 131,072 physical bytes, not connected yet; ROM storage/CPU protocol/rendering and Z level-2 remain missing | Partial KVRAM/address foundation; no native glyph support |
 | Turbo display modes | SCRN pages/blackclip/raster and nominal X3/ANK tested; bounded high-speed PCG/CPU ANK selection passes original unit/CPU tests. Kanji, expansion/underline, exact ASIC/WAIT/switching and hardware remain open; see [PCG status](TURBO_HIGH_SPEED_PCG_STATUS.md) | Partial |
 | Turbo Z / YM2151 / expansion devices | [RGB12 output foundation](TURBO_Z_RGB_STATUS.md) capture/wrapper/snapshot and five fresh base games pass; [standalone JT51 FM](TURBO_Z_FM_STATUS.md) bus/timers/stereo/mixer pass at three master frequencies; real palette/multi-mode, FM machine integration and other Z devices remain open; [roadmap](TURBO_Z_PLAN.md) | Output and standalone FM foundations only |
 

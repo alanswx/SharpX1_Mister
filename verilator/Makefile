@@ -12,6 +12,14 @@ FM_MASTER_HZ ?= 32000000
 
 all: headless
 
+test-kanji-address: $(HEADLESS_DIR)/kanji-address/Vkanji_address_tb
+	./$(HEADLESS_DIR)/kanji-address/Vkanji_address_tb
+$(HEADLESS_DIR)/kanji-address/Vkanji_address_tb: tests/kanji_address_tb.sv ../rtl/x1_kanji_address.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module kanji_address_tb --Mdir $(HEADLESS_DIR)/kanji-address \
+		-j 4 tests/kanji_address_tb.sv ../rtl/x1_kanji_address.sv
+.PHONY: test-kanji-address
+
 test-fm: $(HEADLESS_DIR)/fm-$(FM_MASTER_HZ)/Vfm_tb
 	./$(HEADLESS_DIR)/fm-$(FM_MASTER_HZ)/Vfm_tb +OUTPUT=$(HEADLESS_DIR)/fm-$(FM_MASTER_HZ)/note
 	python3 tests/test_fm_audio.py $(HEADLESS_DIR)/fm-$(FM_MASTER_HZ)/note
@@ -85,6 +93,9 @@ test-machine-dma-irq: turbo-dma-irq
 test-machine-dma-irq-nested: turbo-dma-irq
 	python3 tests/test_machine_dma_irq_nested.py ./$(DMA_IRQ_DIR)/Vtop
 .PHONY: test-machine-dma-irq-nested
+test-machine-dma-irq-keyboard: turbo-dma-irq
+	python3 tests/test_machine_dma_irq_nested.py ./$(DMA_IRQ_DIR)/Vtop --keyboard
+.PHONY: test-machine-dma-irq-keyboard
 
 # Savable fast DMA profiles: separate artifacts and application identities.
 DMA_SAVE_DIR ?= obj_dir_turbo_dma_savable

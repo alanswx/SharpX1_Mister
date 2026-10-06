@@ -37,6 +37,13 @@ The existing local scan was reused, not downloaded again. The Fujitsu
 datasheet's printed page 4-33 also informed concrete remaining status/CRC/
 deleted-data contracts in [disk status](../../docs/DISK_STATUS.md).
 
+October 6 Kanji follow-up: CZ-851/852 PDF pages 2/3 and page-3 ROM/decoder
+detail crops were rendered from the existing hashed scan and visually read.
+IC92 LS139 and IC106/105/104/103 ROM pin wiring now define an exhaustively
+tested first-level address component; see the [contract audit](../../docs/KANJI_CONTRACT_STATUS.md).
+CPU-port semantics, Turbo Z level-2/ASIC behavior and native ROM filename
+ordering were not established by this circuit trace.
+
 ## Integrity (SHA-256)
 
 October 6 DMA-service follow-up: retrieved Zilog's February 1980

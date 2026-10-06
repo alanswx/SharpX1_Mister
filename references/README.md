@@ -29,3 +29,13 @@ permission to advertise full compatibility. It has not been built or run;
 its source/asset licensing was not reconciled. Neetan has not been cloned.
 
 ROMs, BIOS images, fonts, disks, and tapes are not redistributed here.
+
+October 6 Kanji follow-up: inspected local Xmil `io/cgrom.c/.h`,
+`vram/makechr.c`, `font/font.c/.h` and the existing local MAME Kanji CPU/video/
+ROM conversion paths. Read the original [eX1/Common Source display source](https://github.com/Artanejp/common_source_project-fm7/blob/2f350e59869ad52293c768e08dd1e6137001486b/source/src/vm/x1/display.cpp)
+through GitHub API at the linked revision, without cloning, building or
+executing it. Its header attributes Kanji to X1EMU by KM and ANK16 to
+X-millennium by Yui; these are not independent hardware measurements.
+The [contract audit](../docs/KANJI_CONTRACT_STATUS.md) preserves CPU latch,
+advancement, selection and font-format conflicts. No code or assets from
+those implementations were copied into the original address-decoder RTL.

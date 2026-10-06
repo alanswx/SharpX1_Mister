@@ -109,6 +109,11 @@ Its subsequent reset guard prevents an old held ACK from selecting a new
 device after reset. Real-CPU nested DMA/CTC tests and native-handler snapshot
 continuity/cross-profile rejection pass; this still does not establish full
 DMA/Turbo compatibility or hardware reset acceptance.
+The directed three-device DMA/CTC/real-MR16 pending profile also passes on both
+timing models, with ordered keyboard make/break and cold repeat checks.
+The [Kanji contract audit](docs/KANJI_CONTRACT_STATUS.md) adds an exhaustive
+schematic-derived first-level address component; storage, CPU-port and glyph
+integration remain incomplete, and Turbo Z requires its separate larger ROM path.
 A bounded [high-speed PCG increment](docs/TURBO_HIGH_SPEED_PCG_STATUS.md)
 adds selector shadows, frozen HSYNC-window access and CPU ANK8/16 selection.
 Original unit/CPU tests pass; ASIC fallback/WAIT phase, Kanji and hardware

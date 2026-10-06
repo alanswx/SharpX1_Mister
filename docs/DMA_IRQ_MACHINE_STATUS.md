@@ -181,3 +181,40 @@ make -C verilator test-machine-dma-irq-nested DMA_IRQ_DIR=obj_dir_irq_timing
 make -C verilator test-machine-dma-irq-snapshot \
   DMA_SAVE_DIR=obj_dir_dma_save DMA_IRQ_SAVE_DIR=obj_dir_irq_save
 ```
+
+## Subsequent actual three-device pending/keyboard qualification
+
+The original nested diagnostic now has a separate `--keyboard` case. Real
+CPU E4/52 commands initialize the real MR16 interrupt mailbox. CTC0 service
+queues CTC1, then spends real instructions waiting for PS/2 F make at 25 ms;
+PPI RX-pending readback confirms the keyboard mailbox is present **before**
+the CPU programs DMA. The completing DMA, queued CTC1 and keyboard request
+therefore coexist under CTC0 service. DMA IM2/RETI completes first; queued
+CTC1 and the mailbox stay blocked through the interrupted CTC0 handler with
+EI enabled. CPU mailbox-pending/no-entry checks run again before CTC0 RETI.
+Only afterward may CTC1 complete and the keyboard handler consume B7/46.
+The later F break returns F7/00; exact two mailbox handlers and byte order
+are checked, not merely a changed screen or IRQ count.
+
+The final case passes on **both** source-bound corrected fast/savable and
+delay-aware runners above, each with two cold repeats and exact reports/all
+RAM/CPU dumps, at the unchanged 8,000,000-cycle duration. Three actual PS/2
+bytes are sent. No IRQ/grant/IEI/pending state is forced and no firmware is
+patched. The original non-keyboard nested case also passes unchanged.
+
+A temporary negative-control bridge removes only CTC IEO from downstream
+keyboard eligibility. The same final three-device test then **fails** with
+CPU marker EE/phase 02, before CTC0 has returned. This demonstrates that the
+test detects premature keyboard dispatch, not just DMA completion. The mutant
+is under `/tmp`, not production RTL. An initial fixture assembly overlap was
+caught by its address assertion and corrected before execution; no success
+marker/ordering assertions were relaxed.
+
+Logs: `/tmp/x1-dma-irq-three-device-{fast,timing}-qualified.log`,
+`/tmp/x1-dma-irq-three-device-negative.log`,
+`/tmp/x1-dma-irq-three-device-original-regression.log`.
+Reproduction: `make -C verilator test-machine-dma-irq-keyboard
+DMA_IRQ_DIR=obj_dir_irq_timing` (one shell line).
+This closes this directed simultaneous-pending profile, not every collision,
+short-reset or device-mode combination. Broader service-phase reset, SIO/
+external priority, native software and hardware gates remain open.
