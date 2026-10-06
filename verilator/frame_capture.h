@@ -18,7 +18,13 @@ struct FrameCapture {
         if (!line.empty()) rows.push_back(std::move(line));
         line.clear();
     }
+    // Legacy digital G:R:B interface, retained for diagnostics.
     void sample(bool hs, bool vs, bool blank, uint8_t rgb) {
+        sample_rgb12(hs, vs, blank, ((rgb & 2) ? 0xf00 : 0)
+                     | ((rgb & 4) ? 0x0f0 : 0) | ((rgb & 1) ? 0x00f : 0));
+    }
+    // Conventional R:G:B nibbles, expanded exactly to 8-bit PPM/SDL pixels.
+    void sample_rgb12(bool hs, bool vs, bool blank, uint16_t rgb) {
         if (hs && !old_hs) flush_line();
         if (vs && !old_vs) {
             flush_line();
@@ -48,8 +54,8 @@ struct FrameCapture {
         }
         if (!blank) {
             if (line.size() >= 2048) throw std::runtime_error("no horizontal sync within active line");
-            line.push_back(0xff000000 | ((rgb & 2) ? 0xff0000 : 0)
-                           | ((rgb & 4) ? 0x00ff00 : 0) | ((rgb & 1) ? 0x0000ff : 0));
+            line.push_back(0xff000000 | (((rgb >> 8) & 15) * 17 << 16)
+                           | (((rgb >> 4) & 15) * 17 << 8) | ((rgb & 15) * 17));
         }
         old_hs = hs;
         old_vs = vs;

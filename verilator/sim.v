@@ -34,6 +34,7 @@ module top #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_
     output cpu_mreq_n, cpu_iorq_n, cpu_rd_n, cpu_wr_n, cpu_halt_n,
     output [7:0] video,
     output [2:0] rgb,
+    output [11:0] rgb12,
     output [15:0] audio,
     output ce_pix,
     output HSync, VSync, HBlank, VBlank,
@@ -57,7 +58,7 @@ module top #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_
         .sd_lba(sd_lba), .sd_rd(sd_rd), .sd_wr(sd_wr), .sd_ack(sd_ack),
         .sd_buff_addr(sd_buff_addr), .sd_buff_dout(sd_buff_dout),
         .sd_buff_din(sd_buff_din), .sd_buff_wr(sd_buff_wr),
-        .video(video), .rgb(rgb), .audio(audio), .ce_pix(ce_pix),
+        .video(video), .rgb(rgb), .rgb12(rgb12), .audio(audio), .ce_pix(ce_pix),
         .HSync(HSync), .VSync(VSync), .HBlank(HBlank), .VBlank(VBlank)
     );
     assign debug_ram = machine.RAM.mem[debug_addr];

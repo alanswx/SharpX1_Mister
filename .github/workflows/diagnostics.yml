@@ -29,9 +29,10 @@ jobs:
       - name: Install simulator and compiler
         run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends -y verilator build-essential
+          sudo apt-get install --no-install-recommends -y verilator build-essential clang
           verilator --version
           g++ --version
+          clang++ --version
       - name: Run original standalone fixtures
         run: |
           for target in \
@@ -39,7 +40,7 @@ jobs:
             test-sio-flow test-sio-cpu test-sio-dma test-sio-dma-cpu \
             test-dma test-dma-cpu \
             test-dma-reset test-cpu-busreq test-d88-scanner test-d88-crc \
-            test-d88-metadata test-fdc-abort test-fdc-sd-abort test-joystick; do
+            test-d88-metadata test-fdc-abort test-fdc-sd-abort test-joystick test-rgb12; do
             # Bound each original fixture without changing its assertions or
             # simulated duration. A stall must fail with an identifiable target.
             limit_s=180
@@ -47,9 +48,11 @@ jobs:
             # allow its unoptimized build/run extra time, not fewer cycles.
             if [ "${target}" = test-dma ]; then limit_s=600; fi
             echo "Running ${target} (${limit_s}-second wall-clock limit)"
-            # GCC's O1 optimizer is very slow on the DMA fixture's generated
-            # coroutine. O0 changes host code generation, not RTL scheduling.
-            timeout "${limit_s}s" make -C verilator "${target}" HEADLESS_DIR=obj_dir_ci DMA_TEST_CFLAGS=-O0 || exit $?
+            # GCC exceeded the DMA compile limit even at O0. Select Clang
+            # explicitly: --compiler alone does not select the make compiler.
+            # Keep all RTL assertions, delays and full simulated durations.
+            timeout "${limit_s}s" make -C verilator "${target}" HEADLESS_DIR=obj_dir_ci \
+              V='verilator --compiler clang -MAKEFLAGS CXX=clang++' CXX=clang++ DMA_TEST_CFLAGS=-O0 || exit $?
           done
       - name: Check whitespace
         run: git diff --check HEAD^ HEAD

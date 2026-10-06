@@ -9,9 +9,9 @@ ordering, test coverage, and acceptance gates. These checklist phases are broad
 work buckets; the plan gives the execution order, including base-X1 floppy
 support before optional Turbo extensions.
 
-## Requested completion of items 1–6 (October 6)
+## Active goal: items 1–6 and Turbo Z (October 6)
 
-The user requested completing the six remaining work groups below. None is
+The user requested completing the six remaining work groups below and Turbo Z. None is
 declared finished by the standalone SIO increments. Execute local gates in
 order, retain original regression failures/evidence, and push verified
 checkpoints. Hardware acceptance requires the build host/MiSTer; Quartus is
@@ -28,7 +28,10 @@ unavailable; continue local verification without claiming hardware acceptance.
 | 6. Base completeness/CI | Asset-free diagnostic CI now passes hosted execution; finish keyboard/sub-CPU, cassette and PPI functions; exact PCG/scanline/audio fidelity; BASIC compatibility and provenance |
 
 No legacy notices or private assets may be removed/bundled to claim completion.
-Turbo Z remains a separate seventh roadmap, not this request's completion gate.
+Turbo Z is now explicitly part of the requested goal. Its Z0–Z9 milestones
+and acceptance gates are tracked in [TURBO_Z_PLAN.md](TURBO_Z_PLAN.md).
+It remains a separate capability profile; progress must not imply support
+for unimplemented hardware or promotion of historical game evidence.
 
 ## Current priorities 1–4 (October 5 checkpoint)
 
@@ -111,7 +114,8 @@ and actual machine serial integration remain open; see [reset contract](SIO_DMA_
 Both complete frozen fast/delay-aware metadata CPU matrices now pass.
 Four v05 native-control titles pass; Shanghai's expected-pair assertion failed
 with unchanged inputs and retained evidence. None qualifies later v10 RTL.
-Current model state is v11; reject older snapshots, do not convert them.
+Current model state is v12 after adding the RGB12 output port; reject older
+snapshots, do not convert them. Existing v11 evidence remains source-bound.
 The separate [shared-machine DMA subset](DMA_MACHINE_STATUS.md) now connects
 real CPU ownership, DRQ pacing, shared decode and retained reset drain.
 Generated A/B read/write/protected/CRC and actual-machine owned-reset checks

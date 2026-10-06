@@ -1,6 +1,7 @@
-# X1 Turbo Z roadmap (research, not implemented)
+# X1 Turbo Z roadmap (output foundation only)
 
-October 5, 2026. Finish base Turbo video/peripherals and native tests first.
+October 6, 2026. Turbo Z is now explicitly part of the user's active goal,
+alongside work groups 1–6. Base Turbo device/video gates remain dependencies.
 `TURBO=1` is not a Turbo Z identification flag. Introduce a separate capability
 profile only when its observable behavior exists; do not make software detect
 missing devices by returning invented status values.
@@ -72,6 +73,10 @@ extra GRAM. The digital RGB output reduces analog multi-mode colors to eight
 - [ ] Z1: widen the shared RGB pipeline to at least 4 bits/component and carry
   full color through simulator PPM capture, wrapper/scandoubler/scaler and
   screenshots. Preserve exact base eight-color pixels and audio interfaces.
+  The [RGB12 foundation](TURBO_Z_RGB_STATUS.md) now connects shared-machine,
+  simulator/PPM/SDL and eight-bit wrapper outputs; exhaustive capture and
+  wrapper lint tests pass. Real palettes, fitted/scaler/physical full-color
+  acceptance remain open, so this milestone is not checked complete.
 - [ ] Z2: analog enable/palette mode `1FB0`, eight text palette entries
   `1FB8..1FBF`, graphics palette control `1FC5`, and palette programming/read
   transactions at `1000..12FF`. Establish AEN/APEN/APRD/C64 gating, address

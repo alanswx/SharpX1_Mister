@@ -27,6 +27,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     output HBlank, HSync, VBlank, VSync,
     output [7:0] video,
     output [2:0] rgb,
+    output [11:0] rgb12,
     output [15:0] audio
 );
     // The actual CPU ACK selects the shared bus. Reset stops CPU execution,
@@ -444,5 +445,9 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         .O_HBLANK(HBlank), .O_VBLANK(VBlank), .O_CE_PIXEL(ce_pix)
     );
     assign rgb = {g,r,b};
+    // Full-color boundary uses conventional R:G:B nibbles. Digital modes
+    // retain their exact eight colors; future Z palette logic belongs here,
+    // upstream of both physical output and simulator capture.
+    assign rgb12 = {{4{r}}, {4{g}}, {4{b}}};
     assign video = {8{r || g || b}}; // Historical mono output; RGB is authoritative.
 endmodule

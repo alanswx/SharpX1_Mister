@@ -50,7 +50,7 @@ module dma_machine_sd_reset_tb;
         .debug_ram(), .debug_text(), .debug_attr(), .sub_pc(), .sub_address(),
         .sub_control(), .sub_wait(), .sub_tx(), .sub_rx(), .cpu_address(),
         .cpu_in(), .cpu_out(), .cpu_mreq_n(), .cpu_iorq_n(), .cpu_rd_n(),
-        .cpu_wr_n(), .cpu_halt_n(), .video(), .rgb(), .audio(), .ce_pix(),
+        .cpu_wr_n(), .cpu_halt_n(), .video(), .rgb(), .rgb12(), .audio(), .ce_pix(),
         .HSync(), .VSync(), .HBlank(), .VBlank(), .sys_edges(), .video_edges(),
         .reset_edges(), .cpu_enables(), .delayed_sys_edges(), .dma_grants(),
         .dma_reads(), .dma_writes(), .cpu_fdc_data_reads(), .cpu_fdc_data_writes()

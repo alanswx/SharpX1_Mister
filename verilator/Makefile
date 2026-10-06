@@ -520,7 +520,7 @@ $(HEADLESS_EXE): $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_i
 run: headless
 	./$(HEADLESS_EXE) $(CYCLES)
 
-test: headless test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner test-d88-crc test-d88-metadata test-cpu-busreq
+test: headless test-rgb12 test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner test-d88-crc test-d88-metadata test-cpu-busreq
 	python3 tests/test_key_script.py ./$(HEADLESS_EXE) $(VIDEO_TEST_FLAGS)
 	python3 tests/test_video_modes.py ./$(HEADLESS_EXE) $(VIDEO_TEST_FLAGS)
 	python3 tests/test_video_modes.py ./$(HEADLESS_EXE) --kind mixed --transition $(VIDEO_TEST_FLAGS)
@@ -712,6 +712,14 @@ test-turbo-pcg-cpu: turbo turbo-video
 $(HEADLESS_DIR)/pcg/Vpcg_access_tb: tests/pcg_access_tb.sv ../rtl/x1_pcg_access.v ../rtl/x1_video_ram.v
 	$(V) --binary --timing --assert --top-module pcg_access_tb --Mdir $(HEADLESS_DIR)/pcg \
 		-j 4 ../rtl/x1_pcg_access.v ../rtl/x1_video_ram.v tests/pcg_access_tb.sv -Wno-fatal
+
+test-rgb12: $(HEADLESS_DIR)/rgb12/frame_rgb12_tb
+	./$(HEADLESS_DIR)/rgb12/frame_rgb12_tb $(HEADLESS_DIR)/rgb12/all-colors.ppm
+
+$(HEADLESS_DIR)/rgb12/frame_rgb12_tb: tests/frame_rgb12_tb.cpp frame_capture.h
+	mkdir -p $(@D)
+	$(CXX) -std=c++20 -Wall -Wextra -Werror tests/frame_rgb12_tb.cpp -o $@
+.PHONY: test-rgb12
 
 test-joystick: $(HEADLESS_DIR)/joystick/Vjoystick_tb
 	./$(HEADLESS_DIR)/joystick/Vjoystick_tb

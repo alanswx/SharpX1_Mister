@@ -324,7 +324,7 @@ int main(int argc, char **argv) {
         // a reconstructed RAM bootstrap. Only quiescent host interfaces are
         // supported; disk contents must match and clocks keep absolute phase.
         uint64_t resume_time = 0;
-        // v11: opt-in shared-machine CPU/DMA ownership and reset drain.
+        // v12: added full-color output port; reject older serialized models.
         // v10: X3 destination-clock video reset release.
         // v09: Turbo text expansion and reserved underline raster state.
         // v08: X3 video-to-PPI status synchronizers.
@@ -347,7 +347,7 @@ int main(int argc, char **argv) {
             ^ (1ULL << 54)
 #endif
             ;
-        constexpr uint64_t snapshot_magic = 0x5831534e41503131ULL ^ sys_hz ^ snapshot_profile;
+        constexpr uint64_t snapshot_magic = 0x5831534e41503132ULL ^ sys_hz ^ snapshot_profile;
 #ifdef X1_SAVABLE
         if (restore_path) {
             if (rom_path || ram_path || font16_path) throw std::runtime_error("snapshot restore cannot also download ROM/RAM/font16");
@@ -556,7 +556,7 @@ int main(int argc, char **argv) {
                 progress_time += 100000000000ULL;
             }
             if (video_rise && pixel_enable && !top.reset)
-                frame.sample(top.HSync, top.VSync, top.HBlank || top.VBlank, top.rgb);
+                frame.sample_rgb12(top.HSync, top.VSync, top.HBlank || top.VBlank, top.rgb12);
 #ifdef X1_SDL
             if (frontend && sys_rise && (top.sys_edges & 4095) == 0) {
                 if (!frontend->poll([&](uint8_t byte) {

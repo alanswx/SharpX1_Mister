@@ -66,8 +66,9 @@ do not embed private font bytes. See `docs/TURBO_VIDEO_CLOCK_STATUS.md` for
 exact checks and missing Kanji/text/high-speed PCG behavior. The FPGA revision
 `sharpx1_turbo_video` requests its own PLL; record the fitted frequency,
 source-bound timing and hardware results separately from nominal simulation.
-Snapshot format v11 rejects older states after the opt-in CPU/DMA bus and instrumentation changes
-(v09 added text-raster state;
+Snapshot format v12 rejects older states after adding the RGB12 output port
+(v11 added opt-in CPU/DMA bus and instrumentation;
+v09 added text-raster state;
 v08 added X3 PPI sampling; v07 added PCG/metadata state). Regenerate from native boot,
 never convert or patch state bytes to bypass model compatibility checks.
 Use `docs/TURBO_TEXT_RASTER_STATUS.md` for the provisional digital expansion/

@@ -25,7 +25,7 @@ module dma_machine_reset_tb;
         .disk_ready(1'b0), .img_mounted(1'b0), .disk_wp(1'b1), .img_size(24'd0),
         .disk_ready_b(1'b0), .img_mounted_b(1'b0), .disk_wp_b(1'b1), .img_size_b(24'd0),
         .sd_ack(1'b0), .sd_buff_addr(9'd0), .sd_buff_dout(8'd0), .sd_buff_wr(1'b0),
-        .debug_addr(16'hf100)
+        .debug_addr(16'hf100), .rgb12()
     );
     task automatic emit(input reg [7:0] byte_value);
         rom[size]=byte_value; size=size+1;

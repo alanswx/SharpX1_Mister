@@ -88,9 +88,12 @@ and physical reset remain open. It advances the model to v10.
 The optional `turbo-video-savable` simulator target now supports fast X3
 single-drive diagnostic continuations with model-profile rejection; it does
 not enable dual-drive snapshots or replace delay-aware/hardware checks.
-Turbo Z is a separate, unimplemented target with a
+Turbo Z is a separate capability target with a
 [manual-based roadmap](docs/TURBO_Z_PLAN.md), including analog multi-color
-video, stereo FM, HD disks and capture effects.
+video, stereo FM, HD disks and capture effects. Its first
+[RGB12 output foundation](docs/TURBO_Z_RGB_STATUS.md) connects full-color
+capture and wrapper interfaces while preserving digital colors. Palette,
+multi-mode rendering and the other Z devices are not implemented.
 
 The headless simulator has been compiled with Verilator 5.044 on macOS.
 The timing/reset regression passes. A 200,000-system-cycle run reports:
@@ -131,7 +134,8 @@ is historical. Subsequent
 [D88 metadata publication](docs/D88_WRITE_METADATA_STATUS.md) and PCG changes
 require v07 and separate acceptance. The subsequent X3 PPI increment requires
 v08, text-raster work v09, and X3 reset release v10. Current CPU/DMA integration
-requires v11; do not convert or patch old snapshots.
+requires v11; the subsequent RGB12 output boundary requires v12. Do not
+convert or patch old snapshots; v11 gameplay evidence below is historical.
 The v11 baseline qualification now passes all five titles. Shanghai's timed
 replay missed its fixed pair coordinates; [native cursor feedback](docs/SHANGHAI_FEEDBACK_STATUS.md)
 prepares the same pair and passes the unchanged removal/repeatability checks.
@@ -167,10 +171,12 @@ for the standalone SIO/DMA, D88, reset, bus-ownership and joystick fixtures.
 [Hosted run 37479171527](https://github.com/alanswx/SharpX1_Mister/actions/runs/37479171527)
 passes all 16 targets on commit `0e4e021`. It does not run private media,
 native firmware, Quartus or hardware acceptance.
-The expanded 19-target workflow adds idle Send Break and original DMA
-register/CPU units; its new hosted pass is pending. Targets have wall-clock
-limits, and the large DMA fixture uses host `-O0` in CI after a GCC compile
-bottleneck, with its full assertions and simulated duration unchanged.
+The expanded workflow adds idle Send Break, original DMA register/CPU units
+and exhaustive RGB12 capture. The 19-target GCC run timed out compiling DMA
+even at host `-O0`; it did not execute that simulator. The 20-target retry
+selects Clang explicitly, keeps per-target limits and all original assertions/
+simulated durations, and remains pending. Earlier 16-target passes are not
+promoted to acceptance of the expanded suite.
 The simulator window now offers optional [live joystick keys](docs/PLAYING.md):
 arrows, Space (button 1) and Ctrl (button 2), through `--joystick-keys`.
 Independent CPU-programmed 40/80-column text and 320/640 graphics rasters now

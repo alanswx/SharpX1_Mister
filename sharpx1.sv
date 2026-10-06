@@ -343,7 +343,7 @@ wire VBlank;
 wire VSync;
 wire ce_pix;
 wire [7:0] video;
-wire [2:0] machine_rgb;
+wire [11:0] machine_rgb12;
 wire [15:0] machine_audio;
 wire machine_ioctl_wait;
 `ifdef X1_TURBO_FOUNDATION
@@ -383,7 +383,7 @@ sharpx1 #(.SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ), .TURBO(TURBO_FOUND
 	.VBlank(VBlank),
 	.VSync(VSync),
 
-	.video(video), .rgb(machine_rgb), .audio(machine_audio)
+	.video(video), .rgb(), .rgb12(machine_rgb12), .audio(machine_audio)
 );
 
 assign CLK_VIDEO = clk_28636;
@@ -392,9 +392,9 @@ assign CE_PIXEL = ce_pix;
 assign VGA_DE = ~(HBlank | VBlank);
 assign VGA_HS = HSync;
 assign VGA_VS = VSync;
-assign VGA_G  = {8{machine_rgb[2]}};
-assign VGA_R  = {8{machine_rgb[1]}};
-assign VGA_B  = {8{machine_rgb[0]}};
+assign VGA_R  = {2{machine_rgb12[11:8]}};
+assign VGA_G  = {2{machine_rgb12[7:4]}};
+assign VGA_B  = {2{machine_rgb12[3:0]}};
 
 assign LED_USER = ioctl_download | (|sd_rd) | (|sd_wr);
 
