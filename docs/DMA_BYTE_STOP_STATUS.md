@@ -83,6 +83,8 @@ Snapshot/clock/mismatch/joystick tests exit zero in
 `/tmp/x1-dma-byte-stop-base-snapshot.log`. This only covers the DMA-disabled
 base profile, not native Turbo compatibility. Hosted run
 [37531976718](https://github.com/alanswx/SharpX1_Mister/actions/runs/37531976718)
-targets `4261ee6` and is pending, not assumed passing from older CI runs.
+targets `4261ee6` and subsequently exits **success** with all 24 targets;
+full hosted log `/tmp/x1-ci-37531976718-full.log`. Later pure-search profiles
+retain independent hosted gates.
 Quartus fit, native Turbo software, physical pin timing and board tests
 remain unavailable/unverified.

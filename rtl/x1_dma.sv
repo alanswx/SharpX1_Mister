@@ -59,6 +59,14 @@ module x1_dma (
         block_size = n == 0 ? 17'd65537 : {1'b0, n} + 17'd1;
     endfunction
 
+    function automatic logic [16:0] operation_size(input logic [15:0] n);
+        // Table 11: pure continuous search uses the programmed number of
+        // operations, not sequential/Byte/Burst's pipelined N+1 count.
+        if (wr0[1:0] == 2'b10 && wr4[6:5] == 2'b01)
+            operation_size = n == 0 ? 17'd65536 : {1'b0,n};
+        else operation_size = block_size(n);
+    endfunction
+
     function automatic logic [2:0] first_read(input logic [6:0] bits);
         first_read = 3'd0; // zero mask: deterministic RR0, not silicon claim
         for (integer j=6; j>=0; j=j-1)
@@ -100,7 +108,6 @@ module x1_dma (
         search_only = wr0[1:0] == 2'b10;
         source_match = (data_in | mask_byte) == (match_byte | mask_byte);
         unsupported = bad_command || wr0[1:0] == 0 ||
-            (search_only && wr4[6:5] != 0) ||
             wr3[5] || (wr3[2] && (!wr0[1] || wr4[6:5] != 0)) ||
             wr4[6:5] == 2'b11 ||
             timing_a_set || timing_b_set || interrupt_control != 0;
@@ -205,28 +212,33 @@ module x1_dma (
                                 if (wr0[2]) counter_a <= step_address(counter_a, wr1);
                                 else counter_b <= step_address(counter_b, wr2);
                                 if (search_only) begin
-                                    // Pure Byte search completes at the source
+                                    // Pure search completes at the source
                                     // read: never write or step the other port.
                                     if (source_match) match_found <= 1;
                                     remaining <= remaining - 17'd1;
-                                    // Table 11 EOB: N+1 reads, count N. Table 12
-                                    // Byte match: M reads, count M (NOT M-1).
+                                    // Table 11 Byte EOB: N+1 reads, count N;
+                                    // non-Byte EOB counts completed reads. Table
+                                    // 12 Byte match counts M reads (NOT M-1).
                                     if (remaining == 1 && wr5[5] && !(wr3[2] && source_match) &&
                                         enabled && !reset_pending && !reset &&
                                         !soft_reset_pending && !write_event) begin
                                         // WR5 end-of-block repeat reloads both
                                         // buffers, not the source-only explicit LOAD.
                                         counter_a <= start_a; counter_b <= start_b;
-                                        remaining <= block_size(length); byte_counter <= 0;
+                                        remaining <= operation_size(length); byte_counter <= 0;
                                         destination_first <= 1; end_of_block <= 0;
                                         match_found <= 0;
                                     end else begin
-                                        if ((wr3[2] && source_match) || remaining != 1)
+                                        if (wr4[6:5] != 0 || (wr3[2] && source_match) || remaining != 1)
                                             byte_counter <= byte_counter + 16'd1;
                                         if (remaining == 1) end_of_block <= 1;
                                         if (remaining == 1 || (wr3[2] && source_match)) enabled <= 0;
                                     end
-                                    state <= RELEASE; force_ready <= 0;
+                                    if ((remaining == 1 && !wr5[5]) || !enabled || reset_pending || reset ||
+                                        soft_reset_pending || (wr3[2] && source_match) || wr4[6:5] == 0 ||
+                                        (wr4[6:5] == 2'b10 && !ready_now)) begin
+                                        state <= RELEASE; force_ready <= 0;
+                                    end else state <= PAUSE;
                                 end else state <= WRITE_SETUP;
                             end
                         end
@@ -350,13 +362,13 @@ module x1_dma (
                                         if (wr0[2]) counter_a <= start_a;
                                         else counter_b <= start_b;
                                         destination_first <= 1;
-                                        remaining <= block_size(length); byte_counter <= 0;
+                                        remaining <= operation_size(length); byte_counter <= 0;
                                         loaded <= 1; force_ready <= 0;
                                         requested <= 0; end_of_block <= 0;
                                         match_found <= 0;
                                     end
                                     8'hd3: begin
-                                        remaining <= block_size(length); byte_counter <= 0;
+                                        remaining <= operation_size(length); byte_counter <= 0;
                                         end_of_block <= 0; force_ready <= 0;
                                         match_found <= 0;
                                     end

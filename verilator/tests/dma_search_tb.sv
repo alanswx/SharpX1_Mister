@@ -22,7 +22,7 @@ module dma_search_tb;
     always_comb data_in=source[address[1:0]];
     always @(negedge clk) begin
         edges++;ce=(edges%period)==0;
-        if(edges>40000000) $fatal(1,"pure search watchdog");
+        if(edges>80000000) $fatal(1,"pure search watchdog");
         assert(wr_n) else $fatal(1,"pure search emitted a destination write");
         if(!old_rd && rd_n) begin
             if(reads<12) read_addresses[reads]=held_address;
@@ -55,7 +55,7 @@ module dma_search_tb;
     endtask
     task automatic configure(input logic direction,stop_match,input logic [7:0] mask,
                              input logic [7:0] config_source=8'h10,input logic [15:0] start=16'h1000,
-                             input logic [15:0] block_length=16'd3);
+                             input logic [15:0] block_length=16'd3,input integer ownership=0);
         logic [15:0] a,b;
         a=direction ? start : 16'h2000;b=direction ? 16'h2000 : start;
         expect_io=config_source[3];
@@ -64,7 +64,7 @@ module dma_search_tb;
         put(direction ? (config_source | 8'h04) : 8'h14);
         put(direction ? 8'h10 : config_source);
         put(stop_match ? 8'h9c : 8'h98);put(mask);put(8'ha5);
-        put(8'h8d);put(b[7:0]);put(b[15:8]);put(8'h92);put(8'hcf);
+        put(8'h8d | 8'(ownership<<5));put(b[7:0]);put(b[15:8]);put(8'h92);put(8'hcf);
         assert(!unsupported) else $fatal(1,"pure Byte search rejected");
     endtask
     task automatic released;
@@ -231,12 +231,157 @@ module dma_search_tb;
                    (direction!=0 ? dut.counter_b : dut.counter_a)==16'h2000)
                 else $fatal(1,"search repeat long count/next block size_case=%0d",size_case);
         end
+        // Non-stopping pure Burst and continuous search: distinct primary
+        // EOB counts, sticky masks and no Byte-style ownership release.
+        for(integer ownership=1;ownership<3;ownership++)
+        for(integer direction=0;direction<2;direction++)
+        for(integer mask=0;mask<256;mask++)
+        for(integer positive=0;positive<2;positive++) begin
+            fresh();
+            for(integer i=0;i<4;i++) source[i]=positive!=0 ? (8'ha5 ^ 8'(mask)) : (8'ha5 ^ ~8'(mask));
+            configure(1'(direction),0,8'(mask),8'h10,16'h1000,
+                      ownership==1 ? 16'd4 : 16'd3,ownership);
+            put(8'h87);released();
+            assert(reads==4 && dut.byte_counter==4 && dut.remaining==0 && dut.end_of_block &&
+                   (direction!=0 ? dut.counter_a : dut.counter_b)==16'h1004 &&
+                   (direction!=0 ? dut.counter_b : dut.counter_a)==0)
+                else $fatal(1,"non-Byte search EOB source/count/destination");
+            put(8'hbf);get(value);
+            assert(value[4]==!(positive!=0 || mask==255) && !value[5])
+                else $fatal(1,"non-Byte sticky masked match/EOB");
+            tests++;
+        end
+        // Both ownership classes pause at inactive Ready, but only Burst
+        // releases the bus. Restore Ready without reprogramming/LOAD.
+        for(integer ownership=1;ownership<3;ownership++)
+        for(integer direction=0;direction<2;direction++)
+        for(integer io=0;io<2;io++)
+        for(integer mode=0;mode<3;mode++) begin
+            logic [7:0] config_source;
+            logic [15:0] start,expected;
+            fresh();for(integer i=0;i<4;i++) source[i]=8'h36;
+            config_source=8'(io<<3) | (mode==0 ? 8'h10 : mode==1 ? 8'h00 : 8'h20);
+            start=mode==0 ? 16'hfffe : 16'h0001;
+            configure(1'(direction),0,0,config_source,start,
+                      ownership==1 ? 16'd4 : 16'd3,ownership);
+            stop_reads=2;put(8'h87);
+            wait(reads==2);repeat(16) ctick();
+            assert(reads==2 && dut.enabled && dut.byte_counter==2 &&
+                   busrq_n==(ownership==2) && busak_n==(ownership==2))
+                else $fatal(1,"non-Byte Ready pause/release ownership=%0d",ownership);
+            stop_reads=0;rdy=0;released();
+            expected=mode==0 ? start+16'd4 : mode==1 ? start-16'd4 : start;
+            assert(reads==4 && dut.byte_counter==4 &&
+                   (direction!=0 ? dut.counter_a : dut.counter_b)==expected &&
+                   (direction!=0 ? dut.counter_b : dut.counter_a)==0)
+                else $fatal(1,"non-Byte Ready resume/address mode");
+        end
+        // Non-stopping repeat: Continuous retains an inactive-Ready grant;
+        // Burst releases it. Both reload, including an actually set match.
+        for(integer ownership=1;ownership<3;ownership++)
+        for(integer direction=0;direction<2;direction++)
+        for(integer io=0;io<2;io++)
+        for(integer mode=0;mode<3;mode++) begin
+            logic [7:0] config_source;
+            logic [15:0] start,expected;
+            fresh();for(integer i=0;i<4;i++) source[i]=8'ha5;
+            config_source=8'(io<<3) | (mode==0 ? 8'h10 : mode==1 ? 8'h00 : 8'h20);
+            start=mode==0 ? 16'hfffe : 16'h0001;
+            configure(1'(direction),0,0,config_source,start,
+                      ownership==1 ? 16'd4 : 16'd3,ownership);
+            put(8'hb2);stop_reads=12;put(8'h87);wait(reads==12);repeat(16) ctick();
+            assert(reads==12 && dut.enabled && !dut.match_found && !dut.end_of_block &&
+                   dut.byte_counter==0 && dut.remaining==4 && busrq_n==(ownership==2) &&
+                   (direction!=0 ? dut.counter_a : dut.counter_b)==start &&
+                   (direction!=0 ? dut.counter_b : dut.counter_a)==16'h2000)
+                else $fatal(1,"non-Byte search repeat ownership/count/reload");
+            for(integer i=0;i<12;i++) begin
+                expected=mode==0 ? start+16'(i%4) : mode==1 ? start-16'(i%4) : start;
+                assert(read_addresses[i]==expected) else $fatal(1,"non-Byte repeat address");
+            end
+        end
+        // True non-Byte long counts, including continuous 16-bit zero wrap.
+        for(integer ownership=1;ownership<3;ownership++)
+        for(integer direction=0;direction<2;direction++)
+        for(integer size_case=0;size_case<3;size_case++)
+        for(integer repeat_block=0;repeat_block<2;repeat_block++) begin
+            logic [15:0] n;
+            integer total;
+            n=size_case==0 ? 16'd255 : size_case==1 ? 16'hffff : 16'd0;
+            total=ownership==1 ? (n==0 ? 65536 : int'(n)) : (n==0 ? 65537 : int'(n)+1);
+            fresh();for(integer i=0;i<4;i++) source[i]=8'h36;
+            configure(1'(direction),0,0,8'h10,16'h1000,n,ownership);
+            if(repeat_block!=0) begin put(8'hb2);stop_reads=total+1;end
+            put(8'h87);
+            if(repeat_block==0) begin
+                released();
+                assert(reads==total && dut.byte_counter==16'(total) && dut.remaining==0 &&
+                       dut.end_of_block && !dut.match_found &&
+                       (direction!=0 ? dut.counter_a : dut.counter_b)==16'(32'h1000+total) &&
+                       (direction!=0 ? dut.counter_b : dut.counter_a)==0)
+                    else $fatal(1,"non-Byte long EOB count ownership=%0d n=%0d",ownership,n);
+            end else begin
+                wait(reads==total+1);repeat(16) ctick();
+                assert(reads==total+1 && dut.enabled && !dut.end_of_block &&
+                       dut.byte_counter==1 && dut.remaining==17'(total-1) &&
+                       held_address==16'h1000 && busrq_n==(ownership==2) &&
+                       (direction!=0 ? dut.counter_a : dut.counter_b)==16'h1001 &&
+                       (direction!=0 ? dut.counter_b : dut.counter_a)==16'h2000)
+                    else $fatal(1,"non-Byte long auto count ownership=%0d n=%0d",ownership,n);
+            end
+        end
+        // The same programmed length has different continuous/Burst size.
+        for(integer ownership=1;ownership<3;ownership++)
+        for(integer direction=0;direction<2;direction++)
+        for(integer io=0;io<2;io++)
+        for(integer abort_kind=0;abort_kind<4;abort_kind++) begin
+            fresh();for(integer i=0;i<4;i++) source[i]=8'h36;
+            configure(1'(direction),0,0,io!=0 ? 8'h18 : 8'h10,16'h1000,
+                      ownership==1 ? 16'd4 : 16'd3,ownership);
+            stop_reads=3;put(8'h87);wait(reads==3);repeat(16) ctick();
+            stop_reads=0;rdy=0;wait(!rd_n);wait_n=0;rdy=1;repeat(8) ctick();
+            if(abort_kind==1) put(8'h83);
+            if(abort_kind==2) put(8'hc3);
+            begin
+                integer saved_period;
+                saved_period=period;period=100000000;
+                if(abort_kind==3) begin reset=1;tick();reset=0;end
+                repeat(20) tick();assert(!rd_n && reads==3)
+                    else $fatal(1,"non-Byte terminal read truncated with WAIT/CE/abort");
+                period=saved_period;
+            end
+            wait_n=1;released();
+            assert(reads==4 && !dut.enabled)
+                else $fatal(1,"non-Byte terminal read missing/extra");
+            if(abort_kind<2) assert(dut.byte_counter==4 && dut.end_of_block &&
+                                   (direction!=0 ? dut.counter_a : dut.counter_b)==16'h1004 &&
+                                   (direction!=0 ? dut.counter_b : dut.counter_a)==0)
+                else $fatal(1,"non-Byte terminal drained count/address");
+            else assert(!dut.loaded && !dut.match_found && !dut.end_of_block)
+                else $fatal(1,"non-Byte terminal reset retained old block");
+        end
+        // Ready must gate the first grant too, without a FORCE READY command.
+        for(integer ownership=1;ownership<3;ownership++) begin
+            fresh();rdy=1;for(integer i=0;i<4;i++) source[i]=8'h36;
+            configure(1,0,0,8'h10,16'h1000,ownership==1 ? 16'd4 : 16'd3,ownership);
+            put(8'h87);repeat(16) ctick();
+            assert(reads==0 && busrq_n && dut.counter_a==16'h1000)
+                else $fatal(1,"non-Byte requested inactive-Ready first grant");
+            rdy=0;released();assert(reads==4 && dut.byte_counter==4)
+                else $fatal(1,"non-Byte initial Ready resume");
+        end
+        for(integer ownership=1;ownership<3;ownership++) begin
+            fresh();for(integer i=0;i<4;i++) source[i]=8'h36;
+            configure(1,0,0,8'h10,16'h1000,1,ownership);put(8'h87);released();
+            assert(reads==(ownership==1 ? 1 : 2) && dut.byte_counter==16'(reads))
+                else $fatal(1,"non-Byte programmed-one count");
+        end
         fresh();configure(1,1,0);
         put(8'h92);put(8'hc1);
-        assert(unsupported) else $fatal(1,"pure Burst pipeline accepted without implementation");
+        assert(unsupported) else $fatal(1,"pure Burst match-stop accepted without pipeline");
         put(8'ha1);
-        assert(unsupported) else $fatal(1,"pure continuous pipeline accepted without implementation");
-        $display("PASS pure Byte search %0d masks/directions/positions/stop cases, memory/io/address modes, WAIT/Ready/CE/abort/reset, CE=%0d",tests,period);
+        assert(unsupported) else $fatal(1,"pure continuous match-stop accepted without pipeline");
+        $display("PASS pure search %0d masks/directions/positions/stop cases, Byte/repeat/non-stopping Burst/continuous, memory/io/address modes, WAIT/Ready/CE/abort/reset, CE=%0d",tests,period);
         $finish;
     end
 endmodule

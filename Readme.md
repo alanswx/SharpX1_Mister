@@ -83,7 +83,10 @@ performs no destination writes and passes 10,240 additional cases, including
 memory/I/O, WAIT/reset and long-count rollover. Read-only
 [Byte search automatic restart](docs/DMA_SEARCH_RESTART_STATUS.md) also passes
 unit and actual-CPU fast/delay-aware buffer/count/status tests, with zero
-destination writes. Non-Byte search/Stop on Match
+destination writes. [Non-stopping Burst/continuous pure search](docs/DMA_NONBYTE_SEARCH_STATUS.md)
+now passes distinct counts/Ready ownership and twenty real-CPU profiles on
+fast and delay-aware builds; total search mask cases are 14,336.
+Non-Byte Stop on Match
 and IRQ/service remain open. DMA serialized state has a distinct revision;
 ordinary non-DMA v12 snapshots and defaults remain unchanged.
 A bounded [high-speed PCG increment](docs/TURBO_HIGH_SPEED_PCG_STATUS.md)

@@ -213,7 +213,7 @@ module dma_tb;
         for (integer option_id=0; option_id<5; option_id=option_id+1) begin
             fresh(); configure(16'h100,16'h200,1,8'h14,8'h10,0,8'h92,1); put(8'hcf);
             case(option_id)
-                0: begin put(8'ha1); put(8'h06); end // Pure continuous search still unsupported.
+                0: begin put(8'ha1); put(8'h06); put(8'h84); end // Non-Byte match-stop pipeline still unsupported.
                 1: put(8'ha0);
                 2: put(8'he1);
                 3: put(8'hb7);

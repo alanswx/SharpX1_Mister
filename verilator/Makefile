@@ -85,6 +85,13 @@ test-machine-dma-compare: turbo-dma
 test-machine-dma-search: turbo-dma
 	python3 tests/test_machine_dma_search.py ./$(DMA_DIR)/Vtop
 .PHONY: test-machine-dma-search
+test-machine-dma-search-nonbyte: turbo-dma
+	python3 tests/test_machine_dma_search.py ./$(DMA_DIR)/Vtop --nonbyte
+.PHONY: test-machine-dma-search-nonbyte
+test-machine-dma-search-nonbyte-boundaries: turbo-dma
+	python3 tests/test_machine_dma_search.py ./$(DMA_DIR)/Vtop --nonbyte --short
+	python3 tests/test_machine_dma_search.py ./$(DMA_DIR)/Vtop --nonbyte --zero
+.PHONY: test-machine-dma-search-nonbyte-boundaries
 test-machine-dma-reset: $(HEADLESS_DIR)/dma-machine-reset/Vdma_machine_reset_tb
 	@for kind in 0 1 2 3; do ./$(HEADLESS_DIR)/dma-machine-reset/Vdma_machine_reset_tb +RESET_KIND=$$kind || exit 1; done
 $(HEADLESS_DIR)/dma-machine-reset/Vdma_machine_reset_tb: $(V_SRC) tests/dma_machine_reset_tb.sv Makefile

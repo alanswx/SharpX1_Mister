@@ -185,7 +185,7 @@ module dma_compare_tb;
         // Fail closed for ambiguous continuous stop/pure search.
         fresh();configure(1,1,0,8'h87,1);
         put(8'h84);assert(unsupported) else $fatal(1,"stop-on-match accepted without stop engine");
-        put(8'h80);put(8'h06);assert(unsupported) else $fatal(1,"continuous pure-search accepted without pipeline");
+        put(8'h06);assert(unsupported) else $fatal(1,"continuous pure-search stop accepted without pipeline");
         $display("PASS DMA comparison/Byte-stop %0d mask/direction/mode/position cases, sticky/status/LOAD/CONTINUE/8B/WAIT/stopped CE/WR3 enable, CE=%0d",tests,period);
         $finish;
     end

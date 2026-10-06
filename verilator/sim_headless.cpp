@@ -344,7 +344,7 @@ int main(int argc, char **argv) {
             ^ (1ULL << 55)
 #endif
 #ifdef X1_TURBO_DMA
-            ^ (1ULL << 54) ^ (1ULL << 53) ^ (1ULL << 52) ^ (1ULL << 51) ^ (1ULL << 50) // DMA revision 4: pure Byte repeat.
+            ^ (1ULL << 54) ^ (1ULL << 53) ^ (1ULL << 52) ^ (1ULL << 51) ^ (1ULL << 50) ^ (1ULL << 49) // DMA revision 5: non-stopping Burst/continuous search.
 #endif
             ;
         constexpr uint64_t snapshot_magic = 0x5831534e41503132ULL ^ sys_hz ^ snapshot_profile;

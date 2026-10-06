@@ -6,8 +6,10 @@ transfer/search without stopping and tests real masked/sticky status.
 [Pure Byte search](DMA_PURE_SEARCH_STATUS.md) now has a read-only completion
 path and independently tested match/EOB counter policies.
 [Byte search automatic restart](DMA_SEARCH_RESTART_STATUS.md)
-now reloads both buffers without a destination write. Non-Byte pure
-search and non-Byte WR3 Stop on Match remain rejected. The new
+now reloads both buffers without a destination write.
+[Non-stopping Burst/continuous search](DMA_NONBYTE_SEARCH_STATUS.md) has
+distinct EOB counts and Ready ownership. Non-Byte WR3 Stop on Match remains
+rejected pending the actual extra-read pipeline and exceptions. The new
 [Byte stop increment](DMA_BYTE_STOP_STATUS.md) follows the untruncated
 sequential Byte row. The remaining class/pipeline
 requirements below are not made complete by those comparison tests.
