@@ -114,6 +114,37 @@ warning; no new suppression or unrelated CPU edit was added.
 
 ## Remaining gates
 
+### October 6 actual-CPU interrupt-service reset checkpoint
+
+`make -C verilator test-sio-cpu-irq-reset test-sio-cpu
+HEADLESS_DIR=obj_dir_v12_sio_irq_reset` exits zero with Verilator 5.044.
+The new separate profile covers four phases at CE=1/4/7 (12 executions):
+held genuine B RX ACK, handler entry with unread FIFO, CPU-stored received
+byte with FIFO consumed but before RETI, and the actual decoded RETI.
+Each case checks ACK count, B service/FIFO ownership and RETI count before
+reset, rather than merely delaying for an estimated handler duration.
+
+Chip and CPU reset stay asserted for eight SYS edges with advancement CE
+stopped; IRQ, service, held-vector/ACK state, TX pins and WAIT must clear.
+Twenty further stopped-CE edges after release cannot replay the old source.
+The CPU reboots its retained original program without memory/asset reload,
+then executes the unchanged B RX, A special RX and TX-empty handlers,
+exactly three fresh ACKs/RETIs and the original transmitted-byte pin checks.
+All nine existing ordinary/first-status/flow CPU executions also pass.
+No private firmware, forced state, new machine wiring or RTL behavior change.
+
+The initial new-profile log retains a watchdog: monitoring only after the
+sender's stop bit finished missed the fast CPU ACK/handler. Pin injection and
+service observation now run concurrently, with an explicitly abortable test
+sender before reset. No serial/CPU/IRQ assertions were weakened.
+Final log `/tmp/x1-v12-sio-cpu-irq-reset-3.log`; executed fixture SHA-256:
+`20937f2f1e8672ebb4ed07f966039408c4998948c4dd45e07a20ad90e3099bf5`.
+SYS remains the original 10 ns fixture period, not a physical baud-frequency
+qualification. This is full chip/CPU held reset, not raw short-pulse retention,
+channel-reset-in-service or concurrent multi-device/DMA service acceptance.
+
+### Open device/integration gates
+
 1. Native first-character/reset arming and exact error-reset acceptance;
    SYNC/break/underrun external sources and minimum physical modem pulse width.
 2. Continuous/back-to-back phase coverage, x1 synchronization, modem

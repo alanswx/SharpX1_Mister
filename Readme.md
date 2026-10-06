@@ -169,6 +169,10 @@ Queued/busy break and receive-break detection remain unsupported.
 The SIO wrappers are not connected to the machine; native reset arming,
 remaining external sources, x1/full break/exact WAIT/Ready and full
 multi-device arbitration remain open.
+A separate [CPU/SIO interrupt-reset profile](docs/SIO_IRQ_STATUS.md#october-6-actual-cpu-interrupt-service-reset-checkpoint)
+passes 12 stopped-enable held-ACK/handler/FIFO/RETI reset cases, retained-program
+reboot and fresh interrupts/TX pins. Concurrent multi-device and short-pulse
+service reset remain open.
 Asset-free [diagnostic CI](.github/workflows/diagnostics.yml) is configured
 for the standalone SIO/DMA, D88, reset, bus-ownership and joystick fixtures.
 [Hosted run 37479171527](https://github.com/alanswx/SharpX1_Mister/actions/runs/37479171527)
@@ -183,6 +187,9 @@ per-target limits and all original assertions/simulated durations.
 [Hosted run 37497785084](https://github.com/alanswx/SharpX1_Mister/actions/runs/37497785084)
 passes all 21 targets on `abda8ee`, including full DMA and FM waveform checks.
 This remains asset-free diagnostic acceptance, not complete machine support.
+[The 22-target follow-up](https://github.com/alanswx/SharpX1_Mister/actions/runs/37515820620)
+passes on `421f5c9`, adding actual CPU/FM. SIO interrupt-reset is the next
+added target; its hosted gate remains separate from local verification.
 The simulator window now offers optional [live joystick keys](docs/PLAYING.md):
 arrows, Space (button 1) and Ctrl (button 2), through `--joystick-keys`.
 Independent CPU-programmed 40/80-column text and 320/640 graphics rasters now

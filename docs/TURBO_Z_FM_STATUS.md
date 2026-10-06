@@ -145,7 +145,9 @@ wiring from agreement between incomplete emulators.
 
 The [21-target hosted run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37497785084)
 passes on `abda8ee`, including the earlier FM waveform fixture. The subsequent
-workflow adds CPU/FM; record that result separately, not as an inferred pass.
+workflow adds CPU/FM: [run 37515820620](https://github.com/alanswx/SharpX1_Mister/actions/runs/37515820620)
+passes all 22 targets on `421f5c9`, including CPU/FM CE=1/4/8. The other two
+FM master frequencies are locally executed gates, not hosted by this workflow.
 
 ### Remaining machine gates
 

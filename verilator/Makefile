@@ -147,6 +147,12 @@ $(HEADLESS_DIR)/sio-irq/Vsio_irq_tb: tests/sio_irq_tb.sv ../rtl/x1_sio_async.sv 
 		-j 4 tests/sio_irq_tb.sv ../rtl/x1_sio_async.sv ../rtl/x1_sio_irq.sv -Wno-fatal
 .PHONY: test-sio-irq
 
+test-sio-cpu-irq-reset: $(HEADLESS_DIR)/sio-cpu/Vsio_cpu_tb
+	@for rate in 1 4 7; do for phase in 0 1 2 3; do \
+		./$(HEADLESS_DIR)/sio-cpu/Vsio_cpu_tb +CE_PERIOD=$$rate +IRQ_RESET_PHASE=$$phase || exit 1; \
+	done; done
+.PHONY: test-sio-cpu-irq-reset
+
 test-sio-cpu: $(HEADLESS_DIR)/sio-cpu/Vsio_cpu_tb
 	@for rate in 1 4 7; do \
 		./$(HEADLESS_DIR)/sio-cpu/Vsio_cpu_tb +CE_PERIOD=$$rate || exit 1; \

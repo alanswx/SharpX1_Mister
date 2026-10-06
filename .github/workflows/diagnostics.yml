@@ -54,7 +54,7 @@ jobs:
         run: |
           for target in \
             test-sio-async test-sio-break test-sio-formats test-sio-irq test-sio-first-status \
-            test-sio-flow test-sio-cpu test-sio-dma test-sio-dma-cpu \
+            test-sio-flow test-sio-cpu test-sio-cpu-irq-reset test-sio-dma test-sio-dma-cpu \
             test-dma test-dma-cpu \
             test-dma-reset test-cpu-busreq test-d88-scanner test-d88-crc \
             test-d88-metadata test-fdc-abort test-fdc-sd-abort test-joystick test-rgb12 test-fm test-fm-cpu; do

@@ -7,8 +7,11 @@ module sio_cpu_tb;
     always #5 clk=~clk;
     integer period=1,edges=0,pc=0,ack_count=0,reti_count=0;
     reg first_status=0,flow_profile=0;
+    reg stop_ce=0;
+    reg abort_reset_sender=0, reset_sender_done=0;
+    integer irq_reset_phase=-1;
     integer expected_irqs=3;
-    always @(negedge clk) begin edges=edges+1; ce=(edges%period)==0; end
+    always @(negedge clk) begin edges=edges+1; ce=!stop_ce && (edges%period)==0; end
     wire m1_n,mreq_n,iorq_n,rd_n,wr_n,rfsh_n,halt_n,busak_n;
     wire [15:0] address;
     wire [7:0] cpu_data,sio_data,ack_vector;
@@ -119,10 +122,67 @@ module sio_cpu_tb;
         end
         tx_tick=0;
     endtask
+    task automatic reset_arrival;
+        reg [9:0] frame;
+        frame={1'b1,8'hd3,1'b0};rx_tick=2;
+        for(integer bitno=0;bitno<10 && !abort_reset_sender;bitno++) begin
+            rxd[1]=frame[bitno];
+            for(integer tick=0;tick<16 && !abort_reset_sender;tick++)
+                do begin @(posedge clk);#1; end while(!ce && !abort_reset_sender);
+        end
+        rx_tick=0;rxd=3;reset_sender_done=1;
+    endtask
+    task automatic reset_during_irq;
+        // Observe ACK/service concurrently with stop-bit reception: waiting
+        // until the sender finishes can miss the entire fast CPU handler.
+        fork reset_arrival(); join_none
+        case(irq_reset_phase)
+            0: wait(acknowledge && sio.priority_unit.in_service[3]);
+            1: wait(sio.priority_unit.in_service[3] && !acknowledge);
+            2: wait(memory[16'h4100]==8'hd3 && sio.priority_unit.in_service[3]);
+            3: wait(reti);
+            default: $fatal(1,"invalid SIO IRQ reset phase");
+        endcase
+        @(negedge clk); #1; stop_ce=1;abort_reset_sender=1;
+        wait(reset_sender_done);
+        @(negedge clk); #1;
+        if(ce || ack_count!=1) $fatal(1,"IRQ reset phase did not own one actual CPU ACK");
+        if(irq_reset_phase<3 && sio.priority_unit.in_service!==6'b001000)
+            $fatal(1,"SIO service lost before requested reset phase");
+        case(irq_reset_phase)
+            0: if(!acknowledge || sio.channels[1].unit.fifo_count!=1 || reti_count!=0)
+                   $fatal(1,"reset did not capture held ACK with unread B data");
+            1: if(acknowledge || sio.channels[1].unit.fifo_count!=1 || reti_count!=0)
+                   $fatal(1,"reset did not capture handler entry with unread B data");
+            2: if(sio.channels[1].unit.fifo_count!=0 || memory[16'h4100]!=8'hd3 || reti_count!=0)
+                   $fatal(1,"reset did not capture consumed FIFO before RETI");
+            3: if(reti_count!=1 || sio.channels[1].unit.fifo_count!=0)
+                   $fatal(1,"reset did not follow one actual decoded RETI");
+        endcase
+        reset=1;rx_tick=0;tx_tick=0;rxd=3;
+        repeat(8) begin @(negedge clk); #1;
+            if(ce || irq || !ieo || sio.priority_unit.in_service!=0 ||
+               sio.priority_unit.ack_seen || txd!==3 || unsupported ||
+               ack_vector!==8'hff || flow_wait_n!==3)
+                $fatal(1,"stopped-CE SIO IRQ reset left service/source/vector/WAIT");
+        end
+        reset=0;
+        repeat(20) begin @(negedge clk); #1;
+            if(ce || irq || !ieo || ack_count!=0 || reti_count!=0)
+                $fatal(1,"SIO replayed old IRQ after stopped-CE reset");
+        end
+        stop_ce=0;stage(1);
+        if(irq || ack_count!=0 || reti_count!=0 || !ieo)
+            $fatal(1,"retained diagnostic did not reboot cleanly after IRQ reset");
+        $display("PASS actual CPU SIO stopped-CE IRQ reset phase=%0d CE=%0d; fresh traffic follows",irq_reset_phase,period);
+    endtask
     initial begin
         if(!$value$plusargs("CE_PERIOD=%d",period)) period=1;
         first_status=$test$plusargs("first-status"); expected_irqs=first_status ? 4 : 3;
         flow_profile=$test$plusargs("flow");
+        if($value$plusargs("IRQ_RESET_PHASE=%d",irq_reset_phase)) begin end
+        if(irq_reset_phase>=0 && (first_status || flow_profile))
+            $fatal(1,"IRQ reset is a separate fixture profile");
         if(flow_profile && first_status) $fatal(1,"separate fixture profiles required");
         for(integer i=0;i<65536;i=i+1) memory[i]=0;
         emit(8'hf3); emit(8'h31); emit(8'h00); emit(8'hff); // DI; LD SP,ff00
@@ -166,6 +226,7 @@ module sio_cpu_tb;
         vector_entry(8'he4,16'h0400); vector_entry(8'hee,16'h0440); vector_entry(8'he8,16'h0480);
         repeat(8) step(); reset=0;
         stage(1); if(irq) $fatal(1,"IRQ before serial traffic");
+        if(irq_reset_phase>=0) reset_during_irq();
         receive(1,8'hb6,0);
         stage(2);
         if(memory[16'h4100]!==8'hb6 || memory[16'h4102]!==8'he4 || reti_count!=1)
