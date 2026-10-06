@@ -10,7 +10,9 @@ passes pin and actual-CPU stalled-access checks. Default `FLOW_ENABLE=0`
 continues to reject WAIT/Ready settings; exact pin semantics remain open.
 Subsequent [standalone SIO/DMA tests](SIO_DMA_STATUS.md) pass bounded
 Ready-paced transfers/error recovery. A further [combined CPU diagnostic](SIO_DMA_CPU_STATUS.md)
-passes actual ownership and CPU-driven error intervention, not IM2/DMA or machine integration.
+passes actual ownership and CPU-driven error intervention; its new IM2 profile
+passes directed error ACK/handler/RETI and stopped-enable ACK during DMA work,
+not broader multi-device phases or machine integration. DMA IRQ itself is absent.
 
 ## Primary contract and scope
 
@@ -120,7 +122,8 @@ warning; no new suppression or unrelated CPU edit was added.
    decode, DAM/ACK isolation and qualified CTC/SIO/keyboard service arbitration.
 4. Exact WAIT/Ready and broader DMA handshakes; separate functional fixtures
    pass actual CPU stalls and bounded SIO/DMA transfers/error recovery, not
-   combined IM2/DMA/reset service or machine acceptance.
+   broader combined IRQ/reset service or machine acceptance. One directed
+   SIO IM2 handler/ACK/RETI after DMA burst release now passes separately.
    Multi-device nested ACK/RETI diagnostics remain open.
 5. Unchanged native serial/firmware execution, current-source Quartus timing/
    CDC review, and physical connector/voltage/loopback tests.

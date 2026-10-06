@@ -8,6 +8,9 @@ bus grants, resumed execution, data/count assertions and error intervention.
 It is **not instantiated by the X1 machine, native firmware, FPGA timing or
 physical serial acceptance**. No machine/CPU/peripheral RTL changes were needed;
 default profiles and v11 machine states remain unchanged.
+A subsequent `+im2` profile now qualifies one genuine vectored error service
+after burst release, including stopped-enable ACK and decoded RETI. This is
+SIO IRQ service during DMA work, **not implementation of DMA's own IRQ engine**.
 
 ## Executed result
 
@@ -17,8 +20,9 @@ make -C verilator test-sio-dma-cpu test-sio-dma test-sio-async \
     test-sio-cpu HEADLESS_DIR=obj_dir_v11_units
 ```
 
-All eight targets pass. The combined diagnostic runs both A/B at CE=1/4/7:
-six executions, three blocks / ten pairs / four real grants each. SYS is
+All eight targets pass. The combined diagnostic runs both A/B at CE=1/4/7,
+with original DI and new `+im2` profiles: twelve executions, three blocks /
+ten pairs / four real grants each. SYS is
 100 MHz (10 ns), with eight initial enabled reset edges and deterministic
 enable phase. Original 8N1/x16 serial patterns are event-driven on the same
 SYS domain. These frequencies test digital behavior, not X1 baud/clock wiring.
@@ -58,9 +62,47 @@ wait for device configuration; they do not manipulate execution.
 
 Independent bus monitors check exactly ten DMA source/destination pairs,
 six SIO data reads, four SIO writes, four grants, one error-status read and
-two CPU error-data inspections. The special IRQ must be present during error
-inspection and cleared at completion. This program deliberately stays DI;
-it neither ACKs an IRQ nor claims combined IM2/DMA error service qualification.
+two CPU error-data inspections. The original DI profile requires the special
+IRQ during inspection and no ACK/RETI. The IM2 profile requires IUS instead
+(its IRQ is blocked after ACK), as described below. Both require an IRQ
+observed while DMA owns the error pair and no IRQ/service at completion.
+
+## IM2 error service and stopped-enable ACK
+
+`+im2` retains the preceding RX/TX, bytes, counts, PC isolation and grant
+assertions. The generated program additionally sets I=`70` and IM2, programs
+B's vector register `E0` and status-affects-vector, and installs an original
+handler at `1000` through vector `70EE` (A special RX) or `70E6` (B special RX).
+This vector page is separate from the main original program; it is not a
+native firmware mapping. B's status-vector bit is retained across its flow
+configuration changes. The first-character mode is still explicitly unarmed;
+the framing-error special source itself raises IRQ.
+
+After polling the actual first DMA copy `9200=37`, CPU executes EI/HALT.
+IRQ remains a real device level, with no fixture gating, but the program
+deliberately enables it only after that copy. This directed phase does not
+qualify every IRQ/BUSRQ ordering at initial serial arrival. Each ACK must
+occur with DMA ownership released, BUSRQ inactive and exactly five SIO DMA
+reads (the four normal RX bytes plus the error word). Its vector is checked
+throughout the real M1/IORQ bus level. ACK must not select SIO/DMA ordinary
+registers or the delayed memory target.
+
+The fixture stops the shared advancement CE for **80 SYS edges during that
+real ACK**, while SYS continues. CPU PC/vector/ACK remain stable, ownership
+stays released, and SIO must consume the level exactly once: ACK count one,
+RETI count zero and IEO inactive. Serial advancement also pauses because its
+engine uses that CE; this is not independent CPU/DMA-clock testing.
+
+The CPU handler pushes AF/BC, reads framing status `41`, reads locked `37`
+twice and sends actual WR0 Error Reset. It stores an original handler marker,
+restores registers, then executes EI/RETI. Clearing the error must **not**
+clear SIO IUS: IEO must remain inactive until the genuine RETI is decoded
+from completed ED/4D instruction fetches by existing `x1_irq_bridge`.
+CTC/keyboard inputs are idle; its RETI event is qualified to the sole SIO,
+not broadcast into a real multi-device chain. Final CPU memory/count checks
+still require the next DMA byte `B6`, then `A5`/HALT. Exactly one ACK and one
+RETI, no pending IRQ and IEO released are required; no manufactured service
+completion or WR0 return-from-interrupt shortcut is used.
 
 ## Ownership and response contract
 
@@ -85,7 +127,9 @@ One memory side effect is accepted per stretched transaction. This implements
 the response-persistence requirement found in the earlier
 [CPU WAIT tests](SIO_FLOW_STATUS.md), not a fix to the unconnected machine.
 
-Final log: `/tmp/x1-sio-dma-cpu-suite.log`. The build retains the inherited
+Current complete-suite log: `/tmp/x1-sio-dma-im2-suite.log`. Earlier DI-only
+checkpoint: `/tmp/x1-sio-dma-cpu-suite.log`; initial IM2 development:
+`/tmp/x1-sio-dma-im2.log`. The build retains the inherited
 TV80 missing `DIRSET` pin warning; there are no new default warnings or
 source suppressions. The earlier continuous-only run remains in
 `/tmp/x1-sio-dma-cpu.log`, and recovery development run in
@@ -94,8 +138,8 @@ not weakened or removed.
 
 ## Remaining gates
 
-- Combined IRQ/IM2 service during DMA (including ownership release and
-  genuine RETI), shared CTC/SIO/keyboard daisy-chain service, reset/drain and
+- Broader IRQ/BUSRQ phases, nesting and shared CTC/SIO/keyboard daisy-chain
+  service, DMA's own unimplemented IRQ engine, reset/drain and
   independent CPU/DMA enable stoppage in the combined fixture.
 - Multiple queued RX bytes in bursts, error/arrival/reset collisions and
   exact W/RDY phase, opposite-channel and open-drain handling.

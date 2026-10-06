@@ -3,11 +3,12 @@
 // no BIOS, native machine, fake RDY/grant or forced processor state.
 `timescale 1ns/1ps
 module sio_dma_cpu_tb;
-    reg clk=0,ce=0,reset=1;
+    reg clk=0,ce=0,reset=1,pause_ce=0;
     always #5 clk=~clk;
     integer period=1,edges=0,channel=0,pc=0,fail_count=0;
     integer fixups[0:31];
-    always @(negedge clk) begin edges=edges+1; ce=edges%period==0; end
+    reg im2_profile=0;
+    always @(negedge clk) begin edges=edges+1; ce=!pause_ce && edges%period==0; end
     wire cpu_m1_n,cpu_mreq_n,cpu_iorq_n,cpu_rd_n,cpu_wr_n,cpu_rfsh_n,halt_n;
     wire busrq_n,busak_n,dma_mreq_n,dma_iorq_n,dma_rd_n,dma_wr_n;
     wire [15:0] cpu_address,dma_address;
@@ -19,9 +20,10 @@ module sio_dma_cpu_tb;
     wire iorq_n=owner ? dma_iorq_n : cpu_iorq_n;
     wire rd_n=owner ? dma_rd_n : cpu_rd_n;
     wire wr_n=owner ? dma_wr_n : cpu_wr_n;
-    wire active=(!mreq_n || !iorq_n) && (!rd_n || !wr_n);
-    wire sio_cs=!reset && !iorq_n && address[15:2]==14'(16'h1f90>>2);
-    wire dma_cs=!reset && !owner && !cpu_iorq_n &&
+    wire acknowledge=!owner && !cpu_m1_n && !cpu_iorq_n;
+    wire active=!acknowledge && (!mreq_n || !iorq_n) && (!rd_n || !wr_n);
+    wire sio_cs=!reset && !iorq_n && (owner || cpu_m1_n) && address[15:2]==14'(16'h1f90>>2);
+    wire dma_cs=!reset && !owner && !cpu_iorq_n && cpu_m1_n &&
         cpu_address[15:4]==12'h1f8;
     reg [7:0] memory[0:65535];
     reg [7:0] response=0;
@@ -37,13 +39,20 @@ module sio_dma_cpu_tb;
     reg [1:0] rx_tick=0,tx_tick=0,rxd=3;
     wire [1:0] ready_n,flow_wait_n,txd,rts_n,dtr_n;
     wire [7:0] vector;
+    wire [7:0] cpu_di=acknowledge ? vector : response;
+    wire reti;
+    integer ack_count=0,reti_count=0;
+    integer paused_ack_edges=0;
+    reg ack_old=0;
+    reg [7:0] held_vector=0;
     integer grants=0,blocked_grants=0,dma_reads=0,dma_writes=0,io_reads=0,io_writes=0;
     integer cpu_effects=0,owned_edges=0;
     integer error_inspections=0,error_status_reads=0,error_irq_edges=0;
+    integer owned_irq_edges=0;
     cpu processor(.clock(clk),.cep(ce),.cen(1'b0),.reset_n(!reset),
         .int_n(!irq),.wait_n(cpu_wait_n),.busrq_n(busrq_n),.busak_n(busak_n),
         .rfsh_n(cpu_rfsh_n),.halt_n(halt_n),.mreq(cpu_mreq_n),.iorq(cpu_iorq_n),
-        .wr(cpu_wr_n),.rd(cpu_rd_n),.m1(cpu_m1_n),.di(response),
+        .wr(cpu_wr_n),.rd(cpu_rd_n),.m1(cpu_m1_n),.di(cpu_di),
         .data_out(cpu_dout),.a(cpu_address),.dir(16'b0),.dirset(1'b0));
     x1_dma dma(.clk(clk),.ce(ce),.reset(reset),.cpu_cs(dma_cs),
         .cpu_rd_n(cpu_rd_n),.cpu_wr_n(cpu_wr_n),.cpu_data_in(cpu_dout),
@@ -55,8 +64,39 @@ module sio_dma_cpu_tb;
         .cpu_cs(sio_cs),.cpu_rd_n(rd_n),.cpu_wr_n(wr_n),.address(address[1:0]),
         .cpu_din(dout),.cpu_dout(sio_dout),.rx_tick(rx_tick),.tx_tick(tx_tick),
         .rxd(rxd),.cts_n(2'b11),.dcd_n(2'b11),.txd(txd),.rts_n(rts_n),.dtr_n(dtr_n),
-        .unsupported(sio_bad),.iei(1'b1),.acknowledge(1'b0),.reti(1'b0),
+        .unsupported(sio_bad),.iei(1'b1),.acknowledge(acknowledge),.reti(reti),
         .irq(irq),.ieo(ieo),.ack_vector(vector),.wait_n(flow_wait_n),.ready_n(ready_n));
+    // Existing fetch decoder, with idle CTC/keyboard. RETI is qualified only
+    // to this sole interrupt device; this is not shared daisy-chain wiring.
+    x1_irq_bridge opcode_decoder(.clk(clk),.reset(reset),.m1_n(cpu_m1_n),
+        .mreq_n(cpu_mreq_n),.iorq_n(cpu_iorq_n),.rd_n(cpu_rd_n),.data(cpu_di),
+        .keyboard_irq(1'b0),.ctc_irq(1'b0),.ctc_ieo(1'b1),
+        .keyboard_vector(8'hff),.ctc_vector(8'hff),.ctc_reti(reti),
+        .irq(),.keyboard_ack(),.ctc_ack(),.ctc_iei(),.ctc_selected(),.ack_vector());
+    always @(posedge clk) begin
+        if(reset) begin ack_old<=0; ack_count<=0; reti_count<=0; end
+        else begin
+            ack_old<=acknowledge;
+            if(acknowledge) begin
+                if(!im2_profile || owner || !busrq_n || io_reads!=5 ||
+                   memory[16'h9200]!==8'h37)
+                    $fatal(1,"IRQ ACK before DMA error pair drained/released");
+                if(!ack_old) begin
+                    if(ack_count!=0 || vector!==(channel==0 ? 8'hee : 8'he6))
+                        $fatal(1,"wrong/repeated DMA-error vector %h",vector);
+                    ack_count<=ack_count+1; held_vector<=vector;
+                end else if(vector!==held_vector) $fatal(1,"held CPU ACK vector changed");
+                if(sio_cs || dma_cs || active) $fatal(1,"ACK decoded as ordinary target");
+            end
+            if(reti) begin
+                if(!im2_profile || owner || ack_count!=1 || reti_count!=0 || ieo)
+                    $fatal(1,"RETI without owned SIO service");
+                reti_count<=reti_count+1;
+            end
+            if(im2_profile && memory[16'h8002]==5 && reti_count==0 && ieo)
+                $fatal(1,"Error Reset prematurely released SIO IUS before RETI");
+        end
+    end
 
     // Clocked response remains valid through idle/release. Read peripherals
     // first latch on their enabled edge, then settle while target WAIT holds.
@@ -88,10 +128,12 @@ module sio_dma_cpu_tb;
                     cpu_effects<=cpu_effects+1;
                     if(sio_cs && !rd_n && memory[16'h8000]==3) begin
                         if(!address[0]) begin
-                            if(response!==8'h37 || !irq) $fatal(1,"CPU locked-error inspection lost word/IRQ");
+                            if(response!==8'h37 || (im2_profile ? (ieo || ack_count!=1) : !irq))
+                                $fatal(1,"CPU locked-error inspection lost word/service");
                             error_inspections<=error_inspections+1;
                         end else begin
-                            if(response!==8'h41 || !irq) $fatal(1,"CPU framing-status inspection lost error/IRQ");
+                            if(response!==8'h41 || (im2_profile ? (ieo || ack_count!=1) : !irq))
+                                $fatal(1,"CPU framing-status inspection lost error/service");
                             error_status_reads<=error_status_reads+1;
                         end
                     end
@@ -129,7 +171,8 @@ module sio_dma_cpu_tb;
         end
         if(sio_bad) $fatal(1,"unsupported CPU SIO stream");
         if(irq) error_irq_edges=error_irq_edges+1;
-        if(!cpu_iorq_n && !cpu_m1_n) $fatal(1,"DI diagnostic unexpectedly acknowledged IRQ");
+        if(irq && owner) owned_irq_edges=owned_irq_edges+1;
+        if(!im2_profile && acknowledge) $fatal(1,"DI diagnostic unexpectedly acknowledged IRQ");
     end
     task automatic emit(input reg [7:0] value); memory[pc]=value; pc=pc+1; endtask
     task automatic word_emit(input reg [15:0] value); emit(value[7:0]); emit(value[15:8]); endtask
@@ -154,6 +197,14 @@ module sio_dma_cpu_tb;
         emit(8'hed); emit(8'h78); assert_a(count);
         emit(8'hed); emit(8'h78); assert_a(0);
     endtask
+    task automatic inspect_error;
+        port(channel==0 ? 16'h1f91 : 16'h1f93); out_byte(1);
+        emit(8'hed); emit(8'h78); assert_a(8'h41);
+        port(channel==0 ? 16'h1f90 : 16'h1f92);
+        emit(8'hed); emit(8'h78); assert_a(8'h37);
+        emit(8'hed); emit(8'h78); assert_a(8'h37);
+        port(channel==0 ? 16'h1f91 : 16'h1f93); out_byte(8'h30);
+    endtask
     task automatic step;
         do begin @(posedge clk); #3; end while(!ce);
     endtask
@@ -173,14 +224,34 @@ module sio_dma_cpu_tb;
         end
         tx_tick=0;
     endtask
+    task automatic pause_ack;
+        reg [7:0] saved_vector;
+        reg [15:0] saved_pc;
+        wait(acknowledge);
+        @(negedge clk); #1; pause_ce=1; ce=0;
+        saved_vector=vector; saved_pc=processor.Z80CPU.i_tv80_core.PC;
+        repeat(80) begin @(posedge clk); #3;
+            if(ce || !acknowledge || owner || !busrq_n || vector!==saved_vector ||
+               processor.Z80CPU.i_tv80_core.PC!==saved_pc || ack_count!=1 || reti_count!=0 || ieo)
+                $fatal(1,"stopped-enable actual ACK lost/duplicated service or vector");
+            paused_ack_edges=paused_ack_edges+1;
+        end
+        @(negedge clk); #1; pause_ce=0;
+    endtask
     initial begin : run
         integer loop_pc,fail_pc;
         if(!$value$plusargs("CE_PERIOD=%d",period)) period=1;
         if(!$value$plusargs("CHANNEL=%d",channel)) channel=0;
+        im2_profile=$test$plusargs("im2");
         for(integer i=0;i<65536;i=i+1) memory[i]=8'hcc;
         emit(8'hf3); emit(8'h31); word_emit(16'hff00); // DI; LD SP,FF00
         port(channel==0 ? 16'h1f91 : 16'h1f93);
         out_byte(8'h18); wr_sio(4,8'h44); wr_sio(3,8'hc1); wr_sio(5,8'hea); wr_sio(1,8'he0);
+        if(im2_profile) begin
+            load_a(8'h70); emit(8'hed); emit(8'h47); emit(8'hed); emit(8'h5e); // I=70, IM2
+            port(16'h1f93); wr_sio(2,8'he0); wr_sio(1,4);
+            port(channel==0 ? 16'h1f91 : 16'h1f93); wr_sio(1,channel==0 ? 8'he0 : 8'he4);
+        end
         configure(1,8'h90,3,8'h20,1);
         loop_pc=pc; emit(8'h3a); word_emit(16'h9003); emit(8'hfe); emit(8'h86);
         emit(8'hc2); word_emit(16'(loop_pc));
@@ -189,29 +260,34 @@ module sio_dma_cpu_tb;
         end
         check_count(3);
         for(integer i=0;i<4;i=i+1) begin load_a(8'h69+8'(i*19)); store(16'h9100+16'(i)); end
-        port(channel==0 ? 16'h1f91 : 16'h1f93); wr_sio(1,8'hc0);
+        port(channel==0 ? 16'h1f91 : 16'h1f93); wr_sio(1,im2_profile && channel==1 ? 8'hc4 : 8'hc0);
         configure(0,8'h91,3,8'h20,2);
         port(channel==0 ? 16'h1f91 : 16'h1f93);
         loop_pc=pc; out_byte(1); emit(8'hed); emit(8'h78); emit(8'he6); emit(1);
         emit(8'hfe); emit(1); emit(8'hc2); word_emit(16'(loop_pc)); // poll actual RR1 all sent
         check_count(3);
-        // Burst release allows CPU intervention after the Ready lock. IRQ
-        // remains a real level, but this original diagnostic stays DI and
-        // inspects/resets the special condition explicitly, not via IM2.
-        port(channel==0 ? 16'h1f91 : 16'h1f93); wr_sio(1,8'he8);
+        // Burst release allows intervention after Ready lock. Default stays
+        // DI; +im2 enables IRQ only after polling the actual first DMA copy.
+        port(channel==0 ? 16'h1f91 : 16'h1f93); wr_sio(1,im2_profile && channel==1 ? 8'hec : 8'he8);
         configure(1,8'h92,1,8'h80,3);
         loop_pc=pc; emit(8'h3a); word_emit(16'h9200); emit(8'hfe); emit(8'h37);
         emit(8'hc2); word_emit(16'(loop_pc));
-        port(channel==0 ? 16'h1f91 : 16'h1f93); out_byte(1);
-        emit(8'hed); emit(8'h78); assert_a(8'h41);
-        port(channel==0 ? 16'h1f90 : 16'h1f92);
-        emit(8'hed); emit(8'h78); assert_a(8'h37);
-        emit(8'hed); emit(8'h78); assert_a(8'h37);
-        port(channel==0 ? 16'h1f91 : 16'h1f93); out_byte(8'h30);
+        if(im2_profile) begin
+            emit(8'hfb); emit(8'h76); emit(8'hf3); // EI; HALT; DI after genuine handler return
+            emit(8'h3a); word_emit(16'h8002); assert_a(5);
+        end else inspect_error();
         loop_pc=pc; emit(8'h3a); word_emit(16'h9201); emit(8'hfe); emit(8'hb6);
         emit(8'hc2); word_emit(16'(loop_pc));
         check_count(1); load_a(8'ha5); store(16'h8001); emit(8'h76);
         fail_pc=pc; load_a(8'hee); store(16'h8001); emit(8'h76);
+        if(im2_profile) begin
+            if(pc>=16'h1000) $fatal(1,"original ROM overlaps handler");
+            pc=32'h1000; emit(8'hf5); emit(8'hc5); // PUSH AF/BC
+            inspect_error(); load_a(5); store(16'h8002);
+            emit(8'hc1); emit(8'hf1); emit(8'hfb); emit(8'hed); emit(8'h4d); // POP BC/AF; EI; RETI
+            memory[channel==0 ? 16'h70ee : 16'h70e6]=0;
+            memory[channel==0 ? 16'h70ef : 16'h70e7]=8'h10;
+        end
         for(integer i=0;i<fail_count;i=i+1) begin
             memory[fixups[i]]=8'(fail_pc); memory[fixups[i]+1]=8'(fail_pc>>8);
         end
@@ -230,14 +306,21 @@ module sio_dma_cpu_tb;
             transmit_byte(8'h69+8'(i*19)); if(i<3) wait(io_writes==i+2);
         end
         wait(memory[16'h8000]==3 && dma.enabled);
-        receive_byte(8'h37,1); wait(memory[16'h9200]==8'h37);
+        if(im2_profile) fork
+            receive_byte(8'h37,1);
+            pause_ack();
+        join
+        else receive_byte(8'h37,1);
+        wait(memory[16'h9200]==8'h37);
         receive_byte(8'hb6,0);
         wait(memory[16'h8001]==8'ha5 && !halt_n); repeat(40) step();
-        if(error_inspections!=2 || error_status_reads!=1 || error_irq_edges==0 ||
+        if(paused_ack_edges!=(im2_profile ? 80 : 0) ||
+           ack_count!=(im2_profile ? 1 : 0) || reti_count!=(im2_profile ? 1 : 0) ||
+           error_inspections!=2 || error_status_reads!=1 || error_irq_edges==0 || owned_irq_edges==0 ||
            grants!=4 || blocked_grants==0 || owned_edges==0 || dma_reads!=10 || dma_writes!=10 ||
            io_reads!=6 || io_writes!=4 || owner || !busrq_n || irq || !ieo || sio_bad || dma_bad || txd!==3)
             $fatal(1,"final CPU/DMA result grants=%0d blocked=%0d pairs=%0d/%0d",grants,blocked_grants,dma_reads,dma_writes);
-        $display("PASS: actual CPU/SIO/DMA A/B continuous RX/TX + burst error inspection/reset, real grants/WAIT/PC isolation, pins/counts CE=%0d channel=%0d blocked=%0d",period,channel,blocked_grants);
+        $display("PASS: actual CPU/SIO/DMA continuous RX/TX + burst error, grants/WAIT/pins/counts CE=%0d channel=%0d blocked=%0d IM2=%0d ACK/RETI=%0d/%0d",period,channel,blocked_grants,im2_profile,ack_count,reti_count);
         $finish;
     end
     initial begin #20000000; $fatal(1,"CPU SIO DMA watchdog PC=%h stage=%h pairs=%0d/%0d",processor.Z80CPU.i_tv80_core.PC,memory[16'h8000],dma_reads,dma_writes); end

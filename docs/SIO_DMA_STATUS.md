@@ -80,7 +80,8 @@ inherited TV80 missing `DIRSET` pin warning, without new suppressions.
   collisions with the new Ready latch, and reset during owned serial pairs.
 - Bursts with multiple queued RX bytes; independent
   CPU/serial phase and DMA WAIT variations, beyond the covered CE pause.
-- Combined actual CPU/SIO/DMA reset and IM2 service, schematic-qualified clock,
+- Combined actual CPU/SIO/DMA reset, broader IM2/ownership phases beyond the
+  now-passing directed error service, schematic-qualified clock,
   modem/Ready wiring and decode, DAM isolation, and shared CTC/SIO/keyboard
   ACK/RETI service. Do not connect SIO to machine RDY just from this fixture.
 - Native unchanged diagnostics, current-source Quartus timing/CDC/reset and

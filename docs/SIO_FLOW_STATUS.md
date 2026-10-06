@@ -98,9 +98,9 @@ no new warning suppression or unrelated CPU changes were added.
 
 - Exact W/RDY bus edges/delays, open-drain pin handling and opposite-channel
   effects; broader RX/TX phase/cancellation/reset coverage.
-- Broader SIO-to-DMA readiness/error/reset collisions and combined IM2 service;
+- Broader SIO-to-DMA readiness/error/reset collisions and combined IM2 phases;
   bounded paced transfers/error recovery and [actual CPU ownership](SIO_DMA_CPU_STATUS.md)
-  now pass separately.
+  now pass separately, including directed SIO error ACK/handler/RETI.
 - Schematic-qualified machine pin/clock/decode integration, stretched CPU
   sampling/WAIT, DMA isolation and multi-device ACK/RETI ownership.
 - Remaining SYNC/break/EOM sources, modem auto-enable, x1/live configuration,

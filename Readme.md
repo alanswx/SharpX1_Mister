@@ -138,8 +138,10 @@ passes A/B RX/TX Ready-paced transfers, count readback and stopped-enable recove
 it fixes repeated copies of a locked error character in the opt-in flow model.
 A further [actual CPU/SIO/DMA diagnostic](docs/SIO_DMA_CPU_STATUS.md) passes
 real grants, continuous RX/TX, CPU count/data checks and CPU-driven burst
-error inspection/reset on both channels at CE=1/4/7. Combined IM2/DMA service
-and exact pin handshakes remain open.
+error inspection/reset on both channels at CE=1/4/7. Its new IM2 profile
+passes one genuine SIO error ACK/handler/RETI after burst release, including
+80 stopped-enable ACK edges. Broader IRQ/reset/multi-device service and
+exact pin handshakes remain open; DMA's own IRQ engine is still absent.
 The SIO wrappers are not connected to the machine; native reset arming, remaining external
 sources, x1/break/exact WAIT/Ready and full multi-device arbitration remain open.
 The simulator window now offers optional [live joystick keys](docs/PLAYING.md):
