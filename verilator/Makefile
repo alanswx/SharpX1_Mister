@@ -74,6 +74,24 @@ $(HEADLESS_DIR)/sio-formats/Vsio_formats_tb: tests/sio_formats_tb.sv ../rtl/x1_s
 		-j 4 tests/sio_formats_tb.sv ../rtl/x1_sio_async.sv -Wno-fatal
 .PHONY: test-sio-formats
 
+test-sio-irq: $(HEADLESS_DIR)/sio-irq/Vsio_irq_tb
+	@for rate in 1 4 7; do ./$(HEADLESS_DIR)/sio-irq/Vsio_irq_tb +CE_PERIOD=$$rate || exit 1; done
+$(HEADLESS_DIR)/sio-irq/Vsio_irq_tb: tests/sio_irq_tb.sv ../rtl/x1_sio_async.sv ../rtl/x1_sio_irq.sv
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module sio_irq_tb --Mdir $(HEADLESS_DIR)/sio-irq \
+		-j 4 tests/sio_irq_tb.sv ../rtl/x1_sio_async.sv ../rtl/x1_sio_irq.sv -Wno-fatal
+.PHONY: test-sio-irq
+
+test-sio-cpu: $(HEADLESS_DIR)/sio-cpu/Vsio_cpu_tb
+	@for rate in 1 4 7; do ./$(HEADLESS_DIR)/sio-cpu/Vsio_cpu_tb +CE_PERIOD=$$rate || exit 1; done
+$(HEADLESS_DIR)/sio-cpu/Vsio_cpu_tb: tests/sio_cpu_tb.sv ../rtl/x1_sio_async.sv ../rtl/x1_sio_irq.sv ../rtl/x1_irq_bridge.sv ../rtl/cpu.v $(wildcard ../rtl/tv80/*.v)
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module sio_cpu_tb --Mdir $(HEADLESS_DIR)/sio-cpu \
+		-j 4 tests/sio_cpu_tb.sv ../rtl/x1_sio_async.sv ../rtl/x1_sio_irq.sv ../rtl/x1_irq_bridge.sv ../rtl/cpu.v \
+		../rtl/tv80/tv80e.v ../rtl/tv80/tv80_core.v ../rtl/tv80/tv80_mcode.v ../rtl/tv80/tv80_alu.v ../rtl/tv80/tv80_reg.v \
+		-Wno-fatal
+.PHONY: test-sio-cpu
+
 # Fast X3 diagnostic continuations; not the delay-aware scheduling reference.
 obj_dir_turbo_video_savable/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc --no-timing --savable --assert --trace-fst --exe --build -j 4 --Mdir obj_dir_turbo_video_savable --top-module top \

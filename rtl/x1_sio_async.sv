@@ -4,14 +4,22 @@
 // Supported: polled asynchronous 5..8 bits, N/E/O, 1/1.5/2 TX stops,
 // x16/x32/x64 RX/TX event clocks. Interrupts, x1, WAIT/Ready, break/modem
 // gating, synchronous modes and live frame reconfiguration are unsupported.
-module x1_sio_async_channel (
+// IRQ_ENABLE is used only by the separate standalone interrupt wrapper:
+// it adds RX modes 10/11 and TX-empty requests, B-only RR2, A-only return,
+// and channel command events. The default polled wrapper remains unchanged.
+module x1_sio_async_channel #(parameter IRQ_ENABLE=0, parameter CHANNEL_B=0) (
     input wire clk, ce, reset,
     input wire cpu_cs, control, cpu_rd_n, cpu_wr_n,
     input wire [7:0] cpu_din,
     output reg [7:0] cpu_dout,
     input wire rx_tick, tx_tick, rxd, cts_n, dcd_n,
     output wire txd, rts_n, dtr_n,
-    output reg unsupported
+    output reg unsupported,
+    input wire interrupt_pending,
+    input wire [7:0] rr2,
+    output wire request_rx, request_tx, special_rx,
+    output wire [7:0] vector_register,
+    output wire status_vector, reset_channel, return_interrupt
 );
     reg [7:0] wr1, wr2, wr3, wr4, wr5;
     reg [2:0] pointer;
@@ -19,6 +27,10 @@ module x1_sio_async_channel (
     wire read_event = cpu_cs && !cpu_rd_n && !read_seen;
     wire write_event = cpu_cs && !cpu_wr_n && !write_seen;
     wire channel_reset = ce && write_event && control && pointer == 0 && cpu_din[5:3] == 3;
+    assign reset_channel = channel_reset;
+    assign return_interrupt = IRQ_ENABLE && ce && write_event && control && pointer==0 && cpu_din[5:3]==7;
+    assign vector_register = wr2;
+    assign status_vector = wr1[2];
     function automatic [3:0] character_bits(input [1:0] config_bits);
         case(config_bits)
             0: character_bits=5; 1: character_bits=7;
@@ -42,13 +54,20 @@ module x1_sio_async_channel (
             end
         if(parity_enable) transmit_frame[bits+1]=even_parity ? parity : !parity;
     endfunction
-    wire polled_frame = wr1 == 0 && wr4[7:6]!=0 && wr4[5:4]==0 && wr4[3:2]!=0;
+    wire supported_interrupts = IRQ_ENABLE ?
+        (wr1[7:5]==0 && !wr1[0] && wr1[4:3]!=1) : wr1==0;
+    wire polled_frame = supported_interrupts && wr4[7:6]!=0 && wr4[5:4]==0 && wr4[3:2]!=0;
     wire rx_enabled = polled_frame && wr3[0] && (wr3 & 8'h3e)==0;
     wire tx_enabled = polled_frame && wr5[3] && (wr5 & 8'h15)==0;
     reg [7:0] fifo_data[0:2];
     reg [6:0] fifo_error[0:2];
     reg [1:0] fifo_count;
     reg overrun_latched, parity_latched;
+    reg transmit_pending;
+    assign request_rx = IRQ_ENABLE && wr1[4] && fifo_count!=0;
+    assign request_tx = IRQ_ENABLE && wr1[1] && transmit_pending;
+    assign special_rx = fifo_count!=0 && (fifo_error[0][6] || overrun_latched ||
+        (wr1[4:3]==2 && parity_latched));
     reg rx_busy;
     reg [5:0] rx_phase;
     reg [3:0] rx_bit, rx_bits;
@@ -76,7 +95,7 @@ module x1_sio_async_channel (
         if (reset || channel_reset) begin
             wr1<=0; wr2<=0; wr3<=0; wr4<=0; wr5<=0; pointer<=0;
             read_seen<=0; write_seen<=channel_reset; cpu_dout<=0; unsupported<=0;
-            fifo_count<=0; overrun_latched<=0; parity_latched<=0;
+            fifo_count<=0; overrun_latched<=0; parity_latched<=0; transmit_pending<=0;
             for(integer i=0;i<3;i=i+1) begin fifo_data[i]<=0; fifo_error[i]<=0; end
             rx_busy<=0; rx_phase<=0; rx_bit<=0; rx_shift<=0; framing_recovery<=0;
             rx_bits<=8; rx_divisor<=16; rx_has_parity<=0; rx_even<=0;
@@ -93,9 +112,13 @@ module x1_sio_async_channel (
                 else begin
                     case(pointer)
                         // RR0: real buffering/pin levels; no invented IRQ.
-                        0: cpu_dout<={1'b0,1'b0,!cts_n,1'b0,!dcd_n,!tx_holding_full,1'b0,fifo_count!=0};
+                        0: cpu_dout<={1'b0,1'b0,!cts_n,1'b0,!dcd_n,!tx_holding_full,interrupt_pending,fifo_count!=0};
                         1: cpu_dout<={1'b0,(fifo_count!=0 ? fifo_error[0][6] : 1'b0),
                             overrun_latched,parity_latched,3'b000,!tx_busy && !tx_holding_full};
+                        2: begin
+                            if(IRQ_ENABLE && CHANNEL_B) cpu_dout<=rr2;
+                            else begin cpu_dout<=8'hff; unsupported<=1; end
+                        end
                         default: begin cpu_dout<=8'hff; unsupported<=1; end
                     endcase
                     pointer<=0;
@@ -104,12 +127,18 @@ module x1_sio_async_channel (
             if(write_event) begin
                 write_seen<=1;
                 if(!control) begin
+                    transmit_pending<=0;
                     if(tx_holding_full && !tx_take) unsupported<=1;
                     else begin tx_holding<=cpu_din; tx_holding_full<=1; end
                 end else if(pointer!=0) begin
                     case(pointer)
-                        1: begin wr1<=cpu_din; if(cpu_din!=0) unsupported<=1; end
-                        2: wr2<=cpu_din; // vector retained, IRQ/RR2 not implemented.
+                        1: begin
+                            wr1<=cpu_din;
+                            if(IRQ_ENABLE ? (cpu_din[7:5]!=0 || cpu_din[0] || cpu_din[4:3]==1) : cpu_din!=0)
+                                unsupported<=1;
+                            if(!cpu_din[1]) transmit_pending<=0;
+                        end
+                        2: wr2<=cpu_din; // B consumed only by the interrupt wrapper.
                         3: begin
                             wr3<=cpu_din;
                             if((cpu_din & 8'h3e)!=0 || rx_busy) unsupported<=1;
@@ -131,6 +160,11 @@ module x1_sio_async_channel (
                     case(cpu_din[5:3])
                         0: ;
                         6: begin overrun_latched<=0; parity_latched<=0; end
+                        5: begin
+                            if(IRQ_ENABLE) transmit_pending<=0;
+                            else unsupported<=1;
+                        end
+                        7: if(!IRQ_ENABLE || CHANNEL_B) unsupported<=1;
                         default: unsupported<=1;
                     endcase
                     if(cpu_din[7:6]!=0) unsupported<=1;
@@ -205,6 +239,11 @@ module x1_sio_async_channel (
             if(!tx_enabled) begin tx_busy<=0; tx_phase<=0; end
             else if(tx_tick) begin
                 if(tx_take) begin
+                    // Becoming empty requires actual data, not merely enabling
+                    // TX interrupts while its holding register is already empty.
+                    // A same-edge replacement keeps holding full and cannot
+                    // generate an empty interrupt.
+                    if(wr1[1] && !(write_event && !control)) transmit_pending<=1;
                     tx_shift<=transmit_frame(tx_holding,character_bits(wr5[6:5]),wr4[0],wr4[1]);
                     tx_busy<=1; tx_phase<=0; tx_bit<=0;
                     tx_divisor<=clock_divisor(wr4[7:6]);
@@ -248,7 +287,9 @@ module x1_sio_async (
             .cpu_din(cpu_din), .cpu_dout(channel_data[channel]),
             .rx_tick(rx_tick[channel]), .tx_tick(tx_tick[channel]), .rxd(rxd[channel]),
             .cts_n(cts_n[channel]), .dcd_n(dcd_n[channel]), .txd(txd[channel]),
-            .rts_n(rts_n[channel]), .dtr_n(dtr_n[channel]), .unsupported(unsupported_channel[channel])
+            .rts_n(rts_n[channel]), .dtr_n(dtr_n[channel]), .unsupported(unsupported_channel[channel]),
+            .interrupt_pending(1'b0), .rr2(8'hff), .request_rx(), .request_tx(),
+            .special_rx(), .vector_register(), .status_vector(), .reset_channel(), .return_interrupt()
         );
     end
 endmodule

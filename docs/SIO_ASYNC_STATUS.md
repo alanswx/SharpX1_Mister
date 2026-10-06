@@ -4,6 +4,9 @@ October 5, 2026. `rtl/x1_sio_async.sv` is original local RTL, **not yet in
 `machine.qip` or connected to the X1**. It is a bounded polled asynchronous
 **5/6/7/8-bit, no/even/odd-parity, x16/x32/x64**
 slice, not a complete Z80 SIO. Machine serial and SIO IRQ support are absent.
+A separate [standalone RX/TX interrupt wrapper](SIO_IRQ_STATUS.md) now passes
+connected pin/service and actual-CPU IM2 tests; it does not change this
+default polled wrapper or connect either wrapper to the machine.
 No emulator source, firmware or private asset bytes are imported.
 
 The [programming contract](SIO_REGISTER_CONTRACT.md) remains the roadmap.
@@ -88,8 +91,9 @@ the serialized machine or require conversion of v11 states.
    are flagged unsupported and frame parameters are latched at start/take;
    the manual's live RX-length adjustment is **not implemented**. Validate
    continuous back-to-back input and arbitrary incoming clock phase.
-2. Genuine RX/TX/external IRQ generation, WR1/WR2 vectors, service/daisy
-   priority, stable ACK, RETI/WR0 commands and an actual-CPU IM2 diagnostic.
+2. The separate RX/TX wrapper now has vectors, nested service, stable ACK,
+   RETI/WR0 and actual-CPU IM2 checks. First-character/external IRQ generation,
+   error locking/rearm and full multi-device service qualification remain open.
 3. Schematic-qualified external clock/pin events and `1F90..1F93` machine
    decode, memory/DAM/ACK isolation and CTC/keyboard arbitration.
 4. WAIT/Ready semantics and DMA serial transfers. Current ports expose no
