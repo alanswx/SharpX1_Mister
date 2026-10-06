@@ -150,8 +150,7 @@ module sio_irq_tb;
         // B-only RR2 and A-only return are enforced, not silently accepted.
         put(1,2); check(1,8'hff); if(!unsupported) $fatal(1,"A RR2 falsely supported");
         put(1,8'h18); put(3,8'h38); if(!unsupported) $fatal(1,"B return falsely supported");
-        setup(); wr(0,1,8'h08); if(!unsupported) $fatal(1,"first-character mode falsely supported");
-        setup(); wr(0,1,8'h01); if(!unsupported) $fatal(1,"external/status mode falsely supported");
+        setup(); wr(0,1,8'h80); if(!unsupported) $fatal(1,"WAIT/Ready mode falsely supported");
         // Same-edge holding take/write keeps the buffer full: no phantom
         // empty request until the replacement itself enters the shifter.
         setup(); put(0,8'h69);

@@ -3,9 +3,10 @@
 October 5, 2026. The active shared machine has no connected SIO implementation.
 A subsequent [standalone polled asynchronous slice](SIO_ASYNC_STATUS.md) passes
 108 dual-channel 5–8-bit N/E/O formats and original pin/FIFO/collision tests;
-an additional [standalone RX/TX IRQ wrapper](SIO_IRQ_STATUS.md) passes connected
-service and actual-CPU IM2 tests. First-character/external IRQs,
-x1/break/live configuration and machine integration remain open.
+an additional [standalone IRQ wrapper](SIO_IRQ_STATUS.md) passes connected
+service and actual-CPU IM2 tests, including explicitly armed first-character
+RX/error locking and CTS/DCD snapshots. Native reset arming, remaining external
+sources, x1/break/live configuration and machine integration remain open.
 Do not replace missing behavior with a successful capability signature.
 
 ## Primary evidence and local comparison

@@ -128,10 +128,11 @@ The original failure is preserved. This does not establish Turbo/hardware play.
 An original [standalone SIO slice](docs/SIO_ASYNC_STATUS.md) now passes
 two-channel polled 5–8-bit N/E/O pin, FIFO/error and buffering tests at CE=1/4/7:
 108 formats cover x16/x32/x64 and 1/1½/2 TX stops, plus simultaneous accesses.
-A separate [RX/TX IRQ wrapper](docs/SIO_IRQ_STATUS.md) passes nested service,
-held ACK/vector and actual-CPU IM2/RETI tests at the same enable rates.
-Neither is connected to the machine; first-character/external IRQs,
-x1/break/WAIT/Ready and full multi-device arbitration remain open.
+A separate [SIO IRQ wrapper](docs/SIO_IRQ_STATUS.md) passes nested service,
+held ACK/vector and actual-CPU IM2/RETI tests at the same enable rates, now
+including explicitly armed first-character/error locking and CTS/DCD snapshots.
+Neither is connected to the machine; native reset arming, remaining external
+sources, x1/break/WAIT/Ready and full multi-device arbitration remain open.
 The simulator window now offers optional [live joystick keys](docs/PLAYING.md):
 arrows, Space (button 1) and Ctrl (button 2), through `--joystick-keys`.
 Independent CPU-programmed 40/80-column text and 320/640 graphics rasters now

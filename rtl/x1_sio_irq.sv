@@ -64,8 +64,8 @@ module x1_sio_irq (
 endmodule
 
 // Standalone connected serial/IRQ subset. Not in machine.qip or mapped into
-// the X1. RX modes 10/11 + TX supported; first-character/external/status,
-// break, WAIT/Ready and physical bus/pin phase remain separate gates.
+// the X1. RX first/all-character + TX + CTS/DCD supported. Other external
+// sources, break, WAIT/Ready and physical bus/pin phase remain separate gates.
 module x1_sio_interrupt (
     input wire clk, ce, reset, cpu_cs, cpu_rd_n, cpu_wr_n,
     input wire [1:0] address,
@@ -79,7 +79,7 @@ module x1_sio_interrupt (
     output wire [7:0] ack_vector
 );
     wire [7:0] channel_data[0:1], vector_register[0:1], rr2;
-    wire [1:0] request_rx, request_tx, special_rx, status_vector;
+    wire [1:0] request_rx, request_tx, request_external, special_rx, status_vector;
     wire [1:0] reset_channel, return_interrupt, unsupported_channel;
     wire pending;
     assign cpu_dout=channel_data[address[1]];
@@ -87,7 +87,7 @@ module x1_sio_interrupt (
     x1_sio_irq priority_unit (
         .clk(clk), .reset(reset), .iei(iei), .acknowledge(acknowledge),
         .reti(reti || return_interrupt[0]), .reset_channel(reset_channel),
-        .request({1'b0,request_tx[1],request_rx[1],1'b0,request_tx[0],request_rx[0]}),
+        .request({request_external[1],request_tx[1],request_rx[1],request_external[0],request_tx[0],request_rx[0]}),
         .special_rx(special_rx), .vector_base(vector_register[1]),
         .status_vector(status_vector[1]), .irq(irq), .ieo(ieo),
         .pending(pending), .rr2(rr2), .ack_vector(ack_vector)
@@ -102,6 +102,7 @@ module x1_sio_interrupt (
             .rts_n(rts_n[channel]), .dtr_n(dtr_n[channel]), .unsupported(unsupported_channel[channel]),
             .interrupt_pending(channel==0 ? pending : 1'b0), .rr2(channel==1 ? rr2 : 8'hff),
             .request_rx(request_rx[channel]), .request_tx(request_tx[channel]),
+            .request_external(request_external[channel]),
             .special_rx(special_rx[channel]), .vector_register(vector_register[channel]),
             .status_vector(status_vector[channel]), .reset_channel(reset_channel[channel]),
             .return_interrupt(return_interrupt[channel])

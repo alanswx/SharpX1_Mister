@@ -17,7 +17,7 @@ These are acceptance gates, not four completed checkboxes.
 |---|---|---|
 | 1. Turbo video | X3 enables/raster mapping/16-row ANK; bounded high-speed PCG selector, frozen HSYNC-window transactions and CPU ANK8/16 selection pass focused simulation; HPS snapshot seam and X3 PPI level crossing tested, including real-CPU cold/warm polling | Route/timing/CDC/reset signoff and refit; exact ASIC selector/WAIT phase, text expansion/underline, Kanji CPU/glyph paths and native/hardware acceptance |
 | 2. Native games | Five v11 baseline titles pass, including Galaga firing and Shanghai pair removal using native cursor feedback; old timed-replay failure preserved | Native Arcus/Bastard playability, Turbo firmware/video and multi-disk continuity; polling-phase diagnosis, delay-aware and hardware gameplay (Arcus A1/B2 remains exploratory) |
-| 3. CTC/DMA/SIO | CTC/IM2/ACK/keyboard; standalone DMA and actual CPU/DMA tests; opt-in shared-machine bus/FDC DRQ, generated A/B transfer/count/protection/CRC and owned reset tests; standalone SIO formats/FIFO/collisions and RX/TX IRQ/actual-CPU IM2 pass | DMA native/pending-SD reset/other-target/IRQ/search/exact timing acceptance; SIO first-character/external IRQ/x1/break/live configuration/machine integration; physical daisy-chain timing |
+| 3. CTC/DMA/SIO | CTC/IM2/ACK/keyboard; standalone DMA and actual CPU/DMA tests; opt-in shared-machine bus/FDC DRQ, generated A/B transfer/count/protection/CRC and owned reset tests; standalone SIO formats/FIFO/collisions, first/all-RX/TX/CTS/DCD IRQ and actual-CPU IM2 pass | DMA native/pending-SD reset/other-target/IRQ/search/exact timing acceptance; SIO native reset arming/remaining external sources/x1/break/live configuration/machine integration; physical daisy-chain timing |
 | 4. D88 robustness | Bounds/A/B ACK/eject/protected writes; CRC/READ ADDRESS; 75 metadata/short-reset direct groups and both complete frozen fast/delay-aware CPU matrices; five v11 native-control titles pass | Broader native metadata/disk-change qualification; safe format contract, density/HD mechanics, physical HPS epochs |
 
 Turbo Z is a separate planned profile, not implied by these increments. Its
@@ -61,10 +61,12 @@ tests are recorded in [SIO_REGISTER_CONTRACT.md](SIO_REGISTER_CONTRACT.md).
 A subsequent standalone polled 5–8-bit N/E/O engine passes 108 dual-channel
 formats (x16/x32/x64; 1/1½/2 TX stops), pin/FIFO/error/buffering/reset and
 simultaneous access tests at CE=1/4/7; [SIO status](SIO_ASYNC_STATUS.md)
-records the subset. The separate [RX/TX interrupt wrapper](SIO_IRQ_STATUS.md)
+records the subset. The separate [interrupt wrapper](SIO_IRQ_STATUS.md)
 passes connected priority/nesting, stopped-CE held ACK and actual-CPU IM2/RETI
-tests at the same rates. First-character/external IRQs,
-x1/break/live configuration and machine integration remain open.
+tests at the same rates. Explicitly armed first-character RX/error locks,
+CTS/DCD snapshots and their actual-CPU reset commands now pass too.
+Native reset arming, remaining external sources, x1/break/live configuration
+and machine integration remain open.
 Both complete frozen fast/delay-aware metadata CPU matrices now pass.
 Four v05 native-control titles pass; Shanghai's expected-pair assertion failed
 with unchanged inputs and retained evidence. None qualifies later v10 RTL.
@@ -86,7 +88,7 @@ current-source refit remain required; assembly is not timing closure.
 | 1. Timing/CDC | Frozen `15a0655` fit/path/retained-state audit completed; same-clock machine setup passes; real CDC/reset and mux-alternative failures classified | Review narrow first-stage recognition, held-bus bounds and mux exclusivity; refit current source; do not globally cut SYS↔VID paths |
 | 2. DMA | Opt-in machine integration passes complete fast/delay-aware RAM/A/B read/write/protection/CRC/count cases, four real-machine reset cases, and subsequent RAM-under-IPL checks | Pending-SD/reset, PCG/GRAM targets, native Turbo IPL continuity, unsupported functions and fitted/hardware acceptance |
 | 3. Kanji/video | Existing ANK/expanded-text checks retained; Kanji attribute storage is not glyph support | Implement documented CPU latches/ROM mapping and glyph halves with synthetic assets; qualify expanded-attribute/PCG/native combinations |
-| 4. SIO | Standalone engine passes 108 formats/FIFO/collisions; separate RX/TX wrapper passes connected nested service/held ACK and actual-CPU IM2/RETI at CE=1/4/7 | First-character/external IRQs, x1/break/live configuration, WAIT/Ready, multi-device service qualification, schematic clocks/pins and machine integration |
+| 4. SIO | Standalone engine passes 108 formats/FIFO/collisions; IRQ wrapper passes first/all-RX/TX/CTS/DCD, error locks/collisions, nested service/held ACK and two actual-CPU IM2/RETI profiles at CE=1/4/7 | Native reset arming/remaining external sources, x1/break/live configuration, WAIT/Ready, multi-device service qualification, schematic clocks/pins and machine integration |
 | 5. Native software | Five v11 baseline titles pass movement/firing/pair checks; Shanghai feedback prepares the same pair and passes unchanged assertions, preserving old failure | Broader/delay-aware/hardware gameplay, polling-phase diagnosis, Arcus/Bastard playability; hardware unavailable |
 
 The v11 batch uses source `95c181c`, base SYS32/VID28,571,428 Hz, fast

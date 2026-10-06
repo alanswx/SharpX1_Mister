@@ -6,6 +6,8 @@ module sio_cpu_tb;
     reg clk=0, ce=0, reset=1;
     always #5 clk=~clk;
     integer period=1,edges=0,pc=0,ack_count=0,reti_count=0;
+    reg first_status=0;
+    integer expected_irqs=3;
     always @(negedge clk) begin edges=edges+1; ce=(edges%period)==0; end
     wire m1_n,mreq_n,iorq_n,rd_n,wr_n,rfsh_n,halt_n,busak_n;
     wire [15:0] address;
@@ -55,6 +57,7 @@ module sio_cpu_tb;
                     0: if(ack_vector!==8'he4) $fatal(1,"CPU first vector not B RX");
                     1: if(ack_vector!==8'hee) $fatal(1,"CPU second vector not A special RX");
                     2: if(ack_vector!==8'he8) $fatal(1,"CPU third vector not A TX");
+                    3: if(!first_status || ack_vector!==8'hea) $fatal(1,"CPU fourth vector not A external");
                     default: $fatal(1,"unexpected CPU interrupt");
                 endcase
                 observed_vector<=ack_vector; ack_count<=ack_count+1;
@@ -99,26 +102,40 @@ module sio_cpu_tb;
     endtask
     initial begin
         if(!$value$plusargs("CE_PERIOD=%d",period)) period=1;
+        first_status=$test$plusargs("first-status"); expected_irqs=first_status ? 4 : 3;
         for(integer i=0;i<65536;i=i+1) memory[i]=0;
         emit(8'hf3); emit(8'h31); emit(8'h00); emit(8'hff); // DI; LD SP,ff00
         load_a(2); emit(8'hed); emit(8'h47); emit(8'hed); emit(8'h5e); // LD I,A; IM 2
         for(integer ch=0;ch<2;ch=ch+1) begin
             port(ch==0 ? 16'h1f91 : 16'h1f93); out_byte(8'h18);
             reg_write(4,8'h44); reg_write(3,8'hc1); reg_write(5,8'hea);
-            reg_write(1,ch==0 ? 8'h12 : 8'h16);
+            reg_write(1,first_status ? (ch==0 ? 8'h0b : 8'h0c) : (ch==0 ? 8'h12 : 8'h16));
+            if(first_status) out_byte(8'h20);
         end
         reg_write(2,8'he0); // B vector only
         mark(1); emit(8'hfb); emit(8'h76); emit(8'hf3); // EI; HALT; DI after ISR
         mark(2); emit(8'hfb); emit(8'h76); emit(8'hf3);
         port(16'h1f90); out_byte(8'h69);
         mark(3); emit(8'hfb); emit(8'h76); emit(8'hf3);
+        if(first_status) begin mark(4); emit(8'hfb); emit(8'h76); emit(8'hf3); end
         mark(8'haa); emit(8'h76);
         pc=32'h0400; port(16'h1f92); emit(8'hed); emit(8'h78); store(16'h4100);
         load_a(8'he4); store(16'h4102); emit(8'hfb); emit(8'hed); emit(8'h4d);
         pc=32'h0440; port(16'h1f90); emit(8'hed); emit(8'h78); store(16'h4101);
+        if(first_status) begin
+            emit(8'hed); emit(8'h78); store(16'h4104); // same locked byte again
+            port(16'h1f91); out_byte(8'h30); // Error Reset releases locked FIFO word
+            out_byte(1); emit(8'hed); emit(8'h78); store(16'h4105); // RR1 after release
+        end
         load_a(8'hee); store(16'h4102); emit(8'hfb); emit(8'hed); emit(8'h4d);
         pc=32'h0480; port(16'h1f91); out_byte(8'h28);
         load_a(8'he8); store(16'h4102); emit(8'hfb); emit(8'hed); emit(8'h4d);
+        if(first_status) begin
+            pc=32'h04c0; port(16'h1f91); emit(8'hed); emit(8'h78); store(16'h4103);
+            out_byte(8'h10); // external source reset is distinct from RETI
+            load_a(8'hea); store(16'h4102); emit(8'hfb); emit(8'hed); emit(8'h4d);
+            vector_entry(8'hea,16'h04c0);
+        end
         vector_entry(8'he4,16'h0400); vector_entry(8'hee,16'h0440); vector_entry(8'he8,16'h0480);
         repeat(8) step(); reset=0;
         stage(1); if(irq) $fatal(1,"IRQ before serial traffic");
@@ -130,11 +147,21 @@ module sio_cpu_tb;
         stage(3);
         if(memory[16'h4101]!==8'h37 || memory[16'h4102]!==8'hee || reti_count!=2)
             $fatal(1,"CPU A special RX ISR/read/RETI failed");
+        if(first_status && (memory[16'h4104]!==8'h37 || memory[16'h4105]!==1))
+            $fatal(1,"CPU repeated locked read/Error Reset failed");
         tx_tick=1; step(); tx_tick=0;
         if(txd[0]!==0) $fatal(1,"CPU TX data did not enter shifter");
-        stage(8'haa);
+        stage(first_status ? 4 : 8'haa);
         if(memory[16'h4102]!==8'he8 || ack_count!=3 || reti_count!=3 || irq || !ieo)
             $fatal(1,"CPU TX pending reset/final RETI failed");
+        if(first_status) begin
+            // Pulse CTS long enough for one SYS sample then return high.
+            cts_n[0]=0; @(posedge clk); #1; cts_n[0]=1;
+            stage(8'haa);
+            if(memory[16'h4103]!==8'h26 || memory[16'h4102]!==8'hea ||
+               ack_count!=4 || reti_count!=4 || irq || !ieo)
+                $fatal(1,"CPU external vector/status/source reset/RETI failed");
+        end
         // Verify the actual transmitted character loaded by CPU, not merely
         // the interrupt handler marker. Advance each bit exactly 16 ticks.
         tx_tick=1;
@@ -148,9 +175,9 @@ module sio_cpu_tb;
         end
         tx_tick=0;
         repeat(100) step();
-        if(ack_count!=3 || reti_count!=3 || irq || unsupported || txd!==3)
+        if(ack_count!=expected_irqs || reti_count!=expected_irqs || irq || unsupported || txd!==3)
             $fatal(1,"CPU IRQ reasserted without new traffic");
-        $display("PASS: actual Z80 IM2 B RX/A framing-special/TX vectors E4/EE/E8, ISR bytes, three ACK/decoded RETI, real TX pins CE=%0d",period);
+        $display("PASS: actual Z80 IM2 B RX/A framing-special/TX, ISR bytes, ACK/decoded RETI=%0d, real TX pins CE=%0d first/status=%0d",expected_irqs,period,first_status);
         $finish;
     end
     initial begin #20000000; $fatal(1,"CPU SIO watchdog PC=%h stage=%h ACKs=%0d RETIs=%0d",address,memory[16'h4000],ack_count,reti_count); end
