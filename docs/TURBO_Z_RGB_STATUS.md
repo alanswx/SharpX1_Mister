@@ -33,6 +33,14 @@ machine capability or requalification of five games.
 - `lint-wrapper` and `lint-wrapper-turbo-video` exit zero. Existing framework
   warnings remain visible. These use the PLL interface stand-in, not a fit,
   scaler run or physical output validation.
+- `test-rgb12-wrapper` exits zero for all 4096 colors through the actual
+  `emu` VGA component assignments. The fixture forces only the RGB12 output
+  boundary with synthetic colors; it does not force bus ownership, Ready,
+  VRAM or CPU state. The input clock is stopped, reset held, and board inputs
+  tied inactive. It uses the same PLL stand-in and does not run the machine,
+  analog palette, scaler or physical PLL. Missing ports were made explicit;
+  no additional warning suppression was added. Log:
+  `/tmp/x1-v12-rgb12-wrapper-test2.log`.
 - `test_snapshot.py` passes on the isolated v12 `qualification-fast` runner:
   CPU/RAM/clock continuation, negative v11-header/time/truncation/clock tests,
   joystick persistence/override and SDL dummy-driver checks. Its modified

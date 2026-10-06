@@ -721,6 +721,16 @@ $(HEADLESS_DIR)/rgb12/frame_rgb12_tb: tests/frame_rgb12_tb.cpp frame_capture.h
 	$(CXX) -std=c++20 -Wall -Wextra -Werror tests/frame_rgb12_tb.cpp -o $@
 .PHONY: test-rgb12
 
+test-rgb12-wrapper: $(HEADLESS_DIR)/rgb12-wrapper/Vrgb12_wrapper_tb
+	./$(HEADLESS_DIR)/rgb12-wrapper/Vrgb12_wrapper_tb
+
+$(HEADLESS_DIR)/rgb12-wrapper/Vrgb12_wrapper_tb: tests/rgb12_wrapper_tb.sv ../sharpx1.sv ../sys/hps_io.sv tests/board_pll_lint.v ../rtl/x1_joystick_map.v ../rtl/x1_cdc_snapshot.sv $(MACHINE_SRC) Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module rgb12_wrapper_tb --Mdir $(HEADLESS_DIR)/rgb12-wrapper -j 4 -Itests \
+		../sharpx1.sv ../sys/hps_io.sv tests/board_pll_lint.v ../rtl/x1_joystick_map.v ../rtl/x1_cdc_snapshot.sv \
+		$(MACHINE_SRC) tests/rgb12_wrapper_tb.sv -Wno-fatal
+.PHONY: test-rgb12-wrapper
+
 test-joystick: $(HEADLESS_DIR)/joystick/Vjoystick_tb
 	./$(HEADLESS_DIR)/joystick/Vjoystick_tb
 
