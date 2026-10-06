@@ -2,7 +2,7 @@
 // Original CPU-domain Turbo selector shadow; provisional Xmil 7FF fallback.
 // Only accepted writes populate metadata. Like VRAM, it survives warm reset.
 // Validity prevents invented power-up contents from becoming glyph writes.
-module x1_pcg_selector (
+module x1_pcg_selector #(parameter KANJI_SUPPORT=0) (
     input clk,
     input text_write, attr_write, kan_write,
     input [10:0] address,
@@ -12,7 +12,9 @@ module x1_pcg_selector (
     input font16_mode,
     output reg [10:0] byte_address,
     output reg [11:0] font_address,
-    output reg font16_select, unsupported
+    output reg font16_select, unsupported,
+    output reg kanji_select,
+    output wire [16:0] kanji_address
 );
     reg [7:0] text_cell [0:3];
     reg [7:0] attr_cell [0:3];
@@ -32,6 +34,9 @@ module x1_pcg_selector (
     integer selected;
     reg found;
     reg [7:0] glyph, kan;
+    // Physical model-20/30 chip order, not a converted emulator font layout.
+    // Port 1400+n supplies the 16-row nibble in high-speed CG mode.
+    assign kanji_address=kanji_select ? {kan[6],kan[3:0],glyph,nibble} : 17'd0;
     always @* begin
         selected = 0; found = 0;
         for (i = 0; i < 4; i = i + 1) begin
@@ -41,12 +46,13 @@ module x1_pcg_selector (
         end
         glyph = text_cell[selected]; kan = kan_cell[selected];
         unsupported = attr_valid != 4'b1111 || !text_valid[selected] || !kan_valid[selected];
+        kanji_select = KANJI_SUPPORT && plane == 0 && kan[7] && !kan[4] && !unsupported;
         font16_select = plane == 0 && font16_mode && !kan[7];
         font_address = {glyph, nibble};
         byte_address = {glyph, nibble[3:1]};
         if (plane != 0 && (kan & 8'h90) != 0)
             byte_address = {glyph[7:1], nibble};
-        if (plane == 0 && kan[7]) unsupported = 1;
+        if (plane == 0 && kan[7] && !kanji_select) unsupported = 1;
         // Deterministic absent/uninitialized/backend response, not fake glyphs.
         if (unsupported) begin
             byte_address = 0; font_address = 0; font16_select = 0;

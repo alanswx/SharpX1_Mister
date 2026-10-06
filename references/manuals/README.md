@@ -43,6 +43,12 @@ IC92 LS139 and IC106/105/104/103 ROM pin wiring now define an exhaustively
 tested first-level address component; see the [contract audit](../../docs/KANJI_CONTRACT_STATUS.md).
 CPU-port semantics, Turbo Z level-2/ASIC behavior and native ROM filename
 ordering were not established by this circuit trace.
+Later October 6: model-20/30 PDF pages 1–5 and additional page-3 KACE/LS139
+net crops were visually inspected. Native CPU latch/read-order and ASIC row
+selection remain unresolved; phase/enable wires must not be inferred from
+adjacent labels. A separate hardware-monitor binary inspection now establishes
+a high-speed CG software sequence, not a schematic-derived `0E80` protocol;
+see [Kanji audit](../../docs/KANJI_CONTRACT_STATUS.md).
 
 ## Integrity (SHA-256)
 

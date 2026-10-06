@@ -140,6 +140,76 @@ storage is not full Kanji or Turbo Z support.
 
 ## CPU-port conflicts actually inspected
 
+### Hardware monitor establishes a separate high-speed CG access sequence
+
+Read the author's [X1turbo Remote Monitor description](https://x1turbo-agency.hatenablog.jp/entry/2018/05/22/080623)
+and downloaded published v1.2.2 through its Dropbox link, not an emulator or
+a new MAME checkout. ZIP SHA-256
+`7e40690f5ea65e92c8051095e66edae0863db39c26557c8b4198676e0568f9cf`.
+Only `x1_mon.bin` was extracted for static inspection, SHA-256
+`09d116df5260b764831df1a82e7b954e29f374cdae9e47e5381b7e0f22236e8c`.
+Temporary reference `/private/tmp/x1-monitor-reference-TAucHfou/`; binaries,
+bundled D88 media and disassembly are not committed or redistributed. The
+bundled readme retains the author's copyright and asks for contact before
+republication. The Windows executable and monitor were not executed.
+
+The binary has a four-byte LOADM start/end header; static disassembly at
+origin `D4FC` aligns the payload entry with documented `D500`. Using `D500`
+for the entire file initially displaced instruction addresses by four bytes;
+that initial disassembly was not used as a transaction oracle. Installed
+`z80dasm 1.2.0` was used, not newly installed tooling. Its linear-disassembly
+self-modifying/8080 warnings mean data must not be treated as executed code.
+
+The inspected ROM command dispatch and call target show this sequence:
+
+- Kanji: set SCRN high-speed/16-row bits, select each half using K b6, and
+  traverse 256 character values for the requested bank.
+- At `DBFB..DC1D`: write K to `3FFF`, character to `37FF`, and attribute 7
+  to `27FF`; read sixteen bytes via `1400..140F` using INI with its B decrement
+  compensated, so the high port byte remains 14.
+- ANK uses the same helper with eight rows/stride two or sixteen rows/stride
+  one. The monitor does not use `0E80..82` in this inspected ROM routine.
+
+This is a hardware-tool author's software sequence, not a captured pin trace
+or execution here. It establishes a useful native **high-speed CG** test target;
+it does not settle the separate `0E80..83` latch/read-order disagreements below.
+The author explicitly says the exported font is reordered into Shift-JIS,
+not physical ROM order; those exports cannot silently become the physical
+chip-concatenated loader input. The author reports tested Turbo/II/ZIII models;
+we have not repeated that acceptance.
+
+An original `KANJI_SUPPORT=1` option in `x1_pcg_selector.sv` now exposes a
+first-level physical address for that bounded CPU selector path:
+`half*65536 + bank*4096 + character*16 + row`. K b5 does not alter address;
+K b4 (absent level 2) fails closed rather than aliasing first-level bytes.
+PCG planes remain PCG and ANK exit clears the Kanji backend selection/address.
+Defaults retain `KANJI_SUPPORT=0`; the shared machine still uses that default
+and leaves the new backend outputs unconnected. No new loader dispatch, CPU
+read data, WAIT path or capability signature is advertised.
+
+Strict-warning `test-kanji-cg-selector` passes **524,352** physical/attribute
+cases: every physical byte at both underline-bit/font-mode settings, default
+profile isolation, partial metadata, level-2 rejection, all sixteen existing
+candidate masks/plane choices, ANK exit and noncandidate writes. The original
+`test-turbo-pcg-access` regression also exits zero: 49,216 original selector
+cases, all 4,096 ANK16 bytes, three base-PCG clock profiles and six high-speed
+transaction profiles (16,395 transactions each). The inherited four-cell
+priority/7FF fallback remains bounded/provisional, not a full ASIC selector
+claim. Log `/tmp/x1-kanji-cg-selector-qualified.log`.
+Base and X3 wrapper lint both exit zero using the PLL interface stand-in,
+with inherited framework/RTL warnings and no new suppressions. This is not
+Quartus, PLL behavior or physical acceptance. Log:
+`/tmp/x1-kanji-cg-wrapper-lint.log`. Selector SHA-256
+`bd1a54b0cf87a806dc1859270b4870eb067c3ac24c0c08f102d2125e75304946`;
+new original fixture SHA-256
+`12cf4cd7a472ce8c057e7a8eeae61c855aede7d0538e61f616a009d5b65f59a3`.
+
+Next connect frozen Kanji address/read selection to the synchronous ROM CPU
+port and high-speed ACK/WAIT adapter, with no sys-clock data captured in video.
+Then add the opt-in machine loader/profile and original real-CPU diagnostic
+using this sequence, asset/profile-bound snapshots and default-profile negative
+checks. Glyph/display selection and the larger Z storage remain separate gates.
+
 Local MAME revision `f4bfc5a423f48d48e809c01fc70a47c0c00d40a2`,
 `src/mame/sharp/x1.cpp` functions `kanji_r/w`, `jis_convert`,
 `init_x1_kanji`, ROM declarations; and `x1_v.cpp::draw_text`.

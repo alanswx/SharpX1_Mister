@@ -39,3 +39,15 @@ X-millennium by Yui; these are not independent hardware measurements.
 The [contract audit](../docs/KANJI_CONTRACT_STATUS.md) preserves CPU latch,
 advancement, selection and font-format conflicts. No code or assets from
 those implementations were copied into the original address-decoder RTL.
+
+October 6 hardware-tool follow-up: downloaded Akira Amano's published
+[X1turbo Remote Monitor v1.2.2](https://x1turbo-agency.hatenablog.jp/entry/2018/05/22/080623)
+to a temporary reference folder and statically inspected only its monitor
+binary/ROM dump routine with the existing `z80dasm`. It uses selector-cell
+writes followed by high-speed CG reads; its author says exported fonts are
+Shift-JIS ordered, not raw chip order. This is not an open-source emulator
+addition, executed hardware acceptance or a resolved `0E80` contract. Package
+hash, header/disassembly correction, instruction addresses and limits are in
+the [Kanji audit](../docs/KANJI_CONTRACT_STATUS.md). The bundled copyright/
+republication conditions were inspected; no binary, disassembly, disks or
+third-party code are included in the repository.

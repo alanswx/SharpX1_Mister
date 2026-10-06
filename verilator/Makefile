@@ -28,6 +28,14 @@ $(HEADLESS_DIR)/kanji-rom/Vkanji_rom_tb: tests/kanji_rom_tb.sv ../rtl/x1_kanji_r
 		-j 4 tests/kanji_rom_tb.sv ../rtl/x1_kanji_rom.sv ../rtl/x1_kanji_address.sv
 .PHONY: test-kanji-rom
 
+test-kanji-cg-selector: $(HEADLESS_DIR)/kanji-cg-selector/Vkanji_cg_selector_tb
+	./$(HEADLESS_DIR)/kanji-cg-selector/Vkanji_cg_selector_tb
+$(HEADLESS_DIR)/kanji-cg-selector/Vkanji_cg_selector_tb: tests/kanji_cg_selector_tb.sv ../rtl/x1_pcg_selector.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module kanji_cg_selector_tb --Mdir $(HEADLESS_DIR)/kanji-cg-selector \
+		-j 4 tests/kanji_cg_selector_tb.sv ../rtl/x1_pcg_selector.sv
+.PHONY: test-kanji-cg-selector
+
 test-fm: $(HEADLESS_DIR)/fm-$(FM_MASTER_HZ)/Vfm_tb
 	./$(HEADLESS_DIR)/fm-$(FM_MASTER_HZ)/Vfm_tb +OUTPUT=$(HEADLESS_DIR)/fm-$(FM_MASTER_HZ)/note
 	python3 tests/test_fm_audio.py $(HEADLESS_DIR)/fm-$(FM_MASTER_HZ)/note

@@ -12,7 +12,7 @@ module pcg_selector_tb;
     wire [11:0] font_address;
     wire font16_select,unsupported;
     x1_pcg_selector dut(clk,tw,aw,kw,address,data,nibble,plane,font16_mode,
-                        byte_address,font_address,font16_select,unsupported);
+                        byte_address,font_address,font16_select,unsupported,,);
     function automatic [10:0] cell_addr(input integer i);
         return i==0 ? 11'h7ff : i==1 ? 11'h3ff : i==2 ? 11'h5ff : 11'h1ff;
     endfunction

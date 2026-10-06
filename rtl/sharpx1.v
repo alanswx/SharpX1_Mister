@@ -408,7 +408,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
             .address(a[10:0]), .data(data_out), .nibble(a[3:0]), .plane(a[9:8]),
             .font16_mode(turbo_scrn[6]), .byte_address(cg_selected_addr),
             .font_address(cg_selected_font_addr), .font16_select(cg_selected_font16),
-            .unsupported(cg_selected_unsupported)
+            .unsupported(cg_selected_unsupported), .kanji_select(), .kanji_address()
         );
     end else begin : no_turbo_pcg_selector
         assign cg_selected_addr = 0;
