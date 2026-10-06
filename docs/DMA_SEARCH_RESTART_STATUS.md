@@ -78,9 +78,9 @@ and GRAM/PCG cases also exit zero in `/tmp/x1-dma-search-repeat-fast.log`
 Delay-aware completed log `/tmp/x1-dma-search-repeat-machine.log` (session 55468).
 Fast seven-case RAM/overlay/A/B read/write/protection/CRC and four owned-reset
 matrices also exit zero in `/tmp/x1-dma-search-repeat-disk-fast.log`
-(session 53996). Original 40-group transfer/restart remains live in
-`/tmp/x1-dma-search-repeat-transfer.log` (session 93583); terminal result
-is not assumed.
+(session 53996). Original 40-group transfer/restart also exits zero in
+`/tmp/x1-dma-search-repeat-transfer.log` (session 93583), at 11,942,216
+fixture edges. This preserves its long-block, address/wrap and abort cases.
 
 | Tested artifact | SHA-256 |
 |---|---|
