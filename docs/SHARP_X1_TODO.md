@@ -26,12 +26,18 @@ unavailable; continue local verification without claiming hardware acceptance.
 | 4. Timing/hardware | Narrow audited CDC/reset/mux constraints, current-source Quartus refit and positive setup/hold/recovery; hardware bandwidth/video/audio and Main/OSD reset verification |
 | 5. Disk/software | Format/density/HD/media-change contracts; native metadata qualification; Arcus/Bastard playability; delay-aware and hardware game matrix |
 | 6. Base completeness/CI | Asset-free diagnostic CI now passes hosted execution; finish keyboard/sub-CPU, cassette and PPI functions; exact PCG/scanline/audio fidelity; BASIC compatibility and provenance |
+| 7. Turbo Z | RGB12 output/capture foundation passes exhaustive capture/wrapper and snapshot checks; implement/qualify Z0–Z9 model, palette/multi-mode, text, FM, HD, Kanji/devices, capture and native/hardware gates |
 
 No legacy notices or private assets may be removed/bundled to claim completion.
 Turbo Z is now explicitly part of the requested goal. Its Z0–Z9 milestones
 and acceptance gates are tracked in [TURBO_Z_PLAN.md](TURBO_Z_PLAN.md).
 It remains a separate capability profile; progress must not imply support
 for unimplemented hardware or promotion of historical game evidence.
+The RGB12 port advances simulator states to v12. Fresh baseline Xevious and
+Druaga gameplay qualifications pass; Mappy/Galaga/Shanghai and the full
+delay-aware baseline suite are running. The expanded hosted CI retry is also
+pending after compiler-only fixes; do not treat the old 16-target hosted pass
+as a pass of the new 20-target suite. See [source-bound checks](TURBO_Z_RGB_STATUS.md).
 
 ## Current priorities 1–4 (October 5 checkpoint)
 

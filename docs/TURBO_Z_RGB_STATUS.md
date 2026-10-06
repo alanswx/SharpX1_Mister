@@ -52,8 +52,12 @@ check move the detected player from `[30,40]` to `[36,40]`, with actual RGB
 changes and main-RAM/report/frame repeatability. Original disk/ROM/key hashes
 are retained in ignored `obj_dir_v12_rgb12_fast/native-requalification/xevious/`.
 This is base fast simulation, not Turbo Z or hardware playability.
-The other four titles have a fresh sequential batch running; they are not
-v12 passes yet. The full delay-aware baseline regression remains running:
+The fresh **Druaga v12 qualification also exits zero**: original 300-ms left
+input moves the player from `[68,32]` to `[67,32]`; live RGB changes and
+RAM/report/frame repeatability pass with unchanged assets. Evidence is in
+the ignored sibling `druaga/` qualification folder. Mappy, Galaga and Shanghai
+continue in the same sequential batch and are not v12 passes yet.
+The full delay-aware baseline regression remains running:
 its complete 40/80-column pixel matrix passes; peripheral gates still require
 a terminal result.
 
@@ -66,7 +70,8 @@ Source-bound executables (Verilator 5.044 / macOS Clang):
 
 Logs: `/tmp/x1-v12-rgb12-build.log`,
 `/tmp/x1-v12-rgb12-wrapper-lint.log`,
-`/tmp/x1-v12-rgb12-regression.log`, `/tmp/x1-v12-rgb12-xevious.log`.
+`/tmp/x1-v12-rgb12-regression.log`, `/tmp/x1-v12-rgb12-xevious.log`,
+`/tmp/x1-v12-rgb12-other-games.log`.
 Generated rasters/states and private input media are ignored, not committed.
 
 ## Hosted diagnostic compiler follow-up
