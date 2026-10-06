@@ -44,7 +44,7 @@ module x1_dma (
     logic cycle_io;
     logic [15:0] destination_address;
     logic physical_ready, ready_now, pair_active, write_event, read_event;
-    logic byte_match_stop;
+    logic byte_match_stop, search_only, source_match;
     integer follow_index;
 
     function automatic logic [15:0] step_address(
@@ -97,7 +97,10 @@ module x1_dma (
         read_event = cpu_cs && !cpu_rd_n && !read_seen;
         byte_match_stop = wr0[1] && wr3[2] &&
             ((data_out | mask_byte) == (match_byte | mask_byte));
-        unsupported = bad_command || !wr0[0] ||
+        search_only = wr0[1:0] == 2'b10;
+        source_match = (data_in | mask_byte) == (match_byte | mask_byte);
+        unsupported = bad_command || wr0[1:0] == 0 ||
+            (search_only && (wr4[6:5] != 0 || wr5[5])) ||
             wr3[5] || (wr3[2] && (!wr0[1] || wr4[6:5] != 0)) ||
             wr4[6:5] == 2'b11 ||
             timing_a_set || timing_b_set || interrupt_control != 0;
@@ -201,7 +204,19 @@ module x1_dma (
                                 data_out <= data_in;
                                 if (wr0[2]) counter_a <= step_address(counter_a, wr1);
                                 else counter_b <= step_address(counter_b, wr2);
-                                state <= WRITE_SETUP;
+                                if (search_only) begin
+                                    // Pure Byte search completes at the source
+                                    // read: never write or advance the other port.
+                                    if (source_match) match_found <= 1;
+                                    remaining <= remaining - 17'd1;
+                                    // Table 11 EOB: N+1 reads, count N. Table 12
+                                    // Byte match: M reads, count M (NOT M-1).
+                                    if ((wr3[2] && source_match) || remaining != 1)
+                                        byte_counter <= byte_counter + 16'd1;
+                                    if (remaining == 1) end_of_block <= 1;
+                                    if (remaining == 1 || (wr3[2] && source_match)) enabled <= 0;
+                                    state <= RELEASE; force_ready <= 0;
+                                end else state <= WRITE_SETUP;
                             end
                         end
                         WRITE_SETUP: if (!busak_n) begin

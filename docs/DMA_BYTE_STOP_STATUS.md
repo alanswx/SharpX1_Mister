@@ -57,9 +57,11 @@ non-stopping CPU profiles retain their eight-million-reference-cycle runs.
 All twenty profiles pass on the final-source `--no-timing` shared-machine
 runner, each retaining eight-million-reference-cycle duration. Both actual
 CPU automatic-restart profiles and GRAM/PCG regressions also pass. Final-source
-delay-aware execution remains live in `/tmp/x1-dma-byte-stop-machine-final.log`
-(session 33742); do not infer its terminal result, native DMA use or hardware
-acceptance from the fast diagnostics.
+delay-aware execution also exits zero in `/tmp/x1-dma-byte-stop-machine-final.log`
+(session 33742): all twenty profiles, both automatic-restart directions and
+GRAM/PCG. This is synthetic CPU acceptance, not native DMA use or hardware
+acceptance. The later [pure-search increment](DMA_PURE_SEARCH_STATUS.md) has
+separate source-bound checks.
 
 Source SHA-256:
 `689dbd30821af9d42f00cded8555abab4b8d0bce611162d6992028a4e2fc746c`.
@@ -72,7 +74,7 @@ fixture edges, `/tmp/x1-dma-byte-stop-transfer-final.log`. Final fast log
 `510bac90067bb8833079ef08d5170e2833a061a09df6668933270716e0e959f2`.
 The final delay-aware runner SHA-256 is
 `4312593abba7da65e0771245be4d0ef0bf4a782560ba33bc17971e206a41ae6a`;
-its pending matrix is a separate gate.
+its completed matrix is a separate gate.
 
 Fresh base savable executable remains byte-identical to the five-commercial-
 game-qualified v12 runner, SHA-256

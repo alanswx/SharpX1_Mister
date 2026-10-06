@@ -92,5 +92,7 @@ fresh snapshot/negative-header/clock/joystick tests pass in
 The prior full base delay-aware rerun subsequently exited zero (session 4266,
 `/tmp/x1-dma-autorestart-base.log`); hosted automatic-restart
 run [37529441225](https://github.com/alanswx/SharpX1_Mister/actions/runs/37529441225)
-subsequently passed on `d203dd5`. The next workflow adds comparison as target 24;
-its hosted gate requires its own terminal result.
+subsequently passed on `d203dd5`. The
+[24-target run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37531002075)
+also passes on `b893582`, including comparison. Later Byte-stop/pure-search
+commits require their own terminal hosted results.

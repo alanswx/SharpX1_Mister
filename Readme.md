@@ -78,7 +78,9 @@ real masked/sticky match status: 6,144 unit cases and 12 actual shared-CPU
 profiles pass, including delay-aware/fast agreement. A subsequent
 [Byte-mode stop increment](docs/DMA_BYTE_STOP_STATUS.md) completes the matching
 write and stops without another read; 10,240 standalone comparison/stop cases
-pass. Pure search, non-Byte Stop on Match
+pass. The subsequent [pure Byte search increment](docs/DMA_PURE_SEARCH_STATUS.md)
+performs no destination writes and passes 10,240 additional cases, including
+memory/I/O, WAIT/reset and long-count rollover. Non-Byte search/Stop on Match
 and IRQ/service remain open. DMA serialized state has a distinct revision;
 ordinary non-DMA v12 snapshots and defaults remain unchanged.
 A bounded [high-speed PCG increment](docs/TURBO_HIGH_SPEED_PCG_STATUS.md)
