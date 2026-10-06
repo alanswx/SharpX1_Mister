@@ -8,8 +8,10 @@ path and independently tested match/EOB counter policies.
 [Byte search automatic restart](DMA_SEARCH_RESTART_STATUS.md)
 now reloads both buffers without a destination write.
 [Non-stopping Burst/continuous search](DMA_NONBYTE_SEARCH_STATUS.md) has
-distinct EOB counts and Ready ownership. Non-Byte WR3 Stop on Match remains
-rejected pending the actual extra-read pipeline and exceptions. The new
+distinct EOB counts and Ready ownership. The
+[pure-search match-stop pipeline](DMA_SEARCH_STOP_STATUS.md) now emits the
+real extra read or documented Ready-loss short completion. **Sequential**
+non-Byte WR3 Stop on Match remains rejected pending its unresolved rows. The new
 [Byte stop increment](DMA_BYTE_STOP_STATUS.md) follows the untruncated
 sequential Byte row. The remaining class/pipeline
 requirements below are not made complete by those comparison tests.

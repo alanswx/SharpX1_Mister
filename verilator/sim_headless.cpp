@@ -344,7 +344,7 @@ int main(int argc, char **argv) {
             ^ (1ULL << 55)
 #endif
 #ifdef X1_TURBO_DMA
-            ^ (1ULL << 54) ^ (1ULL << 53) ^ (1ULL << 52) ^ (1ULL << 51) ^ (1ULL << 50) ^ (1ULL << 49) // DMA revision 5: non-stopping Burst/continuous search.
+            ^ (1ULL << 54) ^ (1ULL << 53) ^ (1ULL << 52) ^ (1ULL << 51) ^ (1ULL << 50) ^ (1ULL << 49) ^ (1ULL << 48) // DMA revision 6: pending pure-search match pipeline.
 #endif
             ;
         constexpr uint64_t snapshot_magic = 0x5831534e41503132ULL ^ sys_hz ^ snapshot_profile;

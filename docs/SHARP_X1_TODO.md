@@ -21,7 +21,7 @@ unavailable; continue local verification without claiming hardware acceptance.
 | Work group | Execution/acceptance still needed |
 |---|---|
 | 1. SIO | Owned serial read/write reset drain, idle Send Break and 12 actual-CPU stopped-CE ACK/handler/FIFO/RETI chip-reset cases pass separately; add channel/short-pulse and concurrent multi-device reset service; trace schematic clocks/modem/Ready/decode before opt-in shared-machine integration; finish remaining modes and native serial diagnostics |
-| 2. DMA | Reset/video/automatic-restart and sequential masked-comparison units/shared CPU cases pass; Byte stop passes 10,240 standalone comparison/stop cases; pure Byte/Burst/continuous non-stopping search passes 14,336 mask cases plus Ready/memory/I/O/reset/long counts and unit repeat, with twenty non-Byte CPU profiles fast/delay-aware; broaden partial-payload/Ready-loss/DAM cases; implement non-Byte Stop on Match pipelines, IRQ/service and variable timing; unchanged native Turbo IPL continuity and hardware acceptance |
+| 2. DMA | Reset/video/restart/comparison and Byte stop pass; pure search and actual Burst/continuous match-stop/Ready-exception pipeline pass 24,576 unit cases and twenty actual-CPU stop profiles fast/delay-aware, prior non-stopping CPU/long counts fast/delay-aware; broaden partial-payload/Ready-loss/DAM cases; resolve sequential non-Byte Stop on Match, implement IRQ/service and variable timing; unchanged native Turbo IPL continuity and hardware acceptance |
 | 3. Kanji/Turbo video | CPU latch/ROM/glyph paths with synthetic fixtures, then authorized native fonts; complete attribute/PCG/text combinations, ASIC behavior and native Turbo/400-line software |
 | 4. Timing/hardware | Narrow audited CDC/reset/mux constraints, current-source Quartus refit and positive setup/hold/recovery; hardware bandwidth/video/audio and Main/OSD reset verification |
 | 5. Disk/software | Format/density/HD/media-change contracts; native metadata qualification; Arcus/Bastard playability; delay-aware and hardware game matrix |
@@ -49,7 +49,11 @@ passes on `d203dd5`. The
 [24-target comparison run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37531002075)
 passes on `b893582`. The
 [24-target Byte-stop run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37531976718)
-passes on `4261ee6`. New pure-search/restart/non-Byte hosted gates remain separate.
+passes on `4261ee6`. The
+[25-target pure-Byte-search run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37533028668)
+passes on `1f692b3`. The
+[25-target search-restart run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37533835690)
+passes on `b890f93`. New non-Byte/pipeline hosted gates remain separate.
 See [source-bound checks](TURBO_Z_RGB_STATUS.md).
 
 ## Current priorities 1–4 (October 5 checkpoint)

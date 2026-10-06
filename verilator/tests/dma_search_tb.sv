@@ -376,11 +376,103 @@ module dma_search_tb;
             assert(reads==(ownership==1 ? 1 : 2) && dut.byte_counter==16'(reads))
                 else $fatal(1,"non-Byte programmed-one count");
         end
+        // Real extra-read match pipeline, not Byte early stopping.
+        for(integer ownership=1;ownership<3;ownership++)
+        for(integer direction=0;direction<2;direction++)
+        for(integer mask=0;mask<256;mask++)
+        for(integer position=0;position<5;position++) begin
+            fresh();for(integer i=0;i<4;i++) source[i]=i==position ? 8'ha5 : (8'ha5 ^ ~8'(mask));
+            configure(1'(direction),1,8'(mask),8'h10,16'h1000,
+                      ownership==1 ? 16'd4 : 16'd3,ownership);
+            put(8'hb2); // Repeat must not override match-stop, including EOB.
+            if(position==4 && mask!=255) put(8'h92); // No-match case ends normally.
+            put(8'h87);released();
+            operations=mask==255 ? 2 : position<4 ? position+2 : 4;
+            assert(reads==operations && dut.byte_counter==16'(operations) &&
+                   dut.remaining==17'(operations>=4 ? 0 : 4-operations) &&
+                   dut.end_of_block==(operations>=4) && !dut.search_stop_pending &&
+                   (direction!=0 ? dut.counter_a : dut.counter_b)==16'(32'h1000+operations) &&
+                   (direction!=0 ? dut.counter_b : dut.counter_a)==0)
+                else $fatal(1,"non-Byte match pipeline count/source/auto mask=%0d position=%0d",mask,position);
+            put(8'hbf);get(value);
+            assert(value[4]==!(position<4 || mask==255) && value[5]==(operations<4))
+                else $fatal(1,"non-Byte pipeline RR0");
+            tests++;
+        end
+        // Ready before match completion / after completion / after extra
+        // read starts: only the last case must drain the actual extra read.
+        for(integer ownership=1;ownership<3;ownership++)
+        for(integer position=0;position<4;position++)
+        for(integer io=0;io<2;io++)
+        for(integer phase=0;phase<3;phase++) begin
+            fresh();for(integer i=0;i<4;i++) source[i]=i==position ? 8'ha5 : 8'h36;
+            configure(1,1,0,io!=0 ? 8'h18 : 8'h10,16'h1000,ownership==1 ? 16'd4 : 16'd3,ownership);
+            if(phase==1) stop_reads=position+1;
+            put(8'h87);
+            if(phase==0) begin
+                wait(reads==position);wait(!rd_n);wait_n=0;rdy=1;
+                repeat(8) ctick();assert(!dut.match_found && reads==position)
+                    else $fatal(1,"Ready exception matched before completed source");
+                wait_n=1;
+            end
+            if(phase==2) begin
+                wait(dut.search_stop_pending);#1;wait(!rd_n);wait_n=0;rdy=1;
+                repeat(8) ctick();assert(!dut.match_found && reads==position+1)
+                    else $fatal(1,"extra read WAIT falsely located match");
+                begin
+                    integer saved_period;
+                    saved_period=period;period=100000000;repeat(20) tick();
+                    assert(!rd_n && dut.search_stop_pending && !dut.match_found)
+                        else $fatal(1,"stopped CE lost pending extra read");
+                    period=saved_period;
+                end
+                wait_n=1;
+            end
+            released();
+            operations=position+(phase==2 ? 2 : 1);
+            assert(reads==operations && dut.match_found && !dut.search_stop_pending &&
+                   dut.byte_counter==16'(phase==2 ? operations : operations-1) &&
+                   dut.counter_a==16'(32'h1000+operations) && dut.counter_b==0)
+                else $fatal(1,"Ready exception pipeline phase=%0d position=%0d",phase,position);
+        end
+        for(integer ownership=1;ownership<3;ownership++) begin
+            fresh();for(integer i=0;i<4;i++) source[i]=i==0 ? 8'ha5 : 8'h36;
+            configure(1,1,0,8'h10,16'h1000,ownership==1 ? 16'd4 : 16'd3,ownership);
+            put(8'hc4);released();assert(reads==2 && dut.match_found && !dut.search_stop_pending)
+                else $fatal(1,"non-Byte WR3 immediate stop enable");
+        end
+        // Abort/reset during the genuine extra read drains it once; a reset
+        // must not leave a pending stop that poisons a freshly loaded block.
+        for(integer ownership=1;ownership<3;ownership++)
+        for(integer abort_kind=1;abort_kind<4;abort_kind++) begin
+            fresh();for(integer i=0;i<4;i++) source[i]=i==0 ? 8'ha5 : 8'h36;
+            configure(1,1,0,8'h10,16'h1000,ownership==1 ? 16'd4 : 16'd3,ownership);
+            put(8'h87);wait(dut.search_stop_pending);#1;wait(!rd_n);wait_n=0;
+            repeat(8) ctick();
+            if(abort_kind==1) put(8'h83);
+            if(abort_kind==2) put(8'hc3);
+            begin
+                integer saved_period;
+                saved_period=period;period=100000000;
+                if(abort_kind==3) begin reset=1;tick();reset=0;end
+                repeat(20) tick();assert(!rd_n && dut.search_stop_pending && reads==1)
+                    else $fatal(1,"extra read abort truncated pending transaction");
+                period=saved_period;
+            end
+            wait_n=1;released();
+            assert(reads==2 && !dut.search_stop_pending)
+                else $fatal(1,"extra read abort duplicated/lost stop");
+            if(abort_kind==1) assert(dut.match_found && dut.byte_counter==2)
+                else $fatal(1,"extra read DISABLE lost real match");
+            else assert(!dut.match_found && !dut.loaded)
+                else $fatal(1,"extra read reset retained match/state");
+        end
         fresh();configure(1,1,0);
+        put(8'h07); // Sequential transfer/search stop remains unresolved.
         put(8'h92);put(8'hc1);
-        assert(unsupported) else $fatal(1,"pure Burst match-stop accepted without pipeline");
+        assert(unsupported) else $fatal(1,"sequential Burst stop accepted without resolved contract");
         put(8'ha1);
-        assert(unsupported) else $fatal(1,"pure continuous match-stop accepted without pipeline");
+        assert(unsupported) else $fatal(1,"sequential continuous stop accepted without resolved contract");
         $display("PASS pure search %0d masks/directions/positions/stop cases, Byte/repeat/non-stopping Burst/continuous, memory/io/address modes, WAIT/Ready/CE/abort/reset, CE=%0d",tests,period);
         $finish;
     end

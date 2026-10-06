@@ -88,6 +88,9 @@ test-machine-dma-search: turbo-dma
 test-machine-dma-search-nonbyte: turbo-dma
 	python3 tests/test_machine_dma_search.py ./$(DMA_DIR)/Vtop --nonbyte
 .PHONY: test-machine-dma-search-nonbyte
+test-machine-dma-search-stop: turbo-dma
+	python3 tests/test_machine_dma_search.py ./$(DMA_DIR)/Vtop --nonbyte --stop-pipeline
+.PHONY: test-machine-dma-search-stop
 test-machine-dma-search-nonbyte-boundaries: turbo-dma
 	python3 tests/test_machine_dma_search.py ./$(DMA_DIR)/Vtop --nonbyte --short
 	python3 tests/test_machine_dma_search.py ./$(DMA_DIR)/Vtop --nonbyte --zero

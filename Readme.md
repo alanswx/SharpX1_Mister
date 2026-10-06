@@ -86,7 +86,10 @@ unit and actual-CPU fast/delay-aware buffer/count/status tests, with zero
 destination writes. [Non-stopping Burst/continuous pure search](docs/DMA_NONBYTE_SEARCH_STATUS.md)
 now passes distinct counts/Ready ownership and twenty real-CPU profiles on
 fast and delay-aware builds; total search mask cases are 14,336.
-Non-Byte Stop on Match
+An actual [pure-search match-stop pipeline](docs/DMA_SEARCH_STOP_STATUS.md)
+adds real extra-read and Ready-loss behavior; 24,576 search cases and twenty
+actual-CPU fast/delay-aware stop profiles pass.
+Sequential non-Byte Stop on Match
 and IRQ/service remain open. DMA serialized state has a distinct revision;
 ordinary non-DMA v12 snapshots and defaults remain unchanged.
 A bounded [high-speed PCG increment](docs/TURBO_HIGH_SPEED_PCG_STATUS.md)

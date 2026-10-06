@@ -14,8 +14,10 @@ exe = str(pathlib.Path(sys.argv[1]).resolve())
 nonbyte = "--nonbyte" in sys.argv[2:]
 short = "--short" in sys.argv[2:]
 zero = "--zero" in sys.argv[2:]
+pipeline = "--stop-pipeline" in sys.argv[2:]
 assert not (short and zero) and (not (short or zero) or nonbyte)
-profiles = [(1, False), (2, False)] if nonbyte else [(0, False), (0, True)]
+assert not pipeline or (nonbyte and not short and not zero)
+profiles = [(1, pipeline), (2, pipeline)] if nonbyte else [(0, False), (0, True)]
 with tempfile.TemporaryDirectory(prefix="x1-machine-dma-search-") as directory:
     root = pathlib.Path(directory)
     for direction in (False, True):
@@ -34,11 +36,14 @@ with tempfile.TemporaryDirectory(prefix="x1-machine-dma-search-") as directory:
                               a & 255, a >> 8, 0 if zero else 1 if short else 4 if ownership == 1 else 3,
                               0, 0x14, 0x10,
                               0x9C if stop_match else 0x98, 0xFF if zero else 0xF0, 0xA5,
-                              0x8D | ownership << 5, b & 255, b >> 8, 0x92,
+                              0x8D | ownership << 5, b & 255, b >> 8,
+                              0xB2 if pipeline and position < 4 else 0x92,
                               0x02 if direction else 0x06, 0xCF,
                               0x06 if direction else 0x02, 0xCF):
                     f.out(0x1F80, value)
                 operations = position + 1 if stop_match and position < 4 else 4
+                if pipeline and position < 4:
+                    operations = position + 2
                 if short:
                     operations = 1 if ownership == 1 else 2
                 if zero:
@@ -46,11 +51,14 @@ with tempfile.TemporaryDirectory(prefix="x1-machine-dma-search-") as directory:
                 grants = operations if ownership == 0 else 1
                 for pair in range(grants):
                     f.out(0x1F80, 0xB3)
-                    f.out(0x1F80, 0x87)
+                    # Exercise genuine WR3 immediate-enable as well as WR6
+                    # ENABLE on the new stop pipeline; original profiles unchanged.
+                    f.out(0x1F80, 0xC4 if pipeline and position % 2 == 0 else 0x87)
                     f.out(0x1F80, 0xBF)
                     matched = zero or position < min(4, operations) and (ownership != 0 or pair >= position)
+                    terminal = (short or zero or operations >= 4) if ownership != 0 else pair == 3
                     f.check(0x1F80, (0 if matched else 0x10) |
-                            (0 if ownership != 0 or pair == 3 else 0x20), 0x30)
+                            (0 if terminal else 0x20), 0x30)
                 f.out(0x1F80, 0xBB)
                 f.out(0x1F80, 0x7E)
                 f.out(0x1F80, 0xA7)

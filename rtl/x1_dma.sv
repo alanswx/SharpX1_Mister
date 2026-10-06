@@ -37,7 +37,7 @@ module x1_dma (
     logic [6:0] read_mask;
     logic [2:0] read_index;
     logic write_seen, read_seen, enabled, loaded, force_ready;
-    logic requested, end_of_block, destination_first, match_found;
+    logic requested, end_of_block, destination_first, match_found, search_stop_pending;
     logic reset_pending, soft_reset_pending;
     logic [1:0] grant_samples;
     logic [2:0] cycle_left;
@@ -108,7 +108,7 @@ module x1_dma (
         search_only = wr0[1:0] == 2'b10;
         source_match = (data_in | mask_byte) == (match_byte | mask_byte);
         unsupported = bad_command || wr0[1:0] == 0 ||
-            wr3[5] || (wr3[2] && (!wr0[1] || wr4[6:5] != 0)) ||
+            wr3[5] || (wr3[2] && (!wr0[1] || (wr4[6:5] != 0 && !search_only))) ||
             wr4[6:5] == 2'b11 ||
             timing_a_set || timing_b_set || interrupt_control != 0;
         follow_index = -1;
@@ -137,7 +137,7 @@ module x1_dma (
         write_seen <= 0; read_seen <= 0; cpu_data_out <= 0;
         enabled <= 0; loaded <= 0; force_ready <= 0;
         requested <= 0; end_of_block <= 0; destination_first <= 0;
-        match_found <= 0;
+        match_found <= 0; search_stop_pending <= 0;
         reset_pending <= 0; soft_reset_pending <= 0;
         grant_samples <= 0; cycle_left <= 0; cycle_io <= 0;
         address <= 0; destination_address <= 0; data_out <= 0;
@@ -155,7 +155,7 @@ module x1_dma (
         timing_a_set <= 0; timing_b_set <= 0;
         timing_a <= 0; timing_b <= 0;
         bad_command <= 0; requested <= 0; end_of_block <= 0;
-        match_found <= 0;
+        match_found <= 0; search_stop_pending <= 0;
         soft_reset_pending <= 0; grant_samples <= 0;
     endtask
 
@@ -186,7 +186,13 @@ module x1_dma (
                             end else grant_samples <= grant_samples + 2'd1;
                         end
                         PAUSE: begin
-                            if (!enabled || unsupported || remaining == 0 ||
+                            if (search_stop_pending && (!ready_now || !enabled)) begin
+                                // No next read began: Table 12 Ready exception
+                                // stops at M reads with count M-1, not M+1.
+                                if (!ready_now) byte_counter <= byte_counter - 16'd1;
+                                match_found <= 1; search_stop_pending <= 0;
+                                enabled <= 0; state <= RELEASE; force_ready <= 0;
+                            end else if (!enabled || unsupported || (remaining == 0 && !search_stop_pending) ||
                                 (!ready_now && wr4[6:5] != 2'b01)) begin
                                 state <= RELEASE; force_ready <= 0;
                             end else if (ready_now && !busak_n && !write_event && !read_event) begin
@@ -212,33 +218,56 @@ module x1_dma (
                                 if (wr0[2]) counter_a <= step_address(counter_a, wr1);
                                 else counter_b <= step_address(counter_b, wr2);
                                 if (search_only) begin
-                                    // Pure search completes at the source
-                                    // read: never write or step the other port.
-                                    if (source_match) match_found <= 1;
-                                    remaining <= remaining - 17'd1;
+                                    if (search_stop_pending) begin
+                                        // Complete the genuine extra source read;
+                                        // its contents cannot replace the latched match.
+                                        search_stop_pending <= 0; match_found <= 1;
+                                        byte_counter <= byte_counter + 16'd1;
+                                        if (remaining != 0) remaining <= remaining - 17'd1;
+                                        if (remaining <= 1) end_of_block <= 1;
+                                        enabled <= 0; state <= RELEASE; force_ready <= 0;
+                                    end else if (wr3[2] && source_match && wr4[6:5] != 0) begin
+                                        remaining <= remaining - 17'd1;
+                                        if (remaining == 1) end_of_block <= 1;
+                                        if (ready_now && enabled && !reset_pending && !reset &&
+                                            !soft_reset_pending && !write_event) begin
+                                            // Table 12 Burst/continuous: M+1 reads
+                                            // and count M+1. Do not fake that extra read.
+                                            byte_counter <= byte_counter + 16'd1;
+                                            search_stop_pending <= 1; state <= PAUSE;
+                                        end else begin
+                                            match_found <= 1; enabled <= 0;
+                                            state <= RELEASE; force_ready <= 0;
+                                        end
+                                    end else begin
+                                        // Pure search completes at the source
+                                        // read: never write or step the other port.
+                                        if (source_match) match_found <= 1;
+                                        remaining <= remaining - 17'd1;
                                     // Table 11 Byte EOB: N+1 reads, count N;
                                     // non-Byte EOB counts completed reads. Table
                                     // 12 Byte match counts M reads (NOT M-1).
-                                    if (remaining == 1 && wr5[5] && !(wr3[2] && source_match) &&
-                                        enabled && !reset_pending && !reset &&
-                                        !soft_reset_pending && !write_event) begin
+                                        if (remaining == 1 && wr5[5] && !(wr3[2] && source_match) &&
+                                            enabled && !reset_pending && !reset &&
+                                            !soft_reset_pending && !write_event) begin
                                         // WR5 end-of-block repeat reloads both
                                         // buffers, not the source-only explicit LOAD.
                                         counter_a <= start_a; counter_b <= start_b;
                                         remaining <= operation_size(length); byte_counter <= 0;
                                         destination_first <= 1; end_of_block <= 0;
                                         match_found <= 0;
-                                    end else begin
+                                        end else begin
                                         if (wr4[6:5] != 0 || (wr3[2] && source_match) || remaining != 1)
                                             byte_counter <= byte_counter + 16'd1;
                                         if (remaining == 1) end_of_block <= 1;
                                         if (remaining == 1 || (wr3[2] && source_match)) enabled <= 0;
+                                        end
+                                        if ((remaining == 1 && !wr5[5]) || !enabled || reset_pending || reset ||
+                                            soft_reset_pending || (wr3[2] && source_match) || wr4[6:5] == 0 ||
+                                            (wr4[6:5] == 2'b10 && !ready_now)) begin
+                                            state <= RELEASE; force_ready <= 0;
+                                        end else state <= PAUSE;
                                     end
-                                    if ((remaining == 1 && !wr5[5]) || !enabled || reset_pending || reset ||
-                                        soft_reset_pending || (wr3[2] && source_match) || wr4[6:5] == 0 ||
-                                        (wr4[6:5] == 2'b10 && !ready_now)) begin
-                                        state <= RELEASE; force_ready <= 0;
-                                    end else state <= PAUSE;
                                 end else state <= WRITE_SETUP;
                             end
                         end
@@ -344,7 +373,7 @@ module x1_dma (
                                 wr3 <= cpu_data_in;
                                 follows[MASK] <= cpu_data_in[3]; follows[MATCH] <= cpu_data_in[4];
                                 if (cpu_data_in[6] && !cpu_data_in[5] &&
-                                    (!cpu_data_in[2] || (wr0[1] && wr4[6:5] == 0)) &&
+                                    (!cpu_data_in[2] || (wr0[1] && (wr4[6:5] == 0 || search_only))) &&
                                     !cpu_data_in[4] && !cpu_data_in[3] &&
                                     !unsupported) enabled <= 1;
                             end else if ((cpu_data_in & 8'h83) == 8'h81) begin
@@ -365,19 +394,19 @@ module x1_dma (
                                         remaining <= operation_size(length); byte_counter <= 0;
                                         loaded <= 1; force_ready <= 0;
                                         requested <= 0; end_of_block <= 0;
-                                        match_found <= 0;
+                                        match_found <= 0; search_stop_pending <= 0;
                                     end
                                     8'hd3: begin
                                         remaining <= operation_size(length); byte_counter <= 0;
                                         end_of_block <= 0; force_ready <= 0;
-                                        match_found <= 0;
+                                        match_found <= 0; search_stop_pending <= 0;
                                     end
                                     8'haf: wr3[5] <= 0;
                                     8'hab: wr3[5] <= 1;
                                     8'ha3: begin wr3[5] <= 0; force_ready <= 0; end
                                     8'hb7: bad_command <= 1;
                                     8'hbf: begin read_mask <= 1; read_index <= 0; end
-                                    8'h8b: begin end_of_block <= 0; match_found <= 0; end
+                                    8'h8b: begin end_of_block <= 0; match_found <= 0; search_stop_pending <= 0; end
                                     8'ha7: read_index <= first_read(read_mask);
                                     8'hb3: force_ready <= 1;
                                     8'h87: if (!unsupported && loaded && remaining != 0) enabled <= 1;
