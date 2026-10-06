@@ -95,8 +95,10 @@ uses FF ignore mask: match is necessarily genuine for every read, while
 stopping remains disabled. All counter bytes and RAM guards are CPU checked;
 the reported zero-wrap count is 0 continuous versus 1 Burst.
 Log `/tmp/x1-dma-nonbyte-search-boundaries-fast.log` (session 56455).
-Delay-aware boundary matrix is still live, not declared terminal, in
-`/tmp/x1-dma-nonbyte-search-boundaries-machine.log` (session 77843).
+The delay-aware boundary matrix also exits zero with all twelve cases in
+`/tmp/x1-dma-nonbyte-search-boundaries-machine.log` (session 77843). Thus
+both actual shared builds execute the full 65,536/65,537-read zero-wrap
+operations and verify counters through the CPU, not just a fixture monitor.
 
 | Tested artifact | SHA-256 |
 |---|---|
