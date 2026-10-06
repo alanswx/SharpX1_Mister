@@ -66,6 +66,8 @@ module dma_cpu_tb;
         .rd(cpu_rd_n),.wr(cpu_wr_n),.rfsh_n(cpu_rfsh_n),.halt_n(cpu_halt_n)
     );
     x1_dma dma(
+        .iei(1'b1),.acknowledge(1'b0),.reti(1'b0),
+        .irq(),.ieo(),.irq_pending(),.irq_in_service(),.ack_vector(),
         .clk(clk),.ce(dma_ce),.reset(dma_reset),
         .cpu_cs(dma_cpu_cs),.cpu_rd_n(cpu_rd_n),.cpu_wr_n(cpu_wr_n),
         .cpu_data_in(cpu_dout),.cpu_data_out(dma_cpu_dout),

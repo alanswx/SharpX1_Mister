@@ -94,6 +94,8 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     wire dma_cs = TURBO && TURBO_DMA && !dma_owner && io_cycle && !dam && a[15:4] == 12'h1f8;
     generate if (TURBO && TURBO_DMA) begin : turbo_dma
         x1_dma engine (
+            .iei(1'b1),.acknowledge(1'b0),.reti(1'b0),
+            .irq(),.ieo(),.irq_pending(),.irq_in_service(),.ack_vector(),
             .clk(clk_sys), .ce(pe4M4), .reset(dma_reset),
             .cpu_cs(dma_cs), .cpu_rd_n(cpu_rd), .cpu_wr_n(cpu_wr),
             .cpu_data_in(cpu_data_out), .cpu_data_out(dma_data),

@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Original DMA interrupt-service engine, 2026; no emulator RTL copied.
 // Zilog UM008101-0601 printed 79-88, 100-103, 108-111.
-// Preparatory standalone module, NOT connected to x1_dma or the machine yet.
+// Standalone foundation; x1_dma can opt into completion service separately.
+// Ordinary board/shared-machine profiles still leave that parameter disabled.
 //
 // condition is a caller-qualified, persistent interrupt condition, not an
 // arbitrary raw match pulse: stop/release, auto-restart and Ready/IOR policies

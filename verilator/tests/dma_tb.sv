@@ -10,7 +10,8 @@ module dma_tb;
     logic [15:0] address;
     logic [7:0] data_out, data_in;
     logic wait_n=1, rdy=0, unsupported;
-    x1_dma dut(.*);
+    x1_dma dut(.iei(1'b1),.acknowledge(1'b0),.reti(1'b0),
+        .irq(),.ieo(),.irq_pending(),.irq_in_service(),.ack_vector(),.*);
 
     logic [7:0] memory [0:65535];
     integer clock_edges=0, ce_period=1, ack_delay=4, ack_counter=0;

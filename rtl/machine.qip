@@ -23,6 +23,8 @@ set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_video_status.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_reset_release.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_dma_reset.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_dma.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_dma_service.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_dma_vector.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_text_raster.sv
 set_global_assignment -name VERILOG_FILE rtl/x1_disk_control.v
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_disk_media.sv

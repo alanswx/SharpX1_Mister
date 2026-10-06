@@ -96,6 +96,10 @@ The separate [DMA service foundation](docs/DMA_SERVICE_STATUS.md) passes
 4,096 arbitration cases, 2,048 status-vector cases and twelve connected real-CPU/DMA
 IM2/HALT/handler/RETI profiles, including stopped-enable held ACKs. It is not
 yet wired into machine DMA or native interrupt programming.
+The subsequent [completion-IRQ command path](docs/DMA_COMMAND_IRQ_STATUS.md)
+adds an explicit device-only `COMPLETION_IRQ=1` profile: 36,864 register/vector
+cases and twelve real-CPU WR4/IM2/RR0/RETI cases pass. Machine/board defaults
+still disable it; Ready/restart interrupts and shared-machine IRQ remain open.
 A bounded [high-speed PCG increment](docs/TURBO_HIGH_SPEED_PCG_STATUS.md)
 adds selector shadows, frozen HSYNC-window access and CPU ANK8/16 selection.
 Original unit/CPU tests pass; ASIC fallback/WAIT phase, Kanji and hardware

@@ -1,5 +1,10 @@
 # DMA interrupt-service foundation (not machine IRQ support)
 
+The subsequent [command-path increment](DMA_COMMAND_IRQ_STATUS.md) now
+connects these engines inside an explicitly enabled DMA device diagnostic.
+The results below remain the separate, earlier foundation evidence; default
+machine profiles still have no completion IRQ path.
+
 October 6, 2026. Original GPL-2.0-or-later `rtl/x1_dma_service.sv` and
 `rtl/x1_dma_vector.sv` advance
 work group 2. It is intentionally not in `rtl/machine.qip` or instantiated
@@ -58,7 +63,7 @@ make -C verilator test-dma-service test-dma-service-cpu \
 ```
 
 Verilator 5.044, timing/assertions enabled. Standalone **4,096 cases** exhaust
-256 vector bytes × condition/enable/ownership/IEI combinations. Directed
+256 vector bytes × condition/enable/ownership/IEI combinations.
 An additional **2,048 current-status vector cases** exhaust every base byte,
 modification on/off and all four flag combinations, including odd vectors.
 Directed cases cover retained disabled conditions, AF preserving IP/IUS, A3 priority,

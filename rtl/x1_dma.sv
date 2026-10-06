@@ -4,7 +4,7 @@
 // MAME z80dma.cpp/h (Couriersud, BSD-3-Clause) consulted, not translated.
 // See docs/DMA_STATUS.md and DMA_MACHINE_STATUS.md: not a pin-timing model;
 // shared-machine use is a separate opt-in subset, not native compatibility.
-module x1_dma (
+module x1_dma #(parameter bit COMPLETION_IRQ=0) (
     input  logic clk, ce, reset,
     input  logic cpu_cs, cpu_rd_n, cpu_wr_n,
     input  logic [7:0] cpu_data_in,
@@ -16,7 +16,10 @@ module x1_dma (
     output logic [7:0] data_out,
     input  logic [7:0] data_in,
     input  logic wait_n, rdy,
-    output logic unsupported
+    output logic unsupported,
+    input  logic iei, acknowledge, reti,
+    output logic irq, ieo, irq_pending, irq_in_service,
+    output logic [7:0] ack_vector
 );
     typedef enum logic [3:0] {
         IDLE, REQUEST, READ_SETUP, READ_CYCLE,
@@ -46,6 +49,33 @@ module x1_dma (
     logic physical_ready, ready_now, pair_active, write_event, read_event;
     logic byte_match_stop, search_only, source_match;
     integer follow_index;
+
+    // Completion IRQ is a separate explicit qualification profile. Ready/IOR,
+    // pulse generation and restart interrupts remain rejected, not emulated
+    // by an always-ready request or a fake completion cause.
+    wire irq_clear = ce && write_event && follows==0 && !pair_active &&
+        state!=PAUSE && state!=REQUEST && cpu_data_in==8'ha3;
+    wire irq_reset = reset || reset_pending || soft_reset_pending ||
+        (ce && write_event && follows==0 && cpu_data_in==8'hc3);
+    wire irq_condition = !enabled && !unsupported &&
+        ((interrupt_control[0] && match_found) ||
+         (interrupt_control[1] && end_of_block));
+    wire irq_bus_block;
+    if(COMPLETION_IRQ) begin : completion_interrupts
+        wire [7:0] candidate;
+        x1_dma_vector formation(.base_vector(interrupt_vector),
+            .status_affects_vector(interrupt_control[5]),.match_found(match_found),
+            .end_of_block(end_of_block),.vector(candidate));
+        x1_dma_service service(.clk(clk),.reset(irq_reset),
+            .irq_enabled(wr3[5]),.condition(irq_condition),
+            .bus_owned(!busrq_n || !busak_n),.iei(iei),
+            .acknowledge(acknowledge),.reti(reti),.reset_interrupts(irq_clear),
+            .candidate_vector(candidate),.pending(irq_pending),.in_service(irq_in_service),
+            .irq(irq),.ieo(ieo),.block_bus_request(irq_bus_block),.ack_vector(ack_vector));
+    end else begin : no_completion_interrupts
+        assign irq=0, ieo=iei, irq_pending=0, irq_in_service=0;
+        assign irq_bus_block=0, ack_vector=8'hff;
+    end
 
     function automatic logic [15:0] step_address(
         input logic [15:0] value, input logic [7:0] config_byte
@@ -84,7 +114,7 @@ module x1_dma (
     function automatic logic [7:0] read_register(input logic [2:0] which);
         case (which)
             // Undefined bits 7,6,2 are deterministic zero. D1 follows prose.
-            0: read_register = {2'b00, !end_of_block, !match_found, 1'b1,
+            0: read_register = {2'b00, !end_of_block, !match_found, !irq_pending,
                                 1'b0, physical_ready, requested};
             1: read_register = byte_counter[7:0];
             2: read_register = byte_counter[15:8];
@@ -108,9 +138,11 @@ module x1_dma (
         search_only = wr0[1:0] == 2'b10;
         source_match = (data_in | mask_byte) == (match_byte | mask_byte);
         unsupported = bad_command || wr0[1:0] == 0 ||
-            wr3[5] || (wr3[2] && (!wr0[1] || (wr4[6:5] != 0 && !search_only))) ||
+            (!COMPLETION_IRQ && wr3[5]) || (wr3[2] && (!wr0[1] || (wr4[6:5] != 0 && !search_only))) ||
             wr4[6:5] == 2'b11 ||
-            timing_a_set || timing_b_set || interrupt_control != 0;
+            timing_a_set || timing_b_set ||
+            (COMPLETION_IRQ ? (|(interrupt_control & 8'hcc) ||
+                (wr5[5] && |interrupt_control[1:0])) : interrupt_control != 0);
         follow_index = -1;
         for (integer j=13; j>=0; j=j-1)
             if (follows[j]) follow_index = j;
@@ -172,7 +204,7 @@ module x1_dma (
                 else begin
                     case (state)
                         IDLE: if (!write_event && !read_event && enabled && follows == 0 && loaded && remaining != 0 &&
-                                  ready_now && !unsupported && busak_n) begin
+                                  ready_now && !unsupported && busak_n && !irq_bus_block) begin
                             state <= REQUEST; grant_samples <= 0;
                             requested <= 1;
                         end
@@ -372,7 +404,7 @@ module x1_dma (
                             end else if ((cpu_data_in & 8'h83) == 8'h80) begin
                                 wr3 <= cpu_data_in;
                                 follows[MASK] <= cpu_data_in[3]; follows[MATCH] <= cpu_data_in[4];
-                                if (cpu_data_in[6] && !cpu_data_in[5] &&
+                                if (cpu_data_in[6] && (COMPLETION_IRQ || !cpu_data_in[5]) &&
                                     (!cpu_data_in[2] || (wr0[1] && (wr4[6:5] == 0 || search_only))) &&
                                     !cpu_data_in[4] && !cpu_data_in[3] &&
                                     !unsupported) enabled <= 1;

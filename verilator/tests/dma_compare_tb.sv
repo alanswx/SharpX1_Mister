@@ -18,7 +18,8 @@ module dma_compare_tb;
     logic old_rd=1,old_wr=1;
     logic [15:0] old_address=0;
     logic [7:0] old_data=0;
-    x1_dma dut(.*);
+    x1_dma dut(.iei(1'b1),.acknowledge(1'b0),.reti(1'b0),
+        .irq(),.ieo(),.irq_pending(),.irq_in_service(),.ack_vector(),.*);
     always_comb data_in=source[address[1:0]];
     always @(negedge clk) begin
         edges++;ce=(edges%period)==0;

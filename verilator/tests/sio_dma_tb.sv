@@ -30,6 +30,8 @@ module sio_dma_tb;
     reg [7:0] memory[0:65535];
     assign data_in=dma_io ? sio_dout : memory[address];
     x1_dma dma(.clk(clk),.ce(ce),.reset(reset),.cpu_cs(dma_cs),
+        .iei(1'b1),.acknowledge(1'b0),.reti(1'b0),
+        .irq(),.ieo(),.irq_pending(),.irq_in_service(),.ack_vector(),
         .cpu_rd_n(dma_rd_n),.cpu_wr_n(dma_wr_n),.cpu_data_in(host_data),
         .cpu_data_out(dma_cpu_out),.busrq_n(busrq_n),.busak_n(busak_n),
         .mreq_n(mreq_n),.iorq_n(iorq_n),.rd_n(rd_n),.wr_n(wr_n),
