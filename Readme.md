@@ -136,8 +136,11 @@ passes pin tests and actual-CPU stalled IN/OUT tests at those rates; it does
 not establish exact pin timing. A subsequent [standalone SIO/DMA fixture](docs/SIO_DMA_STATUS.md)
 passes A/B RX/TX Ready-paced transfers, count readback and stopped-enable recovery;
 it fixes repeated copies of a locked error character in the opt-in flow model.
-Actual CPU/SIO/DMA ownership together and exact pin handshakes remain open.
-Neither is connected to the machine; native reset arming, remaining external
+A further [actual CPU/SIO/DMA diagnostic](docs/SIO_DMA_CPU_STATUS.md) passes
+real grants, continuous RX/TX, CPU count/data checks and CPU-driven burst
+error inspection/reset on both channels at CE=1/4/7. Combined IM2/DMA service
+and exact pin handshakes remain open.
+The SIO wrappers are not connected to the machine; native reset arming, remaining external
 sources, x1/break/exact WAIT/Ready and full multi-device arbitration remain open.
 The simulator window now offers optional [live joystick keys](docs/PLAYING.md):
 arrows, Space (button 1) and Ctrl (button 2), through `--joystick-keys`.

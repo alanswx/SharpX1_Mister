@@ -5,6 +5,9 @@ October 6, 2026. Original `sio_dma_tb.sv` connects the actual
 functional fixture with a synthetic retained bus grant, not an actual CPU,
 X1 schematic connection, native firmware run, fitted design or hardware test.
 The shared machine still has no SIO; machine defaults and v11 states stay unchanged.
+A subsequent [actual CPU/SIO/DMA diagnostic](SIO_DMA_CPU_STATUS.md) now
+qualifies real programming/grants, continuous RX/TX and CPU-driven burst error
+intervention separately; it does not establish machine/native integration.
 
 ## Connection and coverage
 
@@ -75,9 +78,9 @@ inherited TV80 missing `DIRSET` pin warning, without new suppressions.
 - Exact W/RDY half-clock/open-drain/opposite-channel behavior; native reset
   arming, other errors/configurations, simultaneous read/Error Reset/arrival
   collisions with the new Ready latch, and reset during owned serial pairs.
-- Continuous ownership and bursts with multiple queued RX bytes; independent
+- Bursts with multiple queued RX bytes; independent
   CPU/serial phase and DMA WAIT variations, beyond the covered CE pause.
-- Actual CPU bus ownership plus SIO/DMA together, schematic-qualified clock,
+- Combined actual CPU/SIO/DMA reset and IM2 service, schematic-qualified clock,
   modem/Ready wiring and decode, DAM isolation, and shared CTC/SIO/keyboard
   ACK/RETI service. Do not connect SIO to machine RDY just from this fixture.
 - Native unchanged diagnostics, current-source Quartus timing/CDC/reset and

@@ -76,6 +76,11 @@ byte/burst Ready pacing, stopped-enable read recovery, terminal readback and
 framing-lock/Error Reset recovery. Opt-in Ready now inhibits repeated DMA
 reads of a locked error word. Actual CPU/SIO/DMA ownership together, exact
 pin timing and machine integration remain open.
+The subsequent [actual CPU/SIO/DMA diagnostic](SIO_DMA_CPU_STATUS.md) passes
+both channels at CE=1/4/7: continuous RX/TX real grants and PC isolation,
+CPU byte/count assertions, and CPU-driven burst error inspection/Error Reset.
+Combined IM2/reset/daisy-chain and schematic-qualified machine integration
+remain open; this is not native or hardware acceptance.
 Both complete frozen fast/delay-aware metadata CPU matrices now pass.
 Four v05 native-control titles pass; Shanghai's expected-pair assertion failed
 with unchanged inputs and retained evidence. None qualifies later v10 RTL.
@@ -97,7 +102,7 @@ current-source refit remain required; assembly is not timing closure.
 | 1. Timing/CDC | Frozen `15a0655` fit/path/retained-state audit completed; same-clock machine setup passes; real CDC/reset and mux-alternative failures classified | Review narrow first-stage recognition, held-bus bounds and mux exclusivity; refit current source; do not globally cut SYS↔VID paths |
 | 2. DMA | Opt-in machine integration passes complete fast/delay-aware RAM/A/B read/write/protection/CRC/count cases, four real-machine reset cases, and subsequent RAM-under-IPL checks | Pending-SD/reset, PCG/GRAM targets, native Turbo IPL continuity, unsupported functions and fitted/hardware acceptance |
 | 3. Kanji/video | Existing ANK/expanded-text checks retained; Kanji attribute storage is not glyph support | Implement documented CPU latches/ROM mapping and glyph halves with synthetic assets; qualify expanded-attribute/PCG/native combinations |
-| 4. SIO | Standalone engine passes 108 formats/FIFO/collisions; IRQ wrapper passes first/all-RX/TX/CTS/DCD, error locks/collisions, nested service/held ACK; opt-in flow, bounded A/B SIO/DMA Ready/error recovery and three actual-CPU profiles pass at CE=1/4/7 | Native reset arming/remaining external sources, x1/break/live configuration, exact WAIT/Ready, broader DMA/actual combined CPU ownership, multi-device service qualification, schematic clocks/pins and machine integration |
+| 4. SIO | Standalone formats/FIFO/IRQ/error/service, opt-in flow and A/B SIO/DMA pacing pass; combined actual CPU continuous RX/TX ownership and burst error intervention pass at CE=1/4/7 | Native reset arming/remaining external sources, x1/break/live configuration, exact WAIT/Ready, broader DMA/reset/IM2 service, multi-device qualification, schematic clocks/pins and machine integration |
 | 5. Native software | Five v11 baseline titles pass movement/firing/pair checks; Shanghai feedback prepares the same pair and passes unchanged assertions, preserving old failure | Broader/delay-aware/hardware gameplay, polling-phase diagnosis, Arcus/Bastard playability; hardware unavailable |
 
 The v11 batch uses source `95c181c`, base SYS32/VID28,571,428 Hz, fast
