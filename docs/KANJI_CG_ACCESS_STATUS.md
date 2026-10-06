@@ -100,10 +100,12 @@ to hosted CI; their local success does not establish a completed hosted run.
 
 ## Required next gates
 
-1. Broaden the explicit shared-machine profile to nominal X3 and combined DMA
-   only after qualifying their independent reset/ownership/clock interactions.
+1. Broaden the explicit shared-machine profile to combined DMA only after
+   qualifying reset/ownership/clock interactions. Nominal X3 CPU/snapshot and
+   pending-read reset checks now pass separately below.
 2. Broaden shared CPU/machine execution to malformed/reloaded ROM,
-   pending-read short reset, held bus and retained warm state.
+   held bus and broader retained warm-state/device concurrency. Pending-read
+   short resets now pass in the original whole-machine fixture below.
 3. Resolve native archive-to-physical chip identity and font order; qualify
    authorized assets instead of treating Shift-JIS exports as raw chip dumps.
 4. Finish display KACE/PCG/ANK/raster/underline selection and actual glyph
@@ -159,3 +161,52 @@ of a ROM download during restore pass. Log
 whole-run sync-count comparison remains recorded in
 `/tmp/x1-kanji-machine-snapshot.log`; no RTL or state was changed to fix that
 test expectation. Do not edit state bytes to bypass the profile checks.
+
+## X3 clock and whole-machine pending-read reset
+
+`test-machine-kanji-x3` and `test-machine-kanji-x3-fast` repeat the unchanged
+1,024-byte INI/read-only/level2/ANK/absent/cold/warm matrix with nominal
+42,954,540 Hz video and 32 MHz system clocks. Both exit zero; logs
+`/tmp/x1-kanji-machine-x3-{timing,fast}.log`. These are isolated opt-in builds,
+not a changed default or fitted FPGA PLL frequency. `KANJI_VIDEO=1` sets both
+the RTL parameter and runner/profile identity; always use a separate directory
+when changing a compile-time model.
+
+`test-machine-kanji-x3-snapshot` also exits zero. Its real executing CPU/INI
+checkpoint resumes with the retained physical ROM, exact final dumps and
+reports, additive sync counts and bidirectional rejection against the
+same-clock default X3 model. Log `/tmp/x1-kanji-machine-x3-snapshot.log`.
+
+`test-machine-kanji-reset HEADLESS_DIR=obj_dir_v12_kanji_reset` passes five
+whole-machine profiles using the actual shared CPU, selector, RAM, loader,
+video and release synchronizer. Clock half-periods are 15,625 ps system and
+11,640 ps video (a synthetic X3-like ratio, not the exact nominal frequency).
+All assets are original emitted instructions and synthetic physical bytes,
+loaded through ioctl. The CPU increments a retained boot count and performs
+sixteen INI operations into D000 RAM, then checks those bytes and stores a
+success/failure marker. No machine state, bus or result is forced.
+
+| Reset profile | Evidence |
+|---|---|
+| 0: normal pulse while read pending | Immediate cancellation and native CPU restart |
+| 1: 100 ps pulse between CPU edges | Cancellation without a sampled CPU reset edge |
+| 2: stopped video, 100 ps pulse | Video reset remains held until video resumes; CPU then completes |
+| 3: stopped system clock, 100 ps pulse | Pending transaction cancels before system clock resumes |
+| 4: CPU-programmed closed HSYNC window | HSYNC position beyond total holds WAIT/busy for 128 system cycles; reset restarts with normal sync |
+
+Every profile requires retained ROM/readiness, no loader error, boot count two,
+sixteen correct post-reset CPU INI bytes and exactly zero PCG writes. Log
+`/tmp/x1-kanji-machine-reset-final.log`. Explicit unused fixture outputs remove
+the initial fixture pin warnings; inherited machine warnings remain without
+new suppressions. The initial closed-window draft incorrectly used zero sync
+width and direct OUT instructions with the wrong BC port; it was corrected
+and given the explicit 128-cycle stalled-window assertion before qualification.
+
+Negative control: only the adapter CPU process's asynchronous reset sensitivity
+was removed in `/private/tmp/x1-kanji-machine-negative-L6rPTg/`. The unchanged
+whole-machine short-pulse fixture fails at `pending transaction did not cancel
+asynchronously`, exit 1. Logs `/tmp/x1-kanji-machine-reset-negative{,-build}.log`.
+Production RTL was not changed. Four new targets are added to hosted CI;
+local success does not establish completed hosted execution or hardware/OSD
+acceptance. Combined DMA, malformed shared uploads/recovery, native fonts and
+glyph rendering remain open.

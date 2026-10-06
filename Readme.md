@@ -113,16 +113,17 @@ The directed three-device DMA/CTC/real-MR16 pending profile also passes on both
 timing models, with ordered keyboard make/break and cold repeat checks.
 The [Kanji contract audit](docs/KANJI_CONTRACT_STATUS.md) adds an exhaustive
 schematic-derived first-level address component and a separately tested 128 KiB
-dual-clock ROM loader. Synthetic byte/read/reset checks pass; shared-machine
-loader, CPU-port and glyph integration remain incomplete, and Turbo Z requires
-its separate larger ROM path. No private font data is included.
+dual-clock ROM loader. Synthetic byte/read/reset checks pass; the opt-in shared
+CPU/loader path is now connected, but glyph rendering remains incomplete and
+Turbo Z requires its separate larger ROM path. No private font data is included.
 An optional, default-disabled high-speed CG Kanji selector now passes exhaustive
 physical addressing/isolation tests, informed by static inspection of a
 published hardware monitor. Its [ROM/WAIT backend](docs/KANJI_CG_ACCESS_STATUS.md)
 now passes connected synthetic tests and six cold/warm actual-CPU profiles.
 The separate opt-in `turbo-kanji` shared-machine profile adds physical-ROM
 loading and native CPU CG/INI checks; it is not a native glyph renderer or
-an enabled FPGA capability. Default profiles stay unchanged.
+an enabled FPGA capability. X3 fast/delay-aware CPU checks, executing snapshots
+and five pending-read reset cases also pass. Default profiles stay unchanged.
 A bounded [high-speed PCG increment](docs/TURBO_HIGH_SPEED_PCG_STATUS.md)
 adds selector shadows, frozen HSYNC-window access and CPU ANK8/16 selection.
 Original unit/CPU tests pass; ASIC fallback/WAIT phase, Kanji and hardware

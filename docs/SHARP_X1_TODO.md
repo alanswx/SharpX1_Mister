@@ -70,6 +70,10 @@ pass cold/warm connected selector/ROM qualification. The opt-in shared-machine
 loader/profile now executes original CPU INI checks across all banks/halves
 on fast/delay-aware cold/warm runs. An executing CPU snapshot resumes with
 exact final dumps, additive sync counts and bidirectional profile rejection.
+The nominal X3 fast/delay-aware matrix and same-clock default/X3 opt-in
+snapshot isolation also pass. Five whole-machine pending-read reset profiles
+pass, including short pulses, stopped clocks and CPU-programmed closed HSYNC;
+an asynchronous-cancellation negative control fails as expected.
 Native assets, broader clock/reset coverage and rendering remain required.
 Turbo Z is now explicitly part of the requested goal. Its Z0–Z9 milestones
 and acceptance gates are tracked in [TURBO_Z_PLAN.md](TURBO_Z_PLAN.md).

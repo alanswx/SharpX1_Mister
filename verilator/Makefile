@@ -106,10 +106,12 @@ turbo-video-savable: obj_dir_turbo_video_savable/Vtop
 # Physical first-level CG ROM only; no renderer/0E80/Z capability implied.
 KANJI_DIR ?= obj_dir_turbo_kanji
 KANJI_TIMING ?= --timing
+KANJI_VIDEO ?= 0
 turbo-kanji: $(KANJI_DIR)/Vtop
 $(KANJI_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc $(KANJI_TIMING) --assert --trace-fst --exe --build -j 4 --Mdir $(KANJI_DIR) --top-module top \
-		-GTURBO=1 -GTURBO_KANJI=1 -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_TURBO_KANJI" \
+		-GTURBO=1 -GTURBO_KANJI=1 -GTURBO_VIDEO_MASTER=$(KANJI_VIDEO) \
+		-CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_TURBO_KANJI $(if $(filter 1,$(KANJI_VIDEO)),-DX1_TURBO_VIDEO_MASTER)" \
 		-MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 .PHONY: turbo-kanji
 test-machine-kanji: turbo-kanji
@@ -118,20 +120,38 @@ test-machine-kanji: turbo-kanji
 test-machine-kanji-fast:
 	$(MAKE) test-machine-kanji KANJI_DIR=obj_dir_turbo_kanji_fast KANJI_TIMING=--no-timing
 .PHONY: test-machine-kanji-fast
+test-machine-kanji-x3:
+	$(MAKE) test-machine-kanji KANJI_DIR=obj_dir_v12_kanji_x3 KANJI_VIDEO=1
+test-machine-kanji-x3-fast:
+	$(MAKE) test-machine-kanji KANJI_DIR=obj_dir_v12_kanji_x3_fast KANJI_VIDEO=1 KANJI_TIMING=--no-timing
+.PHONY: test-machine-kanji-x3 test-machine-kanji-x3-fast
+
+test-machine-kanji-reset: $(HEADLESS_DIR)/kanji-machine-reset/Vkanji_machine_reset_tb
+	@for kind in 0 1 2 3 4; do ./$(HEADLESS_DIR)/kanji-machine-reset/Vkanji_machine_reset_tb +RESET_KIND=$$kind || exit 1; done
+$(HEADLESS_DIR)/kanji-machine-reset/Vkanji_machine_reset_tb: $(V_SRC) tests/kanji_machine_reset_tb.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module kanji_machine_reset_tb --Mdir $(HEADLESS_DIR)/kanji-machine-reset \
+		-j 4 $(V_SRC) tests/kanji_machine_reset_tb.sv -Wno-fatal
+.PHONY: test-machine-kanji-reset
 KANJI_SAVE_DIR ?= obj_dir_turbo_kanji_savable
 KANJI_PLAIN_SAVE_DIR ?= obj_dir_turbo_kanji_plain_savable
 turbo-kanji-savable: $(KANJI_SAVE_DIR)/Vtop $(KANJI_PLAIN_SAVE_DIR)/Vtop
 $(KANJI_SAVE_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc --no-timing --savable --assert --trace-fst --exe --build -j 4 --Mdir $(KANJI_SAVE_DIR) --top-module top \
-		-GTURBO=1 -GTURBO_KANJI=1 -CFLAGS "-std=c++20 -DX1_SAVABLE -DX1_TURBO_FOUNDATION -DX1_TURBO_KANJI" \
+		-GTURBO=1 -GTURBO_KANJI=1 -GTURBO_VIDEO_MASTER=$(KANJI_VIDEO) \
+		-CFLAGS "-std=c++20 -DX1_SAVABLE -DX1_TURBO_FOUNDATION -DX1_TURBO_KANJI $(if $(filter 1,$(KANJI_VIDEO)),-DX1_TURBO_VIDEO_MASTER)" \
 		-MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 $(KANJI_PLAIN_SAVE_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc --no-timing --savable --assert --trace-fst --exe --build -j 4 --Mdir $(KANJI_PLAIN_SAVE_DIR) --top-module top \
-		-GTURBO=1 -CFLAGS "-std=c++20 -DX1_SAVABLE -DX1_TURBO_FOUNDATION" \
+		-GTURBO=1 -GTURBO_VIDEO_MASTER=$(KANJI_VIDEO) \
+		-CFLAGS "-std=c++20 -DX1_SAVABLE -DX1_TURBO_FOUNDATION $(if $(filter 1,$(KANJI_VIDEO)),-DX1_TURBO_VIDEO_MASTER)" \
 		-MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 test-machine-kanji-snapshot: turbo-kanji-savable
 	python3 tests/test_machine_kanji_snapshot.py ./$(KANJI_SAVE_DIR)/Vtop ./$(KANJI_PLAIN_SAVE_DIR)/Vtop
 .PHONY: turbo-kanji-savable test-machine-kanji-snapshot
+test-machine-kanji-x3-snapshot:
+	$(MAKE) test-machine-kanji-snapshot KANJI_VIDEO=1 KANJI_SAVE_DIR=obj_dir_v12_kanji_x3_savable KANJI_PLAIN_SAVE_DIR=obj_dir_v12_kanji_x3_plain_savable
+.PHONY: test-machine-kanji-x3-snapshot
 
 # Separate opt-in DMA profile. Board/default Turbo profiles remain unchanged.
 DMA_DIR ?= obj_dir_turbo_dma
