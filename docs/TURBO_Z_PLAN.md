@@ -81,6 +81,10 @@ extra GRAM. The digital RGB output reduces analog multi-mode colors to eight
   `1FB8..1FBF`, graphics palette control `1FC5`, and palette programming/read
   transactions at `1000..12FF`. Establish AEN/APEN/APRD/C64 gating, address
   formation, masks, reset and palette RAM retention from hardware diagrams.
+  The [October 6 palette contract audit](TURBO_Z_PALETTE_CONTRACT.md) records
+  the visible 12-address-bit/three-component RAM wiring, precise emulator
+  disagreements and the original diagnostic matrix. ASIC index/read/WAIT
+  behavior remains unresolved; no palette registers are implemented yet.
   Exhaust palette entries/components and read-selector transactions; verify
   address/data latch and held-strobe behavior, WAIT/bus ownership, live changes
   during blanking/active display and mode switches without reset.

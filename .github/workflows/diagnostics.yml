@@ -52,7 +52,7 @@ jobs:
             # explicitly: --compiler alone does not select the make compiler.
             # Keep all RTL assertions, delays and full simulated durations.
             timeout "${limit_s}s" make -C verilator "${target}" HEADLESS_DIR=obj_dir_ci \
-              V='verilator --compiler clang -MAKEFLAGS CXX=clang++' CXX=clang++ DMA_TEST_CFLAGS=-O0 || exit $?
+              V='verilator --compiler clang -CFLAGS -std=c++20 -MAKEFLAGS CXX=clang++' CXX=clang++ DMA_TEST_CFLAGS=-O0 || exit $?
           done
       - name: Check whitespace
         run: git diff --check HEAD^ HEAD

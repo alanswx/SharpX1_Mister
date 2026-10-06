@@ -38,9 +38,16 @@ machine capability or requalification of five games.
   joystick persistence/override and SDL dummy-driver checks. Its modified
   invalid header is a negative fixture, never a state conversion.
 
-The fresh full delay-aware baseline regression and unchanged native Xevious
-qualification were started separately; their terminal results must be
-recorded before advertising them as acceptance of this increment.
+The unchanged native **Xevious v12 qualification exits zero**: fresh native
+16-second boot, start/live transitions and the original 300-ms right-control
+check move the detected player from `[30,40]` to `[36,40]`, with actual RGB
+changes and main-RAM/report/frame repeatability. Original disk/ROM/key hashes
+are retained in ignored `obj_dir_v12_rgb12_fast/native-requalification/xevious/`.
+This is base fast simulation, not Turbo Z or hardware playability.
+The other four titles have a fresh sequential batch running; they are not
+v12 passes yet. The full delay-aware baseline regression remains running:
+its complete 40/80-column pixel matrix passes; peripheral gates still require
+a terminal result.
 
 Source-bound executables (Verilator 5.044 / macOS Clang):
 
@@ -66,6 +73,15 @@ does not remove delays/assertions, shorten transfers or relax acceptance.
 tunes generated code but does not select the make compiler; the workflow also
 passes `CXX=clang++` through `-MAKEFLAGS`, and prints compiler versions.
 Hosted execution remains an independent acceptance gate.
+The [first Clang retry](https://github.com/alanswx/SharpX1_Mister/actions/runs/37490381146)
+failed before simulation because Ubuntu's GCC-configured Verilator passed
+`-fcoroutines` without a C++20 language selection. Clang warns that this GCC
+flag is unused; its default C++17 mode cannot compile the coroutine headers.
+The workflow now also explicitly passes `-CFLAGS -std=c++20`. This is a
+host-language accommodation, not a change to RTL or enabled delays.
+The exact Clang-selection command also completed the full local DMA unit:
+32 groups, 5,955,942 clock edges, including 65,537-byte/wrap tests, at CE=1/4.
+Log `/tmp/x1-v12-ci-clang-dma.log`; this is not a Linux hosted pass.
 
 ## Still required
 
