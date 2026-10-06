@@ -77,6 +77,11 @@ targets also exit zero on the isolated `--no-timing` runner. Their functional
 results agree with the delay-aware profile; fast ignores inherited delays.
 The full base delay-aware regression remains running and is not inferred
 from these focused DMA results.
+Its freshly rebuilt `obj_dir_v12_dma_restart_base/Vtop` is byte-identical to
+the frozen delay-aware v12 RGB12 base runner (SHA-256
+`3af87e0af9fc188795bb6ae90ea3cb8d7fdc0051d4ec5b4fa1e6adf47528614e`),
+consistent with the default profile elaborating no DMA engine. This identity
+does not transfer default-base acceptance to the enabled DMA profile.
 
 | Evidence | SHA-256 |
 |---|---|
@@ -98,4 +103,7 @@ executes BF before each status read; no RTL behavior or assertion was weakened.
 
 Native Turbo IPL/software continuity, physical Ready/bus phases, X3/single
 profiles and current-source Quartus/CDC/reset/resource fit remain open.
+The [search contract](DMA_SEARCH_CONTRACT.md) records the next operation-class,
+counter/pipeline and genuine-CPU qualification gates, including primary-table
+ambiguities that must not be silently replaced with transfer-only behavior.
 This feature does not close work group 2 or imply working Turbo Z.
