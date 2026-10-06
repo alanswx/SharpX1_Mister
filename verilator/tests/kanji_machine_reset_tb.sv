@@ -9,7 +9,7 @@ module kanji_machine_reset_tb;
     logic [7:0] index=0,data=0;
     logic [24:0] address=0;
     logic [7:0] program_bytes[0:4095];
-    integer size=0,kind=0,writes=0;
+    integer size=0,kind=0,writes=0,loader_kind=-1;
     wire load_wait;
     top #(.TURBO(1),.TURBO_KANJI(1),.TURBO_VIDEO_MASTER(1)) dut (
         .clk_sys(clk),.clk_28636(video_clk),.reset(reset),
@@ -43,12 +43,63 @@ module kanji_machine_reset_tb;
         word(8'h01,port);emit(8'h3e);emit(value);emit(8'hed);emit(8'h79);
     endtask
     task automatic tick;@(negedge clk);#1;endtask
-    integer patch[0:15],fail_address;
+    task automatic upload_image(input logic [7:0] salt);
+        download=1;load=1;index=5;
+        for(integer a=0;a<131072;a++) begin address=25'(a);data=pattern(a)^salt;tick();end
+        load=0;download=0;tick();
+        assert(dut.machine.kanji_loaded && !dut.machine.kanji_load_error)
+            else $fatal(1,"valid shared physical upload salt=%x",salt);
+    endtask
+    task automatic malformed_upload;
+        // Begin with a different valid image. Failed uploads invalidate it,
+        // not roll back partial memory changes. Recovery uses original bytes
+        // checked by native post-reset INI, distinct from this old image.
+        upload_image(8'ha5);
+        repeat(4) tick();index=5;address=0;data=8'h5a;
+        if(loader_kind==8) begin
+            // An orphan index-5 WR without DOWNLOAD must reach the parser.
+            load=1;tick();load=0;tick();
+        end else begin
+            download=1;load=0;tick();
+            case(loader_kind)
+                0:begin end // empty
+                1:begin
+                    for(integer a=0;a<16;a++) begin load=1;address=25'(a);data=pattern(a)^8'h5a;tick();end
+                end
+                2:begin load=1;address=1;tick();end // missing zero
+                3:begin load=1;address=0;tick();tick();end // duplicate
+                4:begin load=1;address=0;tick();address=2;tick();end // gap
+                5:begin load=1;address=0;tick();address=131072;tick();end // overflow
+                6:begin
+                    for(integer a=0;a<131072;a++) begin load=1;address=25'(a);data=pattern(a)^8'h5a;tick();end
+                end // exact image but orphan WR at commit
+                7:begin reset=0;load=1;address=0;tick();reset=1;end // live write
+                default:$fatal(1,"invalid shared loader case");
+            endcase
+            if(loader_kind!=6) load=0;
+            download=0;tick();load=0;tick();
+        end
+        assert(!dut.machine.kanji_loaded && dut.machine.kanji_load_error)
+            else $fatal(1,"malformed shared upload did not invalidate kind=%0d",loader_kind);
+        assert(writes==0) else $fatal(1,"loader emitted PCG writes");
+        repeat(8) tick();
+    endtask
+    task automatic upload_program;
+        download=1;load=1;index=0;
+        for(integer a=0;a<size;a++) begin address=25'(a);data=program_bytes[a];tick();end
+        download=0;load=0;repeat(8) tick();
+    endtask
+    task automatic clear_results;
+        download=1;load=1;index=2;address=25'hf100;data=0;tick();address=25'hf101;tick();
+        download=0;load=0;tick();
+    endtask
+    integer patch[0:15],expected_byte[0:15],fail_address;
     initial begin
         #1000000000000;$fatal(1,"shared-machine reset timeout kind=%0d",kind);
     end
     initial begin
         if($value$plusargs("RESET_KIND=%d",kind)) begin end
+        if($value$plusargs("LOADER_KIND=%d",loader_kind)) begin end
         assert(kind>=0 && kind<=4) else $fatal(1,"invalid reset profile");
         emit(8'hf3);word(8'h31,16'hffff);
         word(8'h21,16'hf100);emit(8'h34); // CPU increments retained boot count.
@@ -87,7 +138,8 @@ module kanji_machine_reset_tb;
             emit(8'hed);emit(8'ha2);emit(8'h04);emit(8'h0c);
         end
         for(integer row=0;row<16;row++) begin
-            word(8'h3a,16'hd000+16'(row));emit(8'hfe);emit(pattern(131056+row));
+            word(8'h3a,16'hd000+16'(row));emit(8'hfe);
+            expected_byte[row]=size;emit(pattern(131056+row));
             emit(8'hc2);patch[row]=size;emit(0);emit(0);
         end
         emit(8'h3e);emit(8'h5a);word(8'h32,16'hf101);emit(8'h76);
@@ -97,14 +149,24 @@ module kanji_machine_reset_tb;
             program_bytes[patch[row]]=8'(fail_address);
             program_bytes[patch[row]+1]=8'(fail_address>>8);
         end
-        repeat(8) tick();download=1;load=1;index=5;
-        for(integer a=0;a<131072;a++) begin address=25'(a);data=pattern(a);tick();end
-        load=0;download=0;tick();
-        assert(dut.machine.kanji_loaded && !dut.machine.kanji_load_error) else $fatal(1,"initial physical upload");
-        download=1;load=1;index=2;address=25'hf100;data=0;tick();address=25'hf101;tick();
-        index=0;
-        for(integer a=0;a<size;a++) begin address=25'(a);data=program_bytes[a];tick();end
-        download=0;load=0;repeat(8) tick();reset=0;
+        repeat(8) tick();
+        if(loader_kind>=0) begin
+            malformed_upload();
+            // Execute a separately generated FF-expecting program BEFORE
+            // recovery: malformed bytes cannot expose the old valid image.
+            for(integer row=0;row<16;row++) program_bytes[expected_byte[row]]=8'hff;
+            clear_results();upload_program();reset=0;
+            wait(!dut.cpu_halt_n);tick();
+            assert(dut.machine.RAM.mem[16'hf100]==1 && dut.machine.RAM.mem[16'hf101]==8'h5a)
+                else $fatal(1,"malformed image did not produce CPU FF reads kind=%0d result=%x",loader_kind,dut.machine.RAM.mem[16'hf101]);
+            assert(!dut.machine.kanji_loaded && dut.machine.kanji_load_error)
+                else $fatal(1,"CPU execution changed malformed image status");
+            reset=1;repeat(8) tick();
+            for(integer row=0;row<16;row++) program_bytes[expected_byte[row]]=pattern(131056+row);
+        end
+        upload_image(0);
+        if(loader_kind<0) clear_results();
+        upload_program();reset=0;
         if(kind==2) begin
             wait(dut.machine.cg_access && dut.machine.io_read);
             video_run=0;
@@ -135,11 +197,11 @@ module kanji_machine_reset_tb;
         wait(!dut.machine.video_reset);
         wait(!dut.cpu_halt_n);
         tick();
-        assert(dut.machine.RAM.mem[16'hf100]==2 && dut.machine.RAM.mem[16'hf101]==8'h5a)
+        assert(dut.machine.RAM.mem[16'hf100]==(loader_kind<0 ? 2 : 3) && dut.machine.RAM.mem[16'hf101]==8'h5a)
             else $fatal(1,"native restart/INI failed count=%x result=%x",dut.machine.RAM.mem[16'hf100],dut.machine.RAM.mem[16'hf101]);
         assert(dut.machine.kanji_loaded && !dut.machine.kanji_load_error && writes==0)
             else $fatal(1,"reset changed retained ROM or emitted a PCG write");
-        $display("PASS shared X3 Kanji pending reset kind=%0d: async cancellation, retained ROM, real CPU restart/16 INI, zero PCG writes",kind);
+        $display("PASS shared X3 Kanji pending reset kind=%0d loader=%0d: async cancellation, retained/recovered ROM, real CPU restart/16 INI, zero PCG writes",kind,loader_kind);
         $finish;
     end
 endmodule

@@ -274,6 +274,9 @@ The latest two-image/CTC experimental RBF is
 All 334 FPGA inputs match `ffc1c1c`; constrained paths pass all eight analyzed
 corners at 48% ALM usage. It has not been tested on MiSTer. See the
 [two-image build report](docs/DUAL_DISK_QUARTUS_BUILD.md).
+The [current-source October 6 retry](docs/CURRENT_SOURCE_QUARTUS_STATUS.md)
+records a Quartus parse failure, explicit-generate correction and a new frozen
+build in progress; it is not yet a replacement RBF.
 The newer X3 video/font candidate assembled but **fails timing at all eight
 corners**; it is not a replacement timing-closed hardware candidate. See the
 [X3 build audit](docs/TURBO_VIDEO_QUARTUS_BUILD.md) and

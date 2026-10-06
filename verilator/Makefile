@@ -133,6 +133,9 @@ $(HEADLESS_DIR)/kanji-machine-reset/Vkanji_machine_reset_tb: $(V_SRC) tests/kanj
 	$(V) --binary --timing --assert --top-module kanji_machine_reset_tb --Mdir $(HEADLESS_DIR)/kanji-machine-reset \
 		-j 4 $(V_SRC) tests/kanji_machine_reset_tb.sv -Wno-fatal
 .PHONY: test-machine-kanji-reset
+test-machine-kanji-loader: $(HEADLESS_DIR)/kanji-machine-reset/Vkanji_machine_reset_tb
+	@for kind in 0 1 2 3 4 5 6 7 8; do ./$(HEADLESS_DIR)/kanji-machine-reset/Vkanji_machine_reset_tb +LOADER_KIND=$$kind || exit 1; done
+.PHONY: test-machine-kanji-loader
 KANJI_SAVE_DIR ?= obj_dir_turbo_kanji_savable
 KANJI_PLAIN_SAVE_DIR ?= obj_dir_turbo_kanji_plain_savable
 turbo-kanji-savable: $(KANJI_SAVE_DIR)/Vtop $(KANJI_PLAIN_SAVE_DIR)/Vtop

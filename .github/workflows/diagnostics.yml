@@ -61,6 +61,7 @@ jobs:
             test-kanji-address test-kanji-rom test-kanji-cg-selector test-kanji-cg-access test-kanji-cg-cpu \
             test-machine-kanji test-machine-kanji-fast test-machine-kanji-snapshot \
             test-machine-kanji-x3 test-machine-kanji-x3-fast test-machine-kanji-x3-snapshot test-machine-kanji-reset \
+            test-machine-kanji-loader \
             test-dma-reset test-cpu-busreq test-d88-scanner test-d88-crc \
             test-d88-metadata test-fdc-abort test-fdc-sd-abort test-joystick test-rgb12 test-fm test-fm-cpu; do
             # Bound each original fixture without changing its assertions or

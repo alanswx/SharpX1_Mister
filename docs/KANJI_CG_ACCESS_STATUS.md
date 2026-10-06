@@ -103,8 +103,8 @@ to hosted CI; their local success does not establish a completed hosted run.
 1. Broaden the explicit shared-machine profile to combined DMA only after
    qualifying reset/ownership/clock interactions. Nominal X3 CPU/snapshot and
    pending-read reset checks now pass separately below.
-2. Broaden shared CPU/machine execution to malformed/reloaded ROM,
-   held bus and broader retained warm-state/device concurrency. Pending-read
+2. Broaden shared CPU/machine execution to held bus and retained warm-state/
+   device concurrency. Malformed/reloaded ROM now passes below. Pending-read
    short resets now pass in the original whole-machine fixture below.
 3. Resolve native archive-to-physical chip identity and font order; qualify
    authorized assets instead of treating Shift-JIS exports as raw chip dumps.
@@ -208,5 +208,35 @@ whole-machine short-pulse fixture fails at `pending transaction did not cancel
 asynchronously`, exit 1. Logs `/tmp/x1-kanji-machine-reset-negative{,-build}.log`.
 Production RTL was not changed. Four new targets are added to hosted CI;
 local success does not establish completed hosted execution or hardware/OSD
-acceptance. Combined DMA, malformed shared uploads/recovery, native fonts and
-glyph rendering remain open.
+acceptance. Combined DMA, native fonts and glyph rendering remain open.
+
+## Shared loader rejection and native CPU recovery
+
+`test-machine-kanji-loader HEADLESS_DIR=obj_dir_v12_kanji_loader` extends the
+same whole-machine fixture with nine real ioctl sequences: empty, short,
+missing address zero, duplicate address, gap, overflow, a WR strobe on the
+falling commit, a write with machine reset released, and an orphan index-5 WR
+without DOWNLOAD. Each begins with a different complete valid synthetic image,
+then requires `loaded=0` / error after the malformed upload. A failed partial
+load is not a rollback interface.
+
+Before recovery, an original CPU program executes sixteen INI reads and CPU
+RAM comparisons requiring FF, proving malformed bytes do not expose the old
+valid image through the connected machine. The host then holds both resets,
+loads a complete third synthetic pattern and uploads the original diagnostic
+program expecting those physical bytes. A real pending read is reset; CPU
+restart completes sixteen correct INI bytes with no ROM re-download. The
+retained boot counter must be three, distinguishing the malformed-image boot,
+the canceled recovery boot and the successful recovery boot. Exactly zero PCG
+writes are permitted throughout. All nine profiles and the original five
+reset cases exit zero; log `/tmp/x1-kanji-machine-loader-qualified.log`.
+No firmware bytes, snapshot edits, forced machine state or result injection
+are used. This adds one hosted CI target; native assets/display and physical
+loader behavior still need qualification.
+
+Negative control: a temporary shared-machine copy gated index-5 WR with
+DOWNLOAD, preventing orphan strobes from reaching the parser. The unchanged
+case-8 fixture fails at `malformed shared upload did not invalidate kind=8`,
+exit 1. Temporary source `/private/tmp/x1-kanji-loader-negative-Eqc3EB/`;
+logs `/tmp/x1-kanji-loader-negative{,-build}.log`. Production wiring remains
+unchanged; no expectation was weakened to accept a retained old image.

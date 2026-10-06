@@ -61,7 +61,8 @@ module x1_dma #(parameter bit COMPLETION_IRQ=0) (
         ((interrupt_control[0] && match_found) ||
          (interrupt_control[1] && end_of_block));
     wire irq_bus_block;
-    if(COMPLETION_IRQ) begin : completion_interrupts
+    // Quartus 17 requires an explicit generate region here even in .sv.
+    generate if(COMPLETION_IRQ) begin : completion_interrupts
         wire [7:0] candidate;
         x1_dma_vector formation(.base_vector(interrupt_vector),
             .status_affects_vector(interrupt_control[5]),.match_found(match_found),
@@ -75,7 +76,7 @@ module x1_dma #(parameter bit COMPLETION_IRQ=0) (
     end else begin : no_completion_interrupts
         assign irq=0, ieo=iei, irq_pending=0, irq_in_service=0;
         assign irq_bus_block=0, ack_vector=8'hff;
-    end
+    end endgenerate
 
     function automatic logic [15:0] step_address(
         input logic [15:0] value, input logic [7:0] config_byte

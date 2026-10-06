@@ -74,7 +74,16 @@ The nominal X3 fast/delay-aware matrix and same-clock default/X3 opt-in
 snapshot isolation also pass. Five whole-machine pending-read reset profiles
 pass, including short pulses, stopped clocks and CPU-programmed closed HSYNC;
 an asynchronous-cancellation negative control fails as expected.
+Nine shared-loader rejection/recovery profiles now pass: real CPU FF reads
+after malformed uploads, fresh pattern recovery and native pending-read reset
+without reloading the recovered ROM; an orphan-strobe-gating negative control
+fails as expected. Hosted CI through `191009a` is green;
+the subsequent loader target requires its own completed hosted run.
 Native assets, broader clock/reset coverage and rendering remain required.
+The [current-source Quartus retry](CURRENT_SOURCE_QUARTUS_STATUS.md) records
+the preserved parse failure and explicit-generate fix. Local default/native
+DMA and actual-CPU IRQ regressions pass; the new frozen build remains in
+progress, not a replacement RBF or physical/timing acceptance.
 Turbo Z is now explicitly part of the requested goal. Its Z0–Z9 milestones
 and acceptance gates are tracked in [TURBO_Z_PLAN.md](TURBO_Z_PLAN.md).
 It remains a separate capability profile; progress must not imply support
