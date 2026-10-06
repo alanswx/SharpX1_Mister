@@ -13,7 +13,8 @@ module dma_search_tb;
     wire [7:0] data_out;
     logic [7:0] data_in;
     logic [7:0] source[0:3];
-    integer period=1,edges=0,reads=0,tests=0;
+    integer period=1,edges=0,reads=0,tests=0,stop_reads=0;
+    logic [15:0] read_addresses[0:11];
     logic old_rd=1;
     logic [15:0] held_address=0;
     logic held_io=0,expect_io=0;
@@ -23,7 +24,11 @@ module dma_search_tb;
         edges++;ce=(edges%period)==0;
         if(edges>40000000) $fatal(1,"pure search watchdog");
         assert(wr_n) else $fatal(1,"pure search emitted a destination write");
-        if(!old_rd && rd_n) reads++;
+        if(!old_rd && rd_n) begin
+            if(reads<12) read_addresses[reads]=held_address;
+            reads++;
+            if(stop_reads!=0 && reads==stop_reads) rdy=1;
+        end
         if(!rd_n) begin
             assert(!busrq_n && !busak_n && mreq_n!=iorq_n && iorq_n==!expect_io)
                 else $fatal(1,"search read without ownership");
@@ -46,7 +51,7 @@ module dma_search_tb;
     endtask
     task automatic fresh;
         reset=1;cpu_cs=0;cpu_rd_n=1;cpu_wr_n=1;wait_n=1;rdy=0;
-        repeat(8) tick();reset=0;repeat(4) ctick();reads=0;
+        repeat(8) tick();reset=0;repeat(4) ctick();reads=0;stop_reads=0;
     endtask
     task automatic configure(input logic direction,stop_match,input logic [7:0] mask,
                              input logic [7:0] config_source=8'h10,input logic [15:0] start=16'h1000,
@@ -148,8 +153,85 @@ module dma_search_tb;
                    (direction!=0 ? dut.counter_b : dut.counter_a)==0)
                 else $fatal(1,"search long count/wrap size_case=%0d",size_case);
         end
-        fresh();configure(1,1,0);put(8'hb2);
-        assert(unsupported) else $fatal(1,"search auto restart accepted without contract");
+        // Three real read-only blocks: auto reload uses both programmed
+        // buffers, keeps source stepping/wrap and clears status/count.
+        for(integer direction=0;direction<2;direction++)
+        for(integer io=0;io<2;io++)
+        for(integer mode=0;mode<3;mode++) begin
+            logic [7:0] config_source;
+            logic [15:0] start,expected;
+            fresh();for(integer i=0;i<4;i++) source[i]=8'h36;
+            config_source=8'(io<<3) | (mode==0 ? 8'h10 : mode==1 ? 8'h00 : 8'h20);
+            start=mode==0 ? 16'hfffe : 16'h0001;
+            configure(1'(direction),1,0,config_source,start);put(8'hb2);stop_reads=12;put(8'h87);
+            wait(reads==12 && busrq_n && busak_n);repeat(12) ctick();
+            assert(dut.enabled && !dut.end_of_block && !dut.match_found &&
+                   dut.byte_counter==0 && dut.remaining==4 &&
+                   (direction!=0 ? dut.counter_a : dut.counter_b)==start &&
+                   (direction!=0 ? dut.counter_b : dut.counter_a)==16'h2000)
+                else $fatal(1,"search repeat counters/status/reload");
+            for(integer i=0;i<12;i++) begin
+                expected=mode==0 ? start+16'(i%4) : mode==1 ? start-16'(i%4) : start;
+                assert(read_addresses[i]==expected) else $fatal(1,"search repeat observed address");
+            end
+        end
+        fresh();for(integer i=0;i<4;i++) source[i]=8'ha5;
+        configure(1,0,0);put(8'hb2);stop_reads=8;put(8'h87);
+        wait(reads==8 && busrq_n && busak_n);repeat(12) ctick();
+        assert(!dut.match_found && !dut.end_of_block && dut.byte_counter==0 && dut.enabled)
+            else $fatal(1,"search auto reload retained actual old match");
+        // Terminal read under WAIT: DISABLE/reset drains it once and must
+        // prevent the otherwise programmed end-of-block repeat.
+        for(integer abort_kind=1;abort_kind<4;abort_kind++) begin
+            fresh();for(integer i=0;i<4;i++) source[i]=8'h36;
+            configure(1,0,0);put(8'hb2);stop_reads=3;put(8'h87);
+            wait(reads==3 && busrq_n && busak_n);stop_reads=0;rdy=0;
+            wait(!rd_n);wait_n=0;repeat(8) ctick();
+            if(abort_kind==1) put(8'h83);
+            if(abort_kind==2) put(8'hc3);
+            begin
+                integer saved_period;
+                saved_period=period;period=100000000;
+                if(abort_kind==3) begin reset=1;tick();reset=0;end
+                repeat(20) tick();assert(!rd_n && reads==3)
+                    else $fatal(1,"terminal search reset truncated owned read");
+                period=saved_period;
+            end
+            wait_n=1;released();
+            assert(reads==4 && !dut.enabled) else $fatal(1,"terminal search abort restarted");
+            if(abort_kind==1) assert(dut.counter_a==16'h1004 && dut.counter_b==0 && dut.end_of_block)
+                else $fatal(1,"terminal search DISABLE silently reloaded counters");
+            else assert(!dut.loaded && !dut.match_found && !dut.end_of_block)
+                else $fatal(1,"terminal search reset retained block/status");
+        end
+        // A terminal match takes precedence over auto reload. No second block.
+        for(integer direction=0;direction<2;direction++) begin
+            fresh();for(integer i=0;i<4;i++) source[i]=i==3 ? 8'ha5 : 8'h36;
+            configure(1'(direction),1,0);put(8'hb2);put(8'h87);released();
+            assert(reads==4 && dut.match_found && dut.end_of_block &&
+                   dut.byte_counter==4 && dut.remaining==0 &&
+                   (direction!=0 ? dut.counter_a : dut.counter_b)==16'h1004 &&
+                   (direction!=0 ? dut.counter_b : dut.counter_a)==0)
+                else $fatal(1,"search match/EOB auto precedence");
+        end
+        for(integer direction=0;direction<2;direction++)
+        for(integer size_case=0;size_case<3;size_case++) begin
+            logic [15:0] n;
+            integer total;
+            n=size_case==0 ? 16'd255 : size_case==1 ? 16'hffff : 16'd0;
+            total=size_case==0 ? 256 : size_case==1 ? 65536 : 65537;
+            fresh();for(integer i=0;i<4;i++) source[i]=8'h36;
+            configure(1'(direction),0,0,8'h10,16'h1000,n);
+            put(8'hb2);stop_reads=total+1;put(8'h87);
+            wait(reads==total+1 && busrq_n && busak_n);repeat(12) ctick();
+            assert(dut.enabled && !dut.end_of_block && !dut.match_found &&
+                   dut.byte_counter==1 && dut.remaining==17'(total-1) &&
+                   held_address==16'h1000 &&
+                   (direction!=0 ? dut.counter_a : dut.counter_b)==16'h1001 &&
+                   (direction!=0 ? dut.counter_b : dut.counter_a)==16'h2000)
+                else $fatal(1,"search repeat long count/next block size_case=%0d",size_case);
+        end
+        fresh();configure(1,1,0);
         put(8'h92);put(8'hc1);
         assert(unsupported) else $fatal(1,"pure Burst pipeline accepted without implementation");
         put(8'ha1);

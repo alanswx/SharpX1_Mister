@@ -76,6 +76,9 @@ test-machine-dma: turbo-dma test-machine-dma-reset
 test-machine-dma-restart: turbo-dma
 	python3 tests/test_machine_dma_restart.py ./$(DMA_DIR)/Vtop
 .PHONY: test-machine-dma-restart
+test-machine-dma-search-restart: turbo-dma
+	python3 tests/test_machine_dma_restart.py ./$(DMA_DIR)/Vtop --search
+.PHONY: test-machine-dma-search-restart
 test-machine-dma-compare: turbo-dma
 	python3 tests/test_machine_dma_compare.py ./$(DMA_DIR)/Vtop
 .PHONY: test-machine-dma-compare

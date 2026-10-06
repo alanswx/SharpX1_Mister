@@ -1,5 +1,9 @@
 # DMA pure Byte search increment
 
+Source-bound historical checkpoint. A later
+[read-only automatic-restart increment](DMA_SEARCH_RESTART_STATUS.md) adds
+Byte search repeat; non-Byte search/stop and IRQ remain open.
+
 October 6, 2026. Original GPL-2.0-or-later implementation in
 `rtl/x1_dma.sv`, shared by the opt-in `TURBO_DMA=1` machine and standalone
 tests. This does not complete work group 2, Turbo or Turbo Z.
@@ -79,8 +83,8 @@ All twenty pure-search cases pass on the fast runner. Its following twenty
 comparison/Byte-stop profiles, both automatic-restart directions and
 GRAM/PCG regression pipeline also exit zero in
 `/tmp/x1-dma-pure-byte-fast.log` (session 25562). The delay-aware pure-search
-matrix is still live in `/tmp/x1-dma-pure-byte-machine.log` (session 31207),
-not declared terminal/pass.
+matrix subsequently exits zero in `/tmp/x1-dma-pure-byte-machine.log`
+(session 31207): all twenty original generated-IPL profiles.
 
 | Artifact | SHA-256 |
 |---|---|
