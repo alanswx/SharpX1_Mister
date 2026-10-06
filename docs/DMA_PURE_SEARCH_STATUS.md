@@ -63,7 +63,10 @@ checks unimplemented Burst ownership instead of a newly supported mode.
 
 Logs `/tmp/x1-dma-pure-byte-search-qualified.log` and
 `/tmp/x1-dma-pure-byte-unit-final.log`.
-The original 40-group transfer/restart rerun remains separate.
+The original 40-group transfer/restart rerun also exits zero at
+11,942,216 fixture edges in `/tmp/x1-dma-pure-byte-transfer.log`. Its rejection
+case now programs non-Byte pure search explicitly, explaining the extra
+24 fixture edges rather than weakening an assertion or shortening duration.
 
 New actual shared-CPU fixture programs twenty original generated IPLs:
 two source directions, stop enabled/disabled, four match positions/no match.
@@ -72,8 +75,9 @@ through real source selection/LOAD, uses CPU Force Ready, verifies RR0 and
 all six counter bytes, source/destination RAM preservation and 8B, and
 halts with a CPU-written marker. The runner must report reads/grants and
 **zero DMA writes**; no forced grants, debugger injection or private assets.
-All twenty pure-search cases pass on the fast runner. Its following
-comparison/restart/GRAM/PCG regression pipeline remains live in
+All twenty pure-search cases pass on the fast runner. Its following twenty
+comparison/Byte-stop profiles, both automatic-restart directions and
+GRAM/PCG regression pipeline also exit zero in
 `/tmp/x1-dma-pure-byte-fast.log` (session 25562). The delay-aware pure-search
 matrix is still live in `/tmp/x1-dma-pure-byte-machine.log` (session 31207),
 not declared terminal/pass.
