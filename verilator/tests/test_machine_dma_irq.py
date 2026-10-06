@@ -12,7 +12,7 @@ import tempfile
 from test_machine_dma import Fixture
 
 
-def diagnostic(profile):
+def diagnostic(profile, handler_delay=0):
     f = Fixture()
     p = f.p
     reads = (4, 3, 2, 5)[profile]
@@ -58,6 +58,14 @@ def diagnostic(profile):
     assert len(p.code) < 0x1000
     p.code.extend(bytes(0x1000 - len(p.code)))
     p.emit(0xF5, 0xC5)  # PUSH AF,BC
+    if handler_delay:
+        p.emit(0xD5)  # preserve DE around original deterministic service delay
+        p.store(0xF012, 1)
+        p.word(0x11, handler_delay)
+        p.label("handler_delay")
+        p.emit(0x1B, 0x7A, 0xB3)  # DEC DE; A=D; OR E
+        p.jump(0xC2, "handler_delay")
+        p.emit(0xD1)
     f.out(0x1F80, 0xAF)
     f.out(0x1F80, 0xBF)
     p.emit(0xED, 0x78)
@@ -71,6 +79,8 @@ def diagnostic(profile):
     p.emit(0x3C)
     p.word(0x32, 0xF010)
     f.out(0x1F80, 0xAB)
+    if handler_delay:
+        p.store(0xF012, 0)
     p.emit(0xC1, 0xF1, 0xFB, 0xED, 0x4D)  # POP BC,AF; EI; RETI
     return p.finish(), payload, reads, writes, flags
 

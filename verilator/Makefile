@@ -82,6 +82,26 @@ $(DMA_IRQ_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d
 test-machine-dma-irq: turbo-dma-irq
 	python3 tests/test_machine_dma_irq.py ./$(DMA_IRQ_DIR)/Vtop
 .PHONY: test-machine-dma-irq
+test-machine-dma-irq-nested: turbo-dma-irq
+	python3 tests/test_machine_dma_irq_nested.py ./$(DMA_IRQ_DIR)/Vtop
+.PHONY: test-machine-dma-irq-nested
+
+# Savable fast DMA profiles: separate artifacts and application identities.
+DMA_SAVE_DIR ?= obj_dir_turbo_dma_savable
+DMA_IRQ_SAVE_DIR ?= obj_dir_turbo_dma_irq_savable
+turbo-dma-savable: $(DMA_SAVE_DIR)/Vtop
+$(DMA_SAVE_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
+	$(V) -cc --no-timing --savable --assert --trace-fst --exe --build -j 4 --Mdir $(DMA_SAVE_DIR) --top-module top \
+		-GTURBO=1 -GTURBO_DMA=1 -CFLAGS "-std=c++20 -DX1_SAVABLE -DX1_TURBO_FOUNDATION -DX1_TURBO_DMA" \
+		-MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
+turbo-dma-irq-savable: $(DMA_IRQ_SAVE_DIR)/Vtop
+$(DMA_IRQ_SAVE_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
+	$(V) -cc --no-timing --savable --assert --trace-fst --exe --build -j 4 --Mdir $(DMA_IRQ_SAVE_DIR) --top-module top \
+		-GTURBO=1 -GTURBO_DMA=1 -GTURBO_DMA_IRQ=1 -CFLAGS "-std=c++20 -DX1_SAVABLE -DX1_TURBO_FOUNDATION -DX1_TURBO_DMA -DX1_TURBO_DMA_IRQ" \
+		-MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
+test-machine-dma-irq-snapshot: turbo-dma-savable turbo-dma-irq-savable
+	python3 tests/test_machine_dma_irq_snapshot.py ./$(DMA_IRQ_SAVE_DIR)/Vtop ./$(DMA_SAVE_DIR)/Vtop
+.PHONY: turbo-dma-savable turbo-dma-irq-savable test-machine-dma-irq-snapshot
 
 test-machine-dma: turbo-dma test-machine-dma-reset
 	python3 tests/test_machine_dma.py ./$(DMA_DIR)/Vtop

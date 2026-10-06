@@ -79,6 +79,44 @@ module dma_irq_bridge_tb;
         bm1=1;bmem=1;brd=1;tick();tick();
     endtask
     task automatic return_interrupt;opcode(8'hed);opcode(8'h4d);endtask
+    task automatic reset_service_matrix;
+        integer before_ctc;
+        // Raw reset forgets service, but an already-held CPU ACK is not a
+        // new mailbox transaction after reset. Keep a downstream level high
+        // to exercise the transport contract, not a reset MR16 firmware model.
+        bm1=1;bio=1;keyboard_irq=0;reset=1;tick();reset=0;tick();
+        configure_dma();put(8'h87);wait(dma_irq);
+        bm1=0;bio=0;tick();
+        assert(irq_in_service) else $fatal(1,"reset matrix DMA ACK entry");
+        pause_ce=1;keyboard_irq=1;reset=1;tick();reset=0;
+        repeat(20) begin
+            tick();assert(!dma_ack && !ctc_ack && !keyboard_ack)
+                else $fatal(1,"reset reselected downstream during old ACK");
+        end
+        bm1=1;bio=1;tick();ack(8'hb7,2);keyboard_irq=0;pause_ce=0;tick();
+        // A3/C3 clear DMA IP/IUS while the acknowledged vector remains
+        // latched. Neither command may redirect this held cycle to CTC.
+        for(integer command_case=0;command_case<2;command_case++) begin
+            reset=1;tick();reset=0;tick();
+            cw(0,8'ha0);cw(0,8'hd5);cw(0,1);
+            configure_dma();put(8'h87);wait(dma_irq);trigger_ctc(0);
+            bm1=0;bio=0;tick();before_ctc=ctc_acks;
+            put(command_case==0 ? 8'ha3 : 8'hc3);
+            repeat(8) begin
+                tick();assert(ack_vector==8'hc4 && !dma_ack && !ctc_ack && !keyboard_ack)
+                    else $fatal(1,"command reset reselected held DMA vector");
+            end
+            assert(!irq_pending && !irq_in_service && ctc.pending[0] && ctc_acks==before_ctc)
+                else $fatal(1,"command reset erased/consumed downstream pending");
+            bm1=1;bio=1;tick();ack(8'ha0,1);
+            // RETI must release CTC even with upstream IEI withdrawn.
+            upstream_iei=0;return_interrupt();
+            assert(ctc.in_service==0 && !irq)
+                else $fatal(1,"upstream-low RETI lost downstream release");
+            upstream_iei=1;tick();
+        end
+        reset=1;tick();reset=0;tick();
+    endtask
     initial begin
         if($value$plusargs("CE_PERIOD=%d",period)) begin end
         repeat(4) ctick();reset=0;repeat(4) ctick();
@@ -133,7 +171,8 @@ module dma_irq_bridge_tb;
         reset=1;tick();reset=0;tick();
         assert(!irq && !irq_pending && !irq_in_service && ctc.in_service==0)
             else $fatal(1,"bridge/device reset service");
-        $display("PASS connected DMA/CTC bridge CE=%0d: priority/retained pending/held ACK/AF/nested isolated RETI/CTC internal nesting/keyboard/invalid ACK/reset",period);
+        reset_service_matrix();
+        $display("PASS connected DMA/CTC bridge CE=%0d: priority/retained pending/held ACK/AF/nested isolated RETI/CTC internal nesting/keyboard/invalid ACK/reset quarantine/A3/C3/upstream-low RETI",period);
         $finish;
     end
 endmodule

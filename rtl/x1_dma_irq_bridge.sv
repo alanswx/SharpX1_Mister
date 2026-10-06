@@ -17,6 +17,13 @@ module x1_dma_irq_bridge (
     output wire [7:0] ack_vector
 );
     wire upper_ack, decoded_reti;
+    reg ack_quarantine;
+    // Reset must not turn a physically held old M1/IORQ into a new device
+    // acknowledgement. Wait for the CPU cycle to end before rearming the
+    // existing owner latch, including when transfer enables remain stopped.
+    always @(posedge clk or posedge reset)
+        if (reset) ack_quarantine <= 1'b1;
+        else if (m1_n || iorq_n) ack_quarantine <= 1'b0;
     wire upper_irq=dma_irq || ctc_irq;
     wire [7:0] upper_vector=dma_irq ? dma_vector : ctc_vector;
     assign dma_iei=upstream_iei;
@@ -30,7 +37,7 @@ module x1_dma_irq_bridge (
     assign dma_reti=decoded_reti && dma_in_service;
     assign ctc_reti=decoded_reti && !dma_in_service;
     x1_irq_bridge owner (
-        .clk(clk),.reset(reset),.m1_n(m1_n),.mreq_n(mreq_n),.iorq_n(iorq_n),
+        .clk(clk),.reset(reset),.m1_n(m1_n || ack_quarantine),.mreq_n(mreq_n),.iorq_n(iorq_n),
         .rd_n(rd_n),.data(data),.ctc_irq(upper_irq),.ctc_ieo(dma_ieo && ctc_ieo),
         .ctc_vector(upper_vector),.keyboard_irq(keyboard_irq),.keyboard_vector(keyboard_vector),
         .irq(irq),.ctc_ack(upper_ack),.ctc_reti(decoded_reti),

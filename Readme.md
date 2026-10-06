@@ -105,6 +105,10 @@ adds an explicit `TURBO_DMA_IRQ=1` profile with schematic-qualified DMA/CTC
 ownership and isolated nested RETI. Four generated CPU/IM2/HALT/RR0/RETI
 profiles pass on fast and delay-aware runners. Defaults remain disabled;
 native firmware, broader reset/concurrent-service and hardware gates remain open.
+Its subsequent reset guard prevents an old held ACK from selecting a new
+device after reset. Real-CPU nested DMA/CTC tests and native-handler snapshot
+continuity/cross-profile rejection pass; this still does not establish full
+DMA/Turbo compatibility or hardware reset acceptance.
 A bounded [high-speed PCG increment](docs/TURBO_HIGH_SPEED_PCG_STATUS.md)
 adds selector shadows, frozen HSYNC-window access and CPU ANK8/16 selection.
 Original unit/CPU tests pass; ASIC fallback/WAIT phase, Kanji and hardware

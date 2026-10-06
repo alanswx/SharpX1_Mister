@@ -347,7 +347,7 @@ int main(int argc, char **argv) {
             ^ (1ULL << 54) ^ (1ULL << 53) ^ (1ULL << 52) ^ (1ULL << 51) ^ (1ULL << 50) ^ (1ULL << 49) ^ (1ULL << 48) // DMA revision 6: pending pure-search match pipeline.
 #endif
 #ifdef X1_TURBO_DMA_IRQ
-            ^ (1ULL << 47) // Distinct native completion IRQ/service model.
+            ^ (1ULL << 47) ^ (1ULL << 46) // Completion IRQ revision 1: reset ACK quarantine.
 #endif
             ;
         constexpr uint64_t snapshot_magic = 0x5831534e41503132ULL ^ sys_hz ^ snapshot_profile;

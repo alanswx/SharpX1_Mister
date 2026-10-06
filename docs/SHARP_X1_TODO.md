@@ -41,8 +41,10 @@ Ready/restart IRQ and shared-machine priority/ACK integration remain open.
 The [shared-machine completion increment](DMA_IRQ_MACHINE_STATUS.md) now
 connects that opt-in path: connected DMA/CTC priority/nested RETI tests and
 four actual shared-CPU IM2/HALT/RR0 profiles pass on fast/delay-aware builds.
-Broader concurrent service/reset, native firmware, Ready/restart IRQ, savable
-profile and hardware gates remain required; no work group is marked complete.
+Subsequent reset guard, real shared-CPU DMA-over-CTC/queued CTC nesting and
+native handler-service snapshots with cross-profile rejection now pass.
+Broader concurrent service/reset, native firmware, Ready/restart IRQ and
+hardware gates remain required; no work group is marked complete.
 Turbo Z is now explicitly part of the requested goal. Its Z0–Z9 milestones
 and acceptance gates are tracked in [TURBO_Z_PLAN.md](TURBO_Z_PLAN.md).
 It remains a separate capability profile; progress must not imply support
