@@ -54,14 +54,33 @@ profiles (both sources, four positions), CPU readback of all counters and
 status, transferred prefix and untouched destination suffix, including
 terminal match with automatic restart programmed. Existing twelve
 non-stopping CPU profiles retain their eight-million-reference-cycle runs.
-Final-source fast/delay-aware execution is still being qualified; do not
-infer native DMA use or hardware acceptance from these synthetic programs.
+All twenty profiles pass on the final-source `--no-timing` shared-machine
+runner, each retaining eight-million-reference-cycle duration. Both actual
+CPU automatic-restart profiles and GRAM/PCG regressions also pass. Final-source
+delay-aware execution remains live in `/tmp/x1-dma-byte-stop-machine-final.log`
+(session 33742); do not infer its terminal result, native DMA use or hardware
+acceptance from the fast diagnostics.
 
 Source SHA-256:
 `689dbd30821af9d42f00cded8555abab4b8d0bce611162d6992028a4e2fc746c`.
 Final standalone log `/tmp/x1-dma-byte-stop-final-regression.log`.
 Final comparison/stop unit SHA-256:
 `b82c49e5990beb8c0eca0d86cd8155c0701c0f99fb4ed9085301eff4719bc8c6`.
-Transfer/restart matrix and shared-machine logs remain separate gates.
+The final original transfer/restart matrix exits zero: 40 groups, 11,942,192
+fixture edges, `/tmp/x1-dma-byte-stop-transfer-final.log`. Final fast log
+`/tmp/x1-dma-byte-stop-fast-final.log`; runner SHA-256
+`510bac90067bb8833079ef08d5170e2833a061a09df6668933270716e0e959f2`.
+The final delay-aware runner SHA-256 is
+`4312593abba7da65e0771245be4d0ef0bf4a782560ba33bc17971e206a41ae6a`;
+its pending matrix is a separate gate.
+
+Fresh base savable executable remains byte-identical to the five-commercial-
+game-qualified v12 runner, SHA-256
+`159062a12920cb398d1bd348b8e901a7b6139d31cfcadd8d038b73235d962a8a`.
+Snapshot/clock/mismatch/joystick tests exit zero in
+`/tmp/x1-dma-byte-stop-base-snapshot.log`. This only covers the DMA-disabled
+base profile, not native Turbo compatibility. Hosted run
+[37531976718](https://github.com/alanswx/SharpX1_Mister/actions/runs/37531976718)
+targets `4261ee6` and is pending, not assumed passing from older CI runs.
 Quartus fit, native Turbo software, physical pin timing and board tests
 remain unavailable/unverified.

@@ -119,7 +119,7 @@ documented in `docs/DMA_STATUS.md`.
 SIO printed 225–231 and 272–301 were inspected for the original
 [SIO contract](../../docs/SIO_REGISTER_CONTRACT.md); programming/FIFO/IRQ
 research is not device implementation, physical timing or native acceptance.
-# Additional DMA primary reference (October 6, 2026)
+## Additional DMA primary reference (October 6, 2026)
 
 Downloaded Zilog **1982/83 Data Book** to ignored
 `Zilog_1982_Data_Book.pdf` from the

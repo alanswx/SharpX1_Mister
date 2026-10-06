@@ -101,6 +101,12 @@ executes BF before each status read; no RTL behavior or assertion was weakened.
 
 ## Remaining acceptance
 
+The hosted [23-target run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37529441225)
+passes on `d203dd5`, including the expanded 40-group restart matrix without
+reduced assertions/durations. Full base delay-aware rerun also exits zero
+in `/tmp/x1-dma-autorestart-base.log` (session 4266). Later comparison and
+Byte-stop commits have their own source-bound qualification gates.
+
 Native Turbo IPL/software continuity, physical Ready/bus phases, X3/single
 profiles and current-source Quartus/CDC/reset/resource fit remain open.
 The [search contract](DMA_SEARCH_CONTRACT.md) records the next operation-class,
