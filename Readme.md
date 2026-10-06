@@ -93,7 +93,10 @@ Turbo Z is a separate capability target with a
 video, stereo FM, HD disks and capture effects. Its first
 [RGB12 output foundation](docs/TURBO_Z_RGB_STATUS.md) connects full-color
 capture and wrapper interfaces while preserving digital colors. Palette,
-multi-mode rendering and the other Z devices are not implemented.
+multi-mode rendering and the other Z devices are not implemented in the
+shared machine. A separate [FM foundation](docs/TURBO_Z_FM_STATUS.md) passes
+JT51 busy/timers, stereo notes, fractional enables and signed mixing at three
+master frequencies; CPU decode/IRQ, native sound and hardware remain open.
 
 The headless simulator has been compiled with Verilator 5.044 on macOS.
 The timing/reset regression passes. A 200,000-system-cycle run reports:
@@ -173,9 +176,11 @@ passes all 16 targets on commit `0e4e021`. It does not run private media,
 native firmware, Quartus or hardware acceptance.
 The expanded workflow adds idle Send Break, original DMA register/CPU units
 and exhaustive RGB12 capture. The 19-target GCC run timed out compiling DMA
-even at host `-O0`; it did not execute that simulator. The 20-target retry
-selects Clang explicitly, keeps per-target limits and all original assertions/
-simulated durations, and remains pending. Earlier 16-target passes are not
+even at host `-O0`; it did not execute that simulator. Clang/C++20 with Ubuntu's
+Verilator 5.020 also exceeds that compile limit. The next 21-target retry pins
+Verilator 5.044, selects Clang explicitly and adds standalone FM. It keeps
+per-target limits and all original assertions/simulated durations; hosted
+acceptance remains pending. Earlier 16-target passes are not
 promoted to acceptance of the expanded suite.
 The simulator window now offers optional [live joystick keys](docs/PLAYING.md):
 arrows, Space (button 1) and Ctrl (button 2), through `--joystick-keys`.

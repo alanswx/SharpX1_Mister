@@ -33,11 +33,14 @@ Turbo Z is now explicitly part of the requested goal. Its Z0–Z9 milestones
 and acceptance gates are tracked in [TURBO_Z_PLAN.md](TURBO_Z_PLAN.md).
 It remains a separate capability profile; progress must not imply support
 for unimplemented hardware or promotion of historical game evidence.
-The RGB12 port advances simulator states to v12. Fresh baseline Xevious and
-Druaga gameplay qualifications pass; Mappy/Galaga/Shanghai and the full
-delay-aware baseline suite are running. The expanded hosted CI retry is also
-pending after compiler-only fixes; do not treat the old 16-target hosted pass
-as a pass of the new 20-target suite. See [source-bound checks](TURBO_Z_RGB_STATUS.md).
+The RGB12 port advances simulator states to v12. Fresh baseline Xevious,
+Druaga, Mappy, Galaga and Shanghai gameplay qualifications and the full
+delay-aware baseline suite exit zero. The standalone [FM foundation](TURBO_Z_FM_STATUS.md)
+passes bus/timer/stereo/mixer checks at three master frequencies, but is not
+connected to the machine. The expanded 21-target hosted retry now pins
+Verilator 5.044 after 5.020 exceeds the DMA compilation limit even with Clang;
+do not promote the old 16-target pass to acceptance of this expanded suite.
+See [source-bound checks](TURBO_Z_RGB_STATUS.md).
 
 ## Current priorities 1–4 (October 5 checkpoint)
 

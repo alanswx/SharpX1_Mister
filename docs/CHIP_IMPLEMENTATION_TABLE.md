@@ -29,7 +29,7 @@ changes and runtime evidence.
 | Cassette/APSS | Missing | Command-state stub |
 | Kanji | Experimental 2 KiB KVRAM storage tested; glyph ROM/readback/rendering missing | Fake register |
 | Turbo display modes | SCRN pages/blackclip/raster and nominal X3/ANK tested; bounded high-speed PCG/CPU ANK selection passes original unit/CPU tests. Kanji, expansion/underline, exact ASIC/WAIT/switching and hardware remain open; see [PCG status](TURBO_HIGH_SPEED_PCG_STATUS.md) | Partial |
-| Turbo Z / YM2151 / expansion devices | [RGB12 output foundation](TURBO_Z_RGB_STATUS.md) added and capture/lint/snapshot tested; real palette/multi-mode, YM2151 integration and other Z devices remain unimplemented; [roadmap](TURBO_Z_PLAN.md) | Output foundation only |
+| Turbo Z / YM2151 / expansion devices | [RGB12 output foundation](TURBO_Z_RGB_STATUS.md) capture/wrapper/snapshot and five fresh base games pass; [standalone JT51 FM](TURBO_Z_FM_STATUS.md) bus/timers/stereo/mixer pass at three master frequencies; real palette/multi-mode, FM machine integration and other Z devices remain open; [roadmap](TURBO_Z_PLAN.md) | Output and standalone FM foundations only |
 
 See [the detailed survey](CORE_STATUS.md) for evidence and
 [replacement chip candidates](CHIP_REUSE.md) for sources pulled from other

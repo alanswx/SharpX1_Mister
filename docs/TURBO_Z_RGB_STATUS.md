@@ -55,11 +55,14 @@ This is base fast simulation, not Turbo Z or hardware playability.
 The fresh **Druaga v12 qualification also exits zero**: original 300-ms left
 input moves the player from `[68,32]` to `[67,32]`; live RGB changes and
 RAM/report/frame repeatability pass with unchanged assets. Evidence is in
-the ignored sibling `druaga/` qualification folder. Mappy, Galaga and Shanghai
-continue in the same sequential batch and are not v12 passes yet.
-The full delay-aware baseline regression remains running:
-its complete 40/80-column pixel matrix passes; peripheral gates still require
-a terminal result.
+the ignored sibling `druaga/` qualification folder. The remaining batch also
+exits zero: Mappy moves left `[129,84]` to `[126,84]`; Galaga fires a real
+projectile and moves right `[32,24]` to `[40,24]`; Shanghai selects a matching
+pair and increases removed tiles from zero to two. Original control durations,
+unchanged private assets, RGB and RAM/state/report repeatability pass.
+These five passes are base-X1 fast simulation, not Turbo or hardware gates.
+The full delay-aware `make test HEADLESS_DIR=obj_dir_v12_rgb12` also exits zero,
+including the complete 40/80-column pixel matrix and peripheral/disk suite.
 
 Source-bound executables (Verilator 5.044 / macOS Clang):
 
@@ -86,6 +89,13 @@ does not remove delays/assertions, shorten transfers or relax acceptance.
 tunes generated code but does not select the make compiler; the workflow also
 passes `CXX=clang++` through `-MAKEFLAGS`, and prints compiler versions.
 Hosted execution remains an independent acceptance gate.
+The [C++20 Clang run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37493377112)
+still exceeds the 600-second DMA compilation limit with Ubuntu's Verilator
+5.020; all nine SIO targets pass before that build, but DMA does not execute.
+The next retry builds upstream Verilator **5.044**, pinned to
+`8df584ca1ddde5c8afbd15dc5fdcb677a78f9af2`, matching the locally qualified
+generator version. It adds the standalone FM target for 21 targets total;
+hosted acceptance remains pending. No RTL checks or simulation durations are reduced.
 The [first Clang retry](https://github.com/alanswx/SharpX1_Mister/actions/runs/37490381146)
 failed before simulation because Ubuntu's GCC-configured Verilator passed
 `-fcoroutines` without a C++20 language selection. Clang warns that this GCC

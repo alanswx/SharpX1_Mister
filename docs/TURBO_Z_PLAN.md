@@ -97,6 +97,10 @@ extra GRAM. The digital RGB output reduces analog multi-mode colors to eight
   distinguish compatibility/multi-mode border/black rules. Test text/graphics
   overlap with underline, blink/reverse, Kanji halves and all color controls.
 - [ ] Z5: standard stereo FM (YM2151), board CTC/interrupts and PSG mixing.
+  The [standalone FM foundation](TURBO_Z_FM_STATUS.md) now executes genuine
+  JT51 bus/timer/stereo notes and original signed mixer tests at all three
+  master frequencies. Shared-machine decode/IRQ, signed PSG conversion,
+  native/hardware fidelity remain open; Z5 is not completed.
   Reuse audited JT51 sources, preserve licenses, verify busy/status/timers,
   stereo panning, clipping and deterministic note WAVs. Manual page 3 routes
   PSG equally to L/R and combines FM channels for the internal mono speaker;

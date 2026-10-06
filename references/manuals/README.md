@@ -39,6 +39,18 @@ deleted-data contracts in [disk status](../../docs/DISK_STATUS.md).
 
 ## Integrity (SHA-256)
 
+October 6 FM follow-up: retrieved two Yamaha primary documents for the
+[standalone FM foundation](../../docs/TURBO_Z_FM_STATUS.md). PDFs remain ignored.
+
+| Local file | Pages | SHA-256 | Retrieval / actual inspection |
+|---|---:|---|---|
+| `Yamaha_YM2151_199112.pdf` | 10 | `9c15c4be47cc1b4dbcc61d81d4275248fab604b52ec4b687889096a00c873216` | [Bitsavers mirror](https://ftpmirror.your.org/pub/misc/bitsavers/components/yamaha/YM2151_199112.pdf); original Bitsavers host returned 403. Visually read pages 3–5, 8–10. |
+| `Yamaha_YM2151_Application_Manual.pdf` | 31 | `ec3d9b0f1934873b49e1f3820b7cde9aa1bfff6d917fb2a8a09be609fcee8640` | [Application manual scan](https://map.grauw.nl/resources/sound/yamaha_ym2151_synthesis.pdf); visually read PDF 1, 7, 13–15, 23. The web viewer timed out; local download/render worked. |
+
+`pdfinfo`, hashes and local rendering succeeded. Text extraction of the
+selected material was not usable. No claim of a complete electrical/net audit
+or silicon equivalence follows from these downloads.
+
 October 5 Turbo II follow-up: selected CZ-856C user-manual pages were rendered
 and visually read, without Japanese OCR. PDF 69–70 (printed 58–59) cover the
 scan/text/graphics mode table; PDF 86–91 (printed 75–80) cover text attributes,

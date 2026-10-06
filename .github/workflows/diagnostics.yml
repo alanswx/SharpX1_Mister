@@ -26,13 +26,30 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 2
-      - name: Install simulator and compiler
+      - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends -y verilator build-essential clang
-          verilator --version
+          sudo apt-get install --no-install-recommends -y build-essential clang autoconf flex bison help2man libfl-dev zlib1g-dev python3
           g++ --version
           clang++ --version
+      - name: Checkout tested simulator source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: verilator/verilator
+          ref: 8df584ca1ddde5c8afbd15dc5fdcb677a78f9af2 # v5.044
+          path: .ci-tools/verilator
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Build pinned Verilator 5.044
+        timeout-minutes: 15
+        working-directory: .ci-tools/verilator
+        run: |
+          autoconf
+          CXX=clang++ ./configure --prefix="${RUNNER_TEMP}/x1-verilator-5.044"
+          make -j2
+          make install
+          "${RUNNER_TEMP}/x1-verilator-5.044/bin/verilator" --version
+          echo "${RUNNER_TEMP}/x1-verilator-5.044/bin" >> "${GITHUB_PATH}"
       - name: Run original standalone fixtures
         run: |
           for target in \
@@ -40,7 +57,7 @@ jobs:
             test-sio-flow test-sio-cpu test-sio-dma test-sio-dma-cpu \
             test-dma test-dma-cpu \
             test-dma-reset test-cpu-busreq test-d88-scanner test-d88-crc \
-            test-d88-metadata test-fdc-abort test-fdc-sd-abort test-joystick test-rgb12; do
+            test-d88-metadata test-fdc-abort test-fdc-sd-abort test-joystick test-rgb12 test-fm; do
             # Bound each original fixture without changing its assertions or
             # simulated duration. A stall must fail with an identifiable target.
             limit_s=180
@@ -48,7 +65,9 @@ jobs:
             # allow its unoptimized build/run extra time, not fewer cycles.
             if [ "${target}" = test-dma ]; then limit_s=600; fi
             echo "Running ${target} (${limit_s}-second wall-clock limit)"
-            # GCC exceeded the DMA compile limit even at O0. Select Clang
+            # Verilator 5.020 exceeded the DMA compile limit even with Clang
+            # at O0. Use the locally qualified pinned 5.044 generator above.
+            # Select Clang
             # explicitly: --compiler alone does not select the make compiler.
             # Keep all RTL assertions, delays and full simulated durations.
             timeout "${limit_s}s" make -C verilator "${target}" HEADLESS_DIR=obj_dir_ci \

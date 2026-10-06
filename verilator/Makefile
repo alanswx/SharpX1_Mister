@@ -6,8 +6,21 @@ V_SRC = sim.v $(MACHINE_SRC)
 HEADLESS_DIR = obj_dir_headless
 HEADLESS_EXE = $(HEADLESS_DIR)/Vtop
 VIDEO_TEST_FLAGS ?=
+FM_MANIFEST = ../rtl/x1_fm.qip
+FM_SRC = $(addprefix ../,$(shell awk '/^set_global_assignment -name (SYSTEMVERILOG_FILE|VERILOG_FILE) / { print $$4 }' $(FM_MANIFEST)))
+FM_MASTER_HZ ?= 32000000
 
 all: headless
+
+test-fm: $(HEADLESS_DIR)/fm-$(FM_MASTER_HZ)/Vfm_tb
+	./$(HEADLESS_DIR)/fm-$(FM_MASTER_HZ)/Vfm_tb +OUTPUT=$(HEADLESS_DIR)/fm-$(FM_MASTER_HZ)/note
+	python3 tests/test_fm_audio.py $(HEADLESS_DIR)/fm-$(FM_MASTER_HZ)/note
+
+$(HEADLESS_DIR)/fm-$(FM_MASTER_HZ)/Vfm_tb: $(FM_SRC) tests/fm_tb.sv $(FM_MANIFEST) Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module fm_tb -GMASTER_HZ=$(FM_MASTER_HZ) \
+		--Mdir $(HEADLESS_DIR)/fm-$(FM_MASTER_HZ) -j 4 $(FM_SRC) tests/fm_tb.sv -Wno-fatal
+.PHONY: test-fm
 headless: $(HEADLESS_EXE)
 
 interactive: obj_dir_interactive/Vtop
