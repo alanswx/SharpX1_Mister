@@ -43,6 +43,12 @@ Its snapshot-time HEAD is still `191009a`, with the explicit-generate edit
 included as a working-tree change. Never relabel that original manifest as a
 clean commit; bind the completed implementation separately once committed.
 
+Implementation binding is now verified: all **356 frozen input hashes** were
+recomputed directly from commit
+`889f23c8112600defc12ad6a3b24a992142478e8`: **356 match, zero differences**.
+The snapshot-time HEAD/dirty manifest above remains unchanged. This binding
+identifies source bytes, not a completed build, artifact or timing result.
+
 Input manifest SHA-256:
 `f091971e62d936076621d7cad928ffb3384535cd8724e19c19a8fe97983b68ec`.
 Comparison of all 356 input manifests shows exactly one changed source:
