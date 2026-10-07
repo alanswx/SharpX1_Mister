@@ -251,8 +251,10 @@ test-dual-write-snapshot:
 
 test-video-dump: headless
 	$(MAKE) turbo-dma-savable DMA_VIDEO=1 DMA_SAVE_DIR=obj_dir_v12_dma_dual_savable
+	$(MAKE) turbo-dma DMA_DIR=obj_dir_v12_dma_x3_timing DMA_VIDEO=1
 	python3 tests/test_video_dump.py ./$(HEADLESS_EXE)
 	python3 tests/test_video_dump.py ./obj_dir_v12_dma_dual_savable/Vtop turbo
+	python3 tests/test_video_dump.py ./obj_dir_v12_dma_x3_timing/Vtop turbo
 .PHONY: test-video-dump
 
 test-continue-native-dual:

@@ -25,6 +25,13 @@ def main():
     for start in (0x4000, 0x8000, 0xC000):
         out(start + 0x1A03, 0)
     expected = [bytearray(32768 if turbo else 16384) for _ in range(3)]
+    expected_pcg = [bytearray(2048) for _ in range(3)]
+    if turbo:
+        # Native high-speed selector cells, followed by real bus transactions.
+        for cell in (0x7FF, 0x3FF, 0x5FF, 0x1FF):
+            out(0x3000 + cell, 0x42)
+            out(0x2000 + cell, 0x20)
+            out(0x3800 + cell, 0)
     for bank in range(2 if turbo else 1):
         if turbo:
             out(0x1FD0, bank << 4)
@@ -38,6 +45,20 @@ def main():
         out(0x1FE0, 0x7F)
     for port, value in ((0x1000, 0xC4), (0x1100, 0xB2), (0x1200, 0xA1), (0x1300, 0x3C)):
         out(port, value)
+    crtc_registers = {0: 15, 1: 4, 2: 10, 3: 0x22, 4: 3, 5: 0,
+                      6: 2, 7: 2, 8: 0, 9: 7, 12: 0, 13: 0}
+    for index, value in crtc_registers.items():
+        out(0x1800, index)
+        out(0x1801, value)
+    if turbo:
+        # High-speed PCG waits for a CRTC window; configure CRTC first.
+        out(0x1FD0, 0x20)
+        for plane, start in enumerate((0x1500, 0x1600, 0x1700)):
+            for nibble in range(16):
+                value = 0x34 + plane * 0x20 + nibble
+                out(start + nibble, value)
+                expected_pcg[plane][0x42 * 8 + nibble // 2] = value
+        out(0x1FD0, 0x18)
     p.emit(0x76)
     with tempfile.TemporaryDirectory(prefix="x1-video-observe-") as folder:
         root = pathlib.Path(folder)
@@ -59,10 +80,21 @@ def main():
             actual = (root / ("observed.gram-" + name)).read_bytes()
             mismatches = [(index, got, want) for index, (got, want) in enumerate(zip(actual, data)) if got != want]
             assert len(actual) == len(data) and not mismatches, (name, len(actual), len(data), mismatches[:30])
+        for name, data in zip(("b", "r", "g"), expected_pcg):
+            assert (root / ("observed.pcg-" + name)).read_bytes() == data, name
         controls = root / "observed.video-controls"
         palette = dict(line.split("=") for line in (root / "observed.video-palette").read_text().splitlines())
         assert {key: int(value) for key, value in palette.items()} == {
             "PAL_B": 0xC4, "PAL_R": 0xB2, "PAL_G": 0xA1, "PRIORITY": 0x3C}, palette
+        observed_crtc = dict(line.split("=") for line in (root / "observed.crtc").read_text().splitlines())
+        assert {int(key[1:]): int(value) for key, value in observed_crtc.items()} == crtc_registers, observed_crtc
+        samples = {key: int(value) for key, value in (line.split("=") for line in
+                   (root / "observed.video-samples").read_text().splitlines())}
+        assert samples["PIXEL_SAMPLES"] >= samples["VISIBLE_SAMPLES"] > samples["VISIBLE_NONZERO_RGB"] > 0, samples
+        assert samples["LAYER_SAMPLES"] > 0 and samples["GRAPHICS_SELECTED_FROM_INPUTS"] == samples["LAYER_SAMPLES"], samples
+        assert sum(samples[f"GRAPHICS_COLOR_{color}"] for color in range(8)) == samples["LAYER_SAMPLES"], samples
+        assert samples["TEXT_COLOR_0"] == samples["LAYER_SAMPLES"], samples
+        assert sum(samples[f"TEXT_COLOR_{color}"] for color in range(8)) == samples["LAYER_SAMPLES"], samples
         if turbo:
             values = dict(line.split("=") for line in controls.read_text().splitlines())
             assert {key: int(value) for key, value in values.items()} == {
@@ -70,7 +102,7 @@ def main():
                 "BLACK_VIDEO": 0x7F, "WIDTH_VIDEO": 0}, values
         else:
             assert not controls.exists()
-    print(f"PASS read-only graphics observation: turbo={turbo}, all plane bytes/page boundaries and unchanged reports/dumps")
+    print(f"PASS read-only graphics observation: turbo={turbo}, all GRAM/PCG bytes, CRTC/controls, active populations and unchanged reports/dumps")
 
 
 if __name__ == "__main__":

@@ -32,6 +32,13 @@ continuation and protection overrides. A native sixteen-second Arcus checkpoint
 resumes to 32 seconds with all five RAM/CPU dumps matching fresh execution;
 the actual final frame remains black, not gameplay. Owned-host/interrupted-write
 snapshots and hardware remain open.
+The [active renderer observation](VIDEO_OBSERVATION_STATUS.md) narrows Arcus's
+black output to selected white PCG text masked by blackclip, with varied
+graphics underneath; local X Millennium agrees on mask-after-priority behavior.
+Do not change that behavior merely to expose graphics. Investigate native PCG
+programming and interrupt/input progression. CRTC/PCG/sample diagnostics pass
+base delay-aware and X3 fast/delay-aware; exploratory Enter/Space continuation
+to 50 seconds still gives a black actual frame, not gameplay.
 
 The user requested completing the six remaining work groups below and Turbo Z. None is
 declared finished by the standalone SIO increments. Execute local gates in

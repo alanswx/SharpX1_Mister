@@ -88,6 +88,9 @@ int main(int argc, char **argv) {
         bool bus_events = false;
         const char *disk_path = nullptr, *keys_path = nullptr, *dump_path = nullptr;
         const char *video_dump_path = nullptr;
+        uint64_t video_samples = 0, visible_samples = 0, visible_nonzero = 0;
+        uint64_t layer_samples = 0, graphics_selected = 0;
+        std::array<uint64_t, 8> graphics_colors{}, text_colors{};
         const char *disk_output = nullptr;
         const char *disk_b_path = nullptr, *disk_b_output = nullptr;
         const char *save_path = nullptr, *restore_path = nullptr;
@@ -601,8 +604,29 @@ int main(int argc, char **argv) {
                              (unsigned long long)frame.frames, (unsigned long long)disk_requests);
                 progress_time += 100000000000ULL;
             }
-            if (video_rise && pixel_enable && !top.reset)
+            if (video_rise && pixel_enable && !top.reset) {
                 frame.sample_rgb12(top.HSync, top.VSync, top.HBlank || top.VBlank, top.rgb12);
+                if (video_dump_path) {
+                    ++video_samples;
+                    if (!top.HBlank && !top.VBlank) {
+                        ++visible_samples;
+                        visible_nonzero += top.rgb12 != 0;
+                    }
+                    // Post-eval layer inputs are one pipeline edge apart
+                    // from registered RGB. Keep their populations separate.
+                    const auto *root = top.rootp;
+                    if (root->top__DOT__machine__DOT__display__DOT__disp_d) {
+                        ++layer_samples;
+                        // Base builds inline gr_sel. Evaluate its selection
+                        // predicate from observed inputs; do not force it.
+                        graphics_selected += ((root->top__DOT__machine__DOT__display__DOT__PRIO_R
+                            >> root->top__DOT__machine__DOT__display__DOT__gr_col) & 1)
+                            || root->top__DOT__machine__DOT__display__DOT__cg_col == 0;
+                        ++graphics_colors[root->top__DOT__machine__DOT__display__DOT__gr_col];
+                        ++text_colors[root->top__DOT__machine__DOT__display__DOT__cg_col];
+                    }
+                }
+            }
 #ifdef X1_SDL
             if (frontend && sys_rise && (top.sys_edges & 4095) == 0) {
                 if (!frontend->poll([&](uint8_t byte) {
@@ -711,6 +735,9 @@ int main(int argc, char **argv) {
             plane(".gram-b", root->top__DOT__machine__DOT__gram_b__DOT__mem);
             plane(".gram-r", root->top__DOT__machine__DOT__gram_r__DOT__mem);
             plane(".gram-g", root->top__DOT__machine__DOT__gram_g__DOT__mem);
+            plane(".pcg-b", root->top__DOT__machine__DOT__pcg_b__DOT__mem);
+            plane(".pcg-r", root->top__DOT__machine__DOT__pcg_r__DOT__mem);
+            plane(".pcg-g", root->top__DOT__machine__DOT__pcg_g__DOT__mem);
             std::ofstream palette(std::string(video_dump_path) + ".video-palette");
             if (!palette) throw std::runtime_error("cannot open video palette dump");
             palette << "PAL_B=" << unsigned(root->top__DOT__machine__DOT__display__DOT__PAL_B)
@@ -718,6 +745,35 @@ int main(int argc, char **argv) {
                     << "\nPAL_G=" << unsigned(root->top__DOT__machine__DOT__display__DOT__PAL_G)
                     << "\nPRIORITY=" << unsigned(root->top__DOT__machine__DOT__display__DOT__PRIO_R) << '\n';
             if (!palette) throw std::runtime_error("cannot write video palette dump");
+            std::ofstream samples(std::string(video_dump_path) + ".video-samples");
+            if (!samples) throw std::runtime_error("cannot open video sample dump");
+            samples << "PIXEL_SAMPLES=" << video_samples
+                    << "\nVISIBLE_SAMPLES=" << visible_samples
+                    << "\nVISIBLE_NONZERO_RGB=" << visible_nonzero
+                    << "\nLAYER_SAMPLES=" << layer_samples
+                    << "\nGRAPHICS_SELECTED_FROM_INPUTS=" << graphics_selected << '\n';
+            for (unsigned color = 0; color < 8; ++color)
+                samples << "GRAPHICS_COLOR_" << color << '=' << graphics_colors[color]
+                        << "\nTEXT_COLOR_" << color << '=' << text_colors[color] << '\n';
+            if (!samples) throw std::runtime_error("cannot write video sample dump");
+            std::ofstream crtc(std::string(video_dump_path) + ".crtc");
+            if (!crtc) throw std::runtime_error("cannot open CRTC dump");
+            const unsigned crtc_registers[] = {
+                root->top__DOT__machine__DOT__display__DOT__crtc6845s__DOT__mpu_if__DOT__R_Nht,
+                root->top__DOT__machine__DOT__display__DOT__crtc6845s__DOT__mpu_if__DOT__R_Nhd,
+                root->top__DOT__machine__DOT__display__DOT__crtc6845s__DOT__mpu_if__DOT__R_Nhsp,
+                root->top__DOT__machine__DOT__display__DOT__crtc6845s__DOT__mpu_if__DOT__R_Nsw,
+                root->top__DOT__machine__DOT__display__DOT__crtc6845s__DOT__mpu_if__DOT__R_Nvt,
+                root->top__DOT__machine__DOT__display__DOT__crtc6845s__DOT__mpu_if__DOT__R_Nadj,
+                root->top__DOT__machine__DOT__display__DOT__crtc6845s__DOT__mpu_if__DOT__R_Nvd,
+                root->top__DOT__machine__DOT__display__DOT__crtc6845s__DOT__mpu_if__DOT__R_Nvsp,
+                root->top__DOT__machine__DOT__display__DOT__crtc6845s__DOT__mpu_if__DOT__R_Intr,
+                root->top__DOT__machine__DOT__display__DOT__crtc6845s__DOT__mpu_if__DOT__R_Nr};
+            for (unsigned index = 0; index < 10; ++index)
+                crtc << 'R' << index << '=' << crtc_registers[index] << '\n';
+            crtc << "R12=" << unsigned(root->top__DOT__machine__DOT__display__DOT__crtc6845s__DOT__mpu_if__DOT__R_Msah)
+                 << "\nR13=" << unsigned(root->top__DOT__machine__DOT__display__DOT__crtc6845s__DOT__mpu_if__DOT__R_Msal) << '\n';
+            if (!crtc) throw std::runtime_error("cannot write CRTC dump");
 #ifdef X1_TURBO_FOUNDATION
             std::ofstream controls(std::string(video_dump_path) + ".video-controls");
             if (!controls) throw std::runtime_error("cannot open video controls dump");

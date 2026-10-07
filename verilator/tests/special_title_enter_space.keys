@@ -1,0 +1,8 @@
+# Exploratory native input, relative to a restored checkpoint.
+# Not a verified release-specific start/control sequence for Arcus/Bastard.
+50 5a
+250 f0
+252 5a
+500 29
+750 f0
+752 29
