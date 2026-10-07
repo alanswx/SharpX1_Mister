@@ -38,11 +38,20 @@ The first eight-second follow-up completes with 14,388 CPU FDC data reads,
 640×400 frame (`c532ccc7df38c9da`) displays a Japanese disk-read error,
 not gameplay. The 6000–7500 ms trace contains 113,382 FDC transactions,
 mostly status polling. This is progress beyond the old SASI loop, not
-proof of successful Arcus boot. The independent repeat is still running;
-do not promote the completed first run to repeatability. Private evidence
+proof of successful Arcus boot. The independent repeat also completes:
+all reports/dumps/CSV/frames match and original input hashes are unchanged.
+Collector exit zero (`/tmp/x1-arcus-dsw-f1-eight.log`). Private evidence
 is `output_files/arcus-kanji-dsw-f1-eight/`; `cold-final.png` is a lossless
 conversion of the terminal real PPM and was visually inspected. The earlier
 `cold-inspection.png` is a blank in-progress frame, not the final result.
+
+The trace also establishes a native DMA setup at about 6223 ms. CPU writes
+`C3 83 7D FB 0F FF 03 2C 10 8D 00 80 92 CF 87` to `1F80`, then sets
+FDC sector 4 and issues Read Sector `80`. The renderer profile has DMA off,
+so this transfer cannot execute there. This is an evidence-backed missing
+capability in that configuration, not proof that enabling DMA resolves every
+native requirement. A separate X3/DMA profile, without the still-unqualified
+combined Kanji backend, is being tested. No native bytes or snapshots patched.
 
 ## Checks and remaining gates
 

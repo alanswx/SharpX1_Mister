@@ -213,19 +213,31 @@ test-machine-kanji-x3-snapshot:
 # Separate opt-in DMA profile. Board/default Turbo profiles remain unchanged.
 DMA_DIR ?= obj_dir_turbo_dma
 DMA_TIMING ?= --timing
+DMA_VIDEO ?= 0
+DMA_VIDEO_FLAGS = -GTURBO_VIDEO_MASTER=$(DMA_VIDEO) -CFLAGS "$(if $(filter 1,$(DMA_VIDEO)),-DX1_TURBO_VIDEO_MASTER)"
 turbo-dma: $(DMA_DIR)/Vtop
 $(DMA_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc $(DMA_TIMING) --assert --trace-fst --exe --build -j 4 --Mdir $(DMA_DIR) --top-module top \
-		$(TURBO_DSW_FLAGS) -GTURBO=1 -GTURBO_DMA=1 -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_TURBO_DMA" \
+		$(TURBO_DSW_FLAGS) $(DMA_VIDEO_FLAGS) -GTURBO=1 -GTURBO_DMA=1 -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_TURBO_DMA" \
 		-MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 .PHONY: turbo-dma
+
+test-machine-dma-x3-fast:
+	$(MAKE) turbo-dma DMA_DIR=obj_dir_v12_dma_x3_fast DMA_TIMING=--no-timing DMA_VIDEO=1
+	python3 tests/test_machine_dma.py ./obj_dir_v12_dma_x3_fast/Vtop
+	python3 tests/test_dma_native_read_stream.py ./obj_dir_v12_dma_x3_fast/Vtop
+test-machine-dma-x3-timing:
+	$(MAKE) turbo-dma DMA_DIR=obj_dir_v12_dma_x3_timing DMA_VIDEO=1
+	python3 tests/test_machine_dma.py ./obj_dir_v12_dma_x3_timing/Vtop
+	python3 tests/test_dma_native_read_stream.py ./obj_dir_v12_dma_x3_timing/Vtop
+.PHONY: test-machine-dma-x3-fast test-machine-dma-x3-timing
 
 # Completion IRQ has its own model and output directory; no default promotion.
 DMA_IRQ_DIR ?= obj_dir_turbo_dma_irq
 turbo-dma-irq: $(DMA_IRQ_DIR)/Vtop
 $(DMA_IRQ_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc $(DMA_TIMING) --assert --trace-fst --exe --build -j 4 --Mdir $(DMA_IRQ_DIR) --top-module top \
-		$(TURBO_DSW_FLAGS) -GTURBO=1 -GTURBO_DMA=1 -GTURBO_DMA_IRQ=1 -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_TURBO_DMA -DX1_TURBO_DMA_IRQ" \
+		$(TURBO_DSW_FLAGS) $(DMA_VIDEO_FLAGS) -GTURBO=1 -GTURBO_DMA=1 -GTURBO_DMA_IRQ=1 -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_TURBO_DMA -DX1_TURBO_DMA_IRQ" \
 		-MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 .PHONY: turbo-dma-irq
 test-machine-dma-irq: turbo-dma-irq
@@ -244,12 +256,12 @@ DMA_IRQ_SAVE_DIR ?= obj_dir_turbo_dma_irq_savable
 turbo-dma-savable: $(DMA_SAVE_DIR)/Vtop
 $(DMA_SAVE_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc --no-timing --savable --assert --trace-fst --exe --build -j 4 --Mdir $(DMA_SAVE_DIR) --top-module top \
-		$(TURBO_DSW_FLAGS) -GTURBO=1 -GTURBO_DMA=1 -CFLAGS "-std=c++20 -DX1_SAVABLE -DX1_TURBO_FOUNDATION -DX1_TURBO_DMA" \
+		$(TURBO_DSW_FLAGS) $(DMA_VIDEO_FLAGS) -GTURBO=1 -GTURBO_DMA=1 -CFLAGS "-std=c++20 -DX1_SAVABLE -DX1_TURBO_FOUNDATION -DX1_TURBO_DMA" \
 		-MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 turbo-dma-irq-savable: $(DMA_IRQ_SAVE_DIR)/Vtop
 $(DMA_IRQ_SAVE_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc --no-timing --savable --assert --trace-fst --exe --build -j 4 --Mdir $(DMA_IRQ_SAVE_DIR) --top-module top \
-		$(TURBO_DSW_FLAGS) -GTURBO=1 -GTURBO_DMA=1 -GTURBO_DMA_IRQ=1 -CFLAGS "-std=c++20 -DX1_SAVABLE -DX1_TURBO_FOUNDATION -DX1_TURBO_DMA -DX1_TURBO_DMA_IRQ" \
+		$(TURBO_DSW_FLAGS) $(DMA_VIDEO_FLAGS) -GTURBO=1 -GTURBO_DMA=1 -GTURBO_DMA_IRQ=1 -CFLAGS "-std=c++20 -DX1_SAVABLE -DX1_TURBO_FOUNDATION -DX1_TURBO_DMA -DX1_TURBO_DMA_IRQ" \
 		-MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 test-machine-dma-irq-snapshot: turbo-dma-savable turbo-dma-irq-savable
 	python3 tests/test_machine_dma_irq_snapshot.py ./$(DMA_IRQ_SAVE_DIR)/Vtop ./$(DMA_SAVE_DIR)/Vtop

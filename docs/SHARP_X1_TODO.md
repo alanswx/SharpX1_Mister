@@ -17,6 +17,11 @@ checks pass; a repeated native two-second probe confirms F1 reads but no FDC
 transaction in its initial trace. Complete longer native boot diagnosis,
 configuration-bound snapshots, other clock/profile checks and source-bound
 Quartus/hardware acceptance before treating boot-device selection as closed.
+The longer F1 native probe repeats the disk-read error and executes a DMA
+setup while that renderer profile has DMA disabled. The separate
+[X3/DMA follow-up](DMA_X3_NATIVE_STATUS.md) passes both complete generated
+transfer matrices and fast cold/warm native-command-shape diagnostics;
+native gameplay, combined Kanji ownership, snapshots and hardware remain open.
 
 The user requested completing the six remaining work groups below and Turbo Z. None is
 declared finished by the standalone SIO increments. Execute local gates in

@@ -52,6 +52,10 @@ The [Turbo DIP readback increment](docs/TURBO_DIP_STATUS.md) adds an explicit
 static 2D-floppy boot profile instead of unmapped `FF` (SASI in local MAME).
 Actual native IPL reads now return `F1`; the bounded probe still does not
 reach FDC transfers or establish game boot. Hardware/snapshot gates remain open.
+The longer F1 probe now reaches native DMA setup and a disk-read error; a
+separate [X3/DMA follow-up](docs/DMA_X3_NATIVE_STATUS.md) passes full generated
+fast/delay-aware transfer matrices. Native gameplay and combined Kanji/DMA
+qualification remain open.
 An original [standalone DMA subset](docs/DMA_STATUS.md) now passes register,
 transfer, count/readback and ownership tests. That standalone checkpoint did
 not connect the shared machine or establish native DMA compatibility.
