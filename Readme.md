@@ -66,7 +66,9 @@ The same chain reaches 48 seconds; [read-only graphics observation](docs/VIDEO_O
 finds populated planes/palettes, not a proven cause of the black screen.
 The [interrupt comparison](docs/ARCUS_INTERRUPT_STATUS.md) finds only handler
 opcode fetches in a native continuation; two existing-local-MAME cold runs
-reach the same black handler state. This is not gameplay acceptance.
+reach the same black handler state. X Millennium progresses to garbled scenes,
+but an isolated pending-retention control reproduces that stall; the physical
+CTC overlap contract remains open. This is not gameplay acceptance.
 Owned-host/interrupted-write qualification remains open.
 An original [standalone DMA subset](docs/DMA_STATUS.md) now passes register,
 transfer, count/readback and ownership tests. That standalone checkpoint did

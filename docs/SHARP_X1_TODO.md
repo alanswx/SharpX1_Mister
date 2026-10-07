@@ -3,7 +3,9 @@
 This list is based on the current RTL, the existing Verilator harness, and
 cross-checking against the local MAME Sharp X1 driver. X Millennium is now
 downloaded and its Turbo control code inspected; an isolated declaration-fixed
-libretro build now succeeds, but execution is still pending.
+libretro build now executes Arcus. Original phase coalescing progresses to
+garbled scenes; an isolated pending-retention control repeats the black handler
+state. Neither establishes gameplay or the physical chip contract.
 See `CORE_STATUS.md` for confirmed device and wiring gaps.
 See [the implementation and test plan](IMPLEMENTATION_PLAN.md) for dependency
 ordering, test coverage, and acceptance gates. These checklist phases are broad
@@ -43,8 +45,10 @@ to 50 seconds still gives a black actual frame, not gameplay.
 The [interrupt-progression follow-up](ARCUS_INTERRUPT_STATUS.md) observes
 only handler opcode fetches during a native 100 ms continuation. Existing
 local MAME now executes with matching supplied ROMs and reaches the same
-black-screen handler state. Resolve the overlapping-CTC-request reference
-disagreement with stronger evidence; do not simply slow its clock.
+black-screen handler state. Two X Millennium cold runs progress further, but
+two separate pending-retention controls repeat the same black handler state;
+this isolates its phase-coalescing policy's effect, not hardware correctness.
+Resolve that contract with stronger evidence; do not simply slow its clock.
 
 The user requested completing the six remaining work groups below and Turbo Z. None is
 declared finished by the standalone SIO increments. Execute local gates in

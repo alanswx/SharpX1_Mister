@@ -82,7 +82,7 @@ Local X Millennium `io/ctc.c::ieeoi_ctc` discards some overlapping requests
 using timer phase at service completion, unlike MAME/RTL pending preservation.
 Inspected Zilog manual passages describe priority/RETI but do not settle this
 overlap case. Execute that second emulator with unchanged assets and preserve
-source/binary/config evidence; seek stronger primary/hardware evidence before
+source/binary/config evidence (now recorded below); seek stronger primary/hardware evidence before
 silently adopting its compatibility heuristic or changing timer frequency.
 
 ## Second-emulator build checkpoint
@@ -102,6 +102,91 @@ Failed attempts remain in `/tmp/x1-xmil-reference-build*.log`.
 `f0b1d55a970b9907c04ee36a729dedcd4b7029def1a9d289f8adda9d763e4313`.
 Inherited format/unused-comparison/dangling-else and linker alignment warnings
 are retained, not suppressed. This is a declaration-accommodated build, not
-an executed Arcus comparison or licensing clearance. Next: an isolated libretro
-host with private unchanged assets, explicit two-drive mapping and recorded
-input/CPU/CTC/frame evidence.
+an executed Arcus comparison or licensing clearance. Subsequent execution is
+recorded separately below.
+
+## Executed X Millennium comparison and counterfactual
+
+Original `verilator/tests/xmil_reference_host.c` dynamically loads that dylib
+using its exact staged headers. It enters private `system/xmil/`, supplies
+libretro callbacks, rejects non-RGB565 output, discards audio, initializes the
+machine, then mounts disposable A/B disks explicitly read-only before the first
+executed frame. It checks ROM_TYPE=2, DIP=F1 and compares all 32 KiB of loaded
+`biosmem` against the supplied IPL. No CPU/memory or firmware bytes are patched.
+The final host compiles cleanly with `-std=gnu99 -Wall -Wextra -Werror`.
+Its first probe lacked the configuration/loaded-ROM assertions; run 2 includes
+them. Final original host SHA-256:
+`1b3f64508e844492d5bd5d566521c3a2cb3535bffc1ac66e3843cb1db1da04c0`.
+A private F5-config negative control exits one with the explicit F1-profile
+error and produces no frames (`/tmp/x1-xmil-reject-config.log`). It does not
+change original assets or bypass the configuration guard.
+
+Private run folders are `output_files/xmil-reference-build-ZFOimE/run1/`
+and `run2/`; logs `/tmp/x1-xmil-arcus-run1.log` and `run2.log`, both exit zero.
+Configuration: `[Xmillennium]`, IPL_TYPE=2, Resolute=F1, s_NOWAIT=true,
+SkpFrame=0. The supplied Set-2 archive provides the same IPL and 4096-byte
+ANK candidate as RTL, plus FNT0808/FNT1616; the existing archive-tail warning
+is retained. FNT0808 SHA-256 `2ce875255d64002589831e68825fbb36b7827be538dd030ffabb907b3c07610b`;
+FNT1616 SHA-256 `40c080b7ad381050fe9f8d8063985a2648785ef470e397fbeb3d606a9774fc48`.
+All original and disposable A/B hashes remain unchanged.
+
+Each fresh process runs 3,060 frontend frames, with F at frames 60–71,
+Space 480–497 and 2910–2924, Return 2883–2894. Capture frames
+120/480/960/1920/3000 are real RGB565 converted to PPM, 640×400. Two cold
+runs have exactly identical ten CPU/CTC records and all five PPM files.
+Later scene images are visibly garbled; neither a start menu nor controlled
+gameplay is established. The inspected PNGs are conversions of those PPMs,
+not an invented image. `retro_get_system_av_info` advertises 60 Hz, but the
+emulated frame clock varies: frame 3000 has 217,891,409 CPU cycles, not exactly
+50 native seconds. Do not equate frontend-frame labels with wall/RTL/MAME time.
+
+The actual clock configuration is baseclock=2 MHz, multiple=2, CPU=4 MHz.
+CTC uses base-clock ticks: its /128 for command A7 corresponds to /256 at
+4 MHz, **not evidence of a twice-fast timer**. The same TC=16 interval is
+nominally 1.024 ms. Its phase-based RETI discard is a separate policy.
+
+Original `verilator/tests/xmil_preserve_pending_control.c` includes the exact
+reference `ctc.c` with notices intact, renames its original EOI function, and
+replaces only EOI with pending retention/event rescheduling. It is a deliberate
+counterfactual, **not** the unmodified reference or FPGA implementation. A
+separate `preserve-pending-source/` copy is used; compared bytes confirm all
+source and every other object unchanged, only `io/ctc.o` and the linked dylib
+differ. Counterfactual dylib SHA-256:
+`d8bb21c3be14b7e0abcdcd1b81bd7c1c6270744f61235fc6f5eea246fa206288`.
+The CTC adapter is compiled instead of its original object with the original
+optimization/ABI flags; a normal Makefile relink exits zero in
+`/tmp/x1-xmil-preserve-pending-build.log`.
+
+Two cold counterfactual runs use the unchanged run-2 config/assets/input
+sequence; logs `/tmp/x1-xmil-preserve-pending-run1.log` and `run2.log`, both
+exit zero, captures in `preserve-run1/frames/` and `preserve-run2/frames/`.
+Ten records and five PPM files repeat exactly. The first three frames also
+match the original reference byte-for-byte. Both later frames become all black:
+
+| X Millennium policy | Frame 1920 | Frame 3000 |
+|---|---|---|
+| Original phase coalescing | PC=0E2C, varied scene, channel 1 stopped | PC=116D, varied scene, channel 1 stopped |
+| Pending retention control | PC=0E9C, black, TC=16 still running/pending | PC=0E9F, black, TC=16 still running/pending |
+
+Retained-policy SP=08B1, I=F0, IM2 and IFF_RAW=1 (this reference encodes
+interrupt-disabled as bit 0 set) reproduce the RTL/MAME handler state.
+This isolates the policy's effect **within X Millennium**; it does not prove
+the physical chip should drop requests, settle disk/release instructions,
+or establish game compatibility. No RTL clock/interrupt policy changed.
+Re-read the official [Zilog UM0081](https://www.zilog.com/docs/z80/um0081.pdf),
+printed pages 25–30: terminal-count requests, channel priority, ACK and RETI
+are specified, but the inspected passages do not explicitly settle repeated
+same-channel terminal counts during service. Next acceptance gate is stronger
+chip/hardware evidence or an independently justified interrupt contract,
+not silently copying a compatibility heuristic.
+
+Host invocation (all paths absolute; directories already privately staged):
+
+```sh
+output_files/xmil-reference-build-ZFOimE/xmil_reference_host \
+  "$PWD/output_files/xmil-reference-build-ZFOimE/source/libretro/x1_libretro.dylib" \
+  "$PWD/output_files/xmil-reference-build-ZFOimE/run2/system" \
+  "$PWD/output_files/xmil-reference-build-ZFOimE/run2/frames" \
+  "$PWD/output_files/xmil-reference-build-ZFOimE/run2/disks/arcus-a.d88" \
+  "$PWD/output_files/xmil-reference-build-ZFOimE/run2/disks/arcus-b.d88"
+```

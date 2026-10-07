@@ -60,6 +60,9 @@ and actual PNGs, but reach the same black interrupt-handler state, not gameplay.
 Binary/source distinction, failed attempts, hashes, font differences and limits
 are in [the interrupt status](../docs/ARCUS_INTERRUPT_STATUS.md). No sibling
 checkout, installed configuration or original asset was changed. X Millennium
-has still not been executed; its overlapping-request policy differs and needs
-an independently recorded run. Its isolated macOS libretro build now succeeds
-with declaration-only accommodations; see the interrupt status for provenance.
+now also executes from an isolated macOS libretro build with declaration-only
+accommodations: two cold runs repeat actual frames/state records and progress
+to garbled scenes, not gameplay. A separate original pending-retention adapter
+repeats the same black handler state twice, isolating the phase-coalescing
+policy's effect within that reference. No FPGA policy changed; see the interrupt
+status for build/run/counterfactual provenance and the unresolved chip contract.
