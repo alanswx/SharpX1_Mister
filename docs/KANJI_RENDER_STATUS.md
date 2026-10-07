@@ -196,7 +196,7 @@ and command checks. Original failure remains at
 `/tmp/x1-kanji-native-probe-timeout-final.log`. Mocked provenance tests are not
 game or FPGA verification.
 
-Two fresh native Arcus boots are running in ignored
+Two fresh native Arcus boots complete successfully/repeat identically in ignored
 `output_files/arcus-kanji-render-native-ipl/` with the unchanged supplied
 32 KiB Turbo IPL, ANK16 and inferred physical model-40 Kanji candidate, frozen
 fast runner `f8bc8a21...a270dc2`, eight seconds each, Disk 1 A / Disk 2 B
@@ -205,5 +205,11 @@ fast runner `f8bc8a21...a270dc2`, eight seconds each, Disk 1 A / Disk 2 B
 320×200 final PPM was converted losslessly for inspection as `cold-final.png`:
 it reads “IPL is looking for a program from FD0,” **not game boot**. The
 earlier `cold-inspection.png` preserves an intermediate initialization screen,
-not a final capture. The repeat process is still active; do not claim final
-repeatability or unchanged-input acceptance before its evidence is complete.
+not a final capture. Both final reports and all six dumped artifact hashes
+match; direct PPM/CPU byte comparisons also pass. The collector exits zero and
+records `repeatable=true`, `unchanged_inputs=true`, `gameplay_verified=false`
+in its private `evidence.json`. This is a repeated FD0-search outcome, **not
+Arcus boot/playability or native Kanji glyph acceptance**. Diagnostic CPU FDC
+data and DMA grant counters are zero; do not infer a causal device failure
+without native transaction traces. No source/profile/assets were modified
+to bypass IPL startup or disk ordering.

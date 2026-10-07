@@ -105,8 +105,8 @@ scan rates, warm reset, paired-PCG/Kanji exits and four expansion/underline
 policies. Each matrix checks 2,101,760 pixels. Per-cell width/height, blinking,
 the remaining attribute/row cross-product and simultaneous ROM selection
 remain required. Native Arcus with the supplied Turbo IPL still ends at the
-FD0 search screen in its first eight-second run; the repeat probe is pending,
-not accepted gameplay or a newly proven missing-chip diagnosis.
+FD0 search screen in two repeatable eight-second runs with unchanged assets,
+not accepted gameplay, native glyph rendering or a proven missing-chip diagnosis.
 The [current-source Quartus retry](CURRENT_SOURCE_QUARTUS_STATUS.md) records
 the preserved parse failure and explicit-generate fix. Local default/native
 DMA and actual-CPU IRQ regressions pass. The new single-clock frozen build now

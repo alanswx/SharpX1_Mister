@@ -1,5 +1,34 @@
 # Native Turbo firmware probe
 
+## October 6/7 renderer-enabled native-IPL repeat
+
+The separate opt-in Kanji renderer's frozen fast runner
+`f8bc8a21baaa94ac1bc75a6a2abfd389b7dd45cb095a0af1bae61c1ffa270dc2`
+executes two fresh eight-second Arcus probes with the unchanged supplied
+Turbo IPL/ANK16 and inferred model-40 physical candidate
+`b32559f5d5b9014d5ba316c41293e1336532eb0c66a01d5ac7e1304dabdaa91c`.
+32 MHz system / nominal 42.954540 MHz video; physical fonts uploaded once
+per cold invocation; no RAM bootstrap, altered software or invented device.
+Disk 1 A / Disk 2 B remains explicitly exploratory.
+
+Both reports and RAM/text/attribute/sub-RAM/CPU/PPM artifact hashes match;
+all original input hashes remain unchanged. Each reports 888 disk requests,
+zero writes, 495 actual 320×200 frames, final hash `ad3165ae6bcf6eff` and
+167,936 upload bytes. The inspected actual final image still reads
+“IPL is looking for a program from FD0.” This is **not game boot, gameplay
+or native Kanji glyph acceptance**. Diagnostic CPU FDC data/DMA grants are
+zero; a native I/O trace is still required before identifying a blocking chip.
+DMA is disabled in this rendering profile, not assumed working from its sources.
+
+Private evidence: ignored `output_files/arcus-kanji-render-native-ipl/`,
+including `evidence.json` and inspected `cold-final.png` (lossless conversion
+of the real PPM, not a fabricated screenshot). Collector exit zero; log
+`/tmp/x1-arcus-kanji-render-native-ipl.log`. See
+[renderer acceptance/limits](KANJI_RENDER_STATUS.md) for the distinct actual
+mixed pixel tests and strict candidate/provenance handling.
+
+## Earlier checkpoint evidence
+
 October 5, 2026. Execution evidence, **not Turbo firmware/game acceptance**.
 
 `scripts/stage_turbo_ipl.py` extracts one unchanged 32 KiB IPL from the user's
