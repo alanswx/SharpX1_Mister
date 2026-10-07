@@ -135,7 +135,9 @@ The directed three-device DMA/CTC/real-MR16 pending profile also passes on both
 timing models, with ordered keyboard make/break and cold repeat checks.
 The device-only [Ready/IOR increment](docs/DMA_READY_IRQ_STATUS.md) adds
 `READY_IRQ=1`, independent IOR/IP/IUS and B7 release. Existing machine/board
-profiles do not enable it; restart IRQ and native/hardware gates remain open.
+profiles do not enable it. Byte/Burst owned Ready events now drain a real
+pair before service; directed WAIT/grant/mask checks pass. Restart IRQ and
+native/hardware gates remain open.
 The [Kanji contract audit](docs/KANJI_CONTRACT_STATUS.md) adds an exhaustive
 schematic-derived first-level address component and a separately tested 128 KiB
 dual-clock ROM loader. Synthetic byte/read/reset checks pass; the opt-in shared

@@ -70,16 +70,20 @@ module x1_dma #(parameter bit COMPLETION_IRQ=0, parameter bit READY_IRQ=0) (
         logic ready_previous, ior_latched;
         wire ready_edge = physical_ready && !ready_previous;
         wire armed = interrupt_control[6] && wr3[5] && !unsupported;
-        wire before_bus = armed && ready_edge && busrq_n && busak_n;
+        // Continuous owns the bus through Ready stalls and suppresses later
+        // transitions. Byte/Burst retain them, but must drain a started pair
+        // before releasing ownership and delivering the interrupt.
+        wire ready_capture = armed && ready_edge &&
+            ((busrq_n && busak_n) || wr4[6:5]!=2'b01);
         wire b7 = ce && write_event && follows==0 && !pair_active &&
             state!=PAUSE && state!=REQUEST && cpu_data_in==8'hb7;
         assign ready_irq_condition = ior_latched;
         // Prevent IDLE from requesting on the same edge that sets IOR.
-        assign ready_irq_block = ior_latched || before_bus;
+        assign ready_irq_block = ior_latched || ready_capture;
         always_ff @(posedge clk) begin
             ready_previous <= physical_ready;
             if (irq_reset || irq_clear || b7) ior_latched <= 0;
-            else if (before_bus) ior_latched <= 1;
+            else if (ready_capture) ior_latched <= 1;
         end
     end else begin : no_ready_interrupts
         assign ready_irq_condition=0, ready_irq_block=0;
@@ -233,7 +237,7 @@ module x1_dma #(parameter bit COMPLETION_IRQ=0, parameter bit READY_IRQ=0) (
                             requested <= 1;
                         end
                         REQUEST: begin
-                            if (!enabled || unsupported ||
+                            if (!enabled || unsupported || ready_irq_block ||
                                 (!ready_now && wr4[6:5] != 2'b01)) begin
                                 state <= RELEASE; force_ready <= 0;
                             end else if (busak_n) grant_samples <= 0;
@@ -248,7 +252,7 @@ module x1_dma #(parameter bit COMPLETION_IRQ=0, parameter bit READY_IRQ=0) (
                                 if (!ready_now) byte_counter <= byte_counter - 16'd1;
                                 match_found <= 1; search_stop_pending <= 0;
                                 enabled <= 0; state <= RELEASE; force_ready <= 0;
-                            end else if (!enabled || unsupported || (remaining == 0 && !search_stop_pending) ||
+                            end else if (!enabled || unsupported || ready_irq_block || (remaining == 0 && !search_stop_pending) ||
                                 (!ready_now && wr4[6:5] != 2'b01)) begin
                                 state <= RELEASE; force_ready <= 0;
                             end else if (ready_now && !busak_n && !write_event && !read_event) begin

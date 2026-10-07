@@ -25,9 +25,9 @@ the edge detector.
 
 Inputs are synchronous to the master clock. Edge/service/reset processing
 continues with transfer CE stopped; this is not silicon's exact two-clock
-latency or asynchronous-pin timing. Pre-bus Ready edges are captured; edges
-during ownership are not queued. Continuous-mode suppression agrees with the
-inspected prose, but Byte/Burst ownership transitions, already-active arming,
+latency or asynchronous-pin timing. The initial checkpoint captured only
+pre-bus edges; the owned-event correction below extends Byte/Burst retention.
+Continuous-mode suppression agrees with the inspected prose; already-active arming,
 changed polarity/live configuration and force-Ready combinations still need
 qualification before integration. Ready/completion auto-restart IRQ, pulse
 control and reserved interrupt-control bits remain fail-closed.
@@ -76,7 +76,7 @@ exit one, in `/tmp/x1-dma-ready-negative.log`. Production keeps the gate. The
 failure detects premature requesting; its error text does not imply the
 mutated RTL actually cleared IOR.
 
-Final-source SHA-256 identities:
+Initial checkpoint (`834be43`) SHA-256 identities:
 
 | Artifact | SHA-256 |
 |---|---|
@@ -84,9 +84,72 @@ Final-source SHA-256 identities:
 | Ready register executable | `8d7a50e157a250e3ce8582326be64a79e87c66d5acb8911fe0f69dbad05b2d32` |
 | Ready CPU executable | `4e7cf7eb86a03e28950279c3847218bf6b817a8cd050386bc52fa5b6a0a58ab0` |
 
+## Owned Ready correction and delivery-mask qualification
+
+The original new reproducer exits nonzero on `834be43` in
+`/tmp/x1-dma-ready-owned-reproducer.log`: Byte mode loses an active Ready
+transition during a WAIT-held source read with transfer CE stopped. No
+private software, forced state or debugger register writes are involved.
+
+The correction retains Byte/Burst transitions during REQUEST and ownership;
+Continuous still suppresses them until bus release. REQUEST and PAUSE now
+honor IOR, but an already-started read/write pair is never aborted. IP can
+be retained while owned; delivery waits for both BUSRQ and BUSACK to release.
+After ACK, B7→ENABLE→RETI resumes the remaining real count. This interpretation
+combines the manual's Ready/IUS latch behavior with its explicit Continuous
+exception; it remains a functional contract, not measured pin timing.
+
+`/tmp/x1-dma-ready-owned-request.log` exits zero on final source, covering
+the original 9,216 register cases and three actual-CPU Ready cases plus:
+
+- 36 owned cases: all three modes, both Ready polarities, source-read and
+  destination-write phases at CE=1/4/7; a real pair is held by WAIT and stopped
+  CE while Ready goes inactive then active. Byte/Burst release after exactly
+  1R/1W, service before the next read, then finish all 4R/4W/data. Continuous
+  finishes without a second service. WAIT remains effective after CE resumes.
+- 12 REQUEST cases: both Byte/Burst modes and polarities, delayed grant and
+  stopped CE. The event cancels the unstarted request, services with 0R/0W,
+  then completes the entire block after B7→ENABLE→RETI.
+- 18 masked cases: all modes/polarities/rates. AF permits a normal transfer
+  without creating IOR/IP. AB with Ready already held does not fabricate an
+  edge; a later physical edge requests service. The vector reflects the real
+  retained EOB status under the existing current-status policy. A3 recovers.
+
+The mask/late-arm tests verify this experimental edge policy, not independently
+prove how silicon behaves when armed with Ready already active. Local MAME's
+`rdy_write_callback` and `trigger_interrupt` were inspected read-only; it
+uses a deferred Ready callback and no separate saved IOR latch. It is not an
+oracle for the B7/owned-pair contract. No MAME source was changed or copied.
+
+The full nine-target source regression also exits zero in
+`/tmp/x1-dma-ready-owned-final.log`, including existing completion, transfer/
+restart, comparison/search/service and all 24 older CPU service cases. The
+latest REQUEST extension is separately covered by the completed Ready run
+above; it changes only the fixture, not RTL used by the nine-target run.
+A separate ignored copy restores pre-bus-only capture while retaining every
+other fix. It builds, then fails the same owned Byte-read assertion, exit one,
+in `/tmp/x1-dma-ready-owned-negative.log`. Original failure and assertions
+are preserved. No new warnings are suppressed.
+
+| Current owned-event artifact | SHA-256 |
+|---|---|
+| DMA RTL | `ffe522c7b77b7fd6235f0b194a48e4b03f713cd967165bd1190a1630b54fa4df` |
+| Ready register executable | `7e3ac4a235ad2a49c5d23cfe78b6a98d6f7280f61db705d93a1e24177bf1d860` |
+| Ready CPU executable | `57bfa728747b98f032afb8943bcf33405343dd80ad1905d3910376245bd2d2d9` |
+
+## Next restart contract found in primary documentation
+
+UM0081 printed 80–81 explicitly says EOB interrupts may accompany auto-restart
+but EOB status remains clear; status modification cannot identify that cause.
+Do not reuse the cleared EOB flag as the sole IRQ trigger or fabricate a set
+flag to make a test pass. The next implementation needs a separate terminal
+event retained through bus drain/ACK/service, real buffer/count reload, exact
+vector behavior and CPU stop/ACK/resume tests. Current restart IRQ programming
+remains rejected; the research is not implementation acceptance.
+
 ## Remaining gates
 
-Live/masked/late-arm and Byte/Burst owned Ready edges, Ready loss, combined
+Broader live/late-arm and owned Ready timing, Ready loss, combined
 completion/restart causes, B7/A3/C3 and short-reset races, Ready-aware shared
 machine identity/IRQ integration, SIO/FDC/multi-device and native Turbo tests.
 Exact pin timing, source-bound Quartus/CDC and physical MiSTer testing remain

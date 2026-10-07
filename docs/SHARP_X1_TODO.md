@@ -91,7 +91,11 @@ hardware gates remain required; no work group is marked complete.
 The device-only [Ready/IOR increment](DMA_READY_IRQ_STATUS.md) adds a separate
 `READY_IRQ=1` profile with independent IOR/IP/IUS, B7 release and real CPU
 handler/transfer checks. Existing machine profiles remain Ready-disabled;
-live/owned transitions, restart, integration and native/hardware gates remain.
+Byte/Burst owned WAIT-held and delayed-grant transitions now retain service
+without aborting a pair; Continuous suppression, AF/AB and exact resumed
+data pass directed tests. Broader live/late-arm timing, restart, integration
+and native/hardware gates remain. Primary auto-restart/EOB prose requires an
+independent terminal event with clear EOB status; see the same status document.
 The [Kanji contract audit](KANJI_CONTRACT_STATUS.md) now derives a tested
 first-level physical ROM address decoder from the model-20/30 schematic,
 covering all 131,072 bytes. Its connected standalone 128 KiB dual-clock ROM
