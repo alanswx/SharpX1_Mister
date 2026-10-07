@@ -62,6 +62,8 @@ the single-drive header. Committed writable A-first/B-first checkpoints also
 pass exact exported-media continuation and read-only protection overrides.
 A native Arcus checkpoint resumes to 32 seconds with all five RAM/CPU dumps
 matching fresh execution, but its screen remains black, not gameplay.
+The same chain reaches 48 seconds; [read-only graphics observation](docs/VIDEO_OBSERVATION_STATUS.md)
+finds populated planes/palettes, not a proven cause of the black screen.
 Owned-host/interrupted-write qualification remains open.
 An original [standalone DMA subset](docs/DMA_STATUS.md) now passes register,
 transfer, count/readback and ownership tests. That standalone checkpoint did

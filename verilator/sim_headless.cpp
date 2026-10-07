@@ -87,6 +87,7 @@ int main(int argc, char **argv) {
         uint64_t bus_start_ms = 0, bus_end_ms = 0;
         bool bus_events = false;
         const char *disk_path = nullptr, *keys_path = nullptr, *dump_path = nullptr;
+        const char *video_dump_path = nullptr;
         const char *disk_output = nullptr;
         const char *disk_b_path = nullptr, *disk_b_output = nullptr;
         const char *save_path = nullptr, *restore_path = nullptr;
@@ -121,6 +122,7 @@ int main(int argc, char **argv) {
             else if (!std::strcmp(argv[i], "--frame") && i + 1 < argc) frame.path = argv[++i];
             else if (!std::strcmp(argv[i], "--audio") && i + 1 < argc) audio.path = argv[++i];
             else if (!std::strcmp(argv[i], "--dump") && i + 1 < argc) dump_path = argv[++i];
+            else if (!std::strcmp(argv[i], "--video-dump") && i + 1 < argc) video_dump_path = argv[++i];
             else if (!std::strcmp(argv[i], "--progress")) progress = true;
             else if (!std::strcmp(argv[i], "--io-only")) io_only = true;
             else if (!std::strcmp(argv[i], "--interactive")) interactive = true;
@@ -128,7 +130,7 @@ int main(int argc, char **argv) {
             else if (!std::strcmp(argv[i], "--save-state") && i + 1 < argc) save_path = argv[++i];
             else if (!std::strcmp(argv[i], "--restore-state") && i + 1 < argc) restore_path = argv[++i];
             else if (argv[i][0] != '-') cycles = number(argv[i]);
-            else throw std::runtime_error("usage: Vtop [cycles] [--cycles N] [--reset-cycles N] [--reset-at MS (repeatable) --reset-for-us US] [--video-hz N] [--trace output.fst] [--rom IMAGE] [--ram IMAGE --load-address A --entry A] [--disk IMAGE --disk-output NEW_COPY] [--disk-b IMAGE --disk-b-output NEW_COPY] [--keys SCRIPT] [--frame IMAGE.ppm] [--audio OUTPUT.wav] [--dump PREFIX] [--peek A] [--bus-trace CSV --io-only --bus-events --bus-start-ms N --bus-end-ms N] [--progress] [--interactive [--joystick-keys]] [--save-state FILE] [--restore-state FILE] [--joya BYTE --joyb BYTE]");
+            else throw std::runtime_error("usage: Vtop [cycles] [--cycles N] [--reset-cycles N] [--reset-at MS (repeatable) --reset-for-us US] [--video-hz N] [--trace output.fst] [--rom IMAGE] [--ram IMAGE --load-address A --entry A] [--disk IMAGE --disk-output NEW_COPY] [--disk-b IMAGE --disk-b-output NEW_COPY] [--keys SCRIPT] [--frame IMAGE.ppm] [--audio OUTPUT.wav] [--dump PREFIX] [--video-dump PREFIX] [--peek A] [--bus-trace CSV --io-only --bus-events --bus-start-ms N --bus-end-ms N] [--progress] [--interactive [--joystick-keys]] [--save-state FILE] [--restore-state FILE] [--joya BYTE --joyb BYTE]");
         }
         if (joystick_keys && !interactive)
             throw std::runtime_error("--joystick-keys requires --interactive");
@@ -694,6 +696,38 @@ int main(int argc, char **argv) {
                 exported += static_cast<size_t>(count);
             }
             if (::close(copy_fd) != 0) throw std::runtime_error("disk output close failed");
+        }
+        if (video_dump_path) {
+            // Observe storage directly: no eval, clocks, bus reads or writes.
+            // Plane files are physical bytes, page 0 then page 1 on Turbo.
+            // These are NOT RGB captures and contain private loaded content.
+            auto *root = top.rootp;
+            auto plane = [&](const char *suffix, const auto &bytes) {
+                std::ofstream output(std::string(video_dump_path) + suffix, std::ios::binary);
+                if (!output) throw std::runtime_error("cannot open graphics plane dump");
+                for (size_t index = 0; index < bytes.size(); ++index) output.put(bytes[index]);
+                if (!output) throw std::runtime_error("cannot write graphics plane dump");
+            };
+            plane(".gram-b", root->top__DOT__machine__DOT__gram_b__DOT__mem);
+            plane(".gram-r", root->top__DOT__machine__DOT__gram_r__DOT__mem);
+            plane(".gram-g", root->top__DOT__machine__DOT__gram_g__DOT__mem);
+            std::ofstream palette(std::string(video_dump_path) + ".video-palette");
+            if (!palette) throw std::runtime_error("cannot open video palette dump");
+            palette << "PAL_B=" << unsigned(root->top__DOT__machine__DOT__display__DOT__PAL_B)
+                    << "\nPAL_R=" << unsigned(root->top__DOT__machine__DOT__display__DOT__PAL_R)
+                    << "\nPAL_G=" << unsigned(root->top__DOT__machine__DOT__display__DOT__PAL_G)
+                    << "\nPRIORITY=" << unsigned(root->top__DOT__machine__DOT__display__DOT__PRIO_R) << '\n';
+            if (!palette) throw std::runtime_error("cannot write video palette dump");
+#ifdef X1_TURBO_FOUNDATION
+            std::ofstream controls(std::string(video_dump_path) + ".video-controls");
+            if (!controls) throw std::runtime_error("cannot open video controls dump");
+            controls << "SCRN=" << unsigned(root->top__DOT__machine__DOT__turbo_scrn)
+                     << "\nSCRN_VIDEO=" << unsigned(root->top__DOT__machine__DOT__turbo_scrn_video)
+                     << "\nBLACK=" << unsigned(root->top__DOT__machine__DOT__turbo_black)
+                     << "\nBLACK_VIDEO=" << unsigned(root->top__DOT__machine__DOT__turbo_black_video)
+                     << "\nWIDTH_VIDEO=" << unsigned(root->top__DOT__machine__DOT__width_video) << '\n';
+            if (!controls) throw std::runtime_error("cannot write video controls dump");
+#endif
         }
         if (dump_path) {
             // Read-only simulation instrumentation. Sub-CPU work RAM begins

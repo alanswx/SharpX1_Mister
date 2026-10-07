@@ -93,8 +93,12 @@ to 32 seconds succeeds via the frozen runner and original A/B media,
 without ROM/font/RAM reload. All five RAM/CPU dumps match the independent
 fresh 32-second non-savable run byte-for-byte. DMA totals, CPU address and
 actual final frame agree; host counters remain invocation-relative and are
-not compared as if they were cumulative. The 48-second continuation is still
-running, not accepted. Private outputs:
+not compared as if they were cumulative. The 48-second continuation also
+completes exit zero with unchanged inputs, 76,800 cumulative DMA pairs,
+zero new host requests/writes during that chunk, and the same black final
+frame. This is native continuation acceptance, not gameplay. See the
+[read-only graphics observation](VIDEO_OBSERVATION_STATUS.md) for the
+separate storage/palette inspection. Private outputs:
 `output_files/arcus-dma-dual-continuation-32-48/`; log
 `/tmp/x1-arcus-dual-continuation.log`. The earlier old-runner dual-state
 refusal remains preserved. The separate non-savable sixteen-second probe
