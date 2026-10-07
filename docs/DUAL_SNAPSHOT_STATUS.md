@@ -43,8 +43,9 @@ The existing base single-drive snapshot/clock/joystick diagnostic passes
 (`/tmp/x1-dual-single-snapshot-regression.log`). The full delay-aware baseline
 suite also finishes exit zero (`/tmp/x1-dsw-baseline-suite.log`), on its frozen
 pre-dual host runner; that proves the preceding DIP machine checkpoint, not
-new host snapshot acceptance. The full new fast baseline suite is still
-running. No FPGA RTL, fitted artifact or machine ports are changed here.
+new host snapshot acceptance. The full new fast baseline suite also completes
+exit zero (`/tmp/x1-dual-base-test-fast.log`), including existing snapshots and
+the SDL adapter. No FPGA RTL, fitted artifact or machine ports are changed here.
 
 ## Native provenance and remaining gates
 
