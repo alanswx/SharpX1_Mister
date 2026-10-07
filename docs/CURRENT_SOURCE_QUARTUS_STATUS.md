@@ -1,8 +1,9 @@
 # Current-source single-clock Turbo Quartus retry
 
 October 6, 2026. The requested current-source hardware acceptance is **not
-complete**. The first frozen build failed parsing; a separately frozen retry
-is running. Neither is currently a new RBF or timing/hardware signoff.
+complete**. The first frozen build failed parsing; the separately frozen retry
+has passed synthesis and is fitting. Neither is currently a new RBF or
+timing/hardware signoff.
 
 ## Original failure, preserved
 
@@ -60,8 +61,12 @@ Comparison of all 356 input manifests shows exactly one changed source:
 All 356 retry input hashes were also checked against the post-fix working
 tree: zero differences, log `/tmp/x1-current-quartus-retry-input-check.log`.
 Subsequent documentation and simulator-only fixture edits are outside this
-FPGA manifest. Synthesis has passed the original parse location and elaborated
-the shared machine; a live process is not a terminal success or fitted result.
+FPGA manifest. Retry map completed successfully with **0 errors / 118 warnings**
+in the build log; the report also records successful synthesis, 32,171 registers
+and 3,143,528 block-memory bits. These are synthesis estimates, not fitted
+resource counts. The existing container's live process is now `quartus_fit`;
+do not restart it because buffered logs lag. Warning review, fit, assembly and
+timing remain outstanding, not implied by passing map.
 
 The local cached amd64 Apple container runtime is used, not the unavailable
 remote build host. Device `5CSEBA6U23I7`, top `sys_top`, project `sharpx1`,
