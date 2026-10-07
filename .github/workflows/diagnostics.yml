@@ -65,8 +65,9 @@ jobs:
             test-machine-kanji-x3 test-machine-kanji-x3-fast test-machine-kanji-x3-snapshot test-machine-kanji-reset \
             test-machine-kanji-loader \
             test-machine-kanji-render test-machine-kanji-render-timing test-machine-kanji-render-snapshot \
+            test-machine-kanji-mixed test-machine-kanji-mixed-timing \
             test-dma-reset test-cpu-busreq test-d88-scanner test-d88-crc \
-            test-d88-metadata test-fdc-abort test-fdc-sd-abort test-joystick test-rgb12 test-fm test-fm-cpu; do
+            test-d88-metadata test-fdc-abort test-fdc-sd-abort test-joystick test-rgb12 test-fm test-fm-cpu test-probe-timeout; do
             # Bound each original fixture without changing its assertions or
             # simulated duration. A stall must fail with an identifiable target.
             limit_s=180
@@ -79,6 +80,7 @@ jobs:
             if [ "${target}" = test-machine-kanji ] || [ "${target}" = test-machine-kanji-fast ] || [ "${target}" = test-machine-kanji-snapshot ]; then limit_s=300; fi
             case "${target}" in test-machine-kanji-x3*) limit_s=300 ;; esac
             case "${target}" in test-machine-kanji-render*) limit_s=900 ;; esac
+            case "${target}" in test-machine-kanji-mixed*) limit_s=900 ;; esac
             echo "Running ${target} (${limit_s}-second wall-clock limit)"
             # Verilator 5.020 exceeded the DMA compile limit even with Clang
             # at O0. Use the locally qualified pinned 5.044 generator above.

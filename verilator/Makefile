@@ -136,6 +136,11 @@ test-machine-kanji-render: turbo-kanji-render-fast
 test-machine-kanji-render-timing: turbo-kanji-render
 	python3 tests/test_machine_kanji_render.py ./obj_dir_v12_kanji_render/Vtop
 .PHONY: turbo-kanji-render-fast turbo-kanji-render test-machine-kanji-render test-machine-kanji-render-timing
+test-machine-kanji-mixed: turbo-kanji-render-fast
+	python3 tests/test_machine_kanji_mixed.py ./obj_dir_v12_kanji_render_fast/Vtop
+test-machine-kanji-mixed-timing: turbo-kanji-render
+	python3 tests/test_machine_kanji_mixed.py ./obj_dir_v12_kanji_render/Vtop
+.PHONY: test-machine-kanji-mixed test-machine-kanji-mixed-timing
 test-machine-kanji: turbo-kanji
 	python3 tests/test_machine_kanji.py ./$(KANJI_DIR)/Vtop
 .PHONY: test-machine-kanji

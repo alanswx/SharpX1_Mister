@@ -36,6 +36,8 @@ def main():
     parser.add_argument("--bus-end-ms", type=int, default=0)
     parser.add_argument("--timeout", type=float, default=1800)
     parser.add_argument("--font16", type=pathlib.Path, help="local character-major 4096-byte Turbo ANK font")
+    parser.add_argument("--kanji-physical", type=pathlib.Path,
+                        help="authorized 131072-byte first-level physical Kanji candidate; opt-in runner only")
     parser.add_argument("--joya", type=lambda value: int(value, 0), help="exploratory held active-low joystick A pins")
     args = parser.parse_args()
     if args.seconds < 1:
@@ -74,6 +76,11 @@ def main():
         if font16.stat().st_size != 4096:
             parser.error("font16 must contain exactly 4096 bytes")
         originals[str(font16)] = digest(font16)
+    kanji = args.kanji_physical.resolve() if args.kanji_physical else None
+    if kanji:
+        if kanji.stat().st_size != 131072:
+            parser.error("physical first-level Kanji must contain exactly 131072 bytes")
+        originals[str(kanji)] = digest(kanji)
     if disk_b:
         originals[str(disk_b)] = digest(disk_b)
     folder = args.output.resolve()
@@ -101,6 +108,8 @@ def main():
             command += ["--disk-b", str(disk_b)]
         if font16:
             command += ["--font16", str(font16)]
+        if kanji:
+            command += ["--kanji-physical", str(kanji)]
         if args.joya is not None:
             command += ["--joya", str(args.joya)]
         if args.io_trace:

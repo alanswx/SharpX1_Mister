@@ -131,8 +131,12 @@ The schematic-derived standalone glyph-source decoder now passes 4,194,304
 pin combinations, including PCG-over-Kanji priority and absent-level-2 isolation.
 The separate [opt-in Kanji renderer](docs/KANJI_RENDER_STATUS.md) now passes
 ten actual-RGB cases on fast/delay-aware models and bounded private candidate
-rendering, with exact rendered snapshot continuation. ASIC row/phase, mixed
-attributes and native/hardware gates remain open; board defaults stay unchanged.
+rendering, with exact rendered snapshot continuation. ASIC row/phase, the full
+attribute cross-product and native/hardware gates remain open; board defaults stay unchanged.
+The subsequent mixed-source matrix passes fourteen fast/delay-aware cases:
+actual ANK/PCG/Kanji pixels, all colors/reverse, mode exits, warm reset and
+bounded global expansion/underline. Per-cell height/width, blinking and
+remaining cross-products still need qualification.
 A bounded [high-speed PCG increment](docs/TURBO_HIGH_SPEED_PCG_STATUS.md)
 adds selector shadows, frozen HSYNC-window access and CPU ANK8/16 selection.
 Original unit/CPU tests pass; ASIC fallback/WAIT phase, Kanji and hardware

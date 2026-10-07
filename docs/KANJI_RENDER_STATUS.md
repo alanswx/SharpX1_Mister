@@ -127,3 +127,83 @@ New render targets are added to hosted CI; their hosted result remains pending.
   fitted resource/timing and physical video/Main-reset acceptance.
 
 No work group or full goal is complete from these tests.
+
+## Executed mixed-source matrix
+
+The next original fixture, `test_machine_kanji_mixed.py`, adds actual adjacent
+ANK, PCG-with-K7-set, first-level Kanji and absent-level-2 cells. It prepares
+PCG through the real CPU/window/WAIT path: 48 paired per-plane bytes are
+written and individually read back before video programming. No memory or
+internal glyph-register injection is used. Eight colors and reverse are
+independent of the source type. Synthetic ANK16 and physical Kanji uploads
+are original generated patterns; standard ANK uses the inherited CG8 table.
+
+The first ten-case fast matrix passes: 40/80 columns, standard/high scan,
+cold/10 us warm reset at 200 ms, and standard/high exits to KVRAM zero. The
+exits check first/second-level Kanji becoming ANK and high-scan paired PCG
+becoming ordinary vertically repeated PCG. A warm invocation uploads assets
+only once; the CPU rewrites PCG during reboot, so it does not prove PCG
+retention without writes. Each invocation retains 500 ms / 16,000,000
+reference cycles; actual RGB and HS/VS periods are checked.
+
+Four additional fast cases pass separately: standard expanded 40×10 with
+underline (320×200), standard 80×20 underline (640×200), high 40×20 underline
+(320×400), and high expanded 80×12 (640×384). Palette 0 is red background/gap,
+palette 1 green underline; K5 alternates across all four cell types, and
+reserved rasters must not acquire reversed glyph ink. These qualify the
+existing provisional digital policy, not native `WIDTH`/`KSEN` execution or
+ASIC raster behavior.
+
+An initial underline fixture failed on absent-level-2 cells: the CPU emitter's
+level-2 jump bypassed its K5 insertion. K5 is now added after all type
+branches. The expected pixels/assertions and RTL were not changed to accept
+the failure; its log and actual image remain in
+`/tmp/x1-kanji-mixed-policy-first.log` and ignored
+`output_files/kanji-mixed-policy-first/`. The corrected four-case log is
+`/tmp/x1-kanji-mixed-policy-k5-fixed.log` (exit zero).
+The unchanged mixed fixture also fails real pixels against the CPU-only
+Kanji runner, `/tmp/x1-kanji-mixed-render-disabled-negative.log` (exit one).
+
+The complete **fourteen-case** final fast/delay-aware matrices both pass,
+with **2,101,760 actual pixels** checked per matrix. Final logs/output
+directories are `/tmp/x1-kanji-mixed-{fast,timing}-final.log` and ignored
+`output_files/kanji-mixed-{fast,timing}-final/`. Both processes exit zero;
+neither diagnostic-only `--first-only` nor `--policy-only` is used in these
+final gates. The corresponding targets are:
+
+```sh
+make -C verilator test-machine-kanji-mixed
+make -C verilator test-machine-kanji-mixed-timing
+```
+
+No RTL, model identity, private asset or RBF change is made in this fixture
+increment. Hosted mixed targets are added but their result is not yet known.
+Per-cell width/height, blinking, the remaining expansion/underline cross
+product, simultaneous CPU/video ROM selection and native/hardware acceptance
+remain open.
+
+### Native title probe now accepts the physical candidate
+
+`probe_special_titles.py --kanji-physical PATH` validates exactly 131,072
+bytes before creating outputs, records its hash among the protected original
+inputs, and forwards the path to the frozen runner for both cold executions.
+The asset-free mocked timeout test passes forwarding/hash recording and
+rejection of a synthetic 306,176-byte tool-style export before launch/output.
+Log `/tmp/x1-kanji-native-probe-timeout-resolved-path.log`, exit zero. Its first
+new path assertion failed on macOS `/var` versus resolved `/private/var`;
+the fixture now compares the collector's canonical path, retaining strict hash
+and command checks. Original failure remains at
+`/tmp/x1-kanji-native-probe-timeout-final.log`. Mocked provenance tests are not
+game or FPGA verification.
+
+Two fresh native Arcus boots are running in ignored
+`output_files/arcus-kanji-render-native-ipl/` with the unchanged supplied
+32 KiB Turbo IPL, ANK16 and inferred physical model-40 Kanji candidate, frozen
+fast runner `f8bc8a21...a270dc2`, eight seconds each, Disk 1 A / Disk 2 B
+(still exploratory). The first completes with 888 disk requests, zero writes,
+495 frames, hash `ad3165ae6bcf6eff`, and 167,936 uploaded bytes. Its actual
+320×200 final PPM was converted losslessly for inspection as `cold-final.png`:
+it reads “IPL is looking for a program from FD0,” **not game boot**. The
+earlier `cold-inspection.png` preserves an intermediate initialization screen,
+not a final capture. The repeat process is still active; do not claim final
+repeatability or unchanged-input acceptance before its evidence is complete.
