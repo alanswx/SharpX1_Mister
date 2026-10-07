@@ -12,6 +12,10 @@ FM_MASTER_HZ ?= 32000000
 
 all: headless
 
+test-kanji-conversion:
+	python3 tests/test_prepare_kanji.py
+.PHONY: test-kanji-conversion
+
 test-kanji-address: $(HEADLESS_DIR)/kanji-address/Vkanji_address_tb
 	./$(HEADLESS_DIR)/kanji-address/Vkanji_address_tb
 $(HEADLESS_DIR)/kanji-address/Vkanji_address_tb: tests/kanji_address_tb.sv ../rtl/x1_kanji_address.sv Makefile

@@ -61,9 +61,9 @@ interleave maps that to raw offset
 `(bank>>3)*65536 + half*32768 + (bank&7)*4096 + character*16 + row`.
 Its raw region is loaded in member order 4,2,3,1. Thus **inferred** conversion
 to our half-major electrical layout would concatenate **4,3,2,1**, not copy
-MAME's raw region unchanged. This mapping needs an exhaustive original
-conversion test and native CPU/glyph qualification before any loader asset
-is promoted; no converter or native asset acceptance is claimed here.
+MAME's raw region unchanged. The subsequent explicit converter below now
+qualifies this software mapping and a bounded private CPU-read candidate;
+native glyph/physical-chip acceptance remains required.
 
 The supplied Turbo Z ROM archive has SHA-256
 `01d426ecbdc5f0b48e075d586564b9d3c588f7c66f3b9626b30eca1fd3e0f9d1`.
@@ -79,8 +79,59 @@ in `--kanji-physical`; do not truncate these files or relabel their bytes.
 Both archives report 38 trailing bytes in `7z l`; listings/member hashes were
 read successfully. Originals remain unchanged. The native files were not
 downloaded, installed in the core, booted, converted or committed in this
-inventory step. Emulator source inspection and matching hashes do not settle
+inventory step. The subsequent conversion below is a separate executed
+increment. Emulator source inspection and matching hashes do not settle
 physical priority/raster/level-2 selection or replace hardware evidence.
+
+### Executed explicit model-40 conversion and CPU-read candidate
+
+Original `scripts/prepare_kanji.py` requires the explicit source format
+`audited-model40-raw`, the audited archive SHA-256 and all four member SHA-1s.
+Unknown/repacked archives need another audit, not automatic filename-based
+acceptance. It reads at most 1 MiB, snapshots the hashed archive bytes privately
+before `7z` extraction, and uses only fixed member names with stdout extraction.
+Archive path entries are never extracted to the filesystem. The original is
+unchanged. Destination directories and files use exclusive creation; existing
+targets/symlinks are not overwritten. No font bytes are embedded in source.
+
+Executed command (local user-supplied assets only):
+
+```sh
+python3 scripts/prepare_kanji.py \
+  'software/Sharp X1/[BIOS] X1turbo model40 (CZ-862C) (Sharp)/[BIOS] X1turbo model40 (CZ-862C) [ROM].7z' \
+  --source-format audited-model40-raw \
+  --output-dir software/turbo-kanji/model40-frozen-candidate
+```
+
+Private output is 131,072 bytes, SHA-256
+`b32559f5d5b9014d5ba316c41293e1336532eb0c66a01d5ac7e1304dabdaa91c`.
+Ignored `provenance.json` retains archive/member identities, physical order,
+layout, pinned MAME revision and the explicit inferred/not-hardware-qualified
+label. An earlier identical output lives in `software/turbo-kanji/model40-candidate/`;
+the frozen-source extraction reproduces its exact hash. An attempted overwrite
+exits 1, leaving that output unchanged, log `/tmp/x1-kanji-conversion-existing.log`.
+
+`make -C verilator test-kanji-conversion` passes **131,072** address comparisons
+with original synthetic members. The oracle independently forward-interleaves
+the MAME raw order 4,2,3,1 into character/half/row display space, then compares
+every electrical half-major byte. It requires a bijection, exact member shape,
+synthetic/native hash rejection, explicit CLI format and rejection of an
+unqualified archive without creating output. This asset-free target is added
+to hosted CI; its pending hosted run is separate from local success.
+
+The actual shared-machine X3 fast and delay-aware runners both execute the
+unchanged 1,024-byte INI matrix with `--physical-rom` pointing to the earlier
+private candidate. All halves/banks/rows at glyph codes 0/255 pass cold/warm,
+along with absent ROM, ignored writes, level-2 rejection, ANK exit and CLI
+length rejection. Expected comparisons are original emitted CPU instructions;
+private temporary programs are not committed. Logs
+`/tmp/x1-kanji-model40-x3-{fast,timing}.log`. Output asset hashes are recorded
+in each test report. This demonstrates bounded CPU read/coherence of the
+supplied candidate, not every native glyph, JIS registers, rendered pixels,
+Turbo IPL/software compatibility or verified board chip identity. Those remain
+open, as does the larger Z first/second-level export conversion.
+The original synthetic X3 snapshot regression also exits zero after the test
+fixture extension, log `/tmp/x1-kanji-converter-snapshot-regression.log`.
 
 Strict-warning `make test-kanji-address` passes all **131,072 physical bytes**,
 all 16 banks/256 characters/two halves/16 rows, with integer-formula readback,

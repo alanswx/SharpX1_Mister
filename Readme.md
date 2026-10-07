@@ -124,6 +124,9 @@ The separate opt-in `turbo-kanji` shared-machine profile adds physical-ROM
 loading and native CPU CG/INI checks; it is not a native glyph renderer or
 an enabled FPGA capability. X3 fast/delay-aware CPU checks, executing snapshots
 and five pending-read reset cases also pass. Default profiles stay unchanged.
+An [explicit private model-40 conversion](docs/KANJI_CONTRACT_STATUS.md#executed-explicit-model-40-conversion-and-cpu-read-candidate)
+passes exhaustive synthetic layout checks and bounded shared-CPU candidate
+reads. It is not native glyph rendering or hardware chip-identity acceptance.
 A bounded [high-speed PCG increment](docs/TURBO_HIGH_SPEED_PCG_STATUS.md)
 adds selector shadows, frozen HSYNC-window access and CPU ANK8/16 selection.
 Original unit/CPU tests pass; ASIC fallback/WAIT phase, Kanji and hardware

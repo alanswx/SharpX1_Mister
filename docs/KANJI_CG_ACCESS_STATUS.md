@@ -240,3 +240,10 @@ case-8 fixture fails at `malformed shared upload did not invalidate kind=8`,
 exit 1. Temporary source `/private/tmp/x1-kanji-loader-negative-Eqc3EB/`;
 logs `/tmp/x1-kanji-loader-negative{,-build}.log`. Production wiring remains
 unchanged; no expectation was weakened to accept a retained old image.
+
+The subsequent [explicit model-40 converter](KANJI_CONTRACT_STATUS.md#executed-explicit-model-40-conversion-and-cpu-read-candidate)
+now passes exhaustive asset-free layout checks. The private inferred candidate
+also passes the shared X3 cold/warm matrix on fast and delay-aware runners via
+`test_machine_kanji.py --physical-rom PATH`. The default fixture still generates
+only synthetic bytes. Native pixels, JIS/0E80 protocol and board identity are
+not established by those CPU comparisons.

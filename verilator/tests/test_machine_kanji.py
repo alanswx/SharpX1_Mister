@@ -1,5 +1,6 @@
 """Original shared-machine CPU/INI physical Kanji fixture; no private assets."""
 import argparse
+import hashlib
 import json
 import pathlib
 import subprocess
@@ -11,7 +12,7 @@ def pattern(address):
     return (address * 37 + (address >> 8) * 13 + (address >> 16) * 211 + 19) & 255
 
 
-def fixture(loaded):
+def fixture(loaded, byte_at=pattern):
     p = Program()
 
     def output(port, value):
@@ -51,11 +52,11 @@ def fixture(loaded):
                     p.emit(0xED, 0xA2, 0x04, 0x0C)
                 for row in range(16):
                     address = (half << 16) | (bank << 12) | (glyph << 4) | row
-                    p.compare_memory(0xD000 + row, pattern(address) if loaded else 255)
+                    p.compare_memory(0xD000 + row, byte_at(address) if loaded else 255)
     output(0x3FFF, 0xCF)
-    equal(0x140F, pattern(0x1FFFF) if loaded else 255)
+    equal(0x140F, byte_at(0x1FFFF) if loaded else 255)
     output(0x140F, 0)  # First-level ROM is read-only.
-    equal(0x140F, pattern(0x1FFFF) if loaded else 255)
+    equal(0x140F, byte_at(0x1FFFF) if loaded else 255)
     output(0x3FFF, 0xDF)  # Absent level 2 must not alias first-level bytes.
     equal(0x140F, 255)
     output(0x3FFF, 0)
@@ -84,15 +85,24 @@ def fixture(loaded):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("executable", type=pathlib.Path)
+    parser.add_argument("--physical-rom", type=pathlib.Path,
+                        help="optional private physical-layout candidate; not a native glyph-rendering test")
     args = parser.parse_args()
     executable = str(args.executable.resolve())
     with tempfile.TemporaryDirectory(prefix="x1-shared-kanji-") as temp:
         folder = pathlib.Path(temp)
-        font = folder / "synthetic-physical.bin"
-        font.write_bytes(bytes(pattern(a) for a in range(131072)))
+        if args.physical_rom:
+            font = args.physical_rom.resolve()
+            contents = font.read_bytes()
+            if len(contents) != 131072:
+                raise ValueError("physical candidate must contain exactly 131072 bytes")
+        else:
+            font = folder / "synthetic-physical.bin"
+            contents = bytes(pattern(a) for a in range(131072))
+            font.write_bytes(contents)
         for loaded in (False, True):
             rom = folder / f"cpu-{loaded}.bin"
-            rom.write_bytes(fixture(loaded))
+            rom.write_bytes(fixture(loaded, contents.__getitem__))
             for warm in (False, True):
                 command = [executable, "--rom", str(rom), "--cycles", "6400000"]
                 if loaded:
@@ -104,7 +114,9 @@ def main():
                 expected = b"WARM" if warm else b"KAN!"
                 assert report["turbo_kanji"] and report["halted"] and report["peek"].startswith(expected.hex()), report
                 print(json.dumps({"loaded": loaded, "warm": warm, "sys_hz": report["sys_hz"],
-                                  "video_hz": report["video_hz"], "peek": report["peek"][:8]}), flush=True)
+                                  "video_hz": report["video_hz"], "peek": report["peek"][:8],
+                                  "physical_rom_sha256": hashlib.sha256(contents).hexdigest(),
+                                  "private_candidate": bool(args.physical_rom)}), flush=True)
         bad = folder / "short.bin"
         bad.write_bytes(b"synthetic")
         result = subprocess.run([executable, "--kanji-physical", str(bad)], capture_output=True, text=True)
