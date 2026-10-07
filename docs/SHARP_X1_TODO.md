@@ -80,6 +80,11 @@ without reloading the recovered ROM; an orphan-strobe-gating negative control
 fails as expected. Hosted CI through `191009a` is green;
 the subsequent loader target requires its own completed hosted run.
 Native assets, broader clock/reset coverage and rendering remain required.
+The supplied model-40 Kanji members now match pinned MAME hashes; a joint
+interleave/display audit derives a candidate conversion, still unimplemented
+and not a hardware-chip identity claim. Supplied Z Kanji files are 306,176-byte
+tool exports with an arbitrary second-level filename, not raw ROM images;
+retain strict physical-loader size rejection and qualify conversion separately.
 The [current-source Quartus retry](CURRENT_SOURCE_QUARTUS_STATUS.md) records
 the preserved parse failure and explicit-generate fix. Local default/native
 DMA and actual-CPU IRQ regressions pass; the new frozen build remains in

@@ -81,3 +81,32 @@ a test candidate. Physical video/audio/disk and Main/OSD reset acceptance still
 require MiSTer. The October 5 artifact documented in
 [the two-drive build report](DUAL_DISK_QUARTUS_BUILD.md) remains the available
 recommended candidate until a newer qualified result exists.
+
+## Timing-report helper qualification (historical fit only)
+
+`scripts/quartus_timing_paths.tcl` now accepts the two checked-in Turbo
+revisions as well as base/single, and adds a hold report. It changes no
+assignment, constraint or RTL. The revised script SHA-256 is
+`b92a41c29a78cbe6fb4aa587933fee023acd15b3872cffce9f070a0338ffd502`.
+
+The actual Quartus 17 command was executed on a disposable copy of the
+**October 5 `ffc1c1c` fit**, not the current retry:
+`output_files/timing-helper-q7VjSYsA/source/`.
+`quartus_sta -t /x1scripts/quartus_timing_paths.tcl sharpx1_turbo_single`
+exits zero, no errors/warnings, log `/tmp/x1-timing-helper-turbo-single.log`.
+All five reports exist and contain real paths. The copied RBF SHA-256 remains
+`78ca9ecf057e167fdbb38fafe4fe149c41ea416e259214bdd09b016a65ddc301`
+before/after; the original historical build was not modified.
+
+| Report | Paths / violations | Worst slack (ns) |
+|---|---|---:|
+| Setup | 30 / 0 | 0.632 |
+| Hold | 20 / 0 | 0.248 |
+| Recovery | 20 / 0 | 4.373 |
+| PCG destination setup | 20 / 0 | 23.305 |
+| MR16 destination setup | 20 / 0 | 16.029 |
+
+This is the default slow 1100mV/100C model, a helper execution check on old
+source, not all-corner or current-source acceptance. Run the helper and the
+separate all-corner STA on the current fitted database after the main flow
+finishes. Other revision branches in the helper are not newly executed here.

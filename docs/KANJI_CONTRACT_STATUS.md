@@ -38,6 +38,50 @@ DKAN4 level-2, DKAN5 underline or DKAN7 selection semantics. These signals
 must be resolved at the parent mux/ASIC, not guessed inside an address helper.
 No raster clock, reset latch, ROM bytes or capability signature is added.
 
+### Supplied native-asset inventory and conversion boundary
+
+The user-supplied model-40 archive
+`software/Sharp X1/[BIOS] X1turbo model40 (CZ-862C) (Sharp)/[BIOS] X1turbo model40 (CZ-862C) [ROM].7z`
+has SHA-256 `c2449695642e0a914fdabc834a4feb8af90ac2d7a04a163db31432ad8176ec78`.
+`7z l` lists four 32,768-byte Kanji members. Streaming each member directly to
+SHA-1 (no binary output/redistribution) matches the local pinned MAME model-40
+ROM declarations exactly:
+
+| Member | SHA-1 |
+|---|---|
+| `kanji1.rom` | `dad7ada1b70c45f1e9db11db273ef7b385ef4f17` |
+| `kanji2.rom` | `103bbe459dc8da27a9400aa45b385255c18fcc75` |
+| `kanji3.rom` | `273f3329c70b332f6a49a3a95e906bbfe3e9f0a1` |
+| `kanji4.rom` | `d3fd24892bb1948c4697dedf5ff065ff3eaf7562` |
+
+These hashes identify a MAME candidate set, not independently verified chip
+labels. MAME `init_x1_kanji` and `x1_v.cpp` were inspected together: the display
+address is `((bank*256 + character)*2 + half)*16 + row`; the initialization
+interleave maps that to raw offset
+`(bank>>3)*65536 + half*32768 + (bank&7)*4096 + character*16 + row`.
+Its raw region is loaded in member order 4,2,3,1. Thus **inferred** conversion
+to our half-major electrical layout would concatenate **4,3,2,1**, not copy
+MAME's raw region unchanged. This mapping needs an exhaustive original
+conversion test and native CPU/glyph qualification before any loader asset
+is promoted; no converter or native asset acceptance is claimed here.
+
+The supplied Turbo Z ROM archive has SHA-256
+`01d426ecbdc5f0b48e075d586564b9d3c588f7c66f3b9626b30eca1fd3e0f9d1`.
+Its `FNT1616.x1` and `KANJI2.rom` are **306,176 bytes each**, not 128 KiB raw
+first-level chips or a 256 KiB raw Z set. The corresponding extras archive
+SHA-256 is `accca228dc548431b74936064a037e34a9f3758ee8f86599a6a95bbfffa8c1cd`.
+Its 572-byte CP932 readme was streamed/decoded: it identifies extraction tool
+`x1fnt3.zip` and says the second-level filename was chosen arbitrarily because
+the tool documentation did not specify its name/use. The contents are glyph
+exports, not proof of physical ROM layout. Exact-size rejection must remain
+in `--kanji-physical`; do not truncate these files or relabel their bytes.
+
+Both archives report 38 trailing bytes in `7z l`; listings/member hashes were
+read successfully. Originals remain unchanged. The native files were not
+downloaded, installed in the core, booted, converted or committed in this
+inventory step. Emulator source inspection and matching hashes do not settle
+physical priority/raster/level-2 selection or replace hardware evidence.
+
 Strict-warning `make test-kanji-address` passes all **131,072 physical bytes**,
 all 16 banks/256 characters/two halves/16 rows, with integer-formula readback,
 no alias, full address visitation, unaffected non-address attribute pins and
