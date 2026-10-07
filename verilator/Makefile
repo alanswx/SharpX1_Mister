@@ -119,13 +119,23 @@ turbo-video-savable: obj_dir_turbo_video_savable/Vtop
 KANJI_DIR ?= obj_dir_turbo_kanji
 KANJI_TIMING ?= --timing
 KANJI_VIDEO ?= 0
+KANJI_RENDER ?= 0
 turbo-kanji: $(KANJI_DIR)/Vtop
 $(KANJI_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc $(KANJI_TIMING) --assert --trace-fst --exe --build -j 4 --Mdir $(KANJI_DIR) --top-module top \
-		-GTURBO=1 -GTURBO_KANJI=1 -GTURBO_VIDEO_MASTER=$(KANJI_VIDEO) \
-		-CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_TURBO_KANJI $(if $(filter 1,$(KANJI_VIDEO)),-DX1_TURBO_VIDEO_MASTER)" \
+		-GTURBO=1 -GTURBO_KANJI=1 -GTURBO_VIDEO_MASTER=$(KANJI_VIDEO) -GTURBO_KANJI_RENDER=$(KANJI_RENDER) \
+		-CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_TURBO_KANJI $(if $(filter 1,$(KANJI_VIDEO)),-DX1_TURBO_VIDEO_MASTER) $(if $(filter 1,$(KANJI_RENDER)),-DX1_TURBO_KANJI_RENDER)" \
 		-MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 .PHONY: turbo-kanji
+turbo-kanji-render-fast:
+	$(MAKE) turbo-kanji KANJI_DIR=obj_dir_v12_kanji_render_fast KANJI_VIDEO=1 KANJI_RENDER=1 KANJI_TIMING=--no-timing
+turbo-kanji-render:
+	$(MAKE) turbo-kanji KANJI_DIR=obj_dir_v12_kanji_render KANJI_VIDEO=1 KANJI_RENDER=1
+test-machine-kanji-render: turbo-kanji-render-fast
+	python3 tests/test_machine_kanji_render.py ./obj_dir_v12_kanji_render_fast/Vtop
+test-machine-kanji-render-timing: turbo-kanji-render
+	python3 tests/test_machine_kanji_render.py ./obj_dir_v12_kanji_render/Vtop
+.PHONY: turbo-kanji-render-fast turbo-kanji-render test-machine-kanji-render test-machine-kanji-render-timing
 test-machine-kanji: turbo-kanji
 	python3 tests/test_machine_kanji.py ./$(KANJI_DIR)/Vtop
 .PHONY: test-machine-kanji
@@ -153,8 +163,8 @@ KANJI_PLAIN_SAVE_DIR ?= obj_dir_turbo_kanji_plain_savable
 turbo-kanji-savable: $(KANJI_SAVE_DIR)/Vtop $(KANJI_PLAIN_SAVE_DIR)/Vtop
 $(KANJI_SAVE_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc --no-timing --savable --assert --trace-fst --exe --build -j 4 --Mdir $(KANJI_SAVE_DIR) --top-module top \
-		-GTURBO=1 -GTURBO_KANJI=1 -GTURBO_VIDEO_MASTER=$(KANJI_VIDEO) \
-		-CFLAGS "-std=c++20 -DX1_SAVABLE -DX1_TURBO_FOUNDATION -DX1_TURBO_KANJI $(if $(filter 1,$(KANJI_VIDEO)),-DX1_TURBO_VIDEO_MASTER)" \
+		-GTURBO=1 -GTURBO_KANJI=1 -GTURBO_VIDEO_MASTER=$(KANJI_VIDEO) -GTURBO_KANJI_RENDER=$(KANJI_RENDER) \
+		-CFLAGS "-std=c++20 -DX1_SAVABLE -DX1_TURBO_FOUNDATION -DX1_TURBO_KANJI $(if $(filter 1,$(KANJI_VIDEO)),-DX1_TURBO_VIDEO_MASTER) $(if $(filter 1,$(KANJI_RENDER)),-DX1_TURBO_KANJI_RENDER)" \
 		-MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 $(KANJI_PLAIN_SAVE_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc --no-timing --savable --assert --trace-fst --exe --build -j 4 --Mdir $(KANJI_PLAIN_SAVE_DIR) --top-module top \
@@ -164,6 +174,11 @@ $(KANJI_PLAIN_SAVE_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_ca
 test-machine-kanji-snapshot: turbo-kanji-savable
 	python3 tests/test_machine_kanji_snapshot.py ./$(KANJI_SAVE_DIR)/Vtop ./$(KANJI_PLAIN_SAVE_DIR)/Vtop
 .PHONY: turbo-kanji-savable test-machine-kanji-snapshot
+test-machine-kanji-render-snapshot:
+	$(MAKE) turbo-kanji-savable KANJI_VIDEO=1 KANJI_RENDER=1 KANJI_SAVE_DIR=obj_dir_v12_kanji_render_savable KANJI_PLAIN_SAVE_DIR=obj_dir_v12_kanji_x3_plain_savable
+	$(MAKE) turbo-kanji-savable KANJI_VIDEO=1 KANJI_SAVE_DIR=obj_dir_v12_kanji_x3_savable KANJI_PLAIN_SAVE_DIR=obj_dir_v12_kanji_x3_plain_savable
+	python3 tests/test_machine_kanji_render_snapshot.py ./obj_dir_v12_kanji_render_savable/Vtop ./obj_dir_v12_kanji_x3_savable/Vtop
+.PHONY: test-machine-kanji-render-snapshot
 test-machine-kanji-x3-snapshot:
 	$(MAKE) test-machine-kanji-snapshot KANJI_VIDEO=1 KANJI_SAVE_DIR=obj_dir_v12_kanji_x3_savable KANJI_PLAIN_SAVE_DIR=obj_dir_v12_kanji_x3_plain_savable
 .PHONY: test-machine-kanji-x3-snapshot

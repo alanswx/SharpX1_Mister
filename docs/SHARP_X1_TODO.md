@@ -91,6 +91,13 @@ combinations/all 131,072 physical bytes; the schematic and local X Millennium
 agree on PCG-over-Kanji priority, unlike MAME's renderer. A priority-bypass
 negative control fails. Shared rendering, upstream enable/raster phase and
 native pixel checks remain required; defaults and the recommended RBF are unchanged.
+The separate [Kanji rendering experiment](KANJI_RENDER_STATUS.md) now connects
+physical ROM pixels under a provisional X Millennium row policy. Ten-case
+40/80-column, low/high-scan, loaded/missing-ROM and retained warm-reset matrices
+pass fast/delay-aware (1,536,000 checked pixels each); the private inferred
+model-40 candidate passes fast rendering. Actual RGB snapshot continuity and
+CPU-only/render profile rejection pass. Mixed PCG/ANK/attributes, ASIC/native
+software, Z second-level storage and hardware gates remain open.
 The [current-source Quartus retry](CURRENT_SOURCE_QUARTUS_STATUS.md) records
 the preserved parse failure and explicit-generate fix. Local default/native
 DMA and actual-CPU IRQ regressions pass. The new single-clock frozen build now

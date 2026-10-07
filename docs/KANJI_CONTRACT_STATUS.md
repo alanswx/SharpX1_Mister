@@ -4,7 +4,9 @@ October 6, 2026. Work group 3 and Turbo Z Z7 dependency. The new physical
 first-level address decoder and dual-clock 128 KiB ROM storage/loader are
 implemented/tested separately. The subsequent [opt-in CG profile](KANJI_CG_ACCESS_STATUS.md#shared-machine-physical-rom-profile)
 connects the ROM loader and CPU `1400..140F` backend to the shared machine;
-there is **no glyph renderer or native font support claim**. The ROM is now a
+the separate [render experiment](KANJI_RENDER_STATUS.md) now checks actual
+pixels under an explicit provisional row policy, not full native font support.
+The ROM is now a
 shared-machine manifest dependency; the standalone electrical decoder remains
 a reference/verification component. The physical-address CPU port is not the native
 `0E80..83` register interface.
@@ -74,12 +76,13 @@ LS139 assertion (exit one), log `/tmp/x1-kanji-display-decode-negative.log`.
 Existing physical-address, CPU-selector and conversion regressions also pass,
 log `/tmp/x1-kanji-display-decode-regression.log`.
 
-This decoder is standalone, not yet a shared-machine dependency. It does not
-change any default, model identity, snapshot layout or the recommended RBF.
+This decoder's standalone acceptance does not change any default or the
+recommended RBF. It is now a shared-machine manifest dependency for the separate
+render experiment, which has its own opt-in model identity.
 K4Y..K1Y row generation, upstream enable phase, attribute/glyph latency,
 underline/mixing, level-2 storage and actual pixel/native/hardware acceptance
-remain open. The shared ROM display port is still disconnected; gate truth
-table coverage is not renderer acceptance. The target is added to hosted CI,
+remain open. The CPU-only profile's ROM display port stays disconnected;
+gate truth table coverage is not renderer acceptance. The target is added to hosted CI,
 but this new target's hosted result is not yet available.
 
 ### Supplied native-asset inventory and conversion boundary

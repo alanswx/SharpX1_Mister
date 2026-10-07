@@ -27,7 +27,7 @@
     VIDEO / GRAPHIC RAM read is not supported
 
 ****************************************************************************/
-module x1_vid #(parameter ENABLE_CRTC = 0, TURBO_SUPPORT = 0, TURBO_CLOCKS = 0, SEPARATE_VIDEO_RESET = 0)(
+module x1_vid #(parameter ENABLE_CRTC = 0, TURBO_SUPPORT = 0, TURBO_CLOCKS = 0, SEPARATE_VIDEO_RESET = 0, KANJI_RENDER = 0)(
   I_VIDEO_RESET,
   I_TURBO_BLACK,
   I_TURBO_HIGH_SCAN,
@@ -81,6 +81,7 @@ module x1_vid #(parameter ENABLE_CRTC = 0, TURBO_SUPPORT = 0, TURBO_CLOCKS = 0, 
 // CG ROM/RAM
   O_CGA,
   O_ANK16_ADDR,
+  O_KANJI_ADDR, O_KANJI_SELECT, O_KANJI_LEVEL1,
   I_CG_D  , I_PCGB_D , I_PCGR_D , I_PCGG_D,
 // VIDEO OUTPUT
   O_R     , O_G     , O_B,
@@ -152,6 +153,8 @@ input [7:0] I_GRB_D  , I_GRR_D  , I_GRG_D ;
 // CG ROM/RAM
 output [10:0] O_CGA;
 output [11:0] O_ANK16_ADDR;
+output [16:0] O_KANJI_ADDR;
+output O_KANJI_SELECT, O_KANJI_LEVEL1;
 input [7:0] I_CG_D  , I_PCGB_D , I_PCGR_D , I_PCGG_D;
 
 // VIDEO OUTPUT
@@ -454,6 +457,33 @@ wire [2:0] pcg_row = high_glyph && !pcg_paired ? cg_line[3:1] : cg_line[2:0];
 assign O_CGA = {pcg_character,pcg_row};
 `endif
 assign O_ANK16_ADDR = {txt_d,cg_line};
+
+// Original experimental extension, 2026. Electrical source/chip selection
+// follows CZ851_2C PDF3. Row policy follows X Millennium makechr/maketxtl:
+// standard scan uses even rows, high scan all rows. Not ASIC acceptance.
+generate if(TURBO_SUPPORT && KANJI_RENDER) begin : kanji_display
+  reg [7:0] kan_latched, attr_latched;
+  always @(posedge I_VCLK or posedge video_reset_active) begin
+    if(video_reset_active) begin kan_latched<=0;attr_latched<=0;end
+    else if(video_step & ~QP & QA & ~QD & QC & ~QB) begin
+      kan_latched<=I_KAN_D;
+      attr_latched<=I_ATT_D;
+    end
+  end
+  wire [3:0] kanji_row=I_TURBO_HIGH_SCAN ? cg_line : {cg_line[2:0],1'b0};
+  wire kace_n;
+  x1_kanji_decode decoder (
+    .decode_enable(!video_reset_active), .attribute(attr_latched),
+    .dkan(kan_latched), .dcha(txt_d), .raster(kanji_row),
+    .glyph_oe_n(), .kace_n(kace_n), .level1_select(O_KANJI_LEVEL1),
+    .level2_select(), .rom_address(), .rom_oe_n(), .byte_address(O_KANJI_ADDR)
+  );
+  assign O_KANJI_SELECT=!kace_n;
+end else begin : no_kanji_display
+  assign O_KANJI_ADDR=0;
+  assign O_KANJI_SELECT=0;
+  assign O_KANJI_LEVEL1=0;
+end endgenerate
 
 /****************************************************************************
   CG attribute effect

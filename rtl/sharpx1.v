@@ -1,6 +1,6 @@
 // Sharp X1 base-machine integration. Shared by MiSTer and simulation.
 // See docs/BASE_X1_CONTRACT.md for address-map sources and limitations.
-module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0) (
+module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0) (
     input clk_sys, clk_28636, reset,
     input pal, scandouble,
     input ioctl_download,
@@ -99,6 +99,8 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
             $error("TURBO_DMA_IRQ requires TURBO and TURBO_DMA");
         if (TURBO_KANJI && (!TURBO || TURBO_DMA))
             $error("TURBO_KANJI requires TURBO; combined DMA profile is not qualified");
+        if (TURBO_KANJI_RENDER && !TURBO_KANJI)
+            $error("TURBO_KANJI_RENDER requires the explicit physical Kanji ROM profile");
     end
     wire dma_cs = TURBO && TURBO_DMA && !dma_owner && io_cycle && !dam && a[15:4] == 12'h1f8;
     generate if (TURBO && TURBO_DMA) begin : turbo_dma
@@ -403,6 +405,9 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     wire cg_selected_kanji, kanji_loaded, kanji_load_error, kanji_cpu_valid, kanji_cpu_read;
     wire [16:0] cg_selected_kanji_addr, kanji_cpu_addr;
     wire [7:0] kanji_cpu_data;
+    wire [16:0] kanji_display_addr;
+    wire kanji_display_select, kanji_display_level1;
+    wire [7:0] kanji_display_data;
     wire text_write = io_write && !dam && a[15:12] == 4'h3 && (!TURBO || !a[11]);
     wire kan_write = TURBO && io_write && !dam && a[15:11] == 5'b00111;
     wire attr_write = io_write && !dam && a[15:12] == 4'h2;
@@ -440,7 +445,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     );
     // Explicit physical first-level ROM upload, not an emulator filename/JIS
     // conversion. The host must hold both resets through the falling commit.
-    // Display remains disconnected until ASIC/glyph arbitration is qualified.
+    // Rendering is a separate opt-in provisional X Millennium row policy.
     generate if (TURBO && TURBO_KANJI) begin : turbo_kanji
         x1_kanji_rom rom (
             .cpu_clk(clk_sys), .video_clk(clk_28636),
@@ -450,8 +455,8 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
             .load_address(ioctl_addr), .load_data(ioctl_dout),
             .cpu_read(kanji_cpu_read), .cpu_address(kanji_cpu_addr),
             .cpu_data(kanji_cpu_data), .cpu_valid(kanji_cpu_valid),
-            .display_select(1'b0), .display_address(17'd0),
-            .display_data(), .display_valid(),
+            .display_select(kanji_display_level1), .display_address(kanji_display_addr),
+            .display_data(kanji_display_data), .display_valid(),
             .loaded(kanji_loaded), .load_error(kanji_load_error)
         );
     end else begin : no_turbo_kanji
@@ -459,6 +464,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         assign kanji_load_error = 0;
         assign kanji_cpu_data = 0;
         assign kanji_cpu_valid = 0;
+        assign kanji_display_data = 0;
     end endgenerate
     x1_video_ram #(11) text_ram(clk_sys,a[10:0],data_out,text_write,text_cpu,clk_28636,vaddr[10:0],text_vid);
     x1_video_ram #(11) attr_ram(clk_sys,a[10:0],data_out,attr_write,attr_cpu,clk_28636,vaddr[10:0],attr_vid);
@@ -490,9 +496,11 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         assign ank16_data = 0;
         assign cg_font_cpu_data = 0;
     end endgenerate
-    assign cg_data = TURBO && turbo_scrn_video[0] ? ank16_data : cg8_data;
+    // Missing/unloaded/level-2 Kanji is blank, never an ANK substitution.
+    assign cg_data = kanji_display_select ? kanji_display_data :
+                     TURBO && turbo_scrn_video[0] ? ank16_data : cg8_data;
     wire r,g,b;
-    x1_vid #(.ENABLE_CRTC(SINGLE_CLOCK || TURBO_VIDEO_MASTER), .TURBO_SUPPORT(TURBO), .TURBO_CLOCKS(TURBO_VIDEO_MASTER), .SEPARATE_VIDEO_RESET(TURBO_VIDEO_MASTER)) display (
+    x1_vid #(.ENABLE_CRTC(SINGLE_CLOCK || TURBO_VIDEO_MASTER), .TURBO_SUPPORT(TURBO), .TURBO_CLOCKS(TURBO_VIDEO_MASTER), .SEPARATE_VIDEO_RESET(TURBO_VIDEO_MASTER), .KANJI_RENDER(TURBO_KANJI_RENDER)) display (
         .I_VIDEO_RESET(video_reset),
         .I_TURBO_BLACK(turbo_black_video),
         .I_TURBO_HIGH_SCAN(TURBO && turbo_scrn_video[0]),
@@ -510,6 +518,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         .O_GRB_WE(), .O_GRR_WE(), .O_GRG_WE(),
         .I_GRB_D(grb_vid), .I_GRR_D(grr_vid), .I_GRG_D(grg_vid),
         .O_CGA(cgaddr), .O_ANK16_ADDR(ank16_addr), .I_CG_D(cg_data),
+        .O_KANJI_ADDR(kanji_display_addr), .O_KANJI_SELECT(kanji_display_select), .O_KANJI_LEVEL1(kanji_display_level1),
         .I_PCGB_D(pcgb_vid), .I_PCGR_D(pcgr_vid), .I_PCGG_D(pcgg_vid),
         .O_R(r), .O_G(g), .O_B(b), .O_HSYNC(HSync), .O_VSYNC(VSync), .O_VDISP(vdisp),
         .O_HBLANK(HBlank), .O_VBLANK(VBlank), .O_CE_PIXEL(ce_pix)

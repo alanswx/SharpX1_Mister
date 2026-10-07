@@ -364,6 +364,9 @@ int main(int argc, char **argv) {
 #ifdef X1_TURBO_KANJI
             ^ (1ULL << 45) // First-level physical CG backend revision 1.
 #endif
+#ifdef X1_TURBO_KANJI_RENDER
+            ^ (1ULL << 44) // Separate experimental glyph pipeline revision 1.
+#endif
             ;
         constexpr uint64_t snapshot_magic = 0x5831534e41503132ULL ^ sys_hz ^ snapshot_profile;
 #ifdef X1_SAVABLE
