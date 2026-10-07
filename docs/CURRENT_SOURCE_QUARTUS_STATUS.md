@@ -2,8 +2,9 @@
 
 October 6, 2026. The requested current-source hardware acceptance is **not
 complete**. The first frozen build failed parsing; the separately frozen retry
-has passed synthesis and is fitting. Neither is currently a new RBF or
-timing/hardware signoff.
+has completed map, fit, assembly and original STA with exit zero and produced
+an RBF. Supplemental all-corner/path analysis is running. This is not physical
+acceptance or full timing/CDC signoff.
 
 ## Original failure, preserved
 
@@ -64,9 +65,9 @@ Subsequent documentation and simulator-only fixture edits are outside this
 FPGA manifest. Retry map completed successfully with **0 errors / 118 warnings**
 in the build log; the report also records successful synthesis, 32,171 registers
 and 3,143,528 block-memory bits. These are synthesis estimates, not fitted
-resource counts. The existing container's live process is now `quartus_fit`;
-do not restart it because buffered logs lag. Warning review, fit, assembly and
-timing remain outstanding, not implied by passing map.
+resource counts. The fitter subsequently completed; see actual fitted counts
+below. Warning/constraint review and supplemental timing remain outstanding,
+not implied by passing map or the main flow.
 
 The local cached amd64 Apple container runtime is used, not the unavailable
 remote build host. Device `5CSEBA6U23I7`, top `sys_top`, project `sharpx1`,
@@ -75,12 +76,44 @@ revision `sharpx1_turbo_single`, seed 1, map one thread / fit eight, container
 not nominal X3 clocks. DMA/IRQ and the new Kanji profiles remain disabled in
 this FPGA revision. Parsing their sources does not enable their capabilities.
 
-Record the retry's terminal result, resource counts, actual RBF/hash, warning
-review and source-bound supplemental all-corner timing before promoting it as
-a test candidate. Physical video/audio/disk and Main/OSD reset acceptance still
+Complete warning review and source-bound supplemental all-corner timing before
+promoting the new artifact as a test candidate. Physical video/audio/disk and Main/OSD reset acceptance still
 require MiSTer. The October 5 artifact documented in
 [the two-drive build report](DUAL_DISK_QUARTUS_BUILD.md) remains the available
 recommended candidate until a newer qualified result exists.
+
+## Completed main flow; supplemental analysis running
+
+The frozen retry exits **0**, ending `2026-10-07T00:53:59Z` in its manifest.
+The stage logs report map 0 errors/118 warnings, fit 0/9, assembly 0/0 and
+original STA 0/0. The original STA still explicitly reports incomplete
+setup/hold constraints; a zero exit code is not full signoff.
+
+Actual fit: **20,545 / 41,910 ALMs (49%)**, 32,105 registers,
+3,143,528 / 5,662,720 block-memory bits (56%), **393 / 553 RAM blocks (71%)**
+and 32 / 112 DSP blocks (29%). Thus 160 RAM blocks remain before a new Kanji
+profile; do not assume the larger Z ROM fits or reduce its required capacity.
+
+Generated experimental artifact (not yet promoted):
+[sharpx1_turbo_single.rbf](../output_files/quartus-L7gRiDWX/source/output_files/sharpx1_turbo_single.rbf),
+3,860,876 bytes, SHA-256
+`0a996f49c67e585fe63351659db068260fbb779e3be67c51ba7f6d6d571a632e`.
+SOF SHA-256 `61763e4c4de8d7a8226e10057804e2d9faf9299bad96acdfe18e19eba312ee99`.
+It binds `889f23c` FPGA inputs, not subsequent simulator/asset/documentation
+work. No MiSTer deployment, game boot or hardware reset test occurred.
+
+Original constrained summary minima are setup **0.781 ns**, hold **0.205 ns**,
+recovery **3.739 ns**, removal **0.899 ns**, minimum pulse width **1.122 ns**,
+all TNS zero. Original STA reports were preserved in
+`output_files/quartus-L7gRiDWX/single-corner-reports/` before supplemental
+analysis. These numbers are not all-eight-corner acceptance.
+
+The same fitted database is now running the existing
+`quartus_sta sharpx1 -c sharpx1_turbo_single --multicorner=on --all_corners`,
+followed by the tested path-report helper. Log:
+`output_files/quartus-L7gRiDWX/all-corners-and-paths.log`.
+No source, refit, assembly or constraint change is made for that analysis;
+check RBF/SOF hashes again afterward and review the actual corner/path reports.
 
 ## Timing-report helper qualification (historical fit only)
 
