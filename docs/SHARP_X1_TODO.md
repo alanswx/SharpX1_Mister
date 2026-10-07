@@ -2,7 +2,8 @@
 
 This list is based on the current RTL, the existing Verilator harness, and
 cross-checking against the local MAME Sharp X1 driver. X Millennium is now
-downloaded and its Turbo control code inspected, not built or run.
+downloaded and its Turbo control code inspected; an isolated declaration-fixed
+libretro build now succeeds, but execution is still pending.
 See `CORE_STATUS.md` for confirmed device and wiring gaps.
 See [the implementation and test plan](IMPLEMENTATION_PLAN.md) for dependency
 ordering, test coverage, and acceptance gates. These checklist phases are broad
@@ -39,6 +40,11 @@ Do not change that behavior merely to expose graphics. Investigate native PCG
 programming and interrupt/input progression. CRTC/PCG/sample diagnostics pass
 base delay-aware and X3 fast/delay-aware; exploratory Enter/Space continuation
 to 50 seconds still gives a black actual frame, not gameplay.
+The [interrupt-progression follow-up](ARCUS_INTERRUPT_STATUS.md) observes
+only handler opcode fetches during a native 100 ms continuation. Existing
+local MAME now executes with matching supplied ROMs and reaches the same
+black-screen handler state. Resolve the overlapping-CTC-request reference
+disagreement with stronger evidence; do not simply slow its clock.
 
 The user requested completing the six remaining work groups below and Turbo Z. None is
 declared finished by the standalone SIO increments. Execute local gates in

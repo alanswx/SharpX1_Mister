@@ -91,6 +91,9 @@ int main(int argc, char **argv) {
         uint64_t video_samples = 0, visible_samples = 0, visible_nonzero = 0;
         uint64_t layer_samples = 0, graphics_selected = 0;
         std::array<uint64_t, 8> graphics_colors{}, text_colors{};
+        std::array<uint64_t, 65536> opcode_fetches{};
+        bool opcode_pending = false;
+        uint16_t opcode_address = 0;
         const char *disk_output = nullptr;
         const char *disk_b_path = nullptr, *disk_b_output = nullptr;
         const char *save_path = nullptr, *restore_path = nullptr;
@@ -640,6 +643,19 @@ int main(int argc, char **argv) {
             }
 #endif
             if (sys_rise) {
+                if (video_dump_path) {
+                    const bool fetch = !top.reset && !top.rootp->top__DOT__machine__DOT__cpu_m1
+#ifdef X1_TURBO_DMA
+                        && !top.rootp->top__DOT__machine__DOT__Cpu__DOT__Z80CPU__DOT__i_tv80_core__DOT__BusAck
+#endif
+                        && !top.cpu_mreq_n && !top.cpu_rd_n && top.cpu_iorq_n;
+                    if (opcode_pending && !fetch && !top.reset)
+                        ++opcode_fetches[opcode_address];
+                    // Count only completed M1 memory-read windows. A final
+                    // partial fetch, refresh, operand, DMA or ACK is not one.
+                    opcode_pending = fetch;
+                    if (fetch) opcode_address = top.cpu_address;
+                }
                 if (bus) {
                     const bool capture = !top.reset && (!top.cpu_rd_n || !top.cpu_wr_n)
                         && (!io_only || !top.cpu_iorq_n)
@@ -774,6 +790,12 @@ int main(int argc, char **argv) {
             crtc << "R12=" << unsigned(root->top__DOT__machine__DOT__display__DOT__crtc6845s__DOT__mpu_if__DOT__R_Msah)
                  << "\nR13=" << unsigned(root->top__DOT__machine__DOT__display__DOT__crtc6845s__DOT__mpu_if__DOT__R_Msal) << '\n';
             if (!crtc) throw std::runtime_error("cannot write CRTC dump");
+            std::ofstream fetches(std::string(video_dump_path) + ".cpu-fetches");
+            if (!fetches) throw std::runtime_error("cannot open opcode population dump");
+            fetches << "address,fetches\n";
+            for (unsigned address = 0; address < opcode_fetches.size(); ++address)
+                if (opcode_fetches[address]) fetches << address << ',' << opcode_fetches[address] << '\n';
+            if (!fetches) throw std::runtime_error("cannot write opcode population dump");
 #ifdef X1_TURBO_FOUNDATION
             std::ofstream controls(std::string(video_dump_path) + ".video-controls");
             if (!controls) throw std::runtime_error("cannot open video controls dump");
@@ -783,6 +805,17 @@ int main(int argc, char **argv) {
                      << "\nBLACK_VIDEO=" << unsigned(root->top__DOT__machine__DOT__turbo_black_video)
                      << "\nWIDTH_VIDEO=" << unsigned(root->top__DOT__machine__DOT__width_video) << '\n';
             if (!controls) throw std::runtime_error("cannot write video controls dump");
+            std::ofstream ctc(std::string(video_dump_path) + ".ctc");
+            if (!ctc) throw std::runtime_error("cannot open CTC state dump");
+            ctc << "RUNNING=" << unsigned(root->top__DOT__machine__DOT__ctc__DOT__running)
+                << "\nPENDING=" << unsigned(root->top__DOT__machine__DOT__ctc__DOT__pending)
+                << "\nIN_SERVICE=" << unsigned(root->top__DOT__machine__DOT__ctc__DOT__in_service) << '\n';
+            for (unsigned channel = 0; channel < 4; ++channel)
+                ctc << "CONTROL_" << channel << '=' << unsigned(root->top__DOT__machine__DOT__ctc__DOT__control[channel])
+                    << "\nCONSTANT_" << channel << '=' << unsigned(root->top__DOT__machine__DOT__ctc__DOT__constant_value[channel])
+                    << "\nDOWN_" << channel << '=' << unsigned(root->top__DOT__machine__DOT__ctc__DOT__down[channel])
+                    << "\nPRESCALER_" << channel << '=' << unsigned(root->top__DOT__machine__DOT__ctc__DOT__prescaler[channel]) << '\n';
+            if (!ctc) throw std::runtime_error("cannot write CTC state dump");
 #endif
         }
         if (dump_path) {
@@ -805,6 +838,10 @@ int main(int argc, char **argv) {
                       << " SP=" << root->top__DOT__machine__DOT__Cpu__DOT__Z80CPU__DOT__i_tv80_core__DOT__SP
                       << " AF=" << ((unsigned(root->top__DOT__machine__DOT__Cpu__DOT__Z80CPU__DOT__i_tv80_core__DOT__ACC) << 8)
                                    | root->top__DOT__machine__DOT__Cpu__DOT__Z80CPU__DOT__i_tv80_core__DOT__F) << '\n';
+            registers << "IFF1=" << unsigned(root->top__DOT__machine__DOT__Cpu__DOT__Z80CPU__DOT__i_tv80_core__DOT__IntE_FF1)
+                      << " IFF2=" << unsigned(root->top__DOT__machine__DOT__Cpu__DOT__Z80CPU__DOT__i_tv80_core__DOT__IntE_FF2)
+                      << " IM=" << unsigned(root->top__DOT__machine__DOT__Cpu__DOT__Z80CPU__DOT__i_tv80_core__DOT__IStatus)
+                      << " I=" << unsigned(root->top__DOT__machine__DOT__Cpu__DOT__Z80CPU__DOT__i_tv80_core__DOT__I) << '\n';
             // Raw TV80 register-file slots, including the alternate bank and
             // index registers; names avoid guessing the active bank mid-cycle.
             for (unsigned index = 0; index < 8; ++index)

@@ -51,3 +51,15 @@ hash, header/disassembly correction, instruction addresses and limits are in
 the [Kanji audit](../docs/KANJI_CONTRACT_STATUS.md). The bundled copyright/
 republication conditions were inspected; no binary, disassembly, disks or
 third-party code are included in the repository.
+
+October 6/7 native follow-up: actually executed the existing local MAME 0.283
+binary with the user's matching IPL/ANK and supplied Kanji/font members,
+protected disposable Arcus A/B copies, an original read-only Lua probe and
+fresh private configuration paths. Two cold runs repeat exact CTC/CPU records
+and actual PNGs, but reach the same black interrupt-handler state, not gameplay.
+Binary/source distinction, failed attempts, hashes, font differences and limits
+are in [the interrupt status](../docs/ARCUS_INTERRUPT_STATUS.md). No sibling
+checkout, installed configuration or original asset was changed. X Millennium
+has still not been executed; its overlapping-request policy differs and needs
+an independently recorded run. Its isolated macOS libretro build now succeeds
+with declaration-only accommodations; see the interrupt status for provenance.

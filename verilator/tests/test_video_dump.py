@@ -1,5 +1,6 @@
 """Original CPU graphics writes; raw observation must not change execution."""
 import json
+import csv
 import pathlib
 import subprocess
 import sys
@@ -43,6 +44,10 @@ def main():
     if turbo:
         out(0x1FD0, 0x18)
         out(0x1FE0, 0x7F)
+        # Counter channel 0 has a fixed trigger: configure positive state
+        # without generating IRQs or relying on a sampled timer phase.
+        out(0x1FA0, 0xD7)
+        out(0x1FA0, 6)
     for port, value in ((0x1000, 0xC4), (0x1100, 0xB2), (0x1200, 0xA1), (0x1300, 0x3C)):
         out(port, value)
     crtc_registers = {0: 15, 1: 4, 2: 10, 3: 0x22, 4: 3, 5: 0,
@@ -100,8 +105,24 @@ def main():
             assert {key: int(value) for key, value in values.items()} == {
                 "SCRN": 0x18, "SCRN_VIDEO": 0x18, "BLACK": 0x7F,
                 "BLACK_VIDEO": 0x7F, "WIDTH_VIDEO": 0}, values
+            ctc = {key: int(value) for key, value in (line.split("=") for line in
+                   (root / "observed.ctc").read_text().splitlines())}
+            expected_ctc = {"RUNNING": 1, "PENDING": 0, "IN_SERVICE": 0}
+            for channel in range(4):
+                expected_ctc.update({f"CONTROL_{channel}": 0xD1 if channel == 0 else 2,
+                    f"CONSTANT_{channel}": 6 if channel == 0 else 256,
+                    f"DOWN_{channel}": 6 if channel == 0 else 256, f"PRESCALER_{channel}": 0})
+            assert ctc == expected_ctc, ctc
         else:
             assert not controls.exists()
+            assert not (root / "observed.ctc").exists()
+        assert "IFF1=0 IFF2=0 IM=0 I=0" in (root / "observed.cpu").read_text()
+        with (root / "observed.cpu-fetches").open() as stream:
+            fetches = {int(row["address"]): int(row["fetches"]) for row in csv.DictReader(stream)}
+        # DI; LD BC,1A03; LD A,82; ED/79 are opcode fetches, not their
+        # immediate operands or RAM dump reads. Count the prefix separately.
+        assert all(fetches.get(address) == 1 for address in (0, 1, 4, 6, 7)), fetches
+        assert all(address not in fetches for address in (2, 3, 5, 0xF000)), fetches
     print(f"PASS read-only graphics observation: turbo={turbo}, all GRAM/PCG bytes, CRTC/controls, active populations and unchanged reports/dumps")
 
 

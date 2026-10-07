@@ -133,3 +133,7 @@ zero, unchanged inputs, six PS/2 bytes sent, still black final frame at
 log `/tmp/x1-arcus-input-enter-space-50.log`. Transmission alone does not
 prove delivery to the game or keyboard acceptance; these are exploratory
 inputs, not release-specific instructions or gameplay.
+
+The [interrupt-progression follow-up](ARCUS_INTERRUPT_STATUS.md) adds CTC
+state/completed opcode populations and actual local-MAME execution. It narrows
+the next investigation without establishing a hardware timer or mixer fix.
