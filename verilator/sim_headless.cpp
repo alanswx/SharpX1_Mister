@@ -230,13 +230,14 @@ int main(int argc, char **argv) {
         if (disk_output && disk_b_output && std::filesystem::weakly_canonical(disk_output)
             == std::filesystem::weakly_canonical(disk_b_output))
             throw std::runtime_error("drive outputs must be different paths");
-        if (disk_b_path && (save_path || restore_path))
-            throw std::runtime_error("dual-drive snapshots are not supported; use a fresh boot");
         if (disk.size() > 1048575 || disk_b.size() > 1048575) throw std::runtime_error("disk exceeds current FDC addressing");
         if (disk_path) validate_d88(disk);
         if (disk_b_path) validate_d88(disk_b);
         uint64_t disk_fingerprint = 14695981039346656037ULL;
         for (auto byte : disk) { disk_fingerprint ^= byte; disk_fingerprint *= 1099511628211ULL; }
+        uint64_t disk_b_fingerprint = 14695981039346656037ULL;
+        for (auto byte : disk_b) { disk_b_fingerprint ^= byte; disk_b_fingerprint *= 1099511628211ULL; }
+        const bool dual_snapshot = disk_b_path != nullptr;
         struct KeyEvent { uint64_t time; uint8_t byte; };
         std::deque<KeyEvent> keys;
         if (keys_path) {
@@ -374,7 +375,10 @@ int main(int argc, char **argv) {
             ^ (1ULL << 44) // Separate experimental glyph pipeline revision 1.
 #endif
             ;
-        constexpr uint64_t snapshot_magic = 0x5831534e41503132ULL ^ sys_hz ^ snapshot_profile;
+        // Preserve single-drive v12 bytes. Dual-drive headers have a distinct
+        // identity and a fifth field: ordered B-media fingerprint.
+        const uint64_t snapshot_magic = 0x5831534e41503132ULL ^ sys_hz ^ snapshot_profile
+            ^ (dual_snapshot ? (1ULL << 42) : 0);
 #ifdef X1_SAVABLE
         if (restore_path) {
             if (rom_path || ram_path || font16_path || kanji_path) throw std::runtime_error("snapshot restore cannot also download ROM/RAM/font16/Kanji");
@@ -392,6 +396,12 @@ int main(int argc, char **argv) {
                 throw std::runtime_error("snapshot header missing, truncated or unsupported");
             if (fields[0] != snapshot_magic || fields[2] != video_hz || fields[3] != disk_fingerprint)
                 throw std::runtime_error("snapshot version, video clock or disk fingerprint mismatch");
+            uint64_t header_b = 0;
+            if (dual_snapshot) {
+                header.read(reinterpret_cast<char *>(&header_b), sizeof header_b);
+                if (!header || header_b != disk_b_fingerprint)
+                    throw std::runtime_error("snapshot B disk fingerprint missing or mismatch");
+            }
             if (fields[1] % 31250 || fields[1] / 31250 + cycles > 1000000000000ULL)
                 throw std::runtime_error("snapshot time or resumed duration out of range");
             VerilatedRestore state;
@@ -401,12 +411,19 @@ int main(int argc, char **argv) {
             state >> magic >> resume_time >> saved_video_hz >> saved_disk;
             if (magic != snapshot_magic || saved_video_hz != video_hz || saved_disk != disk_fingerprint)
                 throw std::runtime_error("snapshot version, video clock or disk fingerprint mismatch");
+            if (dual_snapshot) {
+                uint64_t saved_b;
+                state >> saved_b;
+                if (saved_b != disk_b_fingerprint)
+                    throw std::runtime_error("snapshot B disk fingerprint mismatch");
+            }
             state >> top;
             state.close();
             // Retain saved pins unless an explicit new external input is given.
             if (joya_override || joystick_keys) top.joya_n = joya;
             if (joyb_override) top.joyb_n = joyb;
             top.disk_wp = disk_output ? 0 : 1;
+            top.disk_wp_b = disk_b_output ? 0 : 1;
             if (top.reset) throw std::runtime_error("snapshot is still in reset");
             cycles += resume_time / 31250;
             reset_cycles = 0; // Restored RTL retains reset counters and clock phase.
@@ -646,9 +663,13 @@ int main(int argc, char **argv) {
             VerilatedSave state;
             disk_fingerprint = 14695981039346656037ULL;
             for (auto byte : disk) { disk_fingerprint ^= byte; disk_fingerprint *= 1099511628211ULL; }
+            disk_b_fingerprint = 14695981039346656037ULL;
+            for (auto byte : disk_b) { disk_b_fingerprint ^= byte; disk_b_fingerprint *= 1099511628211ULL; }
             state.open(save_path);
             if (!state.isOpen()) throw std::runtime_error("cannot create snapshot");
-            state << snapshot_magic << context.time() << video_hz << disk_fingerprint << top;
+            state << snapshot_magic << context.time() << video_hz << disk_fingerprint;
+            if (dual_snapshot) state << disk_b_fingerprint;
+            state << top;
             state.close();
         }
 #endif

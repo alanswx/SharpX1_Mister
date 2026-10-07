@@ -37,8 +37,7 @@ def main():
     runner = pathlib.Path(original[0])
     state = pathlib.Path(original[original.index("--save-state") + 1])
     disk = pathlib.Path(original[original.index("--disk") + 1])
-    if "--disk-b" in original:
-        parser.error("dual-drive snapshots are unsupported")
+    disk_b = pathlib.Path(original[original.index("--disk-b") + 1]) if "--disk-b" in original else None
     expected = dict(evidence["inputs_sha256"])
     expected[str(evidence_path)] = sha(evidence_path)
     expected[str(runner)] = evidence["executable_sha256"]
@@ -60,6 +59,9 @@ def main():
         command = last["command"]
         if command[0] != str(runner) or command[command.index("--disk") + 1] != str(disk):
             parser.error("continuation runner/media differ from the original probe")
+        parent_b = pathlib.Path(command[command.index("--disk-b") + 1]) if "--disk-b" in command else None
+        if parent_b != disk_b:
+            parser.error("continuation drive B differs from the original probe")
         state = pathlib.Path(command[command.index("--save-state") + 1])
         expected[str(state)] = last["state_sha256"]
         elapsed = last["absolute_duration_ms"]
@@ -82,6 +84,8 @@ def main():
                    "--disk", str(disk), "--restore-state", str(state),
                    "--save-state", str(prefix) + ".state", "--dump", str(prefix),
                    "--frame", str(prefix) + ".ppm"]
+        if disk_b:
+            command += ["--disk-b", str(disk_b)]
         if keys and i == len(args.chunks_ms) - 1:
             command += ["--keys", str(keys)]
         try:

@@ -25,6 +25,9 @@ Its partial FDC-transfer X3 snapshot now passes exact continuation and clock-
 profile rejection. Native gameplay, combined Kanji ownership, dual-drive
 snapshots and hardware remain open; the rejected dual-drive native-state
 attempt is retained rather than bypassed.
+The subsequent [two-drive snapshot increment](DUAL_SNAPSHOT_STATUS.md)
+passes original protected A/B continuation and media/profile rejection.
+Native checkpoints, writable/owned-host snapshots and hardware remain open.
 
 The user requested completing the six remaining work groups below and Turbo Z. None is
 declared finished by the standalone SIO increments. Execute local gates in

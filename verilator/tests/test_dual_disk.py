@@ -223,7 +223,6 @@ with tempfile.TemporaryDirectory(prefix="x1-dual-") as tmp:
         repeats.append((report, memory))
     assert repeats[0] == repeats[1], "B-only cold repeats differ"
     for args in (["--disk-b-output", str(root / "missing.d88")],
-                 ["--disk", str(ap), "--disk-b", str(bp), "--disk-output", str(bp)],
-                 ["--disk", str(ap), "--disk-b", str(bp), "--save-state", str(root / "state")]):
+                 ["--disk", str(ap), "--disk-b", str(bp), "--disk-output", str(bp)]):
         assert subprocess.run([exe] + args, capture_output=True).returncode == 2
 print("PASS: distinct A/B sectors, retained physical heads/shared registers/direction, RNF, isolated A/B writes and protection, B-only mount, unchanged originals and cold repeats")

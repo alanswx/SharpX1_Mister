@@ -238,6 +238,15 @@ test-machine-dma-x3-snapshot:
 	python3 tests/test_dma_x3_snapshot.py ./obj_dir_v12_dma_x3_savable/Vtop ./obj_dir_v12_dma_baseline_savable/Vtop
 .PHONY: test-machine-dma-x3-snapshot
 
+test-dual-snapshot:
+	$(MAKE) turbo-dma-savable DMA_VIDEO=1 DMA_SAVE_DIR=obj_dir_v12_dma_dual_savable
+	python3 tests/test_dual_snapshot.py ./obj_dir_v12_dma_dual_savable/Vtop
+.PHONY: test-dual-snapshot
+
+test-continue-native-dual:
+	python3 tests/test_continue_native_dual.py
+.PHONY: test-continue-native-dual
+
 # Completion IRQ has its own model and output directory; no default promotion.
 DMA_IRQ_DIR ?= obj_dir_turbo_dma_irq
 turbo-dma-irq: $(DMA_IRQ_DIR)/Vtop

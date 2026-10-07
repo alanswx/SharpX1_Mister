@@ -56,6 +56,9 @@ The longer F1 probe now reaches native DMA setup and a disk-read error; a
 separate [X3/DMA follow-up](docs/DMA_X3_NATIVE_STATUS.md) passes full generated
 fast/delay-aware transfer matrices. Native gameplay and combined Kanji/DMA
 qualification remain open.
+The [two-drive snapshot increment](docs/DUAL_SNAPSHOT_STATUS.md) passes
+generated A/B CPU/DMA continuation and ordered-media rejection, preserving
+the single-drive header. Native/writable/owned-host qualification remains open.
 An original [standalone DMA subset](docs/DMA_STATUS.md) now passes register,
 transfer, count/readback and ownership tests. That standalone checkpoint did
 not connect the shared machine or establish native DMA compatibility.
@@ -296,10 +299,11 @@ All 334 FPGA inputs match `ffc1c1c`; constrained paths pass all eight analyzed
 corners at 48% ALM usage. It has not been tested on MiSTer. See the
 [two-image build report](docs/DUAL_DISK_QUARTUS_BUILD.md).
 The recommended current experimental test RBF is
-`output_files/quartus-L7gRiDWX/source/output_files/sharpx1_turbo_single.rbf`.
-All 356 FPGA inputs match `889f23c`; constrained timing passes all eight
-analyzed corners at 49% ALMs. It has not been tested on MiSTer and is not
-full Turbo/Z support. See the [current-source build report](docs/CURRENT_SOURCE_QUARTUS_STATUS.md)
+`output_files/quartus-5ge19D0o/source/output_files/sharpx1_turbo_single.rbf`.
+All 358 FPGA inputs match `bcc4349`; constrained timing passes all eight
+analyzed corners at 49% ALMs. It includes the static DIP fix but does not
+enable X3/DMA/Kanji/SIO/FM. It has not been tested on MiSTer and is not
+full Turbo/Z support. See the [DIP-fix build report](docs/DIP_QUARTUS_STATUS.md)
 and [tester handoff](docs/TESTER_HANDOFF.md), especially the two OSD reset tests.
 The newer X3 video/font candidate assembled but **fails timing at all eight
 corners**; it is not a replacement timing-closed hardware candidate. See the

@@ -1,5 +1,9 @@
 # Current-source single-clock Turbo Quartus retry
 
+Historical October 6 checkpoint. The newer recommended experimental tester
+candidate is documented in [DIP-fix build evidence](DIP_QUARTUS_STATUS.md);
+the artifacts, hashes and source binding below remain unchanged.
+
 October 6, 2026. The requested current-source hardware acceptance is **not
 complete**. The first frozen build failed parsing; the separately frozen retry
 has completed map, fit, assembly and original STA with exit zero and produced

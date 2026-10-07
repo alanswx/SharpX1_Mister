@@ -1,11 +1,11 @@
 # Experimental Sharp X1 hardware test handoff
 
-Recommended candidate: the October 6 local build, source-bound to FPGA inputs
-of `889f23c`. No hardware testing has occurred on this artifact yet.
+Recommended candidate: the October 6/7 DIP-fix local build, source-bound to
+358 FPGA inputs of `bcc4349`. No hardware testing has occurred on this artifact yet.
 
-[sharpx1_turbo_single.rbf](../output_files/quartus-L7gRiDWX/source/output_files/sharpx1_turbo_single.rbf)
-is 3,860,876 bytes. SHA-256:
-`0a996f49c67e585fe63351659db068260fbb779e3be67c51ba7f6d6d571a632e`.
+[sharpx1_turbo_single.rbf](../output_files/quartus-5ge19D0o/source/output_files/sharpx1_turbo_single.rbf)
+is 3,756,448 bytes. SHA-256:
+`437375668ece99c3de325ce66ed50c85cc7da2f5f430c67e53db2f111a55b60c`.
 
 This is the partial Turbo foundation, **single 28.571428 MHz board master with
 clock enables**. It is not the X3/400-line candidate or full Turbo/Turbo Z.
@@ -13,7 +13,9 @@ DMA and its completion IRQ, Kanji glyph rendering, SIO and FM are not enabled
 by this revision; the existing Turbo CTC/sub-CPU interrupt path is distinct.
 All eight analyzed corners pass constrained timing; external I/O, PLL startup/
 loss-of-lock, CDC and physical acceptance remain open. Full build evidence is
-in [the source-bound report](CURRENT_SOURCE_QUARTUS_STATUS.md).
+in [the source-bound report](DIP_QUARTUS_STATUS.md). Static DIP F1 selects
+the emulator-defined 2D-floppy profile; this is not HD, DMA or native Arcus
+acceptance. The previous `quartus-L7gRiDWX` artifact remains intact.
 
 ## Test safely
 
