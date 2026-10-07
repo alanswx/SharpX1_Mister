@@ -46,6 +46,9 @@ checkpoint described here remains independently scoped.
 Ready/IOR, pulse generation, reserved interrupt-control bit 7, and automatic
 restart with completion interrupts remain rejected. B7 is not implemented.
 The caller must not silently enable these just because completion IRQ works.
+The subsequent [device-only Ready/IOR profile](DMA_READY_IRQ_STATUS.md) adds
+explicit `READY_IRQ=1` and B7 qualification separately; completion-only and
+all existing machine profiles still reject Ready IRQ.
 Status-vector modification uses bits 2:1 = EOB:match, corroborated in the
 clearer primary scan. The pure terminal-match/EOB operation policy remains
 the separately documented [functional candidate](DMA_SEARCH_STOP_STATUS.md),

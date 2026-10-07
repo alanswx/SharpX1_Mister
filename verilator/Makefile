@@ -968,6 +968,24 @@ $(HEADLESS_DIR)/dma-native-irq/Vdma_native_irq_tb: tests/dma_native_irq_tb.sv ..
 		-j 4 tests/dma_native_irq_tb.sv ../rtl/x1_dma.sv ../rtl/x1_dma_service.sv ../rtl/x1_dma_vector.sv
 .PHONY: test-dma-native-irq
 
+test-dma-ready-irq: $(HEADLESS_DIR)/dma-ready-irq/Vdma_ready_irq_tb
+	@for rate in 1 4 7; do ./$(HEADLESS_DIR)/dma-ready-irq/Vdma_ready_irq_tb +CE_PERIOD=$$rate || exit 1; done
+$(HEADLESS_DIR)/dma-ready-irq/Vdma_ready_irq_tb: tests/dma_ready_irq_tb.sv ../rtl/x1_dma.sv ../rtl/x1_dma_service.sv ../rtl/x1_dma_vector.sv
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module dma_ready_irq_tb --Mdir $(HEADLESS_DIR)/dma-ready-irq \
+		-j 4 tests/dma_ready_irq_tb.sv ../rtl/x1_dma.sv ../rtl/x1_dma_service.sv ../rtl/x1_dma_vector.sv
+.PHONY: test-dma-ready-irq
+
+test-dma-ready-irq-cpu: $(HEADLESS_DIR)/dma-ready-irq-cpu/Vdma_service_cpu_tb
+	@for rate in 1 4 7; do ./$(HEADLESS_DIR)/dma-ready-irq-cpu/Vdma_service_cpu_tb +CE_PERIOD=$$rate +PROFILE=0 || exit 1; done
+$(HEADLESS_DIR)/dma-ready-irq-cpu/Vdma_service_cpu_tb: tests/dma_service_cpu_tb.sv ../rtl/x1_dma_service.sv ../rtl/x1_dma_vector.sv ../rtl/x1_dma.sv ../rtl/cpu.v $(wildcard ../rtl/tv80/*.v) Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module dma_service_cpu_tb -GNATIVE_IRQ=1 -GNATIVE_READY=1 --Mdir $(HEADLESS_DIR)/dma-ready-irq-cpu \
+		-j 4 tests/dma_service_cpu_tb.sv ../rtl/x1_dma_service.sv ../rtl/x1_dma_vector.sv ../rtl/x1_dma.sv \
+		../rtl/cpu.v ../rtl/tv80/tv80e.v ../rtl/tv80/tv80_core.v ../rtl/tv80/tv80_mcode.v \
+		../rtl/tv80/tv80_alu.v ../rtl/tv80/tv80_reg.v -Wno-fatal
+.PHONY: test-dma-ready-irq-cpu
+
 test-dma-irq-bridge: $(HEADLESS_DIR)/dma-irq-bridge/Vdma_irq_bridge_tb
 	@for rate in 1 4 7; do ./$(HEADLESS_DIR)/dma-irq-bridge/Vdma_irq_bridge_tb +CE_PERIOD=$$rate || exit 1; done
 $(HEADLESS_DIR)/dma-irq-bridge/Vdma_irq_bridge_tb: tests/dma_irq_bridge_tb.sv ../rtl/x1_dma.sv ../rtl/x1_dma_service.sv ../rtl/x1_dma_vector.sv ../rtl/x1_ctc.sv ../rtl/x1_irq_bridge.sv ../rtl/x1_dma_irq_bridge.sv

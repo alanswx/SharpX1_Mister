@@ -133,6 +133,9 @@ continuity/cross-profile rejection pass; this still does not establish full
 DMA/Turbo compatibility or hardware reset acceptance.
 The directed three-device DMA/CTC/real-MR16 pending profile also passes on both
 timing models, with ordered keyboard make/break and cold repeat checks.
+The device-only [Ready/IOR increment](docs/DMA_READY_IRQ_STATUS.md) adds
+`READY_IRQ=1`, independent IOR/IP/IUS and B7 release. Existing machine/board
+profiles do not enable it; restart IRQ and native/hardware gates remain open.
 The [Kanji contract audit](docs/KANJI_CONTRACT_STATUS.md) adds an exhaustive
 schematic-derived first-level address component and a separately tested 128 KiB
 dual-clock ROM loader. Synthetic byte/read/reset checks pass; the opt-in shared
@@ -525,7 +528,10 @@ The existing local MAME checkout is at
 `../FM-7_MiSTer_alanswx/refs/mame`; its X1 driver is
 `src/mame/sharp/x1.cpp`. It provides a useful behavior reference, with its own
 known limitations. X Millennium is now cloned locally under ignored
-`references/emulators/` and its Turbo control code inspected, not built or run.
+`references/emulators/` and its Turbo control code inspected.
+Both local MAME and an isolated declaration-accommodated X Millennium build
+now execute Arcus; their interrupt-policy comparison and limits are recorded
+in [the reference investigation](docs/ARCUS_INTERRUPT_STATUS.md).
 Neetan remains a candidate reference. See
 [reference notes](references/README.md) for links and status.
 
