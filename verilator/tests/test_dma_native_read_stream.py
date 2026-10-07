@@ -12,10 +12,7 @@ import tempfile
 from test_machine_dma import Fixture
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("executable", type=pathlib.Path)
-    args = parser.parse_args()
+def diagnostic():
     payload = bytes((i * 37 + (i >> 8) * 13 + 29) & 255 for i in range(1024))
     image = bytearray(688)
     struct.pack_into("<I", image, 32, 688)
@@ -47,10 +44,18 @@ def main():
         f.check(0x1F80, byte)
     for i, byte in enumerate(payload):
         f.p.compare_memory(0x8000 + i, byte)
+    return f.finish(), bytes(image), payload
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("executable", type=pathlib.Path)
+    args = parser.parse_args()
+    code, image, payload = diagnostic()
     with tempfile.TemporaryDirectory(prefix="x1-native-dma-shape-") as temp:
         root = pathlib.Path(temp)
         rom, disk = root / "original.rom", root / "original.d88"
-        rom.write_bytes(f.finish())
+        rom.write_bytes(code)
         disk.write_bytes(image)
         for warm in (False, True):
             dump = root / f"result-{warm}"

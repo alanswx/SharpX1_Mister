@@ -214,7 +214,7 @@ test-machine-kanji-x3-snapshot:
 DMA_DIR ?= obj_dir_turbo_dma
 DMA_TIMING ?= --timing
 DMA_VIDEO ?= 0
-DMA_VIDEO_FLAGS = -GTURBO_VIDEO_MASTER=$(DMA_VIDEO) -CFLAGS "$(if $(filter 1,$(DMA_VIDEO)),-DX1_TURBO_VIDEO_MASTER)"
+DMA_VIDEO_FLAGS = -GTURBO_VIDEO_MASTER=$(DMA_VIDEO) $(if $(filter 1,$(DMA_VIDEO)),-CFLAGS "-DX1_TURBO_VIDEO_MASTER")
 turbo-dma: $(DMA_DIR)/Vtop
 $(DMA_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc $(DMA_TIMING) --assert --trace-fst --exe --build -j 4 --Mdir $(DMA_DIR) --top-module top \
@@ -231,6 +231,12 @@ test-machine-dma-x3-timing:
 	python3 tests/test_machine_dma.py ./obj_dir_v12_dma_x3_timing/Vtop
 	python3 tests/test_dma_native_read_stream.py ./obj_dir_v12_dma_x3_timing/Vtop
 .PHONY: test-machine-dma-x3-fast test-machine-dma-x3-timing
+
+test-machine-dma-x3-snapshot:
+	$(MAKE) turbo-dma-savable DMA_VIDEO=1 DMA_SAVE_DIR=obj_dir_v12_dma_x3_savable
+	$(MAKE) turbo-dma-savable DMA_SAVE_DIR=obj_dir_v12_dma_baseline_savable
+	python3 tests/test_dma_x3_snapshot.py ./obj_dir_v12_dma_x3_savable/Vtop ./obj_dir_v12_dma_baseline_savable/Vtop
+.PHONY: test-machine-dma-x3-snapshot
 
 # Completion IRQ has its own model and output directory; no default promotion.
 DMA_IRQ_DIR ?= obj_dir_turbo_dma_irq
