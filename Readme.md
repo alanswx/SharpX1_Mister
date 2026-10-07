@@ -58,7 +58,11 @@ fast/delay-aware transfer matrices. Native gameplay and combined Kanji/DMA
 qualification remain open.
 The [two-drive snapshot increment](docs/DUAL_SNAPSHOT_STATUS.md) passes
 generated A/B CPU/DMA continuation and ordered-media rejection, preserving
-the single-drive header. Native/writable/owned-host qualification remains open.
+the single-drive header. Committed writable A-first/B-first checkpoints also
+pass exact exported-media continuation and read-only protection overrides.
+A native Arcus checkpoint resumes to 32 seconds with all five RAM/CPU dumps
+matching fresh execution, but its screen remains black, not gameplay.
+Owned-host/interrupted-write qualification remains open.
 An original [standalone DMA subset](docs/DMA_STATUS.md) now passes register,
 transfer, count/readback and ownership tests. That standalone checkpoint did
 not connect the shared machine or establish native DMA compatibility.

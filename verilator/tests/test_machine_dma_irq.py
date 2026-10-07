@@ -97,7 +97,7 @@ def main():
             result = subprocess.run([exe, "--rom", str(rom), "--cycles", "8000000",
                                      "--peek", "0xf000", "--dump", str(stem)],
                                     capture_output=True, text=True, timeout=300)
-            assert result.returncode == 0, (profile, result.stderr)
+            assert result.returncode == 0, (profile, result.returncode, result.stdout, result.stderr)
             report = json.loads(result.stdout.splitlines()[-1])
             assert report["turbo_dma_irq"] and report["turbo_dma"] and report["halted"], report
             ram = stem.with_suffix(".ram").read_bytes()

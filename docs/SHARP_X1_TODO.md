@@ -22,12 +22,16 @@ setup while that renderer profile has DMA disabled. The separate
 [X3/DMA follow-up](DMA_X3_NATIVE_STATUS.md) passes both complete generated
 transfer matrices and fast cold/warm native-command-shape diagnostics;
 Its partial FDC-transfer X3 snapshot now passes exact continuation and clock-
-profile rejection. Native gameplay, combined Kanji ownership, dual-drive
-snapshots and hardware remain open; the rejected dual-drive native-state
+profile rejection. Native gameplay, combined Kanji ownership and hardware
+remain open; the rejected old-runner dual-drive native-state
 attempt is retained rather than bypassed.
 The subsequent [two-drive snapshot increment](DUAL_SNAPSHOT_STATUS.md)
-passes original protected A/B continuation and media/profile rejection.
-Native checkpoints, writable/owned-host snapshots and hardware remain open.
+passes original protected A/B continuation and media/profile rejection,
+plus committed writable A-first/B-first checkpoints with exact exported-media
+continuation and protection overrides. A native sixteen-second Arcus checkpoint
+resumes to 32 seconds with all five RAM/CPU dumps matching fresh execution;
+the actual final frame remains black, not gameplay. Owned-host/interrupted-write
+snapshots and hardware remain open.
 
 The user requested completing the six remaining work groups below and Turbo Z. None is
 declared finished by the standalone SIO increments. Execute local gates in

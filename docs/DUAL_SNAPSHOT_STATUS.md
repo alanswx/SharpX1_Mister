@@ -13,8 +13,9 @@ a falling reference edge, released reset, idle ACK/cooldown/request host,
 and quiescent keyboard/download interfaces. The RTL may still have work to
 do, but the host must be drained. Both restored write-protect inputs follow
 their explicit disposable-output choices. Changed writable media require
-the corresponding exported copy's fingerprint on restore; dual writable
-snapshot/rollback qualification remains open. Read-only acceptance below
+the corresponding exported copy's fingerprint on restore. A bounded dual
+writable checkpoint now passes below; interrupted-write/rollback qualification
+remains open. Read-only acceptance below
 does not imply rollback of an accepted write or hardware-state save support.
 
 ## Executed checks
@@ -47,6 +48,29 @@ new host snapshot acceptance. The full new fast baseline suite also completes
 exit zero (`/tmp/x1-dual-base-test-fast.log`), including existing snapshots and
 the SDL adapter. No FPGA RTL, fitted artifact or machine ports are changed here.
 
+### Committed writable-media checkpoint
+
+`test_dual_write_snapshot.py` passes both A-first/B-second and B-first/A-second
+profiles. Original CPU programs fill distinct RAM patterns, perform real
+1024-byte DMA writes and DMA readback, and compare every payload byte.
+At 175 ms the first drive's payload/metadata ACKs have fully committed and
+the CPU publishes a marker and delays. The quiescent snapshot includes that
+drive's **new** fingerprint. Restore uses the exported disposable copies,
+then writes/readbacks the other drive; the final 500 ms reports, five RAM/CPU
+dumps, all 4096 DMA reads/writes/grants and both entire exported images match
+uninterrupted execution. Host requests/writes/sync edges match exact additive
+counts. Both originals and checkpoint copies stay unchanged.
+
+The original pre-write media are rejected as stale on restore, including
+the extra B fingerprint when B commits first. Restoring without output-copy
+authorization overrides both saved writable pins: the original CPU takes its
+expected error branch on the second drive's protected write, with zero new
+host writes and unchanged copies. This qualifies both A and B protection
+overrides, not rollback or host cancellation. Logs:
+`/tmp/x1-dual-write-snapshot-a-final.log`,
+`/tmp/x1-dual-write-snapshot-b-first.log`; the Make target retains both full
+profiles in `/tmp/x1-dual-write-snapshot-target.log`. All exit zero.
+
 ## Native provenance and remaining gates
 
 `continue_native_probe.py` now forwards the original B path on every restore
@@ -56,15 +80,41 @@ no-ROM/font/RAM-reload and dropped-B-parent rejection before output/runner
 creation (`/tmp/x1-continue-native-dual-mock.log`); this is plumbing, not
 RTL/native game acceptance.
 
-A fresh protected two-drive sixteen-second Arcus savable probe is running
+A fresh protected two-drive sixteen-second Arcus savable probe completes
 with the unchanged Turbo IPL/ANK16, original exploratory A1/B2 assignment,
 32 MHz system / nominal X3 video, DMA on and Kanji off. Outputs are ignored
 `output_files/arcus-dsw-f1-dma-x3-dual-state-sixteen/`, log
-`/tmp/x1-arcus-dual-state-sixteen.log`. Native save, repeated cold state hashes
-and continuation have not been accepted yet. The earlier old-runner dual-state
+`/tmp/x1-arcus-dual-state-sixteen.log`, exit zero. Both independent cold
+reports/dumps/frames/**state hashes** match, and all original inputs are
+unchanged. Each completes 57,344 DMA pairs, 2,914 host requests, zero host
+writes and 913 actual 640×400 frames; black frame `03702d99714c4325` is not
+gameplay. The sixteen-second native save/repeat gate passes; continuation
+to 32 seconds succeeds via the frozen runner and original A/B media,
+without ROM/font/RAM reload. All five RAM/CPU dumps match the independent
+fresh 32-second non-savable run byte-for-byte. DMA totals, CPU address and
+actual final frame agree; host counters remain invocation-relative and are
+not compared as if they were cumulative. The 48-second continuation is still
+running, not accepted. Private outputs:
+`output_files/arcus-dma-dual-continuation-32-48/`; log
+`/tmp/x1-arcus-dual-continuation.log`. The earlier old-runner dual-state
 refusal remains preserved. The separate non-savable sixteen-second probe
 now repeats exact reports/dumps/trace/frame hashes with unchanged inputs;
-its black final frame is not gameplay. The 32-second non-savable probe remains
-live. Further owned-transfer/ACK/writable/B-only snapshots and native game
+its black final frame is not gameplay. The 32-second non-savable probe
+completes both independent cold runs with identical reports/dumps/trace/frame
+hashes and unchanged original inputs. Each completes 76,800 DMA pairs and 2,971 host
+requests with zero writes; the final real 640×400 frame is still black, not
+gameplay. CPU/GRAM activity continues in the 30–31.5 second trace, including
+SCRN `63`; do not label it a CPU HALT or fix a video mapping without stronger
+evidence. Further owned-transfer/ACK/interrupted-write/B-only snapshots and native game
 input/continuation still require acceptance; this does not close disk or
 Turbo/Turbo Z work groups.
+
+Hosted CI run `37559760439` (`944b57e`) fails its first machine DMA IRQ
+execution: the log shows `-GTURBO=1` in the C++ compiler flags, consistent
+with the already-corrected empty `-CFLAGS` parsing bug. Linux compiled the
+wrong profile instead of the macOS compile-time rejection; no failing
+assertion was removed. IRQ fixture failure messages now include return code
+and stdout as well as stderr. The later corrected CI runs remain live, not
+claimed green. Mixed-pixel run `37557293544` ends cancelled after about 45
+minutes, not completed acceptance; the expanded job now has its previously
+documented 90-minute limit with unchanged test durations/assertions.

@@ -243,6 +243,12 @@ test-dual-snapshot:
 	python3 tests/test_dual_snapshot.py ./obj_dir_v12_dma_dual_savable/Vtop
 .PHONY: test-dual-snapshot
 
+test-dual-write-snapshot:
+	$(MAKE) turbo-dma-savable DMA_VIDEO=1 DMA_SAVE_DIR=obj_dir_v12_dma_dual_savable
+	python3 tests/test_dual_write_snapshot.py ./obj_dir_v12_dma_dual_savable/Vtop --first-drive 0
+	python3 tests/test_dual_write_snapshot.py ./obj_dir_v12_dma_dual_savable/Vtop --first-drive 1
+.PHONY: test-dual-write-snapshot
+
 test-continue-native-dual:
 	python3 tests/test_continue_native_dual.py
 .PHONY: test-continue-native-dual
