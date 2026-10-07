@@ -6,11 +6,33 @@ V_SRC = sim.v $(MACHINE_SRC)
 HEADLESS_DIR = obj_dir_headless
 HEADLESS_EXE = $(HEADLESS_DIR)/Vtop
 VIDEO_TEST_FLAGS ?=
+TURBO_DSW ?= 241
+TURBO_DSW_FLAGS = -GTURBO_DSW=$(TURBO_DSW) -CFLAGS "-DX1_TURBO_DSW=$(TURBO_DSW)"
 FM_MANIFEST = ../rtl/x1_fm.qip
 FM_SRC = $(addprefix ../,$(shell awk '/^set_global_assignment -name (SYSTEMVERILOG_FILE|VERILOG_FILE) / { print $$4 }' $(FM_MANIFEST)))
 FM_MASTER_HZ ?= 32000000
 
 all: headless
+
+test-turbo-dsw: $(HEADLESS_DIR)/turbo-dsw/Vturbo_dsw_tb
+	./$(HEADLESS_DIR)/turbo-dsw/Vturbo_dsw_tb
+$(HEADLESS_DIR)/turbo-dsw/Vturbo_dsw_tb: tests/turbo_dsw_tb.sv ../rtl/x1_turbo_dsw.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module turbo_dsw_tb --Mdir $(HEADLESS_DIR)/turbo-dsw \
+		-j 4 tests/turbo_dsw_tb.sv ../rtl/x1_turbo_dsw.sv
+.PHONY: test-turbo-dsw
+
+test-machine-turbo-dsw-fast: turbo-kanji-render-fast
+	python3 tests/test_machine_turbo_dsw.py ./obj_dir_v12_kanji_render_fast/Vtop --expected $(TURBO_DSW)
+test-machine-turbo-dsw-timing: turbo-kanji-render
+	python3 tests/test_machine_turbo_dsw.py ./obj_dir_v12_kanji_render/Vtop --expected $(TURBO_DSW)
+.PHONY: test-machine-turbo-dsw-fast test-machine-turbo-dsw-timing
+
+test-turbo-dsw-snapshot: test-machine-kanji-render-snapshot
+	$(MAKE) turbo-kanji-savable KANJI_VIDEO=1 KANJI_RENDER=1 TURBO_DSW=245 \
+		KANJI_SAVE_DIR=obj_dir_v12_dsw_f5_savable KANJI_PLAIN_SAVE_DIR=obj_dir_v12_dsw_f5_plain_savable
+	python3 tests/test_turbo_dsw_snapshot.py ./obj_dir_v12_kanji_render_savable/Vtop ./obj_dir_v12_dsw_f5_savable/Vtop
+.PHONY: test-turbo-dsw-snapshot
 
 test-kanji-conversion:
 	python3 tests/test_prepare_kanji.py
@@ -123,7 +145,7 @@ KANJI_RENDER ?= 0
 turbo-kanji: $(KANJI_DIR)/Vtop
 $(KANJI_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc $(KANJI_TIMING) --assert --trace-fst --exe --build -j 4 --Mdir $(KANJI_DIR) --top-module top \
-		-GTURBO=1 -GTURBO_KANJI=1 -GTURBO_VIDEO_MASTER=$(KANJI_VIDEO) -GTURBO_KANJI_RENDER=$(KANJI_RENDER) \
+		$(TURBO_DSW_FLAGS) -GTURBO=1 -GTURBO_KANJI=1 -GTURBO_VIDEO_MASTER=$(KANJI_VIDEO) -GTURBO_KANJI_RENDER=$(KANJI_RENDER) \
 		-CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_TURBO_KANJI $(if $(filter 1,$(KANJI_VIDEO)),-DX1_TURBO_VIDEO_MASTER) $(if $(filter 1,$(KANJI_RENDER)),-DX1_TURBO_KANJI_RENDER)" \
 		-MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 .PHONY: turbo-kanji
@@ -168,12 +190,12 @@ KANJI_PLAIN_SAVE_DIR ?= obj_dir_turbo_kanji_plain_savable
 turbo-kanji-savable: $(KANJI_SAVE_DIR)/Vtop $(KANJI_PLAIN_SAVE_DIR)/Vtop
 $(KANJI_SAVE_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc --no-timing --savable --assert --trace-fst --exe --build -j 4 --Mdir $(KANJI_SAVE_DIR) --top-module top \
-		-GTURBO=1 -GTURBO_KANJI=1 -GTURBO_VIDEO_MASTER=$(KANJI_VIDEO) -GTURBO_KANJI_RENDER=$(KANJI_RENDER) \
+		$(TURBO_DSW_FLAGS) -GTURBO=1 -GTURBO_KANJI=1 -GTURBO_VIDEO_MASTER=$(KANJI_VIDEO) -GTURBO_KANJI_RENDER=$(KANJI_RENDER) \
 		-CFLAGS "-std=c++20 -DX1_SAVABLE -DX1_TURBO_FOUNDATION -DX1_TURBO_KANJI $(if $(filter 1,$(KANJI_VIDEO)),-DX1_TURBO_VIDEO_MASTER) $(if $(filter 1,$(KANJI_RENDER)),-DX1_TURBO_KANJI_RENDER)" \
 		-MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 $(KANJI_PLAIN_SAVE_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc --no-timing --savable --assert --trace-fst --exe --build -j 4 --Mdir $(KANJI_PLAIN_SAVE_DIR) --top-module top \
-		-GTURBO=1 -GTURBO_VIDEO_MASTER=$(KANJI_VIDEO) \
+		$(TURBO_DSW_FLAGS) -GTURBO=1 -GTURBO_VIDEO_MASTER=$(KANJI_VIDEO) \
 		-CFLAGS "-std=c++20 -DX1_SAVABLE -DX1_TURBO_FOUNDATION $(if $(filter 1,$(KANJI_VIDEO)),-DX1_TURBO_VIDEO_MASTER)" \
 		-MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 test-machine-kanji-snapshot: turbo-kanji-savable
@@ -194,7 +216,7 @@ DMA_TIMING ?= --timing
 turbo-dma: $(DMA_DIR)/Vtop
 $(DMA_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc $(DMA_TIMING) --assert --trace-fst --exe --build -j 4 --Mdir $(DMA_DIR) --top-module top \
-		-GTURBO=1 -GTURBO_DMA=1 -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_TURBO_DMA" \
+		$(TURBO_DSW_FLAGS) -GTURBO=1 -GTURBO_DMA=1 -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_TURBO_DMA" \
 		-MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 .PHONY: turbo-dma
 
@@ -203,7 +225,7 @@ DMA_IRQ_DIR ?= obj_dir_turbo_dma_irq
 turbo-dma-irq: $(DMA_IRQ_DIR)/Vtop
 $(DMA_IRQ_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc $(DMA_TIMING) --assert --trace-fst --exe --build -j 4 --Mdir $(DMA_IRQ_DIR) --top-module top \
-		-GTURBO=1 -GTURBO_DMA=1 -GTURBO_DMA_IRQ=1 -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_TURBO_DMA -DX1_TURBO_DMA_IRQ" \
+		$(TURBO_DSW_FLAGS) -GTURBO=1 -GTURBO_DMA=1 -GTURBO_DMA_IRQ=1 -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_TURBO_DMA -DX1_TURBO_DMA_IRQ" \
 		-MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 .PHONY: turbo-dma-irq
 test-machine-dma-irq: turbo-dma-irq
@@ -222,12 +244,12 @@ DMA_IRQ_SAVE_DIR ?= obj_dir_turbo_dma_irq_savable
 turbo-dma-savable: $(DMA_SAVE_DIR)/Vtop
 $(DMA_SAVE_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc --no-timing --savable --assert --trace-fst --exe --build -j 4 --Mdir $(DMA_SAVE_DIR) --top-module top \
-		-GTURBO=1 -GTURBO_DMA=1 -CFLAGS "-std=c++20 -DX1_SAVABLE -DX1_TURBO_FOUNDATION -DX1_TURBO_DMA" \
+		$(TURBO_DSW_FLAGS) -GTURBO=1 -GTURBO_DMA=1 -CFLAGS "-std=c++20 -DX1_SAVABLE -DX1_TURBO_FOUNDATION -DX1_TURBO_DMA" \
 		-MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 turbo-dma-irq-savable: $(DMA_IRQ_SAVE_DIR)/Vtop
 $(DMA_IRQ_SAVE_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc --no-timing --savable --assert --trace-fst --exe --build -j 4 --Mdir $(DMA_IRQ_SAVE_DIR) --top-module top \
-		-GTURBO=1 -GTURBO_DMA=1 -GTURBO_DMA_IRQ=1 -CFLAGS "-std=c++20 -DX1_SAVABLE -DX1_TURBO_FOUNDATION -DX1_TURBO_DMA -DX1_TURBO_DMA_IRQ" \
+		$(TURBO_DSW_FLAGS) -GTURBO=1 -GTURBO_DMA=1 -GTURBO_DMA_IRQ=1 -CFLAGS "-std=c++20 -DX1_SAVABLE -DX1_TURBO_FOUNDATION -DX1_TURBO_DMA -DX1_TURBO_DMA_IRQ" \
 		-MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 test-machine-dma-irq-snapshot: turbo-dma-savable turbo-dma-irq-savable
 	python3 tests/test_machine_dma_irq_snapshot.py ./$(DMA_IRQ_SAVE_DIR)/Vtop ./$(DMA_SAVE_DIR)/Vtop
@@ -393,17 +415,17 @@ $(HEADLESS_DIR)/sio-dma-cpu/Vsio_dma_cpu_tb: tests/sio_dma_cpu_tb.sv ../rtl/x1_d
 # Fast X3 diagnostic continuations; not the delay-aware scheduling reference.
 obj_dir_turbo_video_savable/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc --no-timing --savable --assert --trace-fst --exe --build -j 4 --Mdir obj_dir_turbo_video_savable --top-module top \
-		-GTURBO=1 -GTURBO_VIDEO_MASTER=1 -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_SAVABLE" \
+		$(TURBO_DSW_FLAGS) -GTURBO=1 -GTURBO_VIDEO_MASTER=1 -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_SAVABLE" \
 		-MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 
 obj_dir_turbo_video/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc --timing --assert --trace-fst --exe --build -j 4 --Mdir obj_dir_turbo_video --top-module top \
-		-GTURBO=1 -GTURBO_VIDEO_MASTER=1 -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER" \
+		$(TURBO_DSW_FLAGS) -GTURBO=1 -GTURBO_VIDEO_MASTER=1 -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER" \
 		-MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 
 obj_dir_turbo_video_fast/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc --no-timing --assert --trace-fst --exe --build -j 4 --Mdir obj_dir_turbo_video_fast --top-module top \
-		-GTURBO=1 -GTURBO_VIDEO_MASTER=1 -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER" \
+		$(TURBO_DSW_FLAGS) -GTURBO=1 -GTURBO_VIDEO_MASTER=1 -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER" \
 		-MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 
 .PHONY: turbo-video turbo-video-fast turbo-video-savable
@@ -545,17 +567,17 @@ $(HEADLESS_DIR)/hps-video-cdc/Vhps_video_cdc_tb: ../sys/hps_io.sv ../rtl/x1_cdc_
 # reference. Keep this separate from the base savable gameplay executable.
 obj_dir_turbo_fast/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc --no-timing --assert --trace-fst --exe --build -j 4 --Mdir obj_dir_turbo_fast --top-module top \
-		-GTURBO=1 -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION" -MAKEFLAGS "OPT_FAST=-O3" \
+		$(TURBO_DSW_FLAGS) -GTURBO=1 -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION" -MAKEFLAGS "OPT_FAST=-O3" \
 		$(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 
 obj_dir_turbo/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc --timing --assert --trace-fst --exe --build -j 4 --Mdir obj_dir_turbo --top-module top \
-		-GTURBO=1 -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION" -MAKEFLAGS "OPT_FAST=-O3" \
+		$(TURBO_DSW_FLAGS) -GTURBO=1 -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION" -MAKEFLAGS "OPT_FAST=-O3" \
 		$(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 
 obj_dir_turbo_single/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc --timing --assert --trace-fst --exe --build -j 4 --Mdir obj_dir_turbo_single --top-module top \
-		-GTURBO=1 -GSINGLE_CLOCK=1 -GMASTER_HZ=28636364 -CFLAGS "-std=c++20 -DX1_SINGLE_CLOCK -DX1_TURBO_FOUNDATION" \
+		$(TURBO_DSW_FLAGS) -GTURBO=1 -GSINGLE_CLOCK=1 -GMASTER_HZ=28636364 -CFLAGS "-std=c++20 -DX1_SINGLE_CLOCK -DX1_TURBO_FOUNDATION" \
 		-MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 
 .PHONY: turbo turbo-single turbo-fast

@@ -29,6 +29,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_dma.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_dma_service.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_dma_vector.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_text_raster.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_turbo_dsw.sv
 set_global_assignment -name VERILOG_FILE rtl/x1_disk_control.v
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_disk_media.sv
 set_global_assignment -name VERILOG_FILE rtl/x1_clock_enables.v

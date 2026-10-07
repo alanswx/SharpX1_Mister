@@ -351,6 +351,12 @@ int main(int argc, char **argv) {
         constexpr uint64_t snapshot_profile = 0
 #ifdef X1_TURBO_FOUNDATION
             ^ (1ULL << 56)
+            ^ (1ULL << 43) // DIP readback revision 1; reject pre-DIP Turbo states.
+#ifdef X1_TURBO_DSW
+            ^ (static_cast<uint64_t>(X1_TURBO_DSW) << 32)
+#else
+            ^ (241ULL << 32) // Direct/manual builds use the RTL default F1.
+#endif
 #endif
 #ifdef X1_TURBO_VIDEO_MASTER
             ^ (1ULL << 55)

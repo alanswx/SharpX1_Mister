@@ -11,6 +11,13 @@ support before optional Turbo extensions.
 
 ## Active goal: items 1–6 and Turbo Z (October 6)
 
+The [Turbo DIP increment](TURBO_DIP_STATUS.md) now supplies configurable
+`1FFx` readback. Exhaustive decoder checks and fast real-CPU cold/warm F1
+checks pass; a repeated native two-second probe confirms F1 reads but no FDC
+transaction in its initial trace. Complete longer native boot diagnosis,
+configuration-bound snapshots, other clock/profile checks and source-bound
+Quartus/hardware acceptance before treating boot-device selection as closed.
+
 The user requested completing the six remaining work groups below and Turbo Z. None is
 declared finished by the standalone SIO increments. Execute local gates in
 order, retain original regression failures/evidence, and push verified

@@ -1,6 +1,6 @@
 // Sharp X1 base-machine integration. Shared by MiSTer and simulation.
 // See docs/BASE_X1_CONTRACT.md for address-map sources and limitations.
-module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0) (
+module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0, TURBO_DSW = 241) (
     input clk_sys, clk_28636, reset,
     input pal, scandouble,
     input ioctl_download,
@@ -101,6 +101,8 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
             $error("TURBO_KANJI requires TURBO; combined DMA profile is not qualified");
         if (TURBO_KANJI_RENDER && !TURBO_KANJI)
             $error("TURBO_KANJI_RENDER requires the explicit physical Kanji ROM profile");
+        if (TURBO && (TURBO_DSW < 0 || TURBO_DSW > 255))
+            $error("TURBO_DSW must be an explicit raw eight-bit switch configuration");
     end
     wire dma_cs = TURBO && TURBO_DMA && !dma_owner && io_cycle && !dam && a[15:4] == 12'h1f8;
     generate if (TURBO && TURBO_DMA) begin : turbo_dma
@@ -133,6 +135,12 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     wire io_read = !core_reset && !iorq && !rd && m1;
     wire io_write = !core_reset && !iorq && !wr && m1;
     wire io_cycle = io_read || io_write;
+    wire dsw_selected;
+    wire [7:0] dsw_data;
+    x1_turbo_dsw #(.ENABLED(TURBO)) dip_switches (
+        .io_read(io_read), .dam(dam), .address(a), .switches(TURBO_DSW[7:0]),
+        .selected(dsw_selected), .data(dsw_data)
+    );
     wire sub_cs = io_cycle && !dam && a[15:8] == 8'h19;
     wire ppi_cs = io_cycle && !dam && a[15:8] == 8'h1a;
     wire ipl_set_cs = io_write && !dam && a[15:8] == 8'h1d;
@@ -287,6 +295,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
               : ppi_cs && io_read ? ppi_data
               : ctc_cs && io_read ? ctc_data
               : dma_cs && io_read ? dma_data
+              : dsw_selected ? dsw_data
               : io_read && !dam && a[15:2] == 14'h03fe ? fdc_data
               : io_read && !dam && a[15:8] == 8'h1b ? psg_data
               : (cg_access && io_read) || cg_read_tail ? cg_cpu_data

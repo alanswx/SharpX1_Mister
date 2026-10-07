@@ -1,5 +1,15 @@
 # Native Turbo firmware probe
 
+## Subsequent DIP-switch boot diagnosis
+
+The bounded trace confirms missing `1FFx` readback: original `FF` selects
+SASI in local MAME's switch definition. The new static F1/2D-floppy profile
+is detailed in [DIP evidence](TURBO_DIP_STATUS.md). Native reads now return
+F1. The first eight-second run reaches real FDC transfers and a 640×400
+Japanese disk-read error screen, not accepted gameplay; the repeat is still
+running. This supersedes the old SASI-poll observation for this new runner
+only. The recommended RBF does not contain the change.
+
 ## October 6/7 renderer-enabled native-IPL repeat
 
 The separate opt-in Kanji renderer's frozen fast runner
