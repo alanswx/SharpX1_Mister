@@ -86,6 +86,11 @@ private inferred candidate passes bounded X3 fast/delay-aware CPU cold/warm
 reads, not rendered glyphs or a hardware-chip identity claim. Supplied Z Kanji files are 306,176-byte
 tool exports with an arbitrary second-level filename, not raw ROM images;
 retain strict physical-loader size rejection and qualify conversion separately.
+The standalone first-level glyph-source decoder now passes 4,194,304 pin
+combinations/all 131,072 physical bytes; the schematic and local X Millennium
+agree on PCG-over-Kanji priority, unlike MAME's renderer. A priority-bypass
+negative control fails. Shared rendering, upstream enable/raster phase and
+native pixel checks remain required; defaults and the recommended RBF are unchanged.
 The [current-source Quartus retry](CURRENT_SOURCE_QUARTUS_STATUS.md) records
 the preserved parse failure and explicit-generate fix. Local default/native
 DMA and actual-CPU IRQ regressions pass. The new single-clock frozen build now

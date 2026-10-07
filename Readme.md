@@ -127,6 +127,9 @@ and five pending-read reset cases also pass. Default profiles stay unchanged.
 An [explicit private model-40 conversion](docs/KANJI_CONTRACT_STATUS.md#executed-explicit-model-40-conversion-and-cpu-read-candidate)
 passes exhaustive synthetic layout checks and bounded shared-CPU candidate
 reads. It is not native glyph rendering or hardware chip-identity acceptance.
+The schematic-derived standalone glyph-source decoder now passes 4,194,304
+pin combinations, including PCG-over-Kanji priority and absent-level-2 isolation;
+row/phase qualification and shared glyph rendering remain open.
 A bounded [high-speed PCG increment](docs/TURBO_HIGH_SPEED_PCG_STATUS.md)
 adds selector shadows, frozen HSYNC-window access and CPU ANK8/16 selection.
 Original unit/CPU tests pass; ASIC fallback/WAIT phase, Kanji and hardware

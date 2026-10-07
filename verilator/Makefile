@@ -24,6 +24,14 @@ $(HEADLESS_DIR)/kanji-address/Vkanji_address_tb: tests/kanji_address_tb.sv ../rt
 		-j 4 tests/kanji_address_tb.sv ../rtl/x1_kanji_address.sv
 .PHONY: test-kanji-address
 
+test-kanji-decode: $(HEADLESS_DIR)/kanji-decode/Vkanji_decode_tb
+	./$(HEADLESS_DIR)/kanji-decode/Vkanji_decode_tb
+$(HEADLESS_DIR)/kanji-decode/Vkanji_decode_tb: tests/kanji_decode_tb.sv ../rtl/x1_kanji_decode.sv ../rtl/x1_kanji_address.sv Makefile
+	mkdir -p $(HEADLESS_DIR)/kanji-decode
+	$(V) --binary --timing --assert --top-module kanji_decode_tb --Mdir $(HEADLESS_DIR)/kanji-decode \
+		-j 4 tests/kanji_decode_tb.sv ../rtl/x1_kanji_decode.sv ../rtl/x1_kanji_address.sv
+.PHONY: test-kanji-decode
+
 test-kanji-rom: $(HEADLESS_DIR)/kanji-rom/Vkanji_rom_tb
 	@for half in 17500 11640 25000; do ./$(HEADLESS_DIR)/kanji-rom/Vkanji_rom_tb +VIDEO_HALF_PS=$$half || exit 1; done
 $(HEADLESS_DIR)/kanji-rom/Vkanji_rom_tb: tests/kanji_rom_tb.sv ../rtl/x1_kanji_rom.sv ../rtl/x1_kanji_address.sv Makefile

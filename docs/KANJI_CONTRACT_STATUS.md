@@ -38,6 +38,50 @@ DKAN4 level-2, DKAN5 underline or DKAN7 selection semantics. These signals
 must be resolved at the parent mux/ASIC, not guessed inside an address helper.
 No raster clock, reset latch, ROM bytes or capability signature is added.
 
+### Executed first-level glyph-source decoder
+
+`rtl/x1_kanji_decode.sv` now models the visible IC92/IC91 selection gates,
+separately from ASIC timing and the renderer. The page-3 detail was inspected
+again (`/tmp/x1-kanji-kace-detail.png`): IC92 (1/2) has A=DATT5, B=DKAN7;
+its active-low Y2 is KACE. IC91's input/output-bubbled NAND implements
+`KACE_n | DKAN4` at IC92 (2/2)'s active-low enable. The upstream first
+decoder enable remains caller-qualified; tracing that phase is still required.
+
+| DATT5 (PCG) | DKAN7 | Active IC92 first-half output, when enabled |
+|---|---|---|
+| 0 | 0 | Y0 / ANK |
+| 1 | 0 | Y1, not KACE |
+| 0 | 1 | Y2 / KACE; DKAN4 chooses first/second level |
+| 1 | 1 | Y3, not KACE |
+
+Thus the electrical decoder does **not** select Kanji when PCG is selected.
+Local X Millennium `vram/makechr.c` (`makechr8` and `makechr16`) agrees:
+its PCG branch is outside the Kanji branch, including paired-PCG selection.
+Local MAME `x1_v.cpp:draw_fgtilemap` instead replaces `gfx_data` when Kanji
+is enabled even after selecting PCG; its Kanji double-height treatment is
+explicitly a guess. Neither emulator has been newly built/run here. Use the
+schematic relationship, not MAME's conflicting priority, for this component.
+
+`make -C verilator test-kanji-decode` passes **4,194,304** combinations of
+decoder enable, PCG, all Kanji attributes, all characters and all 16 supplied
+rows. It covers every first-level physical byte, both underline values,
+disabled/ANK/PCG/absent-level-2 chip isolation and all 256 ordinary attributes.
+The independent expected-value calculation uses integer decoder truth tables
+and physical-address formulas. No warning suppressions were added. Log:
+`/tmp/x1-kanji-display-decode.log`, exit zero, Verilator 5.044.
+A temporary negative control ignores DATT5; the unchanged fixture fails its
+LS139 assertion (exit one), log `/tmp/x1-kanji-display-decode-negative.log`.
+Existing physical-address, CPU-selector and conversion regressions also pass,
+log `/tmp/x1-kanji-display-decode-regression.log`.
+
+This decoder is standalone, not yet a shared-machine dependency. It does not
+change any default, model identity, snapshot layout or the recommended RBF.
+K4Y..K1Y row generation, upstream enable phase, attribute/glyph latency,
+underline/mixing, level-2 storage and actual pixel/native/hardware acceptance
+remain open. The shared ROM display port is still disconnected; gate truth
+table coverage is not renderer acceptance. The target is added to hosted CI,
+but this new target's hosted result is not yet available.
+
 ### Supplied native-asset inventory and conversion boundary
 
 The user-supplied model-40 archive
@@ -340,8 +384,10 @@ conversion and eX1's TODO are explicit gaps, not acceptance oracles.
    video row/character pipeline. Specify native source chip identities/file order;
    standalone synthetic bank/half/row reads pass before private fonts. Verify
    latency, beam boundaries, blanking and CPU/DMA concurrency, not just address
-   equality. No native archive reordering/conversion was performed here.
-2. Trace the remaining KACE/PCG/ANK/underline/row mux and Z level-2 nets from
+   equality. The explicit model-40 conversion above is a CPU-read candidate,
+   not acceptance of native rendering or physical chip labels.
+2. The first-level KACE/PCG/ANK gate truth table is tested above. Trace its
+   upstream enable phase and the remaining underline/row mux and Z level-2 nets from
    the primary sheets. Define supported model-specific behavior without
    silently replacing a missing glyph with ANK or a working-device signature.
 3. Resolve CPU `0E80..83` semantics with programming documentation or an
