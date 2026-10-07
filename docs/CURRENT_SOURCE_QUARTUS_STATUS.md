@@ -3,7 +3,7 @@
 October 6, 2026. The requested current-source hardware acceptance is **not
 complete**. The first frozen build failed parsing; the separately frozen retry
 has completed map, fit, assembly and original STA with exit zero and produced
-an RBF. Supplemental all-corner/path analysis is running. This is not physical
+an RBF. Supplemental all-corner/path analysis now passes. This is not physical
 acceptance or full timing/CDC signoff.
 
 ## Original failure, preserved
@@ -76,13 +76,13 @@ revision `sharpx1_turbo_single`, seed 1, map one thread / fit eight, container
 not nominal X3 clocks. DMA/IRQ and the new Kanji profiles remain disabled in
 this FPGA revision. Parsing their sources does not enable their capabilities.
 
-Complete warning review and source-bound supplemental all-corner timing before
-promoting the new artifact as a test candidate. Physical video/audio/disk and Main/OSD reset acceptance still
-require MiSTer. The October 5 artifact documented in
-[the two-drive build report](DUAL_DISK_QUARTUS_BUILD.md) remains the available
-recommended candidate until a newer qualified result exists.
+The warning review and source-bound supplemental checks below now support
+using this as the recommended **experimental hardware test candidate**.
+Physical video/audio/disk and Main/OSD reset acceptance still require MiSTer.
+It replaces the October 5 candidate for testing, not as a compatibility-certified
+release. See [tester handoff](TESTER_HANDOFF.md).
 
-## Completed main flow; supplemental analysis running
+## Completed main flow and supplemental analysis
 
 The frozen retry exits **0**, ending `2026-10-07T00:53:59Z` in its manifest.
 The stage logs report map 0 errors/118 warnings, fit 0/9, assembly 0/0 and
@@ -94,7 +94,7 @@ Actual fit: **20,545 / 41,910 ALMs (49%)**, 32,105 registers,
 and 32 / 112 DSP blocks (29%). Thus 160 RAM blocks remain before a new Kanji
 profile; do not assume the larger Z ROM fits or reduce its required capacity.
 
-Generated experimental artifact (not yet promoted):
+Recommended experimental hardware test artifact:
 [sharpx1_turbo_single.rbf](../output_files/quartus-L7gRiDWX/source/output_files/sharpx1_turbo_single.rbf),
 3,860,876 bytes, SHA-256
 `0a996f49c67e585fe63351659db068260fbb779e3be67c51ba7f6d6d571a632e`.
@@ -108,12 +108,62 @@ all TNS zero. Original STA reports were preserved in
 `output_files/quartus-L7gRiDWX/single-corner-reports/` before supplemental
 analysis. These numbers are not all-eight-corner acceptance.
 
-The same fitted database is now running the existing
+The same fitted database subsequently completed the existing
 `quartus_sta sharpx1 -c sharpx1_turbo_single --multicorner=on --all_corners`,
 followed by the tested path-report helper. Log:
 `output_files/quartus-L7gRiDWX/all-corners-and-paths.log`.
 No source, refit, assembly or constraint change is made for that analysis;
-check RBF/SOF hashes again afterward and review the actual corner/path reports.
+RBF/SOF hashes above are identical afterward. All 356 original input hashes
+also still match the working tree, log `/tmp/x1-current-inputs-after-sta.log`.
+Both supplemental commands exit zero, no errors/warnings. No MiSTer deployment
+or physical input/reset/boot test occurred.
+
+### All-corner constrained timing
+
+The complete log contains all eight models and all five checks per model;
+no negative worst-case slack was found. Values in ns:
+
+| Model (1100mV) | Setup | Hold | Recovery | Removal | Pulse width |
+|---|---:|---:|---:|---:|---:|
+| Slow 100C | 0.781 | 0.205 | 3.739 | 0.899 | 1.122 |
+| Slow -40C | 0.641 | 0.132 | 3.907 | 0.842 | 1.122 |
+| Slow 85C | 0.769 | 0.212 | 3.779 | 0.892 | 1.122 |
+| Slow 0C | 0.736 | 0.143 | 3.905 | 0.828 | 1.122 |
+| Fast -40C | 3.873 | 0.081 | 5.221 | 0.367 | 1.122 |
+| Fast 0C | 3.803 | 0.086 | 5.160 | 0.378 | 1.122 |
+| Fast 85C | 3.522 | 0.099 | 4.971 | 0.420 | 1.122 |
+| Fast 100C | 3.507 | 0.102 | 4.908 | 0.427 | 1.122 |
+
+The separate path helper executes on the current fitted database, default
+slow 100C model. Setup/hold/recovery reports contain 30/20/20 paths with zero
+violations. Twenty PCG destination setup paths have worst slack 24.821 ns;
+twenty MR16 destination setup paths have worst slack 14.512 ns. Those two
+destination filters are not an exhaustive CDC/beam/arbitration verification.
+
+### Warning review and unaccepted limits
+
+No warning suppression, false path, multicycle or I/O constraint was added.
+The review includes the actual map/fit log and these remaining classes:
+
+- `async_reg` is ignored by Quartus 17 on core/framework synchronizers. Passing
+  timing does not prove synchronization constraints or metastability signoff.
+- Unused DMA/IRQ/diagnostic nodes reflect disabled profiles, not newly enabled
+  devices. Kanji-source parsing is not an instantiated Kanji FPGA feature.
+- Width truncations remain in inherited CPU/MR16/video/timer code; the unused
+  legacy decoder still reports implicit `text_cs`. These were not silently
+  changed or covered by broad correctness claims.
+- Dual-clock RAM collision warnings remain. Supported ownership/reset protocols
+  are tested separately; no arbitrary simultaneous read/write values are claimed.
+- PLL reset/lock/output connectivity warnings remain, including loss-of-lock
+  recovery. Their presence is a physical startup/recovery gate, not a waiver.
+- Framework bidirectional/undriven ROM-write ports, unused pins, incomplete I/O
+  assignments and ignored fast-I/O/fitter assignments remain reported. External
+  setup/hold paths are not fully constrained. No board electrical signoff exists.
+
+This build is appropriate for coordinated, disposable-media bring-up testing,
+not evidence that all work groups or Turbo Z are finished. The X3 FPGA profile
+still needs its own current-source refit/timing/hardware gates; these positive
+single-clock results must not be attributed to it.
 
 ## Timing-report helper qualification (historical fit only)
 

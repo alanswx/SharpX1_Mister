@@ -88,8 +88,12 @@ tool exports with an arbitrary second-level filename, not raw ROM images;
 retain strict physical-loader size rejection and qualify conversion separately.
 The [current-source Quartus retry](CURRENT_SOURCE_QUARTUS_STATUS.md) records
 the preserved parse failure and explicit-generate fix. Local default/native
-DMA and actual-CPU IRQ regressions pass; the new frozen build remains in
-progress, not a replacement RBF or physical/timing acceptance.
+DMA and actual-CPU IRQ regressions pass. The new single-clock frozen build now
+completes fit/assembly and all eight constrained timing corners, with unchanged
+artifact/input hashes and 49% ALMs. It is the recommended experimental test
+RBF, not physical/full timing acceptance or a passing X3 build. The
+[tester handoff](TESTER_HANDOFF.md) covers cold keyboard, disks and both Main/
+OSD reset commands; no work group is marked complete from this build.
 Turbo Z is now explicitly part of the requested goal. Its Z0–Z9 milestones
 and acceptance gates are tracked in [TURBO_Z_PLAN.md](TURBO_Z_PLAN.md).
 It remains a separate capability profile; progress must not imply support

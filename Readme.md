@@ -272,14 +272,17 @@ The CTC-only experimental checkpoint RBF is
 All 333 FPGA inputs match implementation commit `0115a38`; constrained paths
 pass all eight analyzed corners. It has not been tested on MiSTer. See the
 [CTC build report](docs/CTC_QUARTUS_BUILD.md) for hashes and remaining signoff gaps.
-The latest two-image/CTC experimental RBF is
+The previous two-image/CTC experimental RBF is
 `output_files/quartus-JC4BFj9f/source/output_files/sharpx1_turbo_single.rbf`.
 All 334 FPGA inputs match `ffc1c1c`; constrained paths pass all eight analyzed
 corners at 48% ALM usage. It has not been tested on MiSTer. See the
 [two-image build report](docs/DUAL_DISK_QUARTUS_BUILD.md).
-The [current-source October 6 retry](docs/CURRENT_SOURCE_QUARTUS_STATUS.md)
-records a Quartus parse failure, explicit-generate correction and a new frozen
-build in progress; it is not yet a replacement RBF.
+The recommended current experimental test RBF is
+`output_files/quartus-L7gRiDWX/source/output_files/sharpx1_turbo_single.rbf`.
+All 356 FPGA inputs match `889f23c`; constrained timing passes all eight
+analyzed corners at 49% ALMs. It has not been tested on MiSTer and is not
+full Turbo/Z support. See the [current-source build report](docs/CURRENT_SOURCE_QUARTUS_STATUS.md)
+and [tester handoff](docs/TESTER_HANDOFF.md), especially the two OSD reset tests.
 The newer X3 video/font candidate assembled but **fails timing at all eight
 corners**; it is not a replacement timing-closed hardware candidate. See the
 [X3 build audit](docs/TURBO_VIDEO_QUARTUS_BUILD.md) and
