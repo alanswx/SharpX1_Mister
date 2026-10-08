@@ -37,6 +37,13 @@ def command(host, value):
     ssh(host, "printf '%s\\n' " + shlex.quote(value) + " > /dev/MiSTer_cmd")
 
 
+def status(host):
+    # Main versions differ in whether ACTIVEGAME exists, including after MGL.
+    return ssh(host, 'for f in /tmp/RBFNAME /tmp/ACTIVEGAME /tmp/CORENAME; do '
+                    'if test -r "$f"; then printf "%s: " "$f"; cat "$f"; '
+                    'printf "\\n"; fi; done; uname -a')
+
+
 def capture(host, folder, label):
     name = folder.name + "_" + label + ".png"
     command(host, "screenshot " + name)
@@ -101,9 +108,7 @@ def deploy(host, rbf, disk):
                 "disk": str(disk), "disk_sha256": digest(disk),
                 "ipl_bytes": len(data), "ipl_sha256": digest(rom),
                 "remote_rbf": remote_rbf, "remote_directory": remote,
-                "pre_load": ssh(host, "for f in /tmp/RBFNAME /tmp/ACTIVEGAME /tmp/CORENAME; do "
-                                'if test -r "$f"; then printf "%s: " "$f"; cat "$f"; '
-                                'printf "\\n"; fi; done; uname -a'),
+                "pre_load": status(host),
                 "write_protection": "zero status config; disposable disk copy; chmod requested but FAT mode bits are not proof"}
     (folder / "manifest.json").write_text(json.dumps(evidence, indent=2) + "\n")
     # Timestamp/setname must not alias a previous test or an installed core.
@@ -121,7 +126,7 @@ def deploy(host, rbf, disk):
     evidence["remote_asset_hashes"] = remote_hashes
     command(host, "load_core " + remote + "/" + name + ".mgl")
     time.sleep(12)  # MGL file delays, reset, then native IPL boot.
-    evidence["post_load"] = ssh(host, "cat /tmp/RBFNAME /tmp/ACTIVEGAME /tmp/CORENAME")
+    evidence["post_load"] = status(host)
     (folder / "manifest.json").write_text(json.dumps(evidence, indent=2) + "\n")
     print(json.dumps({"evidence": str(folder), "post_load": evidence["post_load"]}), flush=True)
     capture(host, folder, "boot")
