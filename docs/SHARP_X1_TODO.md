@@ -53,9 +53,11 @@ Resolve that contract with stronger evidence; do not simply slow its clock.
 The user requested completing the six remaining work groups below and Turbo Z. None is
 declared finished by the standalone SIO increments. Execute local gates in
 order, retain original regression failures/evidence, and push verified
-checkpoints. Physical acceptance requires MiSTer. The user confirmed that the
-remote build host/MiSTer remain unavailable; continue local verification without
-claiming hardware acceptance. The cached Apple-container Quartus 17 runtime
+checkpoints. Physical acceptance requires MiSTer. October 8: the user released
+mister126/mister14 and the misterubuntu build host, keeping mister192 reserved.
+The [initial mister126 matrix](HARDWARE_126_STATUS.md) records native game-start,
+bounded OSD reset and a fresh single-clock all-corner fit; broader hardware and
+optional-device gates remain open. The cached Apple-container Quartus 17 runtime
 and installation are available locally (rechecked October 6); use frozen-source
 builds and record synthesis, fit and timing separately.
 

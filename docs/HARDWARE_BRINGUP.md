@@ -1,5 +1,9 @@
 # MiSTer hardware bring-up
 
+Current follow-up: [October 8 mister126 results](HARDWARE_126_STATUS.md)
+include protected game MGLs, fresh source-bound fitting and bounded OSD-reset
+observations. mister192 remains reserved; availability notes below are historical.
+
 ## 2026-10-03 — first native game boot
 
 User explicitly released MiSTer for X1 testing. SSH to `root@mister.local`

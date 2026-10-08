@@ -1,5 +1,11 @@
 # Experimental Sharp X1 hardware test handoff
 
+October 8 update: a newer native Quartus 17.0.2 single-clock RBF is available
+and has bounded CROSS Chase cold boot/input and both OSD-reset observations.
+See [current artifact, MGLs and exact limits](HARDWARE_126_STATUS.md).
+The candidate and availability notes below preserve the earlier handoff;
+they are not the latest test result.
+
 Recommended candidate: the October 6/7 DIP-fix local build, source-bound to
 358 FPGA inputs of `bcc4349`. No hardware testing has occurred on this artifact yet.
 

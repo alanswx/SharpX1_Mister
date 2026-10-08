@@ -501,6 +501,9 @@ The native Linux host `misterubuntu` is also configured; see
 to toolchain preflight, with source-hashed builds explicitly requested.
 The MiSTer at `mister` is currently reserved by another user; do not deploy
 or run hardware tests until it is released.
+The subsequently released `mister126` has protected game-test MGLs and
+[October 8 hardware/build results](docs/HARDWARE_126_STATUS.md); `mister192`
+remains reserved. These checks do not qualify the missing Turbo/Z devices.
 
 Development checkpoints are pushed to
 [alanswx/SharpX1_Mister](https://github.com/alanswx/SharpX1_Mister).

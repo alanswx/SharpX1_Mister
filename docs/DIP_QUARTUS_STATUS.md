@@ -1,5 +1,10 @@
 # DIP-fix single-clock RBF (October 6/7)
 
+October 8 follow-up: this artifact now has native game-start observations on
+mister126; a newer separately hashed Linux build was also fitted and tested.
+See [hardware matrix](HARDWARE_126_STATUS.md). Statements below describing
+no hardware execution refer to the original publication date.
+
 Recommended experimental tester candidate:
 [sharpx1_turbo_single.rbf](../output_files/quartus-5ge19D0o/source/output_files/sharpx1_turbo_single.rbf).
 3,756,448 bytes; SHA-256
