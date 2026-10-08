@@ -142,6 +142,10 @@ The separate [auto-restart EOB IRQ profile](docs/DMA_RESTART_IRQ_STATUS.md)
 retains a terminal event without setting EOB status. Register-stream and
 real-CPU two-block ACK/RETI checks pass at CE=1/4/7; mixed causes,
 shared-machine integration and native/hardware acceptance remain open.
+The [reload-buffer correction](docs/DMA_RELOAD_BUFFER_STATUS.md) keeps the
+already-loaded destination independent of later starting-buffer writes, with
+both-direction and delayed-grant tests. DMA states need fresh revision-7
+execution; ordinary non-DMA v12 profiles remain unchanged.
 The [Kanji contract audit](docs/KANJI_CONTRACT_STATUS.md) adds an exhaustive
 schematic-derived first-level address component and a separately tested 128 KiB
 dual-clock ROM loader. Synthetic byte/read/reset checks pass; the opt-in shared

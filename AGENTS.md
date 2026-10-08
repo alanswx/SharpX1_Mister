@@ -71,6 +71,8 @@ Snapshot format v12 rejects older states after adding the RGB12 output port
 v09 added text-raster state;
 v08 added X3 PPI sampling; v07 added PCG/metadata state). Regenerate from native boot,
 never convert or patch state bytes to bypass model compatibility checks.
+DMA-enabled states also require DMA revision 7 after separating an auto-loaded
+first destination from later starting-buffer writes; non-DMA v12 is unchanged.
 Use `docs/TURBO_TEXT_RASTER_STATUS.md` for the provisional digital expansion/
 underline policy and CRTC R9=31/R5=0 regression. Unit success does not complete
 the documented row/width or native BASIC acceptance matrix. Mode 01 graphics

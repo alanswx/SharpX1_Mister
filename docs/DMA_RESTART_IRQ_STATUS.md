@@ -28,6 +28,10 @@ rejected. This does not redefine the full DMA milestone: combined causes,
 late arming, buffer changes, long-count boundaries and exact silicon timing
 still require implementation/qualification. Existing restart-without-IRQ and
 completion/Ready profiles keep their previous behavior and command rejection.
+The subsequent [reload-buffer correction](DMA_RELOAD_BUFFER_STATUS.md) reproduces
+and fixes a first-destination/live-buffer defect and extends both-direction,
+three-block and delayed-grant tests. Its state/acceptance scope is separate
+from this historical first increment.
 
 ## Executed checks
 

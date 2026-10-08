@@ -42,6 +42,10 @@ module x1_dma #(parameter bit COMPLETION_IRQ=0, parameter bit READY_IRQ=0,
     logic [2:0] read_index;
     logic write_seen, read_seen, enabled, loaded, force_ready;
     logic requested, end_of_block, destination_first, match_found, search_stop_pending;
+    // Auto-reload has already frozen the first destination in its counter.
+    // Later buffer writes must only affect the following block's reload.
+    // Explicit LOAD retains its separate inherited first-destination policy.
+    logic restart_destination_loaded;
     logic reset_pending, soft_reset_pending;
     logic [1:0] grant_samples;
     logic [2:0] cycle_left;
@@ -222,6 +226,7 @@ module x1_dma #(parameter bit COMPLETION_IRQ=0, parameter bit READY_IRQ=0,
         write_seen <= 0; read_seen <= 0; cpu_data_out <= 0;
         enabled <= 0; loaded <= 0; force_ready <= 0;
         requested <= 0; end_of_block <= 0; destination_first <= 0;
+        restart_destination_loaded <= 0;
         match_found <= 0; search_stop_pending <= 0;
         reset_pending <= 0; soft_reset_pending <= 0;
         grant_samples <= 0; cycle_left <= 0; cycle_io <= 0;
@@ -240,6 +245,7 @@ module x1_dma #(parameter bit COMPLETION_IRQ=0, parameter bit READY_IRQ=0,
         timing_a_set <= 0; timing_b_set <= 0;
         timing_a <= 0; timing_b <= 0;
         bad_command <= 0; requested <= 0; end_of_block <= 0;
+        restart_destination_loaded <= 0;
         match_found <= 0; search_stop_pending <= 0;
         soft_reset_pending <= 0; grant_samples <= 0;
     endtask
@@ -286,10 +292,10 @@ module x1_dma #(parameter bit COMPLETION_IRQ=0, parameter bit READY_IRQ=0,
                                 cycle_io <= wr0[2] ? wr1[3] : wr2[3];
                                 if (wr0[2])
                                     destination_address <= wr2[5] ? counter_b :
-                                        destination_first ? start_b : step_address(counter_b, wr2);
+                                        destination_first ? (restart_destination_loaded ? counter_b : start_b) : step_address(counter_b, wr2);
                                 else
                                     destination_address <= wr1[5] ? counter_a :
-                                        destination_first ? start_a : step_address(counter_a, wr1);
+                                        destination_first ? (restart_destination_loaded ? counter_a : start_a) : step_address(counter_a, wr1);
                                 state <= READ_SETUP;
                             end
                         end
@@ -339,6 +345,7 @@ module x1_dma #(parameter bit COMPLETION_IRQ=0, parameter bit READY_IRQ=0,
                                         // WR5 end-of-block repeat reloads both
                                         // buffers, not the source-only explicit LOAD.
                                         counter_a <= start_a; counter_b <= start_b;
+                                        restart_destination_loaded <= 1;
                                         remaining <= operation_size(length); byte_counter <= 0;
                                         destination_first <= 1; end_of_block <= 0;
                                         match_found <= 0;
@@ -369,6 +376,7 @@ module x1_dma #(parameter bit COMPLETION_IRQ=0, parameter bit READY_IRQ=0,
                                 if (wr0[2]) counter_b <= address;
                                 else counter_a <= address;
                                 destination_first <= 0;
+                                restart_destination_loaded <= 0;
                                 // Standard sequential transfer/search compares the
                                 // immutable source byte after its destination write.
                                 // Byte-mode Stop on Match completes this write,
@@ -382,6 +390,7 @@ module x1_dma #(parameter bit COMPLETION_IRQ=0, parameter bit READY_IRQ=0,
                                     // explicit LOAD's source-only immediate load. Fixed
                                     // destinations therefore reload too (UM0081 p60).
                                     counter_a <= start_a; counter_b <= start_b;
+                                    restart_destination_loaded <= 1;
                                     remaining <= block_size(length); byte_counter <= 0;
                                     destination_first <= 1; end_of_block <= 0;
                                     match_found <= 0;
@@ -477,6 +486,7 @@ module x1_dma #(parameter bit COMPLETION_IRQ=0, parameter bit READY_IRQ=0,
                                         if (wr0[2]) counter_a <= start_a;
                                         else counter_b <= start_b;
                                         destination_first <= 1;
+                                        restart_destination_loaded <= 0;
                                         remaining <= operation_size(length); byte_counter <= 0;
                                         loaded <= 1; force_ready <= 0;
                                         requested <= 0; end_of_block <= 0;

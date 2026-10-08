@@ -376,7 +376,7 @@ int main(int argc, char **argv) {
             ^ (1ULL << 55)
 #endif
 #ifdef X1_TURBO_DMA
-            ^ (1ULL << 54) ^ (1ULL << 53) ^ (1ULL << 52) ^ (1ULL << 51) ^ (1ULL << 50) ^ (1ULL << 49) ^ (1ULL << 48) // DMA revision 6: pending pure-search match pipeline.
+            ^ (1ULL << 54) ^ (1ULL << 53) ^ (1ULL << 52) ^ (1ULL << 51) ^ (1ULL << 50) ^ (1ULL << 49) ^ (1ULL << 48) ^ (1ULL << 41) // DMA revision 7: independent reloaded destination; bit 47 belongs to IRQ.
 #endif
 #ifdef X1_TURBO_DMA_IRQ
             ^ (1ULL << 47) ^ (1ULL << 46) // Completion IRQ revision 1: reset ACK quarantine.

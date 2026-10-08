@@ -109,6 +109,11 @@ that event separately: 4,608 register cases and three real-CPU two-block
 IM2/ACK/RETI cases pass. Owned/stopped-CE resets and the EOB-trigger negative
 control are covered. Mixed Ready/match restart, native/machine integration and
 physical qualification remain required; no work group is marked complete.
+The [reload-buffer follow-up](DMA_RELOAD_BUFFER_STATUS.md) fixes an actual
+post-auto-reload first-destination redirection bug. Both-direction, three-block
+buffer updates and delayed actual BUSACK release now pass device tests;
+DMA serialized state advances independently to revision 7. Mixed causes and
+native/hardware/shared-machine restart service remain open.
 The [Kanji contract audit](KANJI_CONTRACT_STATUS.md) now derives a tested
 first-level physical ROM address decoder from the model-20/30 schematic,
 covering all 131,072 bytes. Its connected standalone 128 KiB dual-clock ROM
