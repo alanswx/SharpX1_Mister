@@ -496,6 +496,12 @@ game boot; full timing/hardware signoff remains open. The FPGA top is
 `rtl/machine.qip`, shared with simulation; board dependencies belong in `files.qip`.
 Quartus output goes into `output_files/`.
 
+The native Linux host `misterubuntu` is also configured; see
+[remote build instructions](docs/REMOTE_BUILD_HOST.md). Its helper defaults
+to toolchain preflight, with source-hashed builds explicitly requested.
+The MiSTer at `mister` is currently reserved by another user; do not deploy
+or run hardware tests until it is released.
+
 Development checkpoints are pushed to
 [alanswx/SharpX1_Mister](https://github.com/alanswx/SharpX1_Mister).
 The local `alanswx` remote is the default push destination; `origin` retains
