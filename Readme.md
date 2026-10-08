@@ -7,6 +7,9 @@ IPL and is playable in Verilator. This does not establish full X1 compatibility
 or a release-ready FPGA core. An optional single-clock checkpoint also boots
 the game on MiSTer and responds to remote start/directional input; see
 [hardware bring-up evidence](docs/HARDWARE_BRINGUP.md) for the limited scope.
+The [current hardware matrix](docs/HARDWARE_VIDEO_MATRIX_STATUS.md) includes
+six native-title tests and exact captured RGB checks for base 40/80-column
+text, graphics and PCG; optional Turbo devices remain unqualified on hardware.
 
 ## Current status
 
@@ -149,6 +152,9 @@ execution; ordinary non-DMA v12 profiles remain unchanged.
 The [real-CPU restart handler matrix](docs/DMA_HANDLER_BUFFER_STATUS.md) adds
 three-block buffered-address checks in both directions and all transfer modes;
 shared-machine/native/hardware restart service remains open.
+The [executing reload snapshot](docs/DMA_RELOAD_SNAPSHOT_STATUS.md) now confirms
+revision-7 flag/counter/buffer serialization in both directions on the non-IRQ
+shared machine; restart-handler and hardware snapshots remain unqualified.
 The [Kanji contract audit](docs/KANJI_CONTRACT_STATUS.md) adds an exhaustive
 schematic-derived first-level address component and a separately tested 128 KiB
 dual-clock ROM loader. Synthetic byte/read/reset checks pass; the opt-in shared

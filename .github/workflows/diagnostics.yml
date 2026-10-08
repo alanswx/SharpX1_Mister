@@ -63,6 +63,7 @@ jobs:
             test-dma test-dma-compare test-dma-search test-dma-cpu test-dma-service test-dma-service-cpu \
             test-dma-native-irq test-dma-native-irq-cpu test-dma-ready-irq test-dma-ready-irq-cpu \
             test-dma-restart-irq test-dma-restart-irq-cpu \
+            test-dma-reload-snapshot \
             test-board-single \
             test-dma-irq-bridge test-machine-dma-irq test-machine-dma-irq-nested test-machine-dma-irq-keyboard test-machine-dma-irq-snapshot \
             test-kanji-conversion test-kanji-address test-kanji-decode test-kanji-rom test-kanji-cg-selector test-kanji-cg-access test-kanji-cg-cpu \

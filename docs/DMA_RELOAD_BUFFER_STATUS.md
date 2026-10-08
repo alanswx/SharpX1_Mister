@@ -105,8 +105,10 @@ claimed here. No private asset or original firmware was changed.
 
 The subsequent [real-CPU handler extension](DMA_HANDLER_BUFFER_STATUS.md) now
 qualifies buffered updates in both directions and all three transfer modes.
-Mixed Ready/match restart interrupts, long-count IRQ boundaries, and an
-executing snapshot with the new destination flag set remain acceptance work.
+The [executing snapshot follow-up](DMA_RELOAD_SNAPSHOT_STATUS.md) now qualifies
+the new destination flag at the actual non-IRQ shared-machine reload seam.
+Mixed Ready/match restart interrupts, long-count IRQ boundaries, and
+restart-handler snapshots remain acceptance work.
 The existing shared-machine
 IRQ snapshot test covers completion service, not that new auto-reload seam.
 FDC/SIO/native Turbo firmware, exact pins/CDC, source-bound Quartus and physical

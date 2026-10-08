@@ -58,6 +58,11 @@ mister126/mister14 and the misterubuntu build host, keeping mister192 reserved.
 The [initial mister126 matrix](HARDWARE_126_STATUS.md) records native game-start,
 bounded OSD reset and a fresh single-clock all-corner fit; broader hardware and
 optional-device gates remain open.
+The [current-RBF/video matrix](HARDWARE_VIDEO_MATRIX_STATUS.md) now adds six
+native-title observations, Shanghai's tile board, exact hardware RGB matching
+for six original 40/80-column text/graphics/PCG IPLs, and a retained-IPL PCG
+warm reset. Commercial controls/audio, optional devices and broader reset/disk
+qualification remain open.
 The [native B follow-up](NATIVE_DRIVE_B_STATUS.md) now observes a real drive-1
 selection and protected CROSS Chase boot on mister126, with failed short/late
 input trials preserved. An actual-board-frequency simulator profile and its
@@ -117,7 +122,9 @@ native/hardware/shared-machine restart service remain open.
 The [real-CPU handler matrix](DMA_HANDLER_BUFFER_STATUS.md) now adds eighteen
 both-direction Byte/Burst/Continuous buffered profiles at CE=1/4/7: three real
 blocks/IM2 handlers/RETIs, CPU payload/guard checks and observed address separation.
-Snapshots at the new reload seam and mixed/native/hardware service remain open.
+The [executing reload-seam snapshot](DMA_RELOAD_SNAPSHOT_STATUS.md) now passes
+both-direction non-IRQ shared-machine continuation and a failing original-bug
+control. Restart-handler snapshots and mixed/native/hardware service remain open.
 The [Kanji contract audit](KANJI_CONTRACT_STATUS.md) now derives a tested
 first-level physical ROM address decoder from the model-20/30 schematic,
 covering all 131,072 bytes. Its connected standalone 128 KiB dual-clock ROM

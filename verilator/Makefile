@@ -314,6 +314,12 @@ test-machine-dma-irq-snapshot: turbo-dma-savable turbo-dma-irq-savable
 	python3 tests/test_machine_dma_irq_snapshot.py ./$(DMA_IRQ_SAVE_DIR)/Vtop ./$(DMA_SAVE_DIR)/Vtop
 .PHONY: turbo-dma-savable turbo-dma-irq-savable test-machine-dma-irq-snapshot
 
+DMA_RELOAD_SAVE_DIR ?= obj_dir_v12_dma_reload_seam
+test-dma-reload-snapshot:
+	$(MAKE) turbo-dma-savable DMA_SAVE_DIR=$(DMA_RELOAD_SAVE_DIR)
+	python3 tests/test_dma_reload_snapshot.py ./$(DMA_RELOAD_SAVE_DIR)/Vtop
+.PHONY: test-dma-reload-snapshot
+
 test-machine-dma: turbo-dma test-machine-dma-reset
 	python3 tests/test_machine_dma.py ./$(DMA_DIR)/Vtop
 test-machine-dma-restart: turbo-dma

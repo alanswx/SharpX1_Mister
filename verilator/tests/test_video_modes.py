@@ -11,6 +11,8 @@ from z80_fixture import Program
 parser = argparse.ArgumentParser()
 parser.add_argument("executable", type=pathlib.Path)
 parser.add_argument("--output", type=pathlib.Path)
+parser.add_argument("--emit-ipl", type=pathlib.Path,
+                    help="export base diagnostics as real IPLs that copy themselves to RAM")
 parser.add_argument("--columns", type=int, choices=(40, 80))
 parser.add_argument("--kind", choices=("graphics", "text", "mixed", "pattern", "stretch", "pcg", "blink-off", "blink-on"))
 parser.add_argument("--timeout", type=float, default=180,
@@ -132,6 +134,23 @@ def program(columns, kind):
     p.emit(0x76)
     return p.finish()
 
+
+if args.emit_ipl:
+    if args.turbo_bank is not None or args.turbo_raster is not None or args.ank16 or args.blackclip is not None:
+        parser.error("IPL export currently qualifies base video fixtures only")
+    args.emit_ipl.mkdir(parents=True, exist_ok=True)
+    for columns in ((args.columns,) if args.columns else (40, 80)):
+        for kind in ((args.kind,) if args.kind else ("graphics", "text", "pcg")):
+            body = program(columns, kind)
+            # DI; SP=FFFF; real CPU LDIR from IPL+32 to RAM 8000; JP 8000.
+            boot = bytes((0xf3, 0x31, 0xff, 0xff, 0x21, 32, 0, 0x11, 0, 0x80,
+                          0x01, len(body)&255, len(body)>>8, 0xed, 0xb0, 0xc3, 0, 0x80))
+            assert len(body) <= 4096-32
+            image = boot.ljust(32, b"\xff") + body
+            path = args.emit_ipl / f"{kind}-{columns}.rom"
+            path.write_bytes(image.ljust(4096, b"\xff"))
+            print(json.dumps({"ipl": str(path), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}))
+    raise SystemExit(0)
 
 font_source = pathlib.Path("../rtl/legacy/x1_cg8.v").read_text()
 font = {int(address, 16): int(bits, 2) for address, bits in

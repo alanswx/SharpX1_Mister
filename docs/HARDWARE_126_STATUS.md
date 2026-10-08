@@ -112,6 +112,11 @@ behind the original reset report is fixed.
 
 ## Remaining hardware gates
 
+The later [current-RBF/video matrix](HARDWARE_VIDEO_MATRIX_STATUS.md) rechecks
+all six native titles on `a0a03761…`, reaches Shanghai's tile board, and adds
+exact hardware RGB acceptance for six generated 40/80-column diagnostics plus
+one PCG warm reset. It does not close the remaining gates below.
+
 Repeat resets during active disk loading and longer gameplay; drive B and
 ordered two-drive native tests; writable disposable media/error/format tests;
 physical keyboard/joystick; audio capture/listening; HDMI/VGA and measured

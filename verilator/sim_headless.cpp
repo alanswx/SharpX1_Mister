@@ -824,6 +824,18 @@ int main(int argc, char **argv) {
 #endif
         }
         if (dump_path) {
+#ifdef X1_TURBO_DMA
+            // Read-only reload-seam evidence, not a state-injection interface.
+            auto *dma_root = top.rootp;
+            std::ofstream dma(std::string(dump_path) + ".dma");
+            if (!dma) throw std::runtime_error("cannot open DMA state dump");
+            dma << std::hex
+                << "start_a=" << dma_root->top__DOT__machine__DOT__turbo_dma__DOT__engine__DOT__start_a << '\n'
+                << "start_b=" << dma_root->top__DOT__machine__DOT__turbo_dma__DOT__engine__DOT__start_b << '\n'
+                << "counter_a=" << dma_root->top__DOT__machine__DOT__turbo_dma__DOT__engine__DOT__counter_a << '\n'
+                << "counter_b=" << dma_root->top__DOT__machine__DOT__turbo_dma__DOT__engine__DOT__counter_b << '\n'
+                << "reload_destination=" << unsigned(dma_root->top__DOT__machine__DOT__turbo_dma__DOT__engine__DOT__restart_destination_loaded) << '\n';
+#endif
             // Read-only simulation instrumentation. Sub-CPU work RAM begins
             // at 0x1000; write explicit little-endian bytes, not host words.
             // This does not change RTL or the serialized model layout.
