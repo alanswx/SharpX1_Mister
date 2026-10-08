@@ -7,7 +7,7 @@ module dma_service_cpu_tb #(parameter bit NATIVE_IRQ=0, parameter bit NATIVE_REA
     parameter bit NATIVE_RESTART=0);
     logic clk=0, reset=1, ce=0, pause_ce=0, iei=0;
     always #5 clk=~clk;
-    integer period=1, phase=0, profile=0, pc=0, edges=0;
+    integer period=1, phase=0, profile=0, pc=0, edges=0, buffered=0, reverse=0,restart_mode=1;
     always @(negedge clk) begin phase++; ce=!pause_ce && phase%period==0; end
     logic [7:0] memory[0:65535];
     wire [15:0] cpu_address,dma_address;
@@ -89,8 +89,8 @@ module dma_service_cpu_tb #(parameter bit NATIVE_IRQ=0, parameter bit NATIVE_REA
             assert(edges<1000000) else $fatal(1,"CPU service watchdog bus=%h result=%h reads=%d writes=%d irqen=%b EOB=%b IP=%b IUS=%b",cpu_address,result,reads,writes,irq_enabled,dma.end_of_block,service_pending,in_service);
             if(dma.loaded) assert(!unsupported) else $fatal(1,"unsupported loaded DMA stream");
             assert(!(irq && (!raw_busrq_n || owner))) else $fatal(1,"DMA interrupted before bus drain");
-            if(NATIVE_READY && in_service)
-                assert(raw_busrq_n && !owner) else $fatal(1,"IOR CPU handler lost bus before RETI");
+            if((NATIVE_READY || NATIVE_RESTART) && in_service)
+                assert(raw_busrq_n && !owner) else $fatal(1,"DMA CPU handler lost bus before RETI");
             if(owner && !owner_previous) grants++;
             owner_previous<=owner;
             if(acknowledge && !ack_old && irq) acks++;
@@ -120,11 +120,19 @@ module dma_service_cpu_tb #(parameter bit NATIVE_IRQ=0, parameter bit NATIVE_REA
                 io_seen<=1;
             end else io_seen<=0;
             if(owner && !dma_mreq_n && !dma_rd_n) begin
-                if(!dma_read_seen) reads++;
+                if(!dma_read_seen) begin
+                    if(buffered!=0) assert(dma_address==(reads<8 ? 16'h8000 : 16'h8120)+16'(reads%4))
+                        else $fatal(1,"CPU buffered restart source address %h read=%d",dma_address,reads);
+                    reads++;
+                end
                 dma_read_seen<=1;
             end else dma_read_seen<=0;
             if(owner && !dma_mreq_n && !dma_wr_n) begin
-                if(!dma_write_seen) begin writes++;memory[dma_address]<=dma_data;end
+                if(!dma_write_seen) begin
+                    if(buffered!=0) assert(dma_address==(writes<8 ? 16'h9000 : 16'h9120)+16'(writes%4))
+                        else $fatal(1,"CPU buffered restart destination address %h write=%d",dma_address,writes);
+                    writes++;memory[dma_address]<=dma_data;
+                end
                 dma_write_seen<=1;
             end else dma_write_seen<=0;
         end
@@ -138,9 +146,20 @@ module dma_service_cpu_tb #(parameter bit NATIVE_IRQ=0, parameter bit NATIVE_REA
         emit(8'h01);emit(address[7:0]);emit(address[15:8]);
     endtask
     task automatic put(input logic [7:0] value);load(value);emit(8'hed);emit(8'h79);endtask
+    task automatic check_memory(input logic [15:0] location,input logic [7:0] expected);
+        emit(8'h3a);emit(location[7:0]);emit(location[15:8]);emit(8'hfe);emit(expected);
+        emit(8'h28);emit(3);emit(8'hc3);emit(8'h00);emit(8'h07); // wrong data -> failure loop
+    endtask
     initial begin
         if($value$plusargs("CE_PERIOD=%d",period)) begin end
         if($value$plusargs("PROFILE=%d",profile)) begin end
+        if($value$plusargs("BUFFER_UPDATE=%d",buffered)) begin end
+        if($value$plusargs("REVERSE=%d",reverse)) begin end
+        if($value$plusargs("RESTART_MODE=%d",restart_mode)) begin end
+        assert(restart_mode>=0 && restart_mode<3 && (NATIVE_RESTART || restart_mode==1))
+            else $fatal(1,"invalid restart mode/profile");
+        assert((buffered==0 || buffered==1) && (reverse==0 || reverse==1) &&
+            ((buffered==0 && reverse==0) || NATIVE_RESTART)) else $fatal(1,"buffer/reverse needs restart profile");
         assert(period>0 && profile>=0 && profile<4) else $fatal(1,"bad fixture profile");
         assert(!NATIVE_READY || (NATIVE_IRQ && profile==0)) else $fatal(1,"Ready CPU requires native transfer profile");
         assert(!NATIVE_RESTART || (NATIVE_IRQ && !NATIVE_READY && profile==0))
@@ -152,6 +171,10 @@ module dma_service_cpu_tb #(parameter bit NATIVE_IRQ=0, parameter bit NATIVE_REA
         for(integer i=0;i<6;i++) begin
             load(i==(profile==3 ? 3 : 1) ? 8'ha5 : 8'h31+8'(i));store(16'h8000+16'(i));
             load(8'hcc);store(16'h9000+16'(i));
+            if(buffered!=0) begin
+                load(8'h61+8'(i));store(16'h8120+16'(i));
+                load(8'hcc);store(16'h9120+16'(i));
+            end
         end
         load(0);store(16'h6001);
         if(NATIVE_RESTART) store(16'h6003);
@@ -160,15 +183,15 @@ module dma_service_cpu_tb #(parameter bit NATIVE_IRQ=0, parameter bit NATIVE_REA
         load(8'h20);emit(8'hed);emit(8'h47);emit(8'hed);emit(8'h5e); // I, IM2
         if(!NATIVE_IRQ) begin port(16'h00f1);put(1);end
         port(16'h1f80);
-        put(profile==0 ? 8'h7d : profile==2 ? 8'h7f : 8'h7e);
+        put(reverse!=0 ? 8'h79 : profile==0 ? 8'h7d : profile==2 ? 8'h7f : 8'h7e);
         // Pure continuous uses N reads, sequential uses N+1. Use four
         // programmed operations so the early match is distinct from EOB.
-        put(0);put(8'h80);put(profile==1 || profile==3 ? 4 : 3);put(0);
+        put(0);put(reverse!=0 ? 8'h90 : 8'h80);put(profile==1 || profile==3 ? 4 : 3);put(0);
         put(8'h14);put(8'h10);
         if(profile==0) put(8'h80);
         else begin put(8'h9c);put(0);put(8'ha5);end
-        put((profile==2 ? 8'h8d : 8'had) | (NATIVE_IRQ ? 8'h10 : 8'h00));
-        put(0);put(8'h90);
+        put((NATIVE_RESTART ? 8'h8d|(8'(restart_mode)<<5) : profile==2 ? 8'h8d : 8'had) | (NATIVE_IRQ ? 8'h10 : 8'h00));
+        put(0);put(reverse!=0 ? 8'h80 : 8'h90);
         if(NATIVE_IRQ) begin
             // Genuine WR4 associated interrupt-control/vector bytes; WR3
             // starts disabled, then real WR6 AB enables the IRQ circuit.
@@ -188,7 +211,11 @@ module dma_service_cpu_tb #(parameter bit NATIVE_IRQ=0, parameter bit NATIVE_REA
             // Wait for the second genuine native IM2 handler, not just data
             // copied into the same destination by the first repeated block.
             emit(8'h3a);emit(8'h03);emit(8'h60);
-            emit(8'hfe);emit(2);emit(8'h20);emit(8'hf9);
+            emit(8'hfe);emit(buffered!=0 ? 3 : 2);emit(8'h20);emit(8'hf9);
+        end
+        if(buffered!=0) for(integer i=0;i<6;i++) begin
+            check_memory(16'h9000+16'(i),i<4 ? (i==1 ? 8'ha5 : 8'h31+8'(i)) : 8'hcc);
+            check_memory(16'h9120+16'(i),i<4 ? 8'h61+8'(i) : 8'hcc);
         end
         port(16'h00f2);put(8'h5a);emit(8'hf3);emit(8'h76);
         assert(pc<16'h0400) else $fatal(1,"diagnostic overlaps handler");
@@ -203,13 +230,21 @@ module dma_service_cpu_tb #(parameter bit NATIVE_IRQ=0, parameter bit NATIVE_REA
         if(NATIVE_IRQ) put(8'hab);
         if(NATIVE_READY) begin put(8'hb7);put(8'h87);end
         if(NATIVE_RESTART) begin
+            if(buffered!=0) begin
+                // WR0/WR4 address-only streams while real IUS owns service.
+                // No LOAD: block two is already loaded; block three changes.
+                put(reverse!=0 ? 8'h19 : 8'h1d);put(8'h20);put(reverse!=0 ? 8'h91 : 8'h81);
+                put(8'h8d|(8'(restart_mode)<<5));put(8'h20);put(reverse!=0 ? 8'h81 : 8'h91);
+            end
             emit(8'h21);emit(8'h03);emit(8'h60); // LD HL,6003
-            emit(8'h34);emit(8'h7e);emit(8'hfe);emit(2); // INC (HL); LD A,(HL); CP 2
+            emit(8'h34);emit(8'h7e);emit(8'hfe);emit(buffered!=0 ? 3 : 2);
             emit(8'h28);emit(4); // second service leaves DMA disabled
             put(8'h87);
         end
         load(8'ha9);store(16'h6001);
         emit(8'hc1);emit(8'hf1);emit(8'hfb);emit(8'hed);emit(8'h4d);
+        assert(pc<16'h0700) else $fatal(1,"handler overlaps failure loop");
+        pc=32'h0700;port(16'h00f2);put(8'hde);emit(8'hf3);emit(8'h76);
         repeat(20) @(negedge clk);reset=0;
         // An upstream priority gate withholds service until the actual CPU
         // executes HALT. Avoid assuming whether DMA finishes before EI/HALT.
@@ -219,6 +254,9 @@ module dma_service_cpu_tb #(parameter bit NATIVE_IRQ=0, parameter bit NATIVE_REA
                 else $fatal(1,"IOR CPU requested before Ready");
             pause_ce=1;ready_pin=1;repeat(16) @(negedge clk);pause_ce=0;
         end
+        // Byte mode can let the CPU reach HALT before its last pair completes.
+        // Keep upstream IEI blocked until the actual terminal event arrives.
+        wait(service_pending);
         assert(service_pending && acks==0 && !irq && !in_service)
             else $fatal(1,"completion was not retained behind upstream IEI");
         iei=1;
@@ -232,12 +270,13 @@ module dma_service_cpu_tb #(parameter bit NATIVE_IRQ=0, parameter bit NATIVE_REA
                 else $fatal(1,"stopped-CE held real ACK lost vector/service");
         end
         pause_ce=0;
-        wait(result==8'h5a);repeat(30) @(negedge clk);
-        assert(memory[16'h6001]==8'ha9 && acks==(NATIVE_RESTART ? 2 : 1) && returns==(NATIVE_RESTART ? 2 : 1) &&
+        wait(result!=0);assert(result==8'h5a) else $fatal(1,"CPU payload/guard check failed");
+        repeat(30) @(negedge clk);
+        assert(memory[16'h6001]==8'ha9 && acks==(buffered!=0 ? 3 : NATIVE_RESTART ? 2 : 1) && returns==(buffered!=0 ? 3 : NATIVE_RESTART ? 2 : 1) &&
                !in_service && !service_pending && ieo && !irq && raw_busrq_n && busak_n)
             else $fatal(1,"actual IM2 handler/RETI/service result");
-        assert(reads==(NATIVE_RESTART ? 8 : profile==0 ? 4 : profile==1 ? 3 : profile==2 ? 2 : 5) &&
-               writes==(NATIVE_RESTART ? 8 : profile==0 ? 4 : profile==2 ? 2 : 0))
+        assert(reads==(buffered!=0 ? 12 : NATIVE_RESTART ? 8 : profile==0 ? 4 : profile==1 ? 3 : profile==2 ? 2 : 5) &&
+               writes==(buffered!=0 ? 12 : NATIVE_RESTART ? 8 : profile==0 ? 4 : profile==2 ? 2 : 0))
             else $fatal(1,"real DMA completion transactions reads=%d writes=%d",reads,writes);
         if(NATIVE_IRQ) assert(memory[16'h6002][3] &&
             memory[16'h6002][5:4]==(NATIVE_READY || NATIVE_RESTART ? 2'b11 : profile==0 ? 2'b01 : profile==3 ? 2'b00 : 2'b10))
@@ -246,6 +285,12 @@ module dma_service_cpu_tb #(parameter bit NATIVE_IRQ=0, parameter bit NATIVE_REA
             assert(memory[36864+i]==(i<(NATIVE_RESTART ? 4 : writes) ? memory[32768+i] : 8'hcc))
                 else $fatal(1,"DMA destination/guard mismatch %d",i);
         end
+        if(buffered!=0) for(integer i=0;i<6;i++)
+            assert(memory[16'h9120+16'(i)]==(i<4 ? memory[16'h8120+16'(i)] : 8'hcc))
+                else $fatal(1,"new buffer destination/guard mismatch %d",i);
+        if(buffered!=0) assert(grants==(restart_mode==0 ? 12 : 3) && memory[16'h6003]==3)
+            else $fatal(1,"three native buffered grants/handlers");
+        $display("CPU buffered=%0d reverse=%0d restart_mode=%0d",buffered,reverse,restart_mode);
         $display("PASS connected CPU/DMA service NATIVE_IRQ=%0d NATIVE_READY=%0d NATIVE_RESTART=%0d CE=%0d profile=%0d reads=%0d writes=%0d grants=%0d: IM2/vector/handler/RETI and 80 stopped-enable ACK edges",NATIVE_IRQ,NATIVE_READY,NATIVE_RESTART,period,profile,reads,writes,grants);
         $finish;
     end

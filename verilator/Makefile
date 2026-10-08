@@ -1004,6 +1004,9 @@ $(HEADLESS_DIR)/dma-restart-irq/Vdma_restart_irq_tb: tests/dma_restart_irq_tb.sv
 
 test-dma-restart-irq-cpu: $(HEADLESS_DIR)/dma-restart-irq-cpu/Vdma_service_cpu_tb
 	@for rate in 1 4 7; do ./$(HEADLESS_DIR)/dma-restart-irq-cpu/Vdma_service_cpu_tb +CE_PERIOD=$$rate +PROFILE=0 || exit 1; done
+	@for rate in 1 4 7; do for direction in 0 1; do for mode in 0 1 2; do \
+		./$(HEADLESS_DIR)/dma-restart-irq-cpu/Vdma_service_cpu_tb +CE_PERIOD=$$rate +PROFILE=0 +BUFFER_UPDATE=1 +REVERSE=$$direction +RESTART_MODE=$$mode || exit 1; \
+	done; done; done
 $(HEADLESS_DIR)/dma-restart-irq-cpu/Vdma_service_cpu_tb: tests/dma_service_cpu_tb.sv ../rtl/x1_dma_service.sv ../rtl/x1_dma_vector.sv ../rtl/x1_dma.sv ../rtl/cpu.v $(wildcard ../rtl/tv80/*.v) Makefile
 	mkdir -p $(@D)
 	$(V) --binary --timing --assert --top-module dma_service_cpu_tb -GNATIVE_IRQ=1 -GNATIVE_RESTART=1 --Mdir $(HEADLESS_DIR)/dma-restart-irq-cpu \

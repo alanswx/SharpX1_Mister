@@ -103,9 +103,11 @@ claimed here. No private asset or original firmware was changed.
 
 ## Remaining gates
 
-Mixed Ready/match restart interrupts, long-count IRQ boundaries, buffer updates
-by a real CPU inside restart IRQ handlers, and an executing snapshot with the
-new destination flag set remain acceptance work. The existing shared-machine
+The subsequent [real-CPU handler extension](DMA_HANDLER_BUFFER_STATUS.md) now
+qualifies buffered updates in both directions and all three transfer modes.
+Mixed Ready/match restart interrupts, long-count IRQ boundaries, and an
+executing snapshot with the new destination flag set remain acceptance work.
+The existing shared-machine
 IRQ snapshot test covers completion service, not that new auto-reload seam.
 FDC/SIO/native Turbo firmware, exact pins/CDC, source-bound Quartus and physical
 MiSTer acceptance remain open. No board revision now enables restart IRQ.

@@ -114,6 +114,10 @@ post-auto-reload first-destination redirection bug. Both-direction, three-block
 buffer updates and delayed actual BUSACK release now pass device tests;
 DMA serialized state advances independently to revision 7. Mixed causes and
 native/hardware/shared-machine restart service remain open.
+The [real-CPU handler matrix](DMA_HANDLER_BUFFER_STATUS.md) now adds eighteen
+both-direction Byte/Burst/Continuous buffered profiles at CE=1/4/7: three real
+blocks/IM2 handlers/RETIs, CPU payload/guard checks and observed address separation.
+Snapshots at the new reload seam and mixed/native/hardware service remain open.
 The [Kanji contract audit](KANJI_CONTRACT_STATUS.md) now derives a tested
 first-level physical ROM address decoder from the model-20/30 schematic,
 covering all 131,072 bytes. Its connected standalone 128 KiB dual-clock ROM

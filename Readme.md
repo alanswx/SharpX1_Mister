@@ -146,6 +146,9 @@ The [reload-buffer correction](docs/DMA_RELOAD_BUFFER_STATUS.md) keeps the
 already-loaded destination independent of later starting-buffer writes, with
 both-direction and delayed-grant tests. DMA states need fresh revision-7
 execution; ordinary non-DMA v12 profiles remain unchanged.
+The [real-CPU restart handler matrix](docs/DMA_HANDLER_BUFFER_STATUS.md) adds
+three-block buffered-address checks in both directions and all transfer modes;
+shared-machine/native/hardware restart service remains open.
 The [Kanji contract audit](docs/KANJI_CONTRACT_STATUS.md) adds an exhaustive
 schematic-derived first-level address component and a separately tested 128 KiB
 dual-clock ROM loader. Synthetic byte/read/reset checks pass; the opt-in shared
