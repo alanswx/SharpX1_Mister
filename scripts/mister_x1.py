@@ -101,7 +101,9 @@ def deploy(host, rbf, disk):
                 "disk": str(disk), "disk_sha256": digest(disk),
                 "ipl_bytes": len(data), "ipl_sha256": digest(rom),
                 "remote_rbf": remote_rbf, "remote_directory": remote,
-                "pre_load": ssh(host, "cat /tmp/RBFNAME /tmp/ACTIVEGAME; uname -a"),
+                "pre_load": ssh(host, "for f in /tmp/RBFNAME /tmp/ACTIVEGAME /tmp/CORENAME; do "
+                                'if test -r "$f"; then printf "%s: " "$f"; cat "$f"; '
+                                'printf "\\n"; fi; done; uname -a'),
                 "write_protection": "zero status config; disposable disk copy; chmod requested but FAT mode bits are not proof"}
     (folder / "manifest.json").write_text(json.dumps(evidence, indent=2) + "\n")
     # Timestamp/setname must not alias a previous test or an installed core.
