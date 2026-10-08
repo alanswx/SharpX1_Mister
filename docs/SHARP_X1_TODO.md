@@ -57,8 +57,14 @@ checkpoints. Physical acceptance requires MiSTer. October 8: the user released
 mister126/mister14 and the misterubuntu build host, keeping mister192 reserved.
 The [initial mister126 matrix](HARDWARE_126_STATUS.md) records native game-start,
 bounded OSD reset and a fresh single-clock all-corner fit; broader hardware and
-optional-device gates remain open. The cached Apple-container Quartus 17 runtime
-and installation are available locally (rechecked October 6); use frozen-source
+optional-device gates remain open.
+The [native B follow-up](NATIVE_DRIVE_B_STATUS.md) now observes a real drive-1
+selection and protected CROSS Chase boot on mister126, with failed short/late
+input trials preserved. An actual-board-frequency simulator profile and its
+asset-free keyboard/mailbox/generated A/B matrix pass; B writes/disk sets and
+broader native/hardware acceptance remain open.
+The cached Apple-container Quartus 17 runtime and installation are available
+locally (rechecked October 6); use frozen-source
 builds and record synthesis, fit and timing separately.
 
 | Work group | Execution/acceptance still needed |

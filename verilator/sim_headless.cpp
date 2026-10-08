@@ -68,7 +68,11 @@ int main(int argc, char **argv) {
         uint64_t reset_for_us = 1000;
         // Match the checked-in board PLL; the intended X1 crystal is different.
 #ifdef X1_SINGLE_CLOCK
-        constexpr uint64_t sys_hz = 28636364;
+#ifndef X1_SINGLE_MASTER_HZ
+#define X1_SINGLE_MASTER_HZ 28636364
+#endif
+        constexpr uint64_t sys_hz = X1_SINGLE_MASTER_HZ;
+        static_assert(sys_hz > 0 && sys_hz <= 100000000);
         uint64_t video_hz = sys_hz;
 #else
         constexpr uint64_t sys_hz = 32000000;
@@ -157,7 +161,8 @@ int main(int argc, char **argv) {
         if (!reset_for_us || reset_for_us > 1000000)
             throw std::runtime_error("require 0 < reset-for-us <= 1000000");
 #ifdef X1_SINGLE_CLOCK
-        if (video_hz != sys_hz) throw std::runtime_error("single-clock model requires video-hz = 28636364");
+        if (video_hz != sys_hz)
+            throw std::runtime_error("single-clock model requires video-hz = " + std::to_string(sys_hz));
 #endif
         if (load_address > 65535 || entry > 65535 || peek_address > 65520)
             throw std::runtime_error("load/entry/peek address out of range");

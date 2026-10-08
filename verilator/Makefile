@@ -132,6 +132,24 @@ single-fast: obj_dir_single_fast/Vtop
 # Partial Turbo peripherals behind an explicit experimental model parameter.
 turbo: obj_dir_turbo/Vtop
 turbo-single: obj_dir_turbo_single/Vtop
+# Match the actual fitted single-master board clock, not the nominal crystal.
+# Isolated, non-savable diagnostic runners; existing profiles stay unchanged.
+BOARD_SINGLE_DIR ?= obj_dir_v12_board_single
+BOARD_SINGLE_TIMING ?= --timing
+turbo-board-single: $(BOARD_SINGLE_DIR)/Vtop
+$(BOARD_SINGLE_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
+	$(V) -cc $(BOARD_SINGLE_TIMING) --assert --trace-fst --exe --build -j 4 --Mdir $(BOARD_SINGLE_DIR) --top-module top \
+		$(TURBO_DSW_FLAGS) -GTURBO=1 -GSINGLE_CLOCK=1 -GMASTER_HZ=28571428 \
+		-CFLAGS "-std=c++20 -DX1_SINGLE_CLOCK -DX1_SINGLE_MASTER_HZ=28571428 -DX1_TURBO_FOUNDATION" \
+		-MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
+turbo-board-single-fast:
+	$(MAKE) turbo-board-single BOARD_SINGLE_DIR=obj_dir_v12_board_single_fast BOARD_SINGLE_TIMING=--no-timing
+test-board-single: turbo-board-single
+	python3 tests/test_single_clock.py ./$(BOARD_SINGLE_DIR)/Vtop --hz 28571428
+	python3 tests/test_keyboard_poll.py ./$(BOARD_SINGLE_DIR)/Vtop
+	python3 tests/test_subcpu.py ./$(BOARD_SINGLE_DIR)/Vtop
+	python3 tests/test_dual_disk.py ./$(BOARD_SINGLE_DIR)/Vtop
+.PHONY: turbo-board-single turbo-board-single-fast test-board-single
 turbo-fast: obj_dir_turbo_fast/Vtop
 turbo-video: obj_dir_turbo_video/Vtop
 turbo-video-fast: obj_dir_turbo_video_fast/Vtop

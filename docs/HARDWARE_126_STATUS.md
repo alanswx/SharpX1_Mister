@@ -21,10 +21,13 @@ Browse `/media/fat/_Computer/X1Tests_20261008/` on mister126:
 
 `07_CROSS_Chase_current.mgl` selects the new `a0a03761…` RBF below.
 `08_CROSS_Chase_driveB.mgl` mounts CROSS Chase in B only on that RBF.
-The B-only trial displays **IPL is looking for a program from CMT**, not
-the game. The staged disk hash is unchanged. This is retained negative boot
-evidence, not proof of a broken B controller: IPL drive-selection behavior
-and a directed B-read test remain to be resolved.
+The initial B-only trial displays **IPL is looking for a program from CMT**,
+not the game. Later cold-start held-F → drive digit 1 → Enter succeeds:
+the actual drive-selection prompt and native CROSS Chase title are captured.
+Only the B test disk is open in Main; its hash is unchanged. The failed
+short/late-input trials remain preserved. See [native B follow-up](NATIVE_DRIVE_B_STATUS.md)
+for the exact input sequence and clock-matched simulation qualification.
+This qualifies protected B boot, not B writes or arbitrary disk sets.
 
 Each points to a unique core/setname and disposable disk beneath
 `/media/fat/games/SharpX1/HWTest/X1HW_20261008T…/`. No installed core,

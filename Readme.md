@@ -314,13 +314,15 @@ The previous two-image/CTC experimental RBF is
 All 334 FPGA inputs match `ffc1c1c`; constrained paths pass all eight analyzed
 corners at 48% ALM usage. It has not been tested on MiSTer. See the
 [two-image build report](docs/DUAL_DISK_QUARTUS_BUILD.md).
-The recommended current experimental test RBF is
-`output_files/quartus-5ge19D0o/source/output_files/sharpx1_turbo_single.rbf`.
-All 358 FPGA inputs match `bcc4349`; constrained timing passes all eight
-analyzed corners at 49% ALMs. It includes the static DIP fix but does not
-enable X3/DMA/Kanji/SIO/FM. It has not been tested on MiSTer and is not
-full Turbo/Z support. See the [DIP-fix build report](docs/DIP_QUARTUS_STATUS.md)
-and [tester handoff](docs/TESTER_HANDOFF.md), especially the two OSD reset tests.
+The current experimental single-clock test RBF is
+`output_files/quartus-linux-ZOMREvtv/sharpx1_turbo_single.rbf`.
+The native Quartus 17.0.2 build binds `5a40859`; all eight constrained timing
+corners pass at 49% ALMs. CROSS Chase boot/input and bounded observations of
+both OSD resets now pass on mister126. It includes the static DIP fix but
+does not enable X3/DMA/Kanji/SIO/FM or establish full Turbo/Z support.
+The older `quartus-5ge19D0o` artifact and its evidence remain preserved.
+See [current hardware/build results](docs/HARDWARE_126_STATUS.md) and
+[tester handoff](docs/TESTER_HANDOFF.md) for hashes and remaining gates.
 The newer X3 video/font candidate assembled but **fails timing at all eight
 corners**; it is not a replacement timing-closed hardware candidate. See the
 [X3 build audit](docs/TURBO_VIDEO_QUARTUS_BUILD.md) and

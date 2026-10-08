@@ -1,0 +1,13 @@
+# Native 4 KiB IPL: F enters floppy selection, digit 1 selects physical B,
+# Enter acknowledges selection. Hold F through native IPL initialization;
+# the shorter exploratory release at 2 seconds did not enter selection.
+# No ROM, RAM or saved-state edits. Invocation-relative ms.
+1000 2b
+6000 f0
+6002 2b
+6500 16
+7500 f0
+7502 16
+8000 5a
+8500 f0
+8502 5a

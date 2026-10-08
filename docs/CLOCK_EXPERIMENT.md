@@ -120,6 +120,25 @@ A second interleaved five-run comparison at 250 ms duration measured median
 3.544 s baseline versus 2.254 s single (1.57x). Concurrent tests/Quartus were
 still active; both comparisons suggest approximately 1.6x for this workload.
 
+## Actual board-frequency simulation (October 8)
+
+`make -C verilator turbo-board-single` builds an isolated delay-aware Turbo
+single-master profile at **28,571,428 Hz**, matching the fitted board master.
+`turbo-board-single-fast` builds its separate non-timing diagnostic runner.
+Neither changes the nominal 28,636,364 Hz single profiles or baseline defaults.
+Both pass physical-duration/edge/reset/determinism/FST and wrong-frequency
+rejection checks, six actual-CPU Caps/Shift/poll cases and MR16 mailbox tests.
+The delay-aware profile also passes the eight generated two-drive trials,
+including B-only data, independent protection/writes and unchanged originals.
+`test-board-single` repeats this asset-free matrix; hosted acceptance is separate.
+
+The runner's `X1_SINGLE_MASTER_HZ` compile definition and RTL `MASTER_HZ`
+parameter are both 28,571,428 in these targets. Reference `--cycles` units
+remain 32 MHz physical duration, not master edges. The existing snapshot
+identity already includes the compiled system frequency; these new diagnostic
+targets are deliberately non-savable. This is clock-matched simulation, not
+pin-level HPS/PLL emulation or proof of native IPL drive selection.
+
 ## Original clock sources
 
 The locally inspected CZ-800C schematic page 1 shows a 16.000 MHz crystal
