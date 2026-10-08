@@ -81,7 +81,7 @@ def burst(host, folder, codes):
         print(json.dumps({"screenshot": str(target), "sha256": digest(target)}), flush=True)
 
 
-def deploy(host, rbf, disk):
+def deploy(host, rbf, disk, drive=0):
     stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     name = "X1HW_" + stamp + "_" + digest(rbf)[:8]
     folder = ROOT / "output_files" / name
@@ -101,11 +101,11 @@ def deploy(host, rbf, disk):
                    f"  <rbf>_Computer/{name}</rbf>\n"
                    f'  <setname same_dir="1">{name}</setname>\n'
                    f'  <file delay="2" type="f" index="0" path="{remote}/ipl.rom"/>\n'
-                   f'  <file delay="2" type="s" index="0" path="{remote}/test.d88"/>\n'
+                   f'  <file delay="2" type="s" index="{drive}" path="{remote}/test.d88"/>\n'
                    '  <reset delay="1"/>\n'
                    "</mistergamedescription>\n")
     evidence = {"host": host, "rbf": str(rbf), "rbf_sha256": digest(rbf),
-                "disk": str(disk), "disk_sha256": digest(disk),
+                "disk": str(disk), "disk_sha256": digest(disk), "drive": drive,
                 "ipl_bytes": len(data), "ipl_sha256": digest(rom),
                 "remote_rbf": remote_rbf, "remote_directory": remote,
                 "pre_load": status(host),
@@ -139,6 +139,8 @@ def main():
     deployment = commands.add_parser("deploy")
     deployment.add_argument("rbf", type=pathlib.Path)
     deployment.add_argument("disk", type=pathlib.Path)
+    deployment.add_argument("--drive", type=int, choices=(0, 1), default=0,
+                            help="mount test copy in drive A (0) or B (1)")
     screenshot = commands.add_parser("capture")
     screenshot.add_argument("folder", type=pathlib.Path)
     screenshot.add_argument("label")
@@ -149,7 +151,7 @@ def main():
     rapid.add_argument("codes", type=int, nargs="+")
     args = parser.parse_args()
     if args.action == "deploy":
-        deploy(args.host, args.rbf.resolve(), args.disk.resolve())
+        deploy(args.host, args.rbf.resolve(), args.disk.resolve(), args.drive)
     elif args.action == "capture":
         if not args.label.replace("-", "").replace("_", "").isalnum():
             parser.error("label must be alphanumeric, dash or underscore")
