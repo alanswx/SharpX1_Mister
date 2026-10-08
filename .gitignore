@@ -69,6 +69,8 @@ verilator/obj_dir_v10_*/
 verilator/obj_dir_v11_*/
 verilator/obj_dir_v12_*/
 verilator/obj_dir_ready_irq/
+verilator/obj_dir_restart_irq/
+verilator/obj_dir_restart_irq_negative/
 verilator/obj_dir_turbo_dma/
 verilator/obj_dir_turbo_dma_irq/
 verilator/obj_dir_turbo_dsw_f5_fast/

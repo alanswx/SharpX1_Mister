@@ -994,6 +994,24 @@ $(HEADLESS_DIR)/dma-ready-irq/Vdma_ready_irq_tb: tests/dma_ready_irq_tb.sv ../rt
 		-j 4 tests/dma_ready_irq_tb.sv ../rtl/x1_dma.sv ../rtl/x1_dma_service.sv ../rtl/x1_dma_vector.sv
 .PHONY: test-dma-ready-irq
 
+test-dma-restart-irq: $(HEADLESS_DIR)/dma-restart-irq/Vdma_restart_irq_tb
+	@for rate in 1 4 7; do ./$(HEADLESS_DIR)/dma-restart-irq/Vdma_restart_irq_tb +CE_PERIOD=$$rate || exit 1; done
+$(HEADLESS_DIR)/dma-restart-irq/Vdma_restart_irq_tb: tests/dma_restart_irq_tb.sv ../rtl/x1_dma.sv ../rtl/x1_dma_service.sv ../rtl/x1_dma_vector.sv
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module dma_restart_irq_tb --Mdir $(HEADLESS_DIR)/dma-restart-irq \
+		-j 4 tests/dma_restart_irq_tb.sv ../rtl/x1_dma.sv ../rtl/x1_dma_service.sv ../rtl/x1_dma_vector.sv
+.PHONY: test-dma-restart-irq
+
+test-dma-restart-irq-cpu: $(HEADLESS_DIR)/dma-restart-irq-cpu/Vdma_service_cpu_tb
+	@for rate in 1 4 7; do ./$(HEADLESS_DIR)/dma-restart-irq-cpu/Vdma_service_cpu_tb +CE_PERIOD=$$rate +PROFILE=0 || exit 1; done
+$(HEADLESS_DIR)/dma-restart-irq-cpu/Vdma_service_cpu_tb: tests/dma_service_cpu_tb.sv ../rtl/x1_dma_service.sv ../rtl/x1_dma_vector.sv ../rtl/x1_dma.sv ../rtl/cpu.v $(wildcard ../rtl/tv80/*.v) Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module dma_service_cpu_tb -GNATIVE_IRQ=1 -GNATIVE_RESTART=1 --Mdir $(HEADLESS_DIR)/dma-restart-irq-cpu \
+		-j 4 tests/dma_service_cpu_tb.sv ../rtl/x1_dma_service.sv ../rtl/x1_dma_vector.sv ../rtl/x1_dma.sv \
+		../rtl/cpu.v ../rtl/tv80/tv80e.v ../rtl/tv80/tv80_core.v ../rtl/tv80/tv80_mcode.v \
+		../rtl/tv80/tv80_alu.v ../rtl/tv80/tv80_reg.v -Wno-fatal
+.PHONY: test-dma-restart-irq-cpu
+
 test-dma-ready-irq-cpu: $(HEADLESS_DIR)/dma-ready-irq-cpu/Vdma_service_cpu_tb
 	@for rate in 1 4 7; do ./$(HEADLESS_DIR)/dma-ready-irq-cpu/Vdma_service_cpu_tb +CE_PERIOD=$$rate +PROFILE=0 || exit 1; done
 $(HEADLESS_DIR)/dma-ready-irq-cpu/Vdma_service_cpu_tb: tests/dma_service_cpu_tb.sv ../rtl/x1_dma_service.sv ../rtl/x1_dma_vector.sv ../rtl/x1_dma.sv ../rtl/cpu.v $(wildcard ../rtl/tv80/*.v) Makefile

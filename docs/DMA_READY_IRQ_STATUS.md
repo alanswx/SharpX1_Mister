@@ -145,7 +145,9 @@ Do not reuse the cleared EOB flag as the sole IRQ trigger or fabricate a set
 flag to make a test pass. The next implementation needs a separate terminal
 event retained through bus drain/ACK/service, real buffer/count reload, exact
 vector behavior and CPU stop/ACK/resume tests. Current restart IRQ programming
-remains rejected; the research is not implementation acceptance.
+remains rejected in the Ready profile. The subsequent separate
+[restart-EOB increment](DMA_RESTART_IRQ_STATUS.md) implements and locally tests
+the unmodified, EOB-only terminal event; mixed Ready/restart remains open.
 
 ## Remaining gates
 

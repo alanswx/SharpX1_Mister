@@ -3,7 +3,8 @@
 // Fixture-only F1 enable/F2 result ports are NOT proposed X1 hardware ports.
 // Real DMA flags feed service; WR4 IRQ parsing/IOR/auto-repeat remain separate.
 `timescale 1ns/1ps
-module dma_service_cpu_tb #(parameter bit NATIVE_IRQ=0, parameter bit NATIVE_READY=0);
+module dma_service_cpu_tb #(parameter bit NATIVE_IRQ=0, parameter bit NATIVE_READY=0,
+    parameter bit NATIVE_RESTART=0);
     logic clk=0, reset=1, ce=0, pause_ce=0, iei=0;
     always #5 clk=~clk;
     integer period=1, phase=0, profile=0, pc=0, edges=0;
@@ -50,7 +51,7 @@ module dma_service_cpu_tb #(parameter bit NATIVE_IRQ=0, parameter bit NATIVE_REA
         .mreq(mreq_n),.iorq(iorq_n),.rd(rd_n),.wr(wr_n),.halt_n(halt_n),
         .rfsh_n(rfsh_n),.dir(16'b0),.dirset(1'b0)
     );
-    x1_dma #(.COMPLETION_IRQ(NATIVE_IRQ),.READY_IRQ(NATIVE_READY)) dma (
+    x1_dma #(.COMPLETION_IRQ(NATIVE_IRQ),.READY_IRQ(NATIVE_READY),.RESTART_IRQ(NATIVE_RESTART)) dma (
         .iei(iei),.acknowledge(acknowledge),.reti(reti),
         .irq(native_irq),.ieo(native_ieo),.irq_pending(native_pending),
         .irq_in_service(native_service),.ack_vector(native_vector),
@@ -142,7 +143,9 @@ module dma_service_cpu_tb #(parameter bit NATIVE_IRQ=0, parameter bit NATIVE_REA
         if($value$plusargs("PROFILE=%d",profile)) begin end
         assert(period>0 && profile>=0 && profile<4) else $fatal(1,"bad fixture profile");
         assert(!NATIVE_READY || (NATIVE_IRQ && profile==0)) else $fatal(1,"Ready CPU requires native transfer profile");
-        expected_vector=NATIVE_READY ? 8'hd0 : profile==0 ? 8'hd4 : profile==3 ? 8'hd6 : 8'hd2;
+        assert(!NATIVE_RESTART || (NATIVE_IRQ && !NATIVE_READY && profile==0))
+            else $fatal(1,"restart CPU requires native transfer profile");
+        expected_vector=NATIVE_RESTART ? 8'hd6 : NATIVE_READY ? 8'hd0 : profile==0 ? 8'hd4 : profile==3 ? 8'hd6 : 8'hd2;
         for(integer i=0;i<65536;i++) memory[i]=8'hcc;
         emit(8'hf3);emit(8'h31);emit(0);emit(8'hf0);
         // CPU prepares source and destination guards, not a debugger or DMA.
@@ -151,6 +154,7 @@ module dma_service_cpu_tb #(parameter bit NATIVE_IRQ=0, parameter bit NATIVE_REA
             load(8'hcc);store(16'h9000+16'(i));
         end
         load(0);store(16'h6001);
+        if(NATIVE_RESTART) store(16'h6003);
         load(8'h00);store({8'h20,expected_vector});
         load(8'h04);store({8'h20,expected_vector}+16'd1);
         load(8'h20);emit(8'hed);emit(8'h47);emit(8'hed);emit(8'h5e); // I, IM2
@@ -168,10 +172,10 @@ module dma_service_cpu_tb #(parameter bit NATIVE_IRQ=0, parameter bit NATIVE_REA
         if(NATIVE_IRQ) begin
             // Genuine WR4 associated interrupt-control/vector bytes; WR3
             // starts disabled, then real WR6 AB enables the IRQ circuit.
-            put(NATIVE_READY ? 8'h70 : 8'h30 | (profile==0 ? 8'h02 : profile==3 ? 8'h03 : 8'h01));
+            put(NATIVE_RESTART ? 8'h12 : NATIVE_READY ? 8'h70 : 8'h30 | (profile==0 ? 8'h02 : profile==3 ? 8'h03 : 8'h01));
             put(8'hd6);
         end
-        put(8'h8a);put(8'hcf);
+        put(NATIVE_RESTART ? 8'hba : 8'h8a);put(8'hcf);
         if(NATIVE_IRQ) put(8'hab);
         put(8'h87);emit(8'hfb);emit(0);emit(8'h76); // EI; NOP; HALT
         if(NATIVE_READY) begin
@@ -179,6 +183,12 @@ module dma_service_cpu_tb #(parameter bit NATIVE_IRQ=0, parameter bit NATIVE_REA
             // do not declare success merely because the IM2 handler ran.
             emit(8'h3a);emit(8'h03);emit(8'h90); // LD A,(9003)
             emit(8'hfe);emit(8'h34);emit(8'h20);emit(8'hf9); // CP 34; JR NZ,-7
+        end
+        if(NATIVE_RESTART) begin
+            // Wait for the second genuine native IM2 handler, not just data
+            // copied into the same destination by the first repeated block.
+            emit(8'h3a);emit(8'h03);emit(8'h60);
+            emit(8'hfe);emit(2);emit(8'h20);emit(8'hf9);
         end
         port(16'h00f2);put(8'h5a);emit(8'hf3);emit(8'h76);
         assert(pc<16'h0400) else $fatal(1,"diagnostic overlaps handler");
@@ -192,6 +202,12 @@ module dma_service_cpu_tb #(parameter bit NATIVE_IRQ=0, parameter bit NATIVE_REA
         put(8'h8b); // clear real flags before RETI
         if(NATIVE_IRQ) put(8'hab);
         if(NATIVE_READY) begin put(8'hb7);put(8'h87);end
+        if(NATIVE_RESTART) begin
+            emit(8'h21);emit(8'h03);emit(8'h60); // LD HL,6003
+            emit(8'h34);emit(8'h7e);emit(8'hfe);emit(2); // INC (HL); LD A,(HL); CP 2
+            emit(8'h28);emit(4); // second service leaves DMA disabled
+            put(8'h87);
+        end
         load(8'ha9);store(16'h6001);
         emit(8'hc1);emit(8'hf1);emit(8'hfb);emit(8'hed);emit(8'h4d);
         repeat(20) @(negedge clk);reset=0;
@@ -217,20 +233,20 @@ module dma_service_cpu_tb #(parameter bit NATIVE_IRQ=0, parameter bit NATIVE_REA
         end
         pause_ce=0;
         wait(result==8'h5a);repeat(30) @(negedge clk);
-        assert(memory[16'h6001]==8'ha9 && acks==1 && returns==1 &&
+        assert(memory[16'h6001]==8'ha9 && acks==(NATIVE_RESTART ? 2 : 1) && returns==(NATIVE_RESTART ? 2 : 1) &&
                !in_service && !service_pending && ieo && !irq && raw_busrq_n && busak_n)
             else $fatal(1,"actual IM2 handler/RETI/service result");
-        assert(reads==(profile==0 ? 4 : profile==1 ? 3 : profile==2 ? 2 : 5) &&
-               writes==(profile==0 ? 4 : profile==2 ? 2 : 0))
+        assert(reads==(NATIVE_RESTART ? 8 : profile==0 ? 4 : profile==1 ? 3 : profile==2 ? 2 : 5) &&
+               writes==(NATIVE_RESTART ? 8 : profile==0 ? 4 : profile==2 ? 2 : 0))
             else $fatal(1,"real DMA completion transactions reads=%d writes=%d",reads,writes);
         if(NATIVE_IRQ) assert(memory[16'h6002][3] &&
-            memory[16'h6002][5:4]==(NATIVE_READY ? 2'b11 : profile==0 ? 2'b01 : profile==3 ? 2'b00 : 2'b10))
+            memory[16'h6002][5:4]==(NATIVE_READY || NATIVE_RESTART ? 2'b11 : profile==0 ? 2'b01 : profile==3 ? 2'b00 : 2'b10))
             else $fatal(1,"CPU native RR0 after ACK/AF %h",memory[16'h6002]);
         for(integer i=0;i<6;i++) begin
-            assert(memory[36864+i]==(i<writes ? memory[32768+i] : 8'hcc))
+            assert(memory[36864+i]==(i<(NATIVE_RESTART ? 4 : writes) ? memory[32768+i] : 8'hcc))
                 else $fatal(1,"DMA destination/guard mismatch %d",i);
         end
-        $display("PASS connected CPU/DMA service NATIVE_IRQ=%0d NATIVE_READY=%0d CE=%0d profile=%0d reads=%0d writes=%0d grants=%0d: IM2/vector/handler/RETI and 80 stopped-enable ACK edges",NATIVE_IRQ,NATIVE_READY,period,profile,reads,writes,grants);
+        $display("PASS connected CPU/DMA service NATIVE_IRQ=%0d NATIVE_READY=%0d NATIVE_RESTART=%0d CE=%0d profile=%0d reads=%0d writes=%0d grants=%0d: IM2/vector/handler/RETI and 80 stopped-enable ACK edges",NATIVE_IRQ,NATIVE_READY,NATIVE_RESTART,period,profile,reads,writes,grants);
         $finish;
     end
 endmodule

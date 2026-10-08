@@ -138,6 +138,10 @@ The device-only [Ready/IOR increment](docs/DMA_READY_IRQ_STATUS.md) adds
 profiles do not enable it. Byte/Burst owned Ready events now drain a real
 pair before service; directed WAIT/grant/mask checks pass. Restart IRQ and
 native/hardware gates remain open.
+The separate [auto-restart EOB IRQ profile](docs/DMA_RESTART_IRQ_STATUS.md)
+retains a terminal event without setting EOB status. Register-stream and
+real-CPU two-block ACK/RETI checks pass at CE=1/4/7; mixed causes,
+shared-machine integration and native/hardware acceptance remain open.
 The [Kanji contract audit](docs/KANJI_CONTRACT_STATUS.md) adds an exhaustive
 schematic-derived first-level address component and a separately tested 128 KiB
 dual-clock ROM loader. Synthetic byte/read/reset checks pass; the opt-in shared

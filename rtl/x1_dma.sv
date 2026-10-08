@@ -4,7 +4,8 @@
 // MAME z80dma.cpp/h (Couriersud, BSD-3-Clause) consulted, not translated.
 // See docs/DMA_STATUS.md and DMA_MACHINE_STATUS.md: not a pin-timing model;
 // shared-machine use is a separate opt-in subset, not native compatibility.
-module x1_dma #(parameter bit COMPLETION_IRQ=0, parameter bit READY_IRQ=0) (
+module x1_dma #(parameter bit COMPLETION_IRQ=0, parameter bit READY_IRQ=0,
+    parameter bit RESTART_IRQ=0) (
     input  logic clk, ce, reset,
     input  logic cpu_cs, cpu_rd_n, cpu_wr_n,
     input  logic [7:0] cpu_data_in,
@@ -51,19 +52,41 @@ module x1_dma #(parameter bit COMPLETION_IRQ=0, parameter bit READY_IRQ=0) (
     integer follow_index;
 
     // IRQ slices are separate explicit qualification profiles. Ready/IOR is
-    // device-only opt-in; pulse generation and restart remain rejected, not emulated
+    // device-only opt-in; pulse generation remains rejected, not emulated
     // by an always-ready request or a fake completion cause.
     wire irq_clear = ce && write_event && follows==0 && !pair_active &&
         state!=PAUSE && state!=REQUEST && cpu_data_in==8'ha3;
     wire irq_reset = reset || reset_pending || soft_reset_pending ||
         (ce && write_event && follows==0 && cpu_data_in==8'hc3);
     wire ready_irq_condition, ready_irq_block;
-    wire irq_condition = !unsupported && (ready_irq_condition || (!enabled &&
+    wire restart_irq_condition, restart_capture;
+    wire irq_condition = !unsupported && (restart_irq_condition || ready_irq_condition || (!enabled &&
         ((interrupt_control[0] && match_found) ||
          (interrupt_control[1] && end_of_block))));
     wire irq_bus_block;
     // Quartus 17 requires an explicit generate region here even in .sv.
-    generate if(COMPLETION_IRQ && READY_IRQ) begin : ready_interrupts
+    generate if(COMPLETION_IRQ && RESTART_IRQ) begin : restart_interrupts
+        // UM0081 printed 80-81: the event survives the automatic reload,
+        // while EOB status stays clear. This profile accepts unmodified,
+        // EOB-only interrupts, not mixed Ready/match or pulse programming.
+        logic terminal_latched;
+        assign restart_capture = ce && !busak_n && cycle_left==1 &&
+            (!wr5[4] || wait_n) && remaining==1 && wr5[5] && enabled &&
+            wr3[5] && interrupt_control[1] && !unsupported &&
+            !reset && !reset_pending && !soft_reset_pending && !write_event &&
+            ((state==WRITE_CYCLE && !byte_match_stop) ||
+             (state==READ_CYCLE && search_only && !search_stop_pending &&
+              !(wr3[2] && source_match)));
+        assign restart_irq_condition=terminal_latched;
+        always_ff @(posedge clk) begin
+            if (irq_reset || irq_clear) terminal_latched <= 0;
+            else if (acknowledge && irq) terminal_latched <= 0;
+            else if (restart_capture) terminal_latched <= 1;
+        end
+    end else begin : no_restart_interrupts
+        assign restart_irq_condition=0, restart_capture=0;
+    end
+    if(COMPLETION_IRQ && READY_IRQ) begin : ready_interrupts
         // UM0081 printed 86-88, 110-111: IOR is distinct from IP/IUS.
         // All pins here are synchronous to clk; exact silicon latency is
         // not implied. Keep edge/ACK/reset processing alive with CE stopped.
@@ -169,8 +192,10 @@ module x1_dma #(parameter bit COMPLETION_IRQ=0, parameter bit READY_IRQ=0) (
             wr4[6:5] == 2'b11 ||
             timing_a_set || timing_b_set ||
             (COMPLETION_IRQ ? (|(interrupt_control & (READY_IRQ ? 8'h8c : 8'hcc)) ||
-                (wr5[5] && (|interrupt_control[1:0] ||
-                    (READY_IRQ && interrupt_control[6])))) : interrupt_control != 0);
+                (wr5[5] && ((|interrupt_control[1:0] ||
+                    (READY_IRQ && interrupt_control[6])) &&
+                    (!RESTART_IRQ || interrupt_control[0] || interrupt_control[6] ||
+                     interrupt_control[5] || wr3[2])))) : interrupt_control != 0);
         follow_index = -1;
         for (integer j=13; j>=0; j=j-1)
             if (follows[j]) follow_index = j;
@@ -232,12 +257,13 @@ module x1_dma #(parameter bit COMPLETION_IRQ=0, parameter bit READY_IRQ=0) (
                 else begin
                     case (state)
                         IDLE: if (!write_event && !read_event && enabled && follows == 0 && loaded && remaining != 0 &&
-                                  ready_now && !unsupported && busak_n && !irq_bus_block && !ready_irq_block) begin
+                                  ready_now && !unsupported && busak_n && !irq_bus_block && !ready_irq_block &&
+                                  !restart_irq_condition) begin
                             state <= REQUEST; grant_samples <= 0;
                             requested <= 1;
                         end
                         REQUEST: begin
-                            if (!enabled || unsupported || ready_irq_block ||
+                            if (!enabled || unsupported || ready_irq_block || restart_irq_condition ||
                                 (!ready_now && wr4[6:5] != 2'b01)) begin
                                 state <= RELEASE; force_ready <= 0;
                             end else if (busak_n) grant_samples <= 0;
@@ -252,7 +278,7 @@ module x1_dma #(parameter bit COMPLETION_IRQ=0, parameter bit READY_IRQ=0) (
                                 if (!ready_now) byte_counter <= byte_counter - 16'd1;
                                 match_found <= 1; search_stop_pending <= 0;
                                 enabled <= 0; state <= RELEASE; force_ready <= 0;
-                            end else if (!enabled || unsupported || ready_irq_block || (remaining == 0 && !search_stop_pending) ||
+                            end else if (!enabled || unsupported || ready_irq_block || restart_irq_condition || (remaining == 0 && !search_stop_pending) ||
                                 (!ready_now && wr4[6:5] != 2'b01)) begin
                                 state <= RELEASE; force_ready <= 0;
                             end else if (ready_now && !busak_n && !write_event && !read_event) begin
@@ -322,7 +348,7 @@ module x1_dma #(parameter bit COMPLETION_IRQ=0, parameter bit READY_IRQ=0) (
                                         if (remaining == 1) end_of_block <= 1;
                                         if (remaining == 1 || (wr3[2] && source_match)) enabled <= 0;
                                         end
-                                        if ((remaining == 1 && !wr5[5]) || !enabled || reset_pending || reset ||
+                                        if (restart_capture || (remaining == 1 && !wr5[5]) || !enabled || reset_pending || reset ||
                                             soft_reset_pending || (wr3[2] && source_match) || wr4[6:5] == 0 ||
                                             (wr4[6:5] == 2'b10 && !ready_now)) begin
                                             state <= RELEASE; force_ready <= 0;
@@ -365,7 +391,7 @@ module x1_dma #(parameter bit COMPLETION_IRQ=0, parameter bit READY_IRQ=0) (
                                 // Table 12 Byte sequential: M operations, count
                                 // M-1, source advanced M, destination M-1.
                                 if (byte_match_stop) enabled <= 0;
-                                if ((remaining == 1 && !wr5[5]) || !enabled || reset_pending || reset ||
+                                if (restart_capture || (remaining == 1 && !wr5[5]) || !enabled || reset_pending || reset ||
                                     soft_reset_pending || byte_match_stop || wr4[6:5] == 0 ||
                                     (wr4[6:5] == 2'b10 && !ready_now)) begin
                                     state <= RELEASE; force_ready <= 0;

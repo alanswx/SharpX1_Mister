@@ -104,6 +104,11 @@ without aborting a pair; Continuous suppression, AF/AB and exact resumed
 data pass directed tests. Broader live/late-arm timing, restart, integration
 and native/hardware gates remain. Primary auto-restart/EOB prose requires an
 independent terminal event with clear EOB status; see the same status document.
+The subsequent [restart-EOB IRQ profile](DMA_RESTART_IRQ_STATUS.md) now retains
+that event separately: 4,608 register cases and three real-CPU two-block
+IM2/ACK/RETI cases pass. Owned/stopped-CE resets and the EOB-trigger negative
+control are covered. Mixed Ready/match restart, native/machine integration and
+physical qualification remain required; no work group is marked complete.
 The [Kanji contract audit](KANJI_CONTRACT_STATUS.md) now derives a tested
 first-level physical ROM address decoder from the model-20/30 schematic,
 covering all 131,072 bytes. Its connected standalone 128 KiB dual-clock ROM
