@@ -35,6 +35,9 @@ defect even when continued execution is compared against the same faulty model.
 The target is added to hosted diagnostics, but a hosted pass for this change
 has not yet been observed. No private assets were used or changed. Default
 machine profiles, RTL and snapshot identity are unchanged in this increment.
+The complete delay-aware baseline `make -C verilator test` subsequently exits
+zero, including its disk/loader/PCG/index checks; log:
+`/tmp/x1-dma-reload-baseline.log`.
 
 ## Remaining gates
 

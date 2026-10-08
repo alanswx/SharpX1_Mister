@@ -112,3 +112,15 @@ current seeded asset paths are on mister126; mister14 requires separate staging.
 | Cassette, remaining PPI/sub-CPU/native BASIC | Further implementation/diagnostic/native acceptance remains |
 
 No work group is declared complete.
+
+## Local regression handoff
+
+The full delay-aware `make -C verilator test` exits zero after the hardware
+matrix, including its complete disk, loader, joystick-map, PCG access and
+disk-control/index checks. Baseline runner SHA-256 before/after qualification:
+`75248fbd2c0ad3d79f7eb2dea0fb8eeb3d1a48d31cfde60b11f2fa6f90fbfe35`.
+Log: `/tmp/x1-dma-reload-baseline.log`.
+The committed `test_video_ipl.py` also exits zero for all six real-IPL/RAM-entry
+pairs; log: `/tmp/x1-video-ipl-target.log`. Python syntax checks and
+`git diff --check` pass. These simulator checks do not add hardware acceptance
+for devices absent from the fitted RBF. Hosted CI remains a separate gate.
