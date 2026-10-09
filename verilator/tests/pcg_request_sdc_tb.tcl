@@ -1,7 +1,14 @@
 # Inventory/exception scope test using mocked Quartus collections, not STA.
 set candidate [file normalize [file join [file dirname [info script]] .. .. scripts constraints pcg_request_candidate.sdc]]
 proc get_registers {pattern} {
-    if {[string match {*porta_datain*} $pattern]} {set group data_dest
+    if {$pattern eq {*x1_video_ram:pcg_*|*}} {
+        set ram $::groups(data_dest)
+        foreach reg $::groups(control_dest) {
+            if {[string match {*x1_video_ram:*} $reg]} {lappend ram $reg}
+        }
+        return $ram
+    }
+    if {[string match {*porta_datain*} $pattern] || [string match {*PORT_A_DATA_IN*} $pattern]} {set group data_dest
     } elseif {[string match {*response*} $pattern]} {set group control_dest
     } elseif {[string match {*access_addr*} $pattern]} {set group address_dest
     } elseif {[string match {*plane*} $pattern]} {set group control
@@ -36,9 +43,26 @@ foreach color {b r g} {
         if {$i < 4} {lappend valid(control_dest) "emu|x1_video_ram:pcg_${color}|mock${i}~porta_we_reg"}
     }
 }
-foreach group [array names valid] {
+foreach profile {fitted mapped} {
+    array set profile_valid [array get valid]
+    if {$profile eq "mapped"} {
+        set profile_valid(control_dest) {}
+        foreach reg $valid(control_dest) {
+            if {![string match {*x1_video_ram:*} $reg] && ![string match {*~DUPLICATE} $reg]} {
+                lappend profile_valid(control_dest) $reg
+            }
+        }
+        set profile_valid(data_dest) {}
+        foreach color {b r g} {
+            for {set i 0} {$i < 16} {incr i} {
+                lappend profile_valid(data_dest) "emu|x1_video_ram:pcg_${color}|map${i}~porta_datain_reg0"
+                lappend profile_valid(control_dest) "emu|x1_video_ram:pcg_${color}|map${i}~porta_we_reg"
+            }
+        }
+    }
+foreach group [array names profile_valid] {
     foreach mode {valid missing duplicate extra wrong_identity} {
-        array set groups [array get valid]
+        array set groups [array get profile_valid]
         switch $mode {
             missing {set groups($group) [lrange $groups($group) 1 end]}
             duplicate {lset groups($group) 0 [lindex $groups($group) 1]}
@@ -56,4 +80,5 @@ foreach group [array names valid] {
         } elseif {!$failed || [llength $applied]} {error "$group/$mode did not refuse every bound"}
     }
 }
-puts "PASS: three explicit request bounds; 24 invalid inventories refuse all constraints"
+}
+puts "PASS: mapped/fitted request bounds; 48 invalid inventories refuse all constraints"

@@ -79,8 +79,9 @@ The [PCG bundle-window audit](docs/PCG_BUNDLE_TIMING_STATUS.md) passes base and
 high-speed PCG/font/reset checks at SYS=32 MHz as well as inherited ratios;
 completed-fit PCG request/response bounds pass all eight corners. The first
 integrated refit fails the request inventory gate because early RAM endpoints
-differ from fitted endpoints; request constraints are analysis-only again.
-The response bound remains selected only by the experimental Z revision.
+differ from fitted endpoints. Both explicit representations now pass native
+inventory checks, and the revised completed-fit request probe passes all eight
+corners. Request/response bounds are selected only by the experimental Z revision.
 Fresh-fit and native/physical acceptance remain open.
 The [summary table](docs/CHIP_IMPLEMENTATION_TABLE.md) and
 [chip reuse survey](docs/CHIP_REUSE.md) describe available replacement sources

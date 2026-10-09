@@ -229,6 +229,46 @@ not acceptance of this failed full flow. Next: enumerate the constraint-read
 stage, establish explicit validated early/fitted profiles and preserve every
 physical destination in post-fit checks, then repeat full flow/all corners.
 
+### Verified early/fitted profiles; experimental selection restored
+
+The revised request SDC first enumerates the RAM register bank, classifies
+actual data/write-enable names, then requests those existing names. It no
+longer queries nonexistent aliases or suppresses empty-filter warnings.
+Exactly two recognized profiles are accepted:
+
+| Profile | WE / data destinations | Control destinations | Per-plane WE / data |
+|---|---:|---:|---:|
+| Mapped | 48 / 48 | 71 (23 machine state + 48 WE) | 16 / 16 |
+| Fitted | 12 / 192 | 36 (24 machine state + 12 WE) | 4 / 64 |
+
+Source vector identities and merged address aliases remain mandatory. The
+mapped state has three stage registers; fitted state additionally requires
+the audited `stage.01~DUPLICATE`. Mixed, missing, duplicate and wrong-identity
+inventories fail before **any** bounds are issued. Neither the SYS-only paths
+nor synchronizer checks are broadened. No machine RTL changes.
+
+Native sequential execution finishes zero
+(`/tmp/x1-pcg-mapped-fitted-native.log`): post-map inventory/exception syntax
+passes on the preserved failed `bec30d0` database (the five preexisting PLL/
+netlist warnings remain). This does **not** perform timing without clocks.
+The completed `32a3210` fit then passes the full eight-corner request probe,
+zero warnings. Independently retrieved reports under ignored
+`output_files/quartus-linux-EDi2XntO/pcg-two-profile-probe/` again contain
+48 files / 4,688 paths, minimum slack +1.092 ns and maximum delay 4.046 ns.
+`test-pcg-request-sdc` passes both profiles and 48 invalid inventories;
+negative cases refuse all three bound pairs.
+
+Experimental Z request selection is restored. These native checks validate
+the two observed inventories, not every possible intermediate fitter
+representation or a new RBF. A new full flow must still verify constraint
+loading/packing, final profile retention, eight-corner timing and physical
+delays. The failed prior full flow is preserved, never relabeled successful.
+Executed revised request SDC SHA-256
+`8201246c2a489c749e03426511668c03eee11ec1aed487525d8be81ae5caaeeb`
+(subsequent project-selection header change is comment-only). Revised mapped
+inventory helper SHA-256
+`d4f2cbe80d3cec09e1432ecf29862dc9cb434e857d626eda245d712dc819e344`.
+
 Audit source payload paths into RAM data/write controls, selected addresses
 and response selection separately; response-to-CPU is a distinct held bus.
 First-stage request/ACK synchronizers require their own treatment, with the

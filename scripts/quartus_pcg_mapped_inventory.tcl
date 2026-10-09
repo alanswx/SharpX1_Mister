@@ -13,5 +13,10 @@ foreach {label patterns} {
     puts "MAPPED $label: [get_collection_size $collection]"
     foreach_in_collection reg $collection {puts "  [get_register_info -name $reg]"}
 }
+set candidate [lindex $quartus(args) 1]
+if {$candidate ne ""} {
+    # Validate inventory and exception syntax only, not timing without clocks.
+    source $candidate
+}
 delete_timing_netlist
 project_close

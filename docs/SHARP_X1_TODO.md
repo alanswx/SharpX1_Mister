@@ -90,6 +90,10 @@ the first integrated refit fails the strict request inventory gate because
 early RAM endpoints differ. Request selection is withdrawn pending a verified
 early/fitted endpoint contract; response selection remains experimental-Z-only.
 A fresh fit/all-corner audit are required; machine RTL remains unchanged.
+The follow-up validates explicit mapped/fitted request profiles in native
+Quartus and rechecks all 4,688 fitted request paths at eight corners. Forty-eight
+invalid inventories refuse all bounds. Experimental Z request selection is
+restored for a new full flow; fresh-fit/hardware qualification remains open.
 The [Turbo Z in-flight control reset test](TURBO_Z_INFLIGHT_RESET_STATUS.md)
 passes at three independent video rates, including a deliberately failing
 asynchronous-reset-removal control. Exact reset frames, pending palette/
