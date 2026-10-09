@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 // Original connected ownership/adapter/RAM fixture; not native ASIC timing.
 `timescale 1ps/1ps
-module z_palette_owner_tb;
+module z_palette_owner_tb #(parameter LOCAL_RESET_RELEASE = 0);
     reg cpu_clk=0,video_clk=0,reset=1,video_blank=0;
     integer half=17500;
     reg run_cpu=1,run_video=1;
@@ -18,7 +18,7 @@ module z_palette_owner_tb;
     wire cpu_request=selected && !wait_n;
     wire [11:0] display_rgb12;
     wire display_valid;
-    x1_z_palette_owner owner(.*);
+    x1_z_palette_owner #(.LOCAL_RESET_RELEASE(LOCAL_RESET_RELEASE)) owner(.*);
     x1_z_palette_access access(.clk(cpu_clk),.reset(reset),.external_enabled(1'b1),
         .read_mode(read_mode),.permit(cpu_permit),.io_read(io_read),.io_write(io_write),
         .address(address),.data(data),.selected(selected),.wait_n(wait_n),

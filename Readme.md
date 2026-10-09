@@ -67,6 +67,9 @@ now enables the combined palette/multi-mode/text paths for FPGA qualification;
 existing revisions remain off. Wrapper lint and six combined custom/warm pixel
 cases pass. The FPGA flow fits but fails reported setup/recovery timing; it is
 not a hardware-qualified candidate. Timing and hardware gates are tracked separately.
+The [palette ownership reset correction](docs/TURBO_Z_OWNER_RESET_STATUS.md)
+now gives the experimental X3 owner independent two-edge reset releases;
+stopped-clock/connected-RAM tests pass, while fresh pixel and fit gates remain open.
 The [summary table](docs/CHIP_IMPLEMENTATION_TABLE.md) and
 [chip reuse survey](docs/CHIP_REUSE.md) describe available replacement sources
 and the remaining integration work.

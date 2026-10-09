@@ -279,11 +279,33 @@ $(HEADLESS_DIR)/z-palette-pins/Vz_palette_pins_tb: tests/z_palette_pins_tb.sv ..
 test-z-palette-owner: $(HEADLESS_DIR)/z-palette-owner/Vz_palette_owner_tb
 	@for half in 17500 11640 25000; do \
 	  ./$(HEADLESS_DIR)/z-palette-owner/Vz_palette_owner_tb +video_half=$$half || exit 1; done
-$(HEADLESS_DIR)/z-palette-owner/Vz_palette_owner_tb: tests/z_palette_owner_tb.sv ../rtl/x1_z_palette_owner.sv ../rtl/x1_z_palette_access.sv ../rtl/x1_z_palette_ram.sv Makefile
+$(HEADLESS_DIR)/z-palette-owner/Vz_palette_owner_tb: tests/z_palette_owner_tb.sv ../rtl/x1_z_palette_owner.sv ../rtl/x1_z_palette_access.sv ../rtl/x1_z_palette_ram.sv ../rtl/x1_reset_release.sv Makefile
 	mkdir -p $(@D)
 	$(V) --binary --timing --assert --top-module z_palette_owner_tb --Mdir $(@D) \
-	  -j 4 tests/z_palette_owner_tb.sv ../rtl/x1_z_palette_owner.sv ../rtl/x1_z_palette_access.sv ../rtl/x1_z_palette_ram.sv
+	  -j 4 tests/z_palette_owner_tb.sv ../rtl/x1_z_palette_owner.sv ../rtl/x1_z_palette_access.sv ../rtl/x1_z_palette_ram.sv ../rtl/x1_reset_release.sv
 .PHONY: test-z-palette-owner
+
+test-z-palette-owner-local-reset: $(HEADLESS_DIR)/z-palette-owner-local/Vz_palette_owner_tb $(HEADLESS_DIR)/z-palette-owner-reset/Vz_palette_owner_reset_tb $(HEADLESS_DIR)/z-palette-owner-reset-negative/Vz_palette_owner_reset_tb
+	@for half in 17500 11640 25000; do \
+	  ./$(HEADLESS_DIR)/z-palette-owner-local/Vz_palette_owner_tb +video_half=$$half && \
+	  ./$(HEADLESS_DIR)/z-palette-owner-reset/Vz_palette_owner_reset_tb +video_half=$$half || exit 1; done
+	@ulimit -c 0; log=$$(mktemp /tmp/x1-z-owner-reset-negative-XXXXXX); \
+	  ./$(HEADLESS_DIR)/z-palette-owner-reset-negative/Vz_palette_owner_reset_tb >$$log 2>&1; result=$$?; \
+	  test $$result -ne 0 && rg -q 'display released without video edges' $$log || { cat $$log; exit 1; }; \
+	  echo "PASS palette reset negative: raw release rejected (log $$log)"
+$(HEADLESS_DIR)/z-palette-owner-local/Vz_palette_owner_tb: tests/z_palette_owner_tb.sv ../rtl/x1_z_palette_owner.sv ../rtl/x1_z_palette_access.sv ../rtl/x1_z_palette_ram.sv ../rtl/x1_reset_release.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module z_palette_owner_tb -GLOCAL_RESET_RELEASE=1 --Mdir $(@D) \
+	  -j 4 tests/z_palette_owner_tb.sv ../rtl/x1_z_palette_owner.sv ../rtl/x1_z_palette_access.sv ../rtl/x1_z_palette_ram.sv ../rtl/x1_reset_release.sv
+$(HEADLESS_DIR)/z-palette-owner-reset/Vz_palette_owner_reset_tb: tests/z_palette_owner_reset_tb.sv ../rtl/x1_z_palette_owner.sv ../rtl/x1_reset_release.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module z_palette_owner_reset_tb --Mdir $(@D) \
+	  -j 4 tests/z_palette_owner_reset_tb.sv ../rtl/x1_z_palette_owner.sv ../rtl/x1_reset_release.sv
+$(HEADLESS_DIR)/z-palette-owner-reset-negative/Vz_palette_owner_reset_tb: tests/z_palette_owner_reset_tb.sv ../rtl/x1_z_palette_owner.sv ../rtl/x1_reset_release.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module z_palette_owner_reset_tb -GLOCAL_RESET_RELEASE=0 --Mdir $(@D) \
+	  -j 4 tests/z_palette_owner_reset_tb.sv ../rtl/x1_z_palette_owner.sv ../rtl/x1_reset_release.sv
+.PHONY: test-z-palette-owner-local-reset
 
 test-turbo-dsw: $(HEADLESS_DIR)/turbo-dsw/Vturbo_dsw_tb
 	./$(HEADLESS_DIR)/turbo-dsw/Vturbo_dsw_tb

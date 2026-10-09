@@ -62,6 +62,10 @@ setup/recovery; this is not timing or native/physical acceptance. Combined
 control/reset and all six selected custom/warm pixel cases pass (704,000 exact
 pixels); the complete combined cold/identity/front/order matrix remains open. See
 [combined-profile evidence](TURBO_Z_COMBINED_STATUS.md).
+The subsequent [ownership reset correction](TURBO_Z_OWNER_RESET_STATUS.md)
+removes cross-domain reset-release feedback and passes three-clock connected
+RAM/stopped-clock tests, including a failing raw-release control. Fresh combined
+pixels and timing acceptance are pending; prior pixels remain source-bound history.
 The [Turbo Z in-flight control reset test](TURBO_Z_INFLIGHT_RESET_STATUS.md)
 passes at three independent video rates, including a deliberately failing
 asynchronous-reset-removal control. Exact reset frames, pending palette/

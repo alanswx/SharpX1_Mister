@@ -4,7 +4,9 @@ October 9, 2026. This matches the video capabilities selected by the new
 `sharpx1_turbo_z_video` wrapper profile: external palette CPU/video,
 multi-mode fetch, internal-eight palette and text/priority together. No
 native Z identity, DMA/SIO/FM/Kanji or private ROM/font is enabled.
-Production shared-machine RTL remains unchanged. Simulator SYS=32 MHz and
+The source qualified below predates the subsequent
+[destination-local ownership reset correction](TURBO_Z_OWNER_RESET_STATUS.md);
+its fresh pixel/fit gates are separate. Simulator SYS=32 MHz and
 VID=nominal 42.954540 MHz; fitted/physical frequencies are separate evidence.
 
 ## Completed coherent-control checks

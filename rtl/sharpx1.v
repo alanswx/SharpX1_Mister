@@ -315,8 +315,8 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         wire [3:0] ram_nibble,ram_data,read_nibble;
         // Provisional functional blank-window policy, not native ASIC pin
         // timing. The return handshake prevents reusing a previous lease.
-        x1_z_palette_owner ownership(
-            .cpu_clk(clk_sys),.video_clk(clk_28636),.reset(core_reset || video_reset),
+        x1_z_palette_owner #(.LOCAL_RESET_RELEASE(TURBO_VIDEO_MASTER)) ownership(
+            .cpu_clk(clk_sys),.video_clk(clk_28636),.reset(core_reset),
             .cpu_request(z_palette_selected && !z_palette_wait_n),.video_blank(VBlank),
             .cpu_permit(palette_permit),.display_allowed(palette_display_allowed)
         );
