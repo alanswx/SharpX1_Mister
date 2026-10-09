@@ -158,6 +158,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     wire [2:0] z_cg_color;
     wire [5:0] z_text_video_bits;
     wire z_text_video_valid,z_text_pixel_selected;
+    wire z_composition_enabled;
     wire z_graphics_valid, z_graphics_start, z_graphics_load, z_cg_transparent, z_graphics_disp;
     wire z_gram_read;
     wire [14:0] z_gram_address;
@@ -315,17 +316,28 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
             // Capture priority alongside the requested/loaded GRAM character.
             // Live CPU controls must not reorder a half-fetched character.
             reg [7:0] requested_priority=0,pixel_priority=0;
+            reg requested_composition=0,pixel_composition=0;
             always @(posedge clk_28636 or posedge video_reset)
-                if(video_reset) begin requested_priority<=0;pixel_priority<=0;end
-                else if(!z_video_enabled) begin requested_priority<=0;pixel_priority<=0;end
-                else begin
-                    if(z_graphics_start) requested_priority<=z_priority_video;
-                    if(z_graphics_load) pixel_priority<=requested_priority;
+                if(video_reset) begin
+                    requested_priority<=0;pixel_priority<=0;requested_composition<=0;pixel_composition<=0;
+                end else if(!z_video_enabled) begin
+                    requested_priority<=0;pixel_priority<=0;requested_composition<=0;pixel_composition<=0;
                 end
+                else begin
+                    if(z_graphics_start) begin
+                        requested_priority<=z_priority_video;
+                        // 1FC0 affects 320x200 multi-color, not 640/400 modes.
+                        requested_composition<=z_graphics_mode==0 || z_graphics_mode==1 || z_graphics_mode==5;
+                    end
+                    if(z_graphics_load) begin
+                        pixel_priority<=requested_priority;pixel_composition<=requested_composition;
+                    end
+                end
+            assign z_composition_enabled=pixel_composition && z_graphics_valid;
             wire defined_order;
             wire [1:0] selected_source;
             x1_z_layer_order order(
-                .enabled(z_paired_screens),.two_screen_mode(1'b1),.selected_screen(1'b0),
+                .enabled(z_composition_enabled),.two_screen_mode(z_paired_screens),.selected_screen(1'b0),
                 .priority_control(pixel_priority),.text_visible(!z_cg_transparent),
                 .screen0_visible(z_graphics_index!=0),.screen1_visible(z_second_graphics_index!=0),
                 .defined(defined_order),.source(selected_source));
@@ -336,16 +348,17 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
             // Opacity is the raw glyph/graphics code, never programmed RGB.
             assign display_index=!z_paired_screens ? z_graphics_index :
                 selected_source==2 ? z_graphics_index : selected_source==3 ? z_second_graphics_index : back_index;
-            assign graphics_present=!z_paired_screens ||
+            assign graphics_present=!z_composition_enabled ||
                 (defined_order && (selected_source>=2 || (selected_source==0 && !pixel_priority[0])));
             assign z_text_pixel_selected=defined_order && selected_source==1;
         end else begin : no_paired_composition
+            assign z_composition_enabled=0;
             assign display_index=z_graphics_index;
             assign graphics_present=1;
             assign z_text_pixel_selected=0;
         end
         wire display_read=TURBO_Z_VIDEO && z_video_enabled && z_graphics_valid && graphics_present &&
-                          (z_cg_transparent || z_paired_screens) && z_graphics_disp && palette_display_allowed;
+                          (z_cg_transparent || z_composition_enabled) && z_graphics_disp && palette_display_allowed;
         assign ram_data=internal_owned ? internal_data : external_data;
         assign ram_valid=internal_owned ? internal_valid : external_valid;
         assign z_palette_valid=external_display_valid || internal_display_valid;
@@ -375,7 +388,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         assign z_palette_data=read_valid ? {4'd0,read_nibble} :
                               z_palette_read_tail ? {4'd0,held_nibble} : 8'hff;
     end else begin : no_z_palette_cpu
-        assign z_text_video_bits=0;assign z_text_video_valid=0;assign z_text_pixel_selected=0;
+        assign z_text_video_bits=0;assign z_text_video_valid=0;assign z_text_pixel_selected=0;assign z_composition_enabled=0;
         assign z_text_selected=0;assign z_text_tail=0;assign z_text_data=8'hff;
         assign z_priority_selected=0;assign z_priority_tail=0;assign z_priority_data=8'hff;
         assign z_palette_selected=0;
@@ -823,7 +836,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
                 if(video_reset) begin
                     composition_active<=0;text_selected<=0;text_valid<=0;text_rgb<=0;
                 end else begin
-                    composition_active<=z_video_enabled && z_paired_screens && z_graphics_disp;
+                    composition_active<=z_video_enabled && z_composition_enabled && z_graphics_disp;
                     text_selected<=z_text_pixel_selected;
                     text_valid<=z_text_video_valid;
                     // Explicit experimental eX1/MAME intensity policy:

@@ -139,6 +139,11 @@ connects actual glyph presence to paired ordering; the first 64,000-pixel
 between-screen text case passes, with wider cold/warm tests running. Fresh v14 ordinary snapshot/old-version rejection and
 focused default timing/GRAM/DAM checks pass. Native intensity, opacity,
 attribute/blackclip and hardware gates remain open; v13 results stay historical.
+The [single-screen text increment](TURBO_Z_SINGLE_TEXT_STATUS.md) now builds
+and passes focused control/order/wrapper gates for captured 320x200 layouts;
+initial full/selected-screen probes each pass 64,000 pixels; the wider matrix
+and full v14 baseline are running. It does not extend the
+low-scan priority rule to 640/400-line formats or close native/hardware gates.
 
 The expanded [hosted diagnostic run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37865161650)
 now completes successfully on `95c3e4a`. The newer `99eb141` palette-RAM/

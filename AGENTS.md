@@ -98,6 +98,10 @@ Combined with video/multi-mode, it now also enables provisional paired analog
 text composition; see `docs/TURBO_Z_TEXT_COMPOSITION_STATUS.md`. Raw glyph
 codes, not palette RGB, determine presence. Intensity is explicitly 0/5/A/F,
 not a resolved DAC pin contract; do not infer native Z support from that policy.
+The single-screen follow-up captures composition eligibility for layouts
+0/1/5 at request/load; `1FC0` must not affect unrelated 640/400-line layouts.
+For a selected-screen 64-color diagnostic, clear priority bit 4 or it actually
+requests simultaneous display. See `docs/TURBO_Z_SINGLE_TEXT_STATUS.md`.
 The same CPU-only profile now accepts `1FC0`; see
 `docs/TURBO_Z_PRIORITY_CPU_STATUS.md`. Its reset-to-zero/unused-bit/inactive
 policies are provisional. `x1_z_layer_order.sv` consumes caller visibility,

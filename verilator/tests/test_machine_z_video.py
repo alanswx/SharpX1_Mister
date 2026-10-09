@@ -93,7 +93,7 @@ def fixture(custom=False, mode="full", screen=0, priority=0x10, text=False):
             p.emit(0x2C, 0x7D, 0x0F, 0x0F, 0x0F, 0x0F, 0xE6, 0xF0,
                    0x5F, 0x25)
             p.jump(0xC2, outer)
-        if mode == "paired64":
+        if mode == "paired64" or text:
             # Nonzero raw G:R:B=A:5:F is deliberately programmed black.
             # A renderer using RGB zero as transparency would expose the back.
             for base in (0x1000, 0x1100, 0x1200):
@@ -155,7 +155,7 @@ def fixture(custom=False, mode="full", screen=0, priority=0x10, text=False):
         out(0x1A02, 0)
     out(0x1FD0, 1 if mode in ("tall64", "internal8") else screen << 3 if mode in ("dual64", "paired64") else 0)
     out(0x1FB0, 0x90 if mode in ("dual64", "paired64") else 0x80)
-    if mode == "paired64":
+    if mode == "paired64" or text:
         out(0x1FC0, priority)
     registers = [55 if columns == 40 else 111, columns,
                  46 if columns == 40 else 92, 0x28, 31, 2, 25, 28, 0, 7,
@@ -178,6 +178,15 @@ def fixture(custom=False, mode="full", screen=0, priority=0x10, text=False):
 
 
 def expected_pixel(x, y, custom=False, mode="full", screen=0, priority=0x10, text=False):
+    if text and mode in ("full", "dual64"):
+        raw = expected_pixel(x, y, False, mode, screen)
+        color = (((y // 8) * 40 + x // 8) & 7) if font8_bytes()[0x41 * 8 + y % 8] & (128 >> (x % 8)) else 0
+        for layer in (("graphics", "text") if priority & 1 else ("text", "graphics")):
+            if layer == "text" and color:
+                return bytes(3) if color == 7 else bytes((((color + 1) & 3) * 85, (color & 3) * 85, ((color + 2) & 3) * 85))
+            if layer == "graphics" and raw != bytes(3):
+                return bytes(3) if custom and raw == bytes((85, 170, 255)) else expected_pixel(x, y, custom, mode, screen)
+        return bytes(3) if priority & 1 else expected_pixel(x, y, custom, mode, screen)
     if mode == "paired64":
         # Independent per-screen address/color oracle. Presence is raw source
         # code, not final RGB: custom palette black must not reveal the back.
@@ -244,7 +253,9 @@ def main():
     digest = hashlib.sha256(executable.read_bytes()).hexdigest()
     code = args.output / "original.bin"
     assert args.mode != "paired64" or args.priority in (0x10, 0x11, 0x12, 0x18, 0x19, 0x1A)
-    assert not args.text or args.mode == "paired64"
+    assert not args.text or args.mode in ("full", "dual64", "paired64")
+    assert 0 <= args.priority <= 255
+    assert not (args.text and args.mode == "dual64" and args.priority & 0x10), "single-screen fixture requires simultaneous-display disabled"
     code.write_bytes(fixture(args.custom, args.mode, args.screen, args.priority, args.text))
     frame = args.output / "actual.ppm"
     # Full palette programming adds actual CPU/ownership cycles. Leave enough
@@ -272,7 +283,7 @@ def main():
     assert report["z_video_experiment"] and report["z_palette_cpu_experiment"], report
     if args.mode != "full":
         assert report["z_multimode_experiment"], report
-    if args.mode == "paired64":
+    if args.mode == "paired64" or args.text:
         assert report["z_text_cpu_experiment"], report
     if args.mode == "internal8":
         assert report["z_internal8_experiment"], report
@@ -289,7 +300,7 @@ def main():
         assert addresses.count(0x1800) == 16 and addresses.count(0x1801) == 16, addresses
         assert addresses.count(0x1A03) == 1 and addresses.count(0x1A02) == (2 if args.mode in ("wide64", "internal8") else 1), addresses
         assert not any(a >= 0x2000 or 0x1000 <= a < 0x1300 for a in addresses), addresses[:60]
-        if args.mode == "paired64":
+        if args.mode == "paired64" or args.text:
             assert addresses.count(0x1FC0) == 1, addresses
             assert not any(0x1FB9 <= a <= 0x1FBF for a in addresses), addresses
     tolerance = 31251
@@ -313,7 +324,7 @@ def main():
         assert all(coverage.values()), coverage
         print(json.dumps({"paired_raw_code_coverage": coverage}), flush=True)
     if args.text:
-        colored = sum(bool(expected_pixel(x, y, False, "paired64", args.screen, 0x10, True) != bytes(3))
+        colored = sum(bool(expected_pixel(x, y, False, args.mode, args.screen, 0x10, True) != bytes(3))
                       for y in range(height) for x in range(width))
         assert colored > 1000, colored
     (args.output / "expected.ppm").write_bytes(f"P6\n{width} {height}\n255\n".encode() + expected)
@@ -321,7 +332,7 @@ def main():
                   for i in range(0, len(expected), 3) if actual[i:i+3] != expected[i:i+3]]
     assert actual == expected, (len(mismatches), mismatches[:20])
     if args.text:
-        alternative = (args.priority & ~3) | (0 if args.priority & 3 else 2)
+        alternative = ((args.priority & ~3) | (0 if args.priority & 3 else 2)) if args.mode == "paired64" else args.priority ^ 1
         wrong_order = b"".join(expected_pixel(x, y, args.custom, args.mode, args.screen, alternative, True)
                               for y in range(height) for x in range(width))
         different = sum(actual[i:i+3] != wrong_order[i:i+3] for i in range(0, len(actual), 3))

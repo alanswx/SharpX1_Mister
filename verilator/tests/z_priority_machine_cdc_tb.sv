@@ -34,15 +34,19 @@ module z_priority_machine_cdc_tb #(parameter PRIORITY_CPU=1);
     wire valid=dut.machine.z_palette_cpu.controls_crossing.multimode.controls_valid;
     bit [255:0] seen=0;
     integer live_priority_differences=0;
+    integer excluded_mode_samples=0;
     generate if(PRIORITY_CPU) begin : captured_control_checks
         // Observe real character phases and CPU changes, never force a bus
         // or manufacture a shifter result. A new live control cannot bypass
         // the request/load boundary and reorder the current character.
         always @(posedge video_clk) begin
             logic [7:0] previous_pixel,previous_request;
+            logic previous_composition,requested_composition;
             logic load_character,active;
             previous_pixel=dut.machine.z_palette_cpu.paired_composition.pixel_priority;
             previous_request=dut.machine.z_palette_cpu.paired_composition.requested_priority;
+            previous_composition=dut.machine.z_palette_cpu.paired_composition.pixel_composition;
+            requested_composition=dut.machine.z_palette_cpu.paired_composition.requested_composition;
             load_character=dut.machine.z_graphics_load;
             active=!dut.machine.video_reset && dut.machine.z_video_enabled;
             #1;
@@ -50,8 +54,13 @@ module z_priority_machine_cdc_tb #(parameter PRIORITY_CPU=1);
                 assert(dut.machine.z_palette_cpu.paired_composition.pixel_priority==
                        (load_character ? previous_request : previous_pixel))
                     else $fatal(1,"live priority bypassed character load");
+                assert(dut.machine.z_palette_cpu.paired_composition.pixel_composition==
+                       (load_character ? requested_composition : previous_composition))
+                    else $fatal(1,"live mode bypassed character load");
                 if(dut.machine.z_palette_cpu.paired_composition.pixel_priority!=dut.machine.z_priority_video)
                     live_priority_differences++;
+                if(dut.machine.z_graphics_mode==2 && dut.machine.z_graphics_valid &&
+                   !dut.machine.z_composition_enabled) excluded_mode_samples++;
             end
         end
     end endgenerate
@@ -88,6 +97,11 @@ module z_priority_machine_cdc_tb #(parameter PRIORITY_CPU=1);
             // Real CPU delay permits each independently written byte to cross.
             emit(8'h06);emit(32);emit(8'h10);emit(8'hfe); // LD B,32 / DJNZ.
         end
+        // Real CPU mode exit into 640x200/64, then return. Priority must not
+        // silently apply the 320x200 rule to this unrelated fetch layout.
+        out_port(16'h1fb0,8'h80);out_port(16'h1a02,0);
+        emit(8'h06);emit(32);emit(8'h10);emit(8'hfe);
+        out_port(16'h1a02,8'h40);out_port(16'h1fb0,8'h90);
         emit(8'h76);
         repeat(8) tick();download=1;
         for(integer n=0;n<size;n++) begin
@@ -124,6 +138,8 @@ module z_priority_machine_cdc_tb #(parameter PRIORITY_CPU=1);
         await_cpu();
         if(PRIORITY_CPU) assert(live_priority_differences>0)
             else $fatal(1,"no live-vs-captured priority changes exercised");
+        if(PRIORITY_CPU) assert(excluded_mode_samples>0)
+            else $fatal(1,"no excluded 640-line-width mode exercised");
         $display("PASS real CPU priority CDC: 256 cold/warm values, held payload, both stopped clocks, retained IPL; video half=%0d ps",video_half);
         $finish;
     end

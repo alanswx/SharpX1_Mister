@@ -308,6 +308,11 @@ Its first 64,000-pixel text-between-screens case passes; the complete cold/warm
 matrix is running. Intensity mapping is provisional.
 Current snapshots require v14 after the internal raw-glyph interface change;
 regenerate old states from native execution, never convert them.
+The [single-screen text follow-up](docs/TURBO_Z_SINGLE_TEXT_STATUS.md) now
+builds for both 320x200/4096 and selected-bank 320x200/64, with captured mode
+eligibility and documented single-screen ordering. Both initial 64,000-pixel
+probes pass; the complete cold/warm matrix is running.
+Native intensity/opacity and hardware remain open.
 
 The headless simulator has been compiled with Verilator 5.044 on macOS.
 The timing/reset regression passes. A 200,000-system-cycle run reports:

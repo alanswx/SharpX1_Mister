@@ -300,6 +300,21 @@ test-machine-z-paired-text: turbo-z-paired
 	    done; \
 	  done
 .PHONY: test-machine-z-paired-text
+test-machine-z-single-text: turbo-z-paired
+	@run_root=$$(mktemp -d obj_dir_v13_z_paired/single-text-matrix-XXXXXX); \
+	  cp tests/test_machine_z_video.py tests/z80_fixture.py obj_dir_v13_z_paired/Vtop $$run_root/ && \
+	  cp ../rtl/legacy/x1_cg8.v $$run_root/cg8_reference.v && \
+	  for mode in full dual64; do \
+	    for priority in 0x00 0x01 0xea 0xeb; do \
+	      for reset in cold warm; do \
+	        reset_arg=; [ $$reset != warm ] || reset_arg=--warm; \
+	        python3 $$run_root/test_machine_z_video.py $$run_root/Vtop --mode $$mode \
+	          --priority $$priority --screen 1 --custom --text $$reset_arg \
+	          --output $$run_root/$$mode-$$priority-$$reset || exit $$?; \
+	      done; \
+	    done; \
+	  done
+.PHONY: test-machine-z-single-text
 turbo-z-multimode:
 	$(MAKE) turbo-z-video Z_MULTIMODE=1 Z_VIDEO_DIR=obj_dir_v13_z_multimode
 .PHONY: turbo-z-multimode
