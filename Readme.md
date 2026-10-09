@@ -275,12 +275,18 @@ is pending. See [the source-bound artifact/evidence](docs/HARDWARE_126_STATUS.md
 The subsequent [CPU/display pin audit](docs/TURBO_Z_PALETTE_CONTRACT.md#cpudisplay-pin-reconciliation-table-4-22)
 corrects a shared renderer/oracle significance error. Connected all-4096-index
 checks and corrected identity/custom retained-reset pixels pass. Earlier
-pixel images remain historical; full baseline/matrix regressions remain running.
+pixel images remain historical; the corrected full-color four-case matrix passes.
 The preceding default v13 baseline suite now finishes successfully. A separate
 [reduced-format experiment](docs/TURBO_Z_MULTIMODE_STATUS.md) compiles and
-passes expanded shifter checks; actual wide/tall/two-screen pixel tests are
-running. Reduced native palette-bank policy and 640x400 internal palette remain
-open, not complete Turbo Z support.
+passes expanded shifter checks and all sixteen frozen identity/custom
+cold/warm wide/tall/selected-screen pixel cases. Reduced native palette-bank
+policy remains open; the separate
+640x400 internal-palette experiment now passes all four cold/warm
+identity/custom isolation cases, not complete Turbo Z support.
+The new [text-palette CPU increment](docs/TURBO_Z_TEXT_PALETTE_STATUS.md)
+passes nine unit profiles and five actual-CPU controls, including all six-bit
+values, DAM isolation and warm retention without refill. It is opt-in,
+non-savable and not connected to text RGB or priority; board defaults are unchanged.
 
 The headless simulator has been compiled with Verilator 5.044 on macOS.
 The timing/reset regression passes. A 200,000-system-cycle run reports:

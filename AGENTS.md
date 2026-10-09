@@ -89,6 +89,12 @@ both palette memories; do not collapse internal entries onto external storage.
 `test-machine-z-internal8` freezes runner/oracle/emitter for four CPU/pixel cases.
 Neither establishes native ASIC WAIT, text palette or priority behavior.
 
+`TURBO_Z_TEXT_CPU` is a separate non-savable CPU-storage experiment; see
+`docs/TURBO_Z_TEXT_PALETTE_STATUS.md`. It does not connect analog text RGB or
+priority. Do not infer text intensity significance from the external graphics
+palette pin map, or advertise the provisional inactive/upper-bit read policy
+as measured ASIC behavior. Existing board revisions leave it disabled.
+
 Snapshot format v13 rejects older states after transaction-bound DAM arming
 (v12 added the RGB12 output port; v11 added opt-in CPU/DMA bus and instrumentation;
 v09 added text-raster state;

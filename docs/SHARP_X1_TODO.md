@@ -96,7 +96,8 @@ The preceding default v13 baseline suite exits zero. A separate
 wide/tall/selected-screen fetch and explicit provisional reduced expansion.
 All-address/five-layout and held-request live-control mutation checks pass.
 Wide/tall custom-palette and selected-screen 0/1 retained-reset CPU pixels
-pass; the complete sixteen-case frozen reduced matrix is running. Corrected
+pass; the complete sixteen-case frozen reduced matrix also exits zero, with
+all sixteen identity/custom cold/warm cases passing. Corrected
 full-color identity/custom cold/warm matrix and current default-source
 timing/GRAM/DAM checks finish successfully.
 Native reduced CPU bank policy, composition and native internal-palette acceptance remain open.
@@ -108,6 +109,13 @@ and captured shifter tags pass. The stronger four individual cold/warm
 identity/custom isolation cases subsequently all finish with exit zero.
 Native priority, live switches/reset races and hardware remain; Z2/Z3 and
 the work groups are not complete.
+
+The separate [text-palette CPU increment](TURBO_Z_TEXT_PALETTE_STATUS.md)
+passes all nine unit profiles and five frozen actual-CPU cases (modes 80h/90h,
+cold/warm, disabled negative). Seven writable six-bit entries, fixed black
+zero, DAM isolation and reset retention are covered. Analog text RGB,
+intensity pin order, `1FC0` priority and native/hardware qualification remain
+open; this does not complete Z2/Z4 or change board defaults.
 
 The expanded [hosted diagnostic run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37865161650)
 now completes successfully on `95c3e4a`. The newer `99eb141` palette-RAM/

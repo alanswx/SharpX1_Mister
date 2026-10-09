@@ -91,14 +91,17 @@ request acceptance, during reads and between pixels at all three clocks:
 `/tmp/x1-z-multimode-live-controls.log`. This is a held-request test, not
 full-machine live-switch or CDC placement acceptance.
 
-The sixteen-case reduced-mode matrix now runs all four configurations under
+The sixteen-case reduced-mode matrix passes all four configurations under
 both identity/custom palettes and cold/warm reset. It copies the executable,
 Python oracle and Z80 emitter into a unique ignored directory before starting;
 subsequent source edits/builds cannot change that run. Current directory:
 `verilator/obj_dir_v13_z_multimode/mode-matrix-jvzqF9/`, log
 `/tmp/x1-z-multimode-frozen-matrix.log`. Runner hash remains the one above;
 fixture hash is `d5d8fb8e0f660a716199093bcc46c892bbf0afdc4d50317e53a25810d2fdf6d9`.
-The full matrix is in progress, not yet accepted.
+The full matrix finishes with exit zero on October 9, 2026: all sixteen cases
+pass. This qualifies the stated provisional pixel policy, not native ASIC
+compatibility. Every case checks all active pixels; warm cases require
+post-reset initialization without refilling palette/GRAM/text memory.
 
 The preceding default v13 baseline suite finishes successfully with frozen
 runner `fb0b6a7764210609335083c07255122278c16a80776f59fa0278fff98572ca16`
@@ -116,7 +119,7 @@ boundary combinations (`/tmp/x1-z-multimode-wrapper-checks.log`). Explicit CDC
 source duplicates were removed from wrapper lists after the manifest move.
 These checks use a PLL stand-in; they do not verify fitting or the scaler.
 
-Still required: both palette types, text/graphics priority and simultaneous
+Still required: text/graphics priority and simultaneous
 two-screen composition, reduced CPU palette controls, mode/reset races,
 native Z software and source-bound fitting/CDC/physical video. Z3 and the
 user's work groups are not completed by this experiment.

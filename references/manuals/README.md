@@ -1,5 +1,19 @@
 # Downloaded Sharp X1 documentation
 
+## Output DAC manufacturer's data book
+
+`Fujitsu_1990_Linear_Products_Data_Book.pdf`: 31,259,014 bytes, 870 pages,
+SHA-256 `8360ba1bd0e9fc408f385daee32faa12cf52e35aad843b5561bd5f73e6c34268`.
+Retrieved from the [Bitsavers mirror](https://ftpmirror.your.org/pub/misc/bitsavers/components/fujitsu/_dataBooks/1990_Fujitsu_Linear_Products_Data_Book.pdf);
+the main Bitsavers URL returned 403 and web PDF extraction rejected the large
+mirror file. Local `pdfinfo` and text extraction succeeded. PDF pages 668/669
+(printed 7-157/7-158) were rendered and visually inspected: the exact
+MB40776H pin assignment and block diagram, manufacturer February 1988
+Edition 1.0. The other 868 pages were not visually audited; text search of
+the contents only located the device. The scan remains ignored, not bundled.
+This confirms six-bit DAC input significance, not opaque palette-ASIC wiring
+or native text RGB intensity. See the [contract follow-up](../../docs/TURBO_Z_PALETTE_CONTRACT.md).
+
 ## October 9 technical-book scans
 
 Retrieved image-only X1-Techknow chapters/appendices from the

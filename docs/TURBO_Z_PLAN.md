@@ -129,13 +129,14 @@ extra GRAM. The digital RGB output reduces analog multi-mode colors to eight
   [multi-mode extension](TURBO_Z_MULTIMODE_STATUS.md) now passes generated
   640x200/64, 320x400/64 and both selected 320x200/64 screen captures after
   retained reset under an explicit provisional effective-pair expansion.
-  Its sixteen-case cold/warm palette matrix is running. Internal 640x400/8,
+  Its sixteen-case identity/custom cold/warm palette matrix passes. Native internal 640x400/8,
   simultaneous screen composition and native ASIC/priority gates remain open;
   this does not close Z3.
   A separate [internal8 extension](TURBO_Z_INTERNAL8_STATUS.md) now connects
   programmable 640x400/8 with all-pixel identity/custom retained-reset checks
   and custom cold cross-store isolation. Exhaustive aliases/nibbles and
-  captured palette-store tags pass. Full cold/warm isolation, native/composition
+  captured palette-store tags pass. All four strengthened cold/warm isolation
+  cases pass. Native/composition
   and hardware gates remain; diagnostic formats alone do not complete Z3.
   Verify MA wrap, screen-page capacity, priority/transparency and blackclip
   before/after palette stages; compare every active pixel and native HS/VS.
@@ -143,6 +144,10 @@ extra GRAM. The digital RGB output reduces analog multi-mode colors to eight
   transparency and model-specific SCRN/blackclip readback. Manual pages 4–5
   distinguish compatibility/multi-mode border/black rules. Test text/graphics
   overlap with underline, blink/reverse, Kanji halves and all color controls.
+  The separate [CPU text-palette increment](TURBO_Z_TEXT_PALETTE_STATUS.md)
+  passes nine unit profiles and five actual-CPU controls, with all six-bit
+  values and retained reset. It does not connect analog text RGB or priority;
+  intensity wire order and native/hardware access policy remain open.
 - [ ] Z5: standard stereo FM (YM2151), board CTC/interrupts and PSG mixing.
   The [standalone FM foundation](TURBO_Z_FM_STATUS.md) now executes genuine
   JT51 bus/timer/stereo notes and original signed mixer tests at all three

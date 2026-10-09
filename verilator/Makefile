@@ -52,6 +52,14 @@ $(HEADLESS_DIR)/z-internal-palette/Vz_internal_palette_tb: tests/z_internal_pale
 	$(V) --binary --timing --assert --top-module z_internal_palette_tb --Mdir $(@D) \
 	  -j 4 tests/z_internal_palette_tb.sv ../rtl/x1_z_palette_ram.sv
 .PHONY: test-z-internal-palette
+test-z-text-palette: $(HEADLESS_DIR)/z-text-palette/Vz_text_palette_tb
+	@for half in 17500 11640 25000; do for hold in 1 4 7; do \
+	  ./$(HEADLESS_DIR)/z-text-palette/Vz_text_palette_tb +VIDEO_HALF_PS=$$half +HOLD_EDGES=$$hold || exit 1; done; done
+$(HEADLESS_DIR)/z-text-palette/Vz_text_palette_tb: tests/z_text_palette_tb.sv ../rtl/x1_z_text_palette.sv ../rtl/x1_cdc_snapshot.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module z_text_palette_tb --Mdir $(@D) \
+	  -j 4 tests/z_text_palette_tb.sv ../rtl/x1_z_text_palette.sv ../rtl/x1_cdc_snapshot.sv
+.PHONY: test-z-text-palette
 
 test-z-palette-access: $(HEADLESS_DIR)/z-palette-access/Vz_palette_access_tb
 	@for half in 17500 11640 25000; do for rate in 1 4 7; do \
@@ -243,6 +251,24 @@ test-machine-z-internal8: turbo-z-internal8
 	    done; \
 	  done
 .PHONY: test-machine-z-internal8
+Z_TEXT_DIR ?= obj_dir_v13_z_text_cpu
+turbo-z-text-cpu: $(Z_TEXT_DIR)/Vtop
+$(Z_TEXT_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
+	$(V) -cc --timing --assert --trace-fst --exe --build -j 4 --Mdir $(Z_TEXT_DIR) --top-module top \
+	  -GTURBO=1 -GTURBO_Z_PALETTE_CPU=1 -GTURBO_Z_TEXT_CPU=1 \
+	  -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_Z_PALETTE_CPU -DX1_Z_TEXT_CPU" \
+	  -MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
+.PHONY: turbo-z-text-cpu
+test-machine-z-text-cpu: turbo-z-text-cpu headless
+	@run_root=$$(mktemp -d $(Z_TEXT_DIR)/cpu-matrix-XXXXXX); \
+	  cp tests/test_machine_z_text.py tests/z80_fixture.py $(Z_TEXT_DIR)/Vtop $$run_root/ && \
+	  cp $(HEADLESS_EXE) $$run_root/Vdisabled && \
+	  python3 $$run_root/test_machine_z_text.py $$run_root/Vtop --output $$run_root/cold && \
+	  python3 $$run_root/test_machine_z_text.py $$run_root/Vtop --warm --output $$run_root/warm && \
+	  python3 $$run_root/test_machine_z_text.py $$run_root/Vtop --mode 0x90 --output $$run_root/c64-cold && \
+	  python3 $$run_root/test_machine_z_text.py $$run_root/Vtop --mode 0x90 --warm --output $$run_root/c64-warm && \
+	  python3 $$run_root/test_machine_z_text.py $$run_root/Vdisabled --expect-disabled --output $$run_root/disabled
+.PHONY: test-machine-z-text-cpu
 test-machine-z-video: turbo-z-video
 	@run_root=$$(mktemp -d $(Z_VIDEO_DIR)/pixel-matrix-XXXXXX); \
 	  cp tests/test_machine_z_video.py tests/z80_fixture.py $$run_root/ && \

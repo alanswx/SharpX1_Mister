@@ -176,6 +176,27 @@ CPU/display index oracles; then real ownership/WAIT and RGB12 renderer tests.
 Active-display contention, selector lifetime across control changes, default
 ASIC latches and inactive-mode behavior remain open. Z2 is not complete.
 
+### DAC pin-weight follow-up
+
+Re-rendered CZ-880 sheet 46 and inspected the archived Fujitsu MB40776H
+manufacturer sheet (February 1988 Edition 1.0, data-book PDF 668/669).
+Manufacturer D1 is MSB at physical pin 10, D6 is LSB at pin 15. The X1 sheet
+uses zero-based D0..D5 labels for those same physical pins. DA0..DA3 feed
+IC71 pins 10..13, DA4..DA7 feed IC72, and DA8..DA11 feed IC73. Pins 14/15
+are grounded: the four palette wires occupy the DAC's **most significant**
+four positions, not a complete four-bit DAC or its least significant inputs.
+Thus DA0/4/8 have the highest component weight and DA3/7/11 the lowest of
+the used wires. No filtering/gain/intensity calibration is inferred.
+
+Source and inspected scope: [manufacturer scan](https://ftpmirror.your.org/pub/misc/bitsavers/components/fujitsu/_dataBooks/1990_Fujitsu_Linear_Products_Data_Book.pdf),
+[local hash/inventory](../references/manuals/README.md). The figure-4-32 text
+expansion still lacks explicit DA pin labels; DAC significance alone does
+not identify its left-to-right output wires or the ASIC's DB-to-DA transform.
+Do not silently reverse CPU color nibbles or choose a text intensity policy
+from this finding. A CPU-only six-bit text-storage increment can qualify
+the documented read/write/retention path independently; renderer acceptance
+must still distinguish codes 01 and 10 using stronger evidence.
+
 ## Multi-mode fetch requirements from the same chapter
 
 PDF pages 16–22 (printed 120–126) were also visually inspected. Diagrams
