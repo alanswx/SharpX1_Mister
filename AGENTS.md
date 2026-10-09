@@ -124,14 +124,23 @@ The PPI width latch is retained during this reset; do not assume it clears.
 See `docs/TURBO_Z_PAIRED_VIDEO_STATUS.md` for current composition and running
 pixel gates. This diagnostic does not qualify rendered pixels or hardware CDC placement.
 
-Snapshot format v14 rejects older states after exposing raw glyph color
+Snapshot format v15 rejects older states after adding the shared serial interface
+(v14 exposed raw glyph color)
 (v13 added transaction-bound DAM arming)
 (v12 added the RGB12 output port; v11 added opt-in CPU/DMA bus and instrumentation;
 v09 added text-raster state;
 v08 added X3 PPI sampling; v07 added PCG/metadata state). Regenerate from native boot,
 never convert or patch state bytes to bypass model compatibility checks.
 DMA-enabled states also require DMA revision 7 after separating an auto-loaded
-first destination from later starting-buffer writes; all current profiles need v14.
+first destination from later starting-buffer writes; all current profiles need v15.
+`TURBO_SIO=1` is an opt-in shared-machine functional CZ-851 profile, currently
+tested through `test-machine-sio`, not an enabled board/C++ runner revision.
+Serial inputs must already be synchronous to SYS; no physical pin CDC is
+implemented. CTC ZC remains a one-SYS-event route, not a native-width waveform.
+The test uses an original ioctl-loaded IPL and real serial pins/CTC timers;
+CTS polling releases handlers, with no fake machine port or forced state.
+Both DMA-present and absent IEI pass-through cases need retained-IPL reset
+qualification. Ready is not connected to DMA; do not invent that native wire.
 Use `docs/TURBO_TEXT_RASTER_STATUS.md` for the provisional digital expansion/
 underline policy and CRTC R9=31/R5=0 regression. Unit success does not complete
 the documented row/width or native BASIC acceptance matrix. Mode 01 graphics

@@ -46,6 +46,13 @@ set_global_assignment -name VERILOG_FILE rtl/x1_clock_enables.v
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_ctc.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_irq_bridge.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_dma_irq_bridge.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_sio_decode.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_sio_async.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_sio_irq.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_sio_irq_bridge.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_sio_clock_select_851.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_sio_clocks_851.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_sio_edge_clock.sv
 set_global_assignment -name VERILOG_FILE rtl/legacy/x1_vid.v
 set_global_assignment -name VERILOG_FILE rtl/legacy/crtc/crtc6845s.v
 set_global_assignment -name VERILOG_FILE rtl/legacy/x1_cg8.v

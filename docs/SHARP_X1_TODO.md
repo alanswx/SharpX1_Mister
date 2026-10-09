@@ -14,10 +14,11 @@ support before optional Turbo extensions.
 
 ## Active goal: items 1–6 and Turbo Z (October 6)
 
-Source `c7c35b2` now requalifies all five commercial titles from fresh v14
+The shared-SIO increment now requalifies all five commercial titles from fresh v15
 native boot: Druaga, Xevious, Mappy and Galaga movement, Galaga firing, and
 Shanghai cursor/matching-pair removal. Exact RGB/dump/state/report and private
-input-preservation checks pass on the frozen ordinary fast runner; see
+input-preservation checks pass on the frozen ordinary fast runner
+(`f484bede6fde9a1f0bbba6ff30b6f5727c05041762a5b6179520b3b094e987f9`); see
 [commercial evidence](COMMERCIAL_COMPATIBILITY.md). This is not native Turbo,
 Arcus/Bastard Special, delay-aware or new-RBF hardware acceptance. The earlier
 `9748410` checkpoint's Turbo single-clock RBF fits and passes all eight constrained
@@ -239,7 +240,11 @@ IUS and checks nested SIO/DMA/CTC returns, held-vector/channel-reset ownership
 and stale-ACK quarantine. Its first downstream service models are synthetic;
 subsequent real SIO/DMA/CTC and actual-CPU nested IM2 fixtures pass at CE=1/4/7,
 including stopped-CE concurrent service reset and retained-program reboot.
-Shared-machine integration, broader reset phases and native timing remain open.
+The subsequent [shared-machine increment](SIO_MACHINE_STATUS.md) now passes
+generated IPL CPU/RX/WAIT/nested IM2 and retained reset with DMA present/absent.
+Broader reset phases, native clocks/pins/software, enabled snapshots and FPGA
+integration remain open. Ordinary profiles remain disabled; snapshots now
+require v15 and older private states must be regenerated, never converted.
 The [October 9 SIO machine-wiring audit](SIO_MACHINE_WIRING_AUDIT.md) now
 records actual SIO/0 bus/clock pins, DTRB-controlled A clock selection,
 mouse-related B controls, model-specific carrier inputs and the absence of a

@@ -1,6 +1,48 @@
 # Private commercial-game bring-up
 
-## Current v14 qualification: all five bounded gameplay gates pass
+## Current v15 qualification: all five bounded gameplay gates pass
+
+October 9: after the default-off shared SIO integration, a fresh ordinary
+fast/savable v15 runner has SHA-256
+`f484bede6fde9a1f0bbba6ff30b6f5727c05041762a5b6179520b3b094e987f9`.
+All five independently launched qualification processes terminate with exit
+zero. Every collector records `gameplay_verified=true`, `unchanged_inputs=true`,
+control return code zero and successful native boot stages with zero disk
+writes. Galaga's additional real firing check also exits zero.
+
+| Title | Bounded actual native-input evidence |
+|---|---|
+| Xevious | Player `(30,40) → (36,40)` on right input |
+| Tower of Druaga | Player `(68,32) → (67,32)` on left input |
+| Mappy | Player `(129,84) → (126,84)` on left input |
+| Galaga | Player `(32,24) → (40,24)` on right input; active enemy wave and native firing/projectile travel |
+| Shanghai | Cursor `(488,167) → (544,160)`; actual matching-pair removal count `0 → 2` |
+
+Frozen ignored root:
+`verilator/obj_dir_v15_sio_machine/games-cRZFOe/`. The runner, IPL and unchanged
+collector/gameplay/Shanghai-preparation/Galaga-fire helpers and keys are frozen
+and hashed **before** qualification. Machine/runner sources are separately
+copied there for provenance. Each new native boot uses the same private media
+as the v14 checkpoint below, starts with IPL/ioctl rather than a restored old
+state, and runs the unchanged total 16-second boot in 8+8-second checkpoints.
+Subsequent native/control durations and original input assertions are retained.
+No RAM/game patches, new input substitutions or state conversion were used.
+
+An independent final audit checks all five terminal collector flags/return
+codes, original/frozen input SHA-256, every saved native-prefix state hash,
+root/support manifests and all five copied executable hashes. SYS=32 MHz,
+VID=28.571428 MHz and cold reset=4159 SYS edges; actual frame/dump/report/state
+repeatability checks remain enabled. Individual logs are
+`/tmp/x1-v15-{xevious,druaga,mappy,galaga,shanghai}.log`.
+
+This is ordinary base-X1 **bounded fast-model gameplay** on these exact
+releases, not full-game completion, delay-aware gameplay, native SIO/Turbo Z,
+Arcus/Bastard Special or current-source physical hardware acceptance. SIO
+remains off in this runner. The [v15 ordinary suites](BASELINE_V15_STATUS.md)
+and [enabled SIO generated diagnostics](SIO_MACHINE_STATUS.md) are separate
+evidence. Private originals, screenshots and states remain ignored/unbundled.
+
+## Historical v14 qualification: all five bounded gameplay gates pass
 
 October 9: source `c7c35b2` builds a fresh ordinary fast/savable runner with
 snapshot v14. Its SHA-256 is

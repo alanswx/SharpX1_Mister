@@ -1,6 +1,6 @@
 // Sharp X1 base-machine integration. Shared by MiSTer and simulation.
 // See docs/BASE_X1_CONTRACT.md for address-map sources and limitations.
-module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0, TURBO_DSW = 241, TURBO_DMA_RESTART_IRQ = 0, TURBO_Z_PALETTE_CPU = 0, TURBO_Z_VIDEO = 0, TURBO_Z_MULTIMODE = 0, TURBO_Z_INTERNAL8 = 0, TURBO_Z_TEXT_CPU = 0) (
+module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0, TURBO_DSW = 241, TURBO_DMA_RESTART_IRQ = 0, TURBO_Z_PALETTE_CPU = 0, TURBO_Z_VIDEO = 0, TURBO_Z_MULTIMODE = 0, TURBO_Z_INTERNAL8 = 0, TURBO_Z_TEXT_CPU = 0, TURBO_SIO = 0) (
     input clk_sys, clk_28636, reset,
     input pal, scandouble,
     input ioctl_download,
@@ -10,6 +10,11 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     input [7:0] ioctl_dout,
     output ioctl_wait,
     input ps2_clk_in, ps2_data_in,
+    // Experimental serial inputs are already synchronous to clk_sys.
+    // Board pin CDC/electrical mapping is not supplied by this interface.
+    input sio_external_rx_clock, sio_external_tx_clock,
+    input [1:0] sio_rxd, sio_cts_n, sio_dcd_n,
+    output [1:0] sio_txd, sio_rts_n, sio_dtr_n,
     input [7:0] joya_n, joyb_n,
     input disk_ready, img_mounted, disk_wp,
     input [23:0] img_size,
@@ -136,7 +141,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         assign dma_rd = 1; assign dma_wr = 1;
         assign dma_a = 0; assign dma_data_out = 0;
         assign dma_data = 8'hff; assign dma_unsupported = 0;
-        assign dma_irq = 0; assign dma_ieo = 1;
+        assign dma_irq = 0; assign dma_ieo = dma_iei;
         assign dma_irq_pending = 0; assign dma_in_service = 0;
         assign dma_vector = 8'hff;
     end endgenerate
@@ -168,7 +173,8 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     wire [7:0] z_text_data;
     wire z_priority_selected,z_priority_tail;
     wire [7:0] z_priority_data;
-    wire machine_wait_n=cg_wait_n && z_palette_wait_n;
+    wire sio_wait_n;
+    wire machine_wait_n=cg_wait_n && z_palette_wait_n && sio_wait_n;
     generate if(TURBO_Z_PALETTE_CPU) begin : z_palette_cpu
         // Explicit palette experiments; subordinate options add video/internal
         // and text CPU storage. No native Z signature or general decode claim.
@@ -427,6 +433,44 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     wire [3:0] ctc_zc;
     wire ctc_irq, ctc_ack, ctc_reti, ctc_iei, ctc_ieo, ctc_selected;
     wire machine_irq, keyboard_ack;
+    wire sio_irq,sio_ieo,sio_ack,sio_iei,sio_reti,sio_in_service;
+    wire [7:0] sio_vector,sio_data;
+    wire sio_selected,sio_read_tail,sio_unsupported;
+    wire [1:0] sio_rx_overflow,sio_tx_overflow;
+    generate if(TURBO && TURBO_SIO) begin : turbo_sio
+        wire [1:0] rx_clock,tx_clock,rx_tick,tx_tick,sampled_rxd,flow_wait;
+        x1_sio_decode decode(.enabled(!dma_owner),.reset(core_reset),.dam(dam),
+            .m1_n(m1),.iorq_n(iorq),.rd_n(rd),.wr_n(wr),.address(a),
+            .selected(sio_selected),.read_access(),.write_access());
+        // CTC ZC is currently a terminal EVENT, not a qualified native pin
+        // waveform. Keep this opt-in route experimental, never a board claim.
+        x1_sio_clocks_851 clocks(.dtr_b_n(sio_dtr_n[1]),
+            .external_rx_clock(sio_external_rx_clock),.external_tx_clock(sio_external_tx_clock),
+            .ctc_clock(ctc_zc),.rx_clock(rx_clock),.tx_clock(tx_clock));
+        x1_sio_edge_clock events(.clk(clk_sys),.reset(core_reset),.ce(pe4M4),
+            .rx_clock(rx_clock),.tx_clock(tx_clock),.rxd(sio_rxd),
+            .rx_tick(rx_tick),.tx_tick(tx_tick),.sampled_rxd(sampled_rxd),
+            .rx_overflow(sio_rx_overflow),.tx_overflow(sio_tx_overflow));
+        x1_sio_interrupt #(.FLOW_ENABLE(1)) device(.clk(clk_sys),.ce(pe4M4),.reset(core_reset),
+            .cpu_cs(sio_selected),.cpu_rd_n(rd),.cpu_wr_n(wr),.address(a[1:0]),
+            .cpu_din(data_out),.cpu_dout(sio_data),.rx_tick(rx_tick),.tx_tick(tx_tick),
+            .rxd(sampled_rxd),.cts_n(sio_cts_n),.dcd_n(sio_dcd_n),
+            .txd(sio_txd),.rts_n(sio_rts_n),.dtr_n(sio_dtr_n),.unsupported(sio_unsupported),
+            .iei(sio_iei),.acknowledge(sio_ack),.reti(sio_reti),.irq(sio_irq),.ieo(sio_ieo),
+            .service_active(sio_in_service),.ack_vector(sio_vector),.wait_n(flow_wait),.ready_n());
+        assign sio_wait_n=&flow_wait;
+        reg read_tail;
+        always @(posedge clk_sys)
+            if(core_reset || mem_read) read_tail<=0;
+            else if(sio_selected && io_read) read_tail<=1;
+        assign sio_read_tail=read_tail && mreq;
+    end else begin : no_turbo_sio
+        assign sio_irq=0;assign sio_ieo=sio_iei;assign sio_in_service=0;
+        assign sio_vector=8'hff;assign sio_data=8'hff;
+        assign sio_selected=0;assign sio_read_tail=0;assign sio_wait_n=1;
+        assign sio_txd=3;assign sio_rts_n=3;assign sio_dtr_n=3;
+        assign sio_unsupported=0;assign sio_rx_overflow=0;assign sio_tx_overflow=0;
+    end endgenerate
     // Legacy schematic-derived wiring: constant channel 0, 2 MHz channels
     // 1/2 and channel-0 terminal-count cascade into channel 3. Physical
     // phase/pulse-width and inter-chip priority remain hardware review gates.
@@ -438,7 +482,21 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         .iei(ctc_iei), .irq(ctc_irq), .ieo(ctc_ieo), .ack(ctc_ack),
         .reti(ctc_reti), .vector(ctc_vector), .zc(ctc_zc)
     );
-    generate if (TURBO_DMA_IRQ) begin : completion_irq_chain
+    generate if(TURBO && TURBO_SIO) begin : serial_irq_chain
+        x1_sio_irq_bridge irq_bridge(
+            .clk(clk_sys),.reset(core_reset),.m1_n(m1),.mreq_n(mreq),
+            .iorq_n(iorq),.rd_n(rd),.data(di),.upstream_iei(1'b1),
+            .sio_irq(sio_irq),.sio_ieo(sio_ieo),.sio_in_service(sio_in_service),
+            .sio_vector(sio_vector),.sio_ack(sio_ack),.sio_iei(sio_iei),.sio_reti(sio_reti),
+            .dma_irq(dma_irq),.dma_ieo(dma_ieo),.dma_in_service(dma_in_service),
+            .dma_vector(dma_vector),.dma_ack(dma_ack),.dma_iei(dma_iei),.dma_reti(dma_reti),
+            .ctc_irq(ctc_irq),.ctc_ieo(ctc_ieo),.ctc_vector(ctc_vector),
+            .keyboard_irq(!sub_int_n),.keyboard_vector(sub_data),
+            .irq(machine_irq),.keyboard_ack(keyboard_ack),.ctc_ack(ctc_ack),
+            .ctc_iei(ctc_iei),.ctc_reti(ctc_reti),.ack_vector(irq_vector));
+        assign ctc_selected=!m1 && !iorq && !sio_irq && !dma_irq && ctc_irq;
+    end else if (TURBO_DMA_IRQ) begin : completion_irq_chain
+        assign sio_iei=1;assign sio_ack=0;assign sio_reti=0;
         // Inspected CZ-851/852 chain; upstream SIO/external are absent here.
         x1_dma_irq_bridge irq_bridge (
             .clk(clk_sys),.reset(core_reset),.m1_n(m1),.mreq_n(mreq),
@@ -452,6 +510,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         );
         assign ctc_selected = !m1 && !iorq && !dma_irq && ctc_irq;
     end else begin : compatible_irq_chain
+        assign sio_iei=1;assign sio_ack=0;assign sio_reti=0;
         assign dma_iei = 1; assign dma_ack = 0; assign dma_reti = 0;
         assign machine_irq = compatible_irq;
         assign keyboard_ack = compatible_keyboard_ack;
@@ -466,9 +525,9 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     x1_irq_bridge irq_bridge (
         .clk(clk_sys), .reset(core_reset), .m1_n(m1), .mreq_n(mreq),
         .iorq_n(iorq), .rd_n(rd), .data(di),
-        .keyboard_irq(TURBO_DMA_IRQ ? 1'b0 : !sub_int_n),
-        .ctc_irq(TURBO_DMA_IRQ ? 1'b0 : ctc_irq), .ctc_vector(ctc_vector),
-        .ctc_ieo(TURBO_DMA_IRQ ? 1'b1 : ctc_ieo), .keyboard_vector(sub_data),
+        .keyboard_irq((TURBO_DMA_IRQ || (TURBO && TURBO_SIO)) ? 1'b0 : !sub_int_n),
+        .ctc_irq((TURBO_DMA_IRQ || (TURBO && TURBO_SIO)) ? 1'b0 : ctc_irq), .ctc_vector(ctc_vector),
+        .ctc_ieo((TURBO_DMA_IRQ || (TURBO && TURBO_SIO)) ? 1'b1 : ctc_ieo), .keyboard_vector(sub_data),
         .irq(compatible_irq), .keyboard_ack(compatible_keyboard_ack), .ctc_ack(compatible_ctc_ack),
         .ctc_iei(compatible_ctc_iei), .ctc_reti(compatible_ctc_reti),
         .ctc_selected(compatible_ctc_selected), .ack_vector(compatible_vector)
@@ -558,6 +617,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     assign di = mem_read ? (rom_selected ? (TURBO || a < 16'h1000 ? ipl_data : 8'hff)
                                          : ram_data)
               : !m1 && !iorq ? (TURBO ? irq_vector : sub_data)
+              : (sio_selected && io_read) || sio_read_tail ? sio_data
               : sub_cs && io_read && !dam ? sub_data
               : ppi_cs && io_read ? ppi_data
               : ctc_cs && io_read ? ctc_data

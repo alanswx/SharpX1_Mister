@@ -6,7 +6,7 @@ PSG tests. MiSTer and simulation both use `rtl/sharpx1.v`; the board wrapper
 wires the exposed interfaces and passes lint with warnings. Bounded base video/
 native input checks and a separate eighteen-case DMA restart hardware matrix
 now pass on mister126; this is not full hardware validation.
-The [fresh ordinary v14 baseline](BASELINE_V14_STATUS.md) passes the complete
+The [fresh ordinary v15 baseline](BASELINE_V15_STATUS.md) passes the complete
 delay-aware suite, and [five commercial games](COMMERCIAL_COMPATIBILITY.md)
 pass fresh native fast-model gameplay/control tests. Neither qualification
 enables or certifies the optional Z/serial/FM/Kanji profiles below.
@@ -28,7 +28,7 @@ changes and runtime evidence.
 | Joystick ports | Both PSG inputs tested; MiSTer bit order corrected and 64 combinations verified; hardware pending | Partial |
 | Z80 CTC | Opt-in Turbo: CE-based four-channel timers/counters, vectors, priority/service and RETI connected; CPU IM2/keyboard coexistence and stretched ACK tested; exact pin timing/ASIC aliases/hardware pending | Present |
 | Z80 DMA | Opt-in shared completion/restart IRQ, CPU/FDC/video/reset/search and buffered-handler snapshots pass simulation; separate [single-clock hardware revision](DMA_BOARD_BUILD_STATUS.md) passes all-corner constrained fit, six memory and twelve A/B restart CPU diagnostics; mixed Ready/restart, broader concurrent/reset/savable, sequential non-Byte stop, variable timing, native/exact pin timing remain open; existing board defaults disabled | Partial MR16 firmware replacement, not the new standalone engine |
-| Z80 SIO | Shared-machine device still missing; standalone formats/FIFO/IRQ/error/flow/idle Send Break, active-character disable/resume, WR3 CTS/DCD auto-enable, asynchronous RTS drain and table-28 one-to-five-bit TX encoding (7,908 short/long/malformed cases), A/B SIO/DMA pacing and combined CPU ownership/error recovery plus directed IM2/stopped-CE ACK pass at CE=1/4/7; [conservative decode](SIO_DECODE_STATUS.md) passes exhaustive address/control and actual CPU isolation tests; native reset arming/remaining external sources, exact modem/clock phases, x1/receive/busy break/exact flow/full arbitration/integration pending | Stub |
+| Z80 SIO | Default-off [shared-machine functional increment](SIO_MACHINE_STATUS.md): generated IPL CPU/RX/WAIT/nested IM2/retained reset pass with DMA present/absent; standalone formats/FIFO/IRQ/error/flow/idle Send Break, disable/resume, WR3 automatic modem gating, asynchronous RTS drain and 7,908 short/long/malformed TX cases remain qualified separately; native clock width/phase/pin CDC, remaining serial modes, mouse/native software, enabled snapshots and FPGA integration pending; board/C++ profiles off | Stub |
 | MB8877 floppy controller | WD1793-family D88 engine; A/B read/write/protection and owner-drain tests. ID/data CRC, C/S and 75 metadata/reset-drain groups plus frozen fast/delay-aware CPU matrices pass. Protected native A/B boot and generated DMA reads pass hardware; native metadata, physical writes/mechanics/format and exact errors remain open; see [metadata status](D88_WRITE_METADATA_STATUS.md) | Partial firmware emulation |
 | Disk-image backend | D88 host preflight plus shared-RTL bounds/invalid not-ready and pending-read replacement/eject/reset quarantine tested; copy-only writes verified; physical faults/permanent stalls pending | Missing from historical harness |
 | RTC | Partial firmware state | Partial firmware state |

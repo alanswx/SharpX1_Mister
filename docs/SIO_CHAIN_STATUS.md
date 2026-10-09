@@ -148,3 +148,8 @@ Both targets are selected by hosted CI; a hosted result remains unclaimed.
 Next gates are default-off shared-machine integration, additional concurrent
 reset/Ready/serial modes, native clocks/pin CDC, snapshot and FPGA/native
 software acceptance. This does not complete work groups 1–6 or Turbo Z.
+
+The subsequent [shared-machine increment](SIO_MACHINE_STATUS.md) connects this
+bridge and the real SIO in a default-off functional profile. Generated IPL
+CPU/RX/WAIT/nested service and retained reset pass with DMA present/absent;
+native clocks/pins/software, enabled snapshots and hardware remain open.

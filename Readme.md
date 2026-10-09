@@ -23,17 +23,22 @@ current wiring audit and [downloaded hardware manuals](references/manuals/README
 for schematics and machine documentation.
 The standalone [SIO clock-event adapter](docs/SIO_EDGE_CLOCK_STATUS.md) now
 preserves serial edges and sampled RX data across enable gaps; independent
-queue tests and real CTC/SIO diagnostics pass. Native clock selection, pin CDC,
-machine integration and serial/mouse acceptance remain open.
+queue tests and real CTC/SIO diagnostics pass. Shared event routing is opt-in;
+native clock waveforms, pin CDC and serial/mouse acceptance remain open.
 The standalone [SIO bus decoder](docs/SIO_DECODE_STATUS.md) now passes exhaustive
 address/control checks and real Z80 neighboring-port/DAM/enable isolation,
 alongside the existing CPU IRQ/flow/reset diagnostics. It is not yet connected
-to the shared machine or a hardware profile.
+to ordinary or hardware profiles. A new default-off shared-machine profile is
+qualified separately below.
 The new [SIO interrupt-chain bridge](docs/SIO_CHAIN_STATUS.md) checks nested
 service ownership and stable ACK vectors. A new actual-CPU/real-SIO/DMA/CTC
 fixture passes nested IM2, received bytes, DMA payload and retained-program
-reset/reboot at three enable divisors. Shared-machine/native timing and
-hardware integration remain open.
+reset/reboot at three enable divisors. The subsequent
+[shared-machine SIO increment](docs/SIO_MACHINE_STATUS.md) adds conservative
+decode, event-clock routing and SIO → DMA → CTC → keyboard arbitration;
+generated IPL-driven CPU/RX/WAIT/retained-reset checks pass with DMA present
+and absent. Native clock/pin CDC, mouse/software, snapshots of an enabled SIO
+profile and FPGA integration remain open. Existing board/C++ profiles stay off.
 The [CZ-851 selector audit](docs/SIO_MACHINE_WIRING_AUDIT.md) now adds verified
 DTRB polarity/source switching and documents the differing CZ-880 drawing;
 CZ-851 CTC1-to-A-alternate and CTC2-to-B routes are now traced and tested with
@@ -332,7 +337,7 @@ An opt-in [analog text composition follow-up](docs/TURBO_Z_TEXT_COMPOSITION_STAT
 now connects raw glyph color and retained text palette to paired ordering.
 Its first 64,000-pixel text-between-screens case passes; the complete cold/warm
 matrix is running. Intensity mapping is provisional.
-Current snapshots require v14 after the internal raw-glyph interface change;
+Current snapshots require v15 after the shared serial-interface increment;
 regenerate old states from native execution, never convert them.
 The [single-screen text follow-up](docs/TURBO_Z_SINGLE_TEXT_STATUS.md) now
 builds for both 320x200/4096 and selected-bank 320x200/64, with captured mode
@@ -349,14 +354,19 @@ new native-game/Quartus/hardware acceptance. A subsequent
 graphics-on-top evidence; corrected full/paired text-visible warm windows now
 pass all 64,000 pixels and require every nonzero text color.
 The [fresh v14 commercial qualification](docs/COMMERCIAL_COMPATIBILITY.md)
-now passes all five bounded native gameplay gates on the frozen ordinary
+previously passed all five bounded native gameplay gates on the frozen ordinary
 fast runner: Druaga, Xevious, Mappy and Galaga movement, Galaga firing,
 and Shanghai cursor/matching-pair removal. Original media and frozen support
 files remain unchanged. This is not optional Turbo Z, delay-aware gameplay
 or current-source hardware acceptance.
-The [current-source Turbo single-clock RBF](output_files/quartus-linux-xsC7rEDR/sharpx1_turbo_single.rbf)
+After shared SIO integration, [both complete ordinary v15 suites](docs/BASELINE_V15_STATUS.md)
+and fresh v15 native boot/gameplay qualification of all five titles pass again.
+The serial profile remains off in that ordinary game runner; generated enabled
+SIO diagnostics are qualified separately, not by those game results.
+The [latest fitted Turbo single-clock RBF](output_files/quartus-linux-xsC7rEDR/sharpx1_turbo_single.rbf)
 now builds on Quartus 17.0.2 and passes all eight constrained timing corners;
 [source/hash and exclusions](docs/HARDWARE_126_STATUS.md) are recorded separately.
+It binds `f013d02`, predates the shared serial increment, and has SIO disabled.
 It is not deployed or hardware-qualified and does not enable Z/X3/DMA/Kanji/SIO/FM.
 
 The headless simulator has been compiled with Verilator 5.044 on macOS.

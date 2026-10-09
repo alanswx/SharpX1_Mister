@@ -14,6 +14,25 @@ FM_MASTER_HZ ?= 32000000
 
 all: headless
 
+test-machine-sio: $(HEADLESS_DIR)/machine-sio/Vmachine_sio_tb $(HEADLESS_DIR)/machine-sio-no-dma/Vmachine_sio_tb $(HEADLESS_DIR)/machine-sio-disabled/Vmachine_sio_tb
+	./$(HEADLESS_DIR)/machine-sio/Vmachine_sio_tb
+	./$(HEADLESS_DIR)/machine-sio-no-dma/Vmachine_sio_tb
+	@ulimit -c 0; if ./$(HEADLESS_DIR)/machine-sio-disabled/Vmachine_sio_tb >$(HEADLESS_DIR)/machine-sio-disabled/negative.log 2>&1; then \
+		echo 'ERROR: disabled SIO machine unexpectedly passed'; exit 1; \
+	fi; rg -q 'machine SIO programmed status/read failed' $(HEADLESS_DIR)/machine-sio-disabled/negative.log || \
+		{ echo 'ERROR: wrong disabled SIO machine failure'; exit 1; }; \
+	echo 'PASS shared machine disabled-SIO negative rejects missing CPU read path'
+$(HEADLESS_DIR)/machine-sio/Vmachine_sio_tb: tests/machine_sio_tb.sv $(MACHINE_SRC) Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module machine_sio_tb --Mdir $(@D) -j 4 tests/machine_sio_tb.sv $(MACHINE_SRC) -Wno-fatal
+$(HEADLESS_DIR)/machine-sio-no-dma/Vmachine_sio_tb: tests/machine_sio_tb.sv $(MACHINE_SRC) Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module machine_sio_tb -GDMA_ENABLED=0 --Mdir $(@D) -j 4 tests/machine_sio_tb.sv $(MACHINE_SRC) -Wno-fatal
+$(HEADLESS_DIR)/machine-sio-disabled/Vmachine_sio_tb: tests/machine_sio_tb.sv $(MACHINE_SRC) Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module machine_sio_tb -GSIO_ENABLED=0 --Mdir $(@D) -j 4 tests/machine_sio_tb.sv $(MACHINE_SRC) -Wno-fatal
+.PHONY: test-machine-sio
+
 test-z-text-visibility:
 	python3 tests/test_z_text_visibility.py
 .PHONY: test-z-text-visibility
