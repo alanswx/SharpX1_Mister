@@ -122,6 +122,41 @@ constraints. This mocked Tcl test is selected in CI, not a substitute for STA.
 Project selection, source-bound refit, all-corner endpoint/physical-delay audit,
 request/RAM-control enumeration and hardware acceptance remain open.
 
+### Expanded request path enumeration
+
+The reporting-only `scripts/quartus_pcg_request_paths.tcl` separates address,
+control (including `unsupported_request`) and byte payload sources, then
+reports SYS and VID destinations separately. It executes on the unchanged
+`32a3210` fit at Slow 1100 mV 100 C, zero errors/warnings
+(`/tmp/x1-quartus-32a3210-pcg-request-paths.log`). SHA-256
+`16de557a8f23db4b00b37e0aecbc1a03af0bdbd466b7c08c8bd4d74b628ebd7f`.
+Reports are retained under ignored
+`output_files/quartus-linux-EDi2XntO/pcg-request-paths/`.
+
+| Source group | Retained sources | VID paths / distinct destinations | Worst existing setup | Maximum data delay |
+|---|---:|---:|---:|---:|
+| Frozen/font addresses | 16 | 11 / 11 | −8.202 ns | 1.625 ns |
+| Plane/write/high-speed/unsupported controls | 5 | 90 / 35 | −9.771 ns | 4.034 ns |
+| Byte payload | 8 | 192 / 192 | −8.400 ns | 1.839 ns |
+
+All reports use a 10,000-path budget; none hits it. There are 293 reported
+VID paths per check and 154 SYS paths per check (144 address, ten control,
+zero payload), 894 rows across twelve setup/hold files. This is static
+critical-path reconnaissance, not every possible logic sensitization or an
+all-corner request qualification. SYS address/control minima are +27.034/
++22.293 ns setup, +0.940/+0.482 ns hold and must remain ordinarily timed.
+
+VID address endpoints cover all eleven `access_addr` bits, including the
+map-confirmed font aliases. Controls reach eleven address bits, eight
+response bits, `seen`, three fitted stage registers (including a duplicate),
+and twelve physical PCG RAM write-enable registers. Payload reaches 192
+replicated physical RAM data destinations. Merely bounding response or
+`access_addr` therefore does not cover all request contracts. Dedicated
+source/destination groups must include these real RAM pins and state-enable
+paths, keep SYS-only font/control checks intact, and reject unexpected
+endpoint inventories before any production constraints. No request exception
+or new RBF is introduced by this enumeration.
+
 Audit source payload paths into RAM data/write controls, selected addresses
 and response selection separately; response-to-CPU is a distinct held bus.
 First-stage request/ACK synchronizers require their own treatment, with the

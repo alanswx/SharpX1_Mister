@@ -81,6 +81,10 @@ The [PCG bundle-window audit](PCG_BUNDLE_TIMING_STATUS.md) now measures real
 request/response consumption and accepted-field stability in base and Turbo
 fixtures, including six high-speed SYS=32 MHz cases. All existing PCG/font/reset checks pass; bounded FPGA payload,
 synchronizer and native/physical acceptance remain open.
+The completed-fit response-bound experiment passes all eight corners; expanded
+request reconnaissance identifies 293 VID and 154 SYS paths per check,
+including physical PCG RAM data/write-enable replication. Request constraints,
+source-bound refit and full PCG timing/hardware qualification remain open.
 The [Turbo Z in-flight control reset test](TURBO_Z_INFLIGHT_RESET_STATUS.md)
 passes at three independent video rates, including a deliberately failing
 asynchronous-reset-removal control. Exact reset frames, pending palette/
