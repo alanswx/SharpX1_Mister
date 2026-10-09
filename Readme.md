@@ -36,6 +36,9 @@ Mode-sensitive STA, safe switching and physical output remain open.
 Installed Intel clock-primitive simulation now passes steady selection checks;
 asynchronous switch observations reinforce the need for a safe handoff. The
 local Main reference can change framebuffer selection at runtime.
+The simulation-only glitch-free clock-control candidate passes eighteen
+running/stopped-source native-model and independent waveform checks. Matching
+clock/data handoff, FPGA integration and physical acceptance remain open.
 
 The experimental X3 [text-blink crossing](docs/VIDEO_BLINK_CDC_STATUS.md)
 now uses two video-domain samples. Delay-aware 40/80-column blink pixels and

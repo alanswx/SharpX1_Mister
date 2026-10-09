@@ -45,6 +45,11 @@ asynchronous switch diagnostics produce two off-source rising edges and
 three shortened intervals in the model, independently confirmed from VCD.
 A device-supported safe clock/data handoff remains implementation work;
 these observations are not measured physical glitches or a qualified RBF.
+The simulation-only falling-edge ALTCLKCTRL candidate now passes eighteen
+running/stopped-source native-model cases and independent waveform audits.
+The requested selector is not an active-clock acknowledgement; coordinated
+data selection/blanking, repeated requests, startup/reset, FPGA integration
+and physical output remain open. No board default or RBF changes yet.
 Nine actual pending-transaction snapshots pass ninety byte-identical
 continuations; cold-start/clock guards remain tested. Fresh combined-Z
 pixels, current-source Quartus bundle/consumer timing and native/hardware

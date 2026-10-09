@@ -138,6 +138,52 @@ primitive/handoff plus matching data selection and startup/transition blanking,
 with both clocks running/stopped and repeated framebuffer changes. Keep this
 separate from steady-mode STA and leave ordinary revisions unchanged.
 
+## Simulation-only glitch-free clock-control candidate
+
+Quartus 17's installed `clearbox altclkctrl` generator accepts the checked-in
+`verilator/tests/hdmi_altclkctrl_params.txt`: Cyclone V, two global-clock inputs,
+glitch-free switch-over enabled and falling-edge enable registration. Generated
+vendor HDL stays in ignored build outputs; it is not bundled in the repository
+or instantiated by any board. An earlier always-enabled configuration was
+generated but is not the qualified configuration.
+
+The falling-edge candidate's 18 native ModelSim runs finish zero, log
+`/tmp/x1-hdmi-altclkctrl-clock-stop-matrix.log`. The Cartesian matrix covers
+video half-periods 11640/17500 ps, HDMI half-periods 3366/6250/10000 ps, and
+three profiles: both sources running, incoming source stopped low, or outgoing
+selected source stopped low. Each profile requests HDMI → video → HDMI;
+stopped sources resume after the explicit 200000 ps hold. All 18 report 48
+steady checks and no shortened intervals. The twelve stopped profiles also
+check quiescence before recovery. Simulation errors are zero; each process
+reports the same seven host debugger-symbol warnings described above.
+
+An independent top-level-only VCD auditor, `scripts/audit_hdmi_clock_waveforms.py`,
+passes all 18 retrieved waveforms, checking every output interval, rising-edge
+coincidence with either real source, steady selected-source edges, complete
+requests/steady coverage and stopped-clock quiescence/recovery. Minimum output
+intervals equal the smaller configured source half-period in every case.
+`make -C verilator test-hdmi-clock-waveform-audit` passes a synthetic positive
+and twelve invalid-event controls; it is auditor coverage, not native IP execution.
+Waveforms remain ignored under
+`output_files/quartus-linux-6FBt6YWN/hdmi-altclkctrl-matrix/`.
+
+The native run used bench SHA-256
+`a96e9c660948c0fab18945952eecd7644b292300baa2759fc8c85f63cb4ac7b9`
+and generator configuration SHA-256
+`982088d5aa56abe62ff87f64055b53bcd89efadc42a0ecf5491a7ff1c910eae6`.
+The subsequent bench change only corrects the final PASS message to describe
+stopped-source profiles accurately; the older wording does not mean both
+sources ran throughout those profiles.
+
+**Clock request is not clock-selection acknowledgement.** Observed old-source
+rising edges during the handoff are compatible with delayed switching; they
+are not claimed as off-active-source glitches. Changing the HDMI data selector
+immediately from the raw request could still pair old-clock edges with new
+data. This candidate therefore does not yet qualify clock/data alignment,
+blanking, rapid repeated requests, startup/reset, fitted placement, timing or
+physical output. A stopped selected source also cannot complete handoff until
+it resumes in these tests. No board source, default or RBF changed.
+
 ## Next gates
 
 1. Establish an actually supported mode-sensitive STA method or a narrow
