@@ -175,6 +175,17 @@ Both masters remain concurrent, and no HDMI pipeline or I/O packing change
 is made. Refit all corners and audit retained real same-clock/CDC paths,
 output constraints and physical mode switching before any timing claim.
 
+Selected aliases require separate post-fit reporting: the old original-HDMI
+same-clock report no longer represents all final HDMI pipeline registers.
+`scripts/quartus_x3_clock_paths.tcl` therefore requires all five distinct
+clocks (SYS/VID/HDMI and both output aliases), reports same-clock setup/hold/
+recovery/removal and six SYS/master-or-alias crossing directions at all eight
+corners. It reads real project SDC and adds no exception. Mocked
+`test-x3-clock-paths` validates 256 report scopes and rejects 15 missing/
+duplicate/merged inventories before reporting; CI selects it. Native execution,
+clock frequency/propagation and coverage review remain pending on the new fit.
+Bounded 100-path reports are diagnostics, not full CDC or I/O acceptance.
+
 ```sh
 QUARTUS_REVISION=sharpx1_turbo_z_video bash scripts/build_quartus_linux.sh --build
 ```

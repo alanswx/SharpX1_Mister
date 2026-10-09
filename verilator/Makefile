@@ -1760,6 +1760,10 @@ test-hdmi-mux-sdc:
 	tclsh tests/hdmi_mux_sdc_tb.tcl
 .PHONY: test-hdmi-mux-sdc
 
+test-x3-clock-paths:
+	tclsh tests/x3_clock_paths_tb.tcl
+.PHONY: test-x3-clock-paths
+
 test-scaler-reset-paths:
 	tclsh tests/scaler_reset_paths_tb.tcl
 .PHONY: test-scaler-reset-paths
