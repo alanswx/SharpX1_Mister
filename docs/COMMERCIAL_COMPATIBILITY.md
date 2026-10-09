@@ -1,13 +1,13 @@
 # Private commercial-game bring-up
 
-## Current v14 qualification: three titles pass, Galaga/Shanghai pending
+## Current v14 qualification: four titles pass, Shanghai pending
 
 October 9: source `c7c35b2` builds a fresh ordinary fast/savable runner with
 snapshot v14. Its SHA-256 is
 `c03a0de6b0fa08af4fe763cb0ca6a92b7590c9b5b4a10611ce78bc78656a5c86`.
-Fresh Xevious, Druaga and Mappy native boots and controls terminate successfully;
-Galaga and Shanghai are running in the two-worker batch.
-Three v14 titles are counted so far, not five.
+Fresh Xevious, Druaga, Mappy and Galaga native boots and controls terminate
+successfully. Galaga's firing gate also passes; Shanghai's cursor/pair gate
+is still running. Four v14 titles are counted so far, not five.
 
 The isolated ignored qualification root is
 `verilator/obj_dir_v14_c7c35b2_requalify/frozen-4CLvS6/`. It contains frozen
@@ -50,6 +50,24 @@ RAM/report/RGB repeatability and unchanged inputs. Native live-state SHA-256
 is `8814b6c48bee74fe8ebacf77a0d9f0a51f07f222cbbc66a056bf3938a9cc57de`.
 Terminal collector gameplay/input checks and independent frozen-support/private
 input hashes pass, using the same baseline fast runner/configuration.
+
+Galaga passes native movement `(32,24)` to `(40,24)` with exact idle/right/
+repeat checks, RGB `7f98f926506a84a6` / `b5d2b564ec188ca6`. The native
+live-state hash is `9222a3260467411c7897dcd8322b129ca4da3a9830272298937e55860c8c2435`.
+After the unchanged six-second active-wave continuation, firing produces one
+shot rather than zero and a projectile `(33,12)` moving to `(33,8)` on release;
+all 16 enemy slots, RAM/RGB/state/report repeatability and unchanged inputs
+pass. Wave-state hash is
+`e0c7326e8a77ecdc3b11b258213134e6bddc2488373414176431e31a50ef5671`;
+idle/fire/released RGB hashes are `2f6825fad688832a`, `d631622b672b906d`,
+`8ea1be19fcf625a4`. Final gameplay/control/fire provenance and independent
+frozen-support/private-input integrity checks pass on the same runner.
+
+A convenience Xevious screenshot is retained at
+`verilator/xevious/controls/controlled.png` inside the ignored frozen root.
+It is a format conversion of the actual controlled-run PPM, not an illustration.
+`scripts/compare_video_png.py` checks all 64,000 decoded PNG pixels against
+that PPM with zero mismatches. This conversion check is not MiSTer evidence.
 
 ## Five-title v13 bounded requalification passes
 
