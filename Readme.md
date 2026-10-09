@@ -57,6 +57,11 @@ previously reported held-mode paths in an eight-corner before/after probe.
 Global diagnostics still fail (-18.252/-0.062 ns after the candidate). Only the
 separate handoff revision selects it; fresh fitting/MTBF and held-mode/data
 qualification remain required. No ordinary board default is changed.
+Complete held-mode discovery now audits 1,584 timing rows at eight corners.
+It identifies a separate native-VID csync consumer (`dv_hs1`), which the first
+gated-output-edge checks cannot qualify. Its setup still fails -7.247 ns;
+no blanket held-mode exception is added. See the HDMI investigation for the
+output/native-video/control-domain inventory and unchanged-artifact evidence.
 Its isolated real-PLL controller maps/fits; a fitted-feedback audit led to an
 explicit falling-edge closure witness. Current native cases pass, while raw
 crossings, full-board timing and physical switching remain open. All 96 bounded

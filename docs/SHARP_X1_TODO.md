@@ -14,6 +14,14 @@ support before optional Turbo extensions.
 
 ## Active goal: items 1–6 and Turbo Z (October 6)
 
+Held-mode follow-up: complete fitted discovery independently audits 1,584
+rows across eight corners and finds the separate native-VID `dv_hs1` csync
+consumer (-7.247 ns setup), alongside selected-output and SYS consumers.
+Its coherent capture/epoch contract and clock-control fanout need separate
+qualification; first-output-edge settling does not cover them. No new
+exceptions or broad work-group completion are inferred. See
+[the domain inventory](HDMI_MODE_STATUS.md#complete-held-mode-timing-discovery-not-acceptance).
+
 The experimental [coherent CRTC transport](CRTC_WRITE_CDC_STATUS.md) now
 passes four helper clock ratios, three real-CPU clock ratios, five owned-DMA
 reset scenarios and all sixteen delay-aware X3 pixel cases. CPU/DMA WAIT

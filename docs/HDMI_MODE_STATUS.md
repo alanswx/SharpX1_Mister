@@ -645,6 +645,52 @@ in `output_files/quartus-linux-wBmGGSvP/source`, source commit
 Terminal flow, mapped/fitted input guards, new timing, MTBF and hardware remain
 unproven. All preceding fits/probe reports are preserved; no MiSTer is loaded.
 
+## Complete held-mode timing discovery (not acceptance)
+
+The read-only `scripts/quartus_hdmi_handoff_mode_inventory.tcl` inventories all
+three fitted `active_mode` bits, combined clock/data fanout and all reported
+timing endpoints in the preserved corrected-source `d8f7024` full board fit.
+Quartus 17's installed help confirms `get_fanouts` lacks `-synch`/`-clock`;
+the first attempt exits with error and is not counted. The corrected native
+run and hash-qualified repeat finish with zero errors/warnings.
+`scripts/audit_hdmi_handoff_mode_inventory.py` independently validates **1,584
+rows**, 99 per report, across eight corners for setup/hold. There are 84
+distinct source/endpoint/launch/latch combinations; repeated edge relationships
+are retained. The 1,000-path ceiling is not reached. Controller, framework,
+reporter and original STA/summary/RBF hashes match before/after.
+
+At slow 100 C, the timing consumers are:
+
+| Domain | Paths | Consumers | Minimum setup |
+| --- | ---: | --- | ---: |
+| Selected HDMI output | 29 | RGB `d[23:0]`, HS, VS, DE | -18.252 ns |
+| Selected video output | 29 | The same output registers | -8.429 ns |
+| Native video | 1 | `dv_hs1`, from held csync bit 2 | -7.247 ns |
+| SYS | 40 | Pending mode, FSM and blank request | +24.531 ns |
+
+Across all corners held-mode setup/hold minima are **-18.252/+0.817 ns**.
+The native `dv_hs1` path separately has **-7.247/+1.485 ns**; maximum reported
+data delay is 0.667 ns. First gated-output-edge settling cannot qualify this
+ungated VID consumer. Actual CE capture/epoch completion needs a separate
+coherent-data contract. Do not blanket-except it or selector clock fanout.
+No constraints are added; physical switching, MTBF and RBF acceptance remain
+open. Eight invalid provenance/completion/corner/row/domain/source controls
+are rejected by the independent audit.
+
+Ignored reports: `output_files/hdmi-handoff-mode-d8f7024/handoff-mode-inventory-v3/`.
+Reproduce the audit:
+
+```sh
+python3 scripts/audit_hdmi_handoff_mode_inventory.py \
+  output_files/hdmi-handoff-mode-d8f7024/handoff-mode-inventory-v3 \
+  --native-log /tmp/x1-handoff-mode-inventory-d8f7024-v3.log --source-root .
+```
+
+The newer `3a61604` selected-input full flow remains live in its original
+frozen build directory; these reports are not from that new fit. The later
+OSD ordering guard adds no J/j metadata or machine behavior and does not
+retroactively change either build's source identity.
+
 ## Next gates
 
 1. Establish an actually supported mode-sensitive STA method or a narrow
