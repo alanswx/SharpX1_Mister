@@ -45,6 +45,13 @@ module hdmi_handoff_policy_tb;
         @(negedge clk_control); ce_pix=0; direct_video=1;
         #2000000;
         assert(fixture_busy && fixture_blank) else $fatal(1,"missing native DV CE acknowledgement");
+        // Abort that incomplete video epoch, then retry while CE stays stopped.
+        @(negedge clk_control); reset_request=1;
+        wait(fixture_mode==0 && fixture_blank);
+        repeat(10) @(posedge clk_control);
+        @(negedge clk_control); reset_request=0;
+        #2000000;
+        assert(fixture_busy && fixture_blank) else $fatal(1,"aborted DV epoch reused stale readiness");
         ce_pix=1;
         wait(!fixture_busy && !fixture_blank && fixture_mode==3'b011);
         repeat(3) begin

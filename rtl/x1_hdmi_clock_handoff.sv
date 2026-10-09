@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-// Original experimental controller, NOT selected by a board revision.
+// Original controller, selected only by the separate experimental revision.
 // Installed Intel atoms supply clocks; no vendor implementation is bundled.
 // mode[0] selects video, mode[2:1] are held output-policy qualifiers.
 module x1_hdmi_clock_handoff(
@@ -91,7 +91,9 @@ module x1_hdmi_clock_handoff(
                 else settle <= settle + 1'b1;
             end
             OPEN: if(gate_sample && ack_sample && completed_sample == generation &&
-                     (!active_mode[0] || video_policy_ready)) begin
+                     (reset_request || !active_mode[0] || video_policy_ready)) begin
+                // Reset stays blank and leaves video; it must not depend on
+                // a CE-qualified policy capture needed ONLY for unblanking.
                 if(reset_request) begin
                     if(active_mode != 0) state <= RUN;
                 end else begin
@@ -112,11 +114,18 @@ module x1_hdmi_clock_handoff(
             BLANK: if(ack_sample) begin gate_request <= 0; state <= CLOSE; end
             CLOSE: if(!gate_sample) state <= SWITCH;
             SWITCH: begin
-                active_mode <= pending_mode;
-                generation <= !generation;
-                if(pending_mode[0]) video_policy_epoch <= !video_policy_epoch;
-                settle <= 0;
-                state <= SETTLE;
+                // A reset-aborted video token can still be outstanding.
+                // Drain it before toggling again, otherwise a stopped CE
+                // can make a two-toggle retry match stale completion (ABA).
+                // Reset may bypass this wait ONLY to select blanked HDMI.
+                if(reset_request || !pending_mode[0] || video_policy_ready) begin
+                    active_mode <= reset_request ? 3'b000 : pending_mode;
+                    generation <= !generation;
+                    if(pending_mode[0] && !reset_request)
+                        video_policy_epoch <= !video_policy_epoch;
+                    settle <= 0;
+                    state <= SETTLE;
+                end
             end
             SETTLE: begin
                 if(settle == 4) begin gate_request <= 1; state <= OPEN; end

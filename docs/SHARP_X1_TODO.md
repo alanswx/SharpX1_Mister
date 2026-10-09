@@ -83,9 +83,15 @@ The separate `sharpx1_turbo_z_handoff` full-board qualification revision now
 enables the handoff while existing revisions stay disabled. Static feature/
 constraint isolation and eighteen new invalid mux-scope controls pass;
 native scope acceptance, full flow/timing and physical results remain open.
-Its `4800715` source-bound full flow is now started on `misterubuntu` in
-`quartus-linux-O40JuhMa`, with live mapping confirmed; no terminal flow/timing
-or RBF result is yet claimed. Hardware has not been touched.
+Its `4800715` source-bound full flow completes zero on `misterubuntu` in
+`quartus-linux-O40JuhMa`, but fails setup -46.374 ns (hold minimum +0.210 ns).
+The produced RBF predates two subsequent reset/epoch fixes and is unqualified.
+Reset can now leave video while CE-qualified readiness is stopped; a later
+video retry drains the outstanding epoch instead of accepting stale completion.
+All 96 native reset-phase/rate/readiness cases, twelve native clock-handoff
+profiles and six connected policy profiles (4,994 exact words) pass. Fresh
+corrected-source fitting/timing, full upstream and physical acceptance remain
+required. Hardware has not been touched.
 Nine actual pending-transaction snapshots pass ninety byte-identical
 continuations; cold-start/clock guards remain tested. Fresh combined-Z
 pixels, current-source Quartus bundle/consumer timing and native/hardware

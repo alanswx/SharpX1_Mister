@@ -446,9 +446,66 @@ flow at **2026-10-09 22:58:02 UTC**, snapshot
 `output_files/quartus-linux-O40JuhMa/source`, log
 `/tmp/x1-quartus-4800715-z-handoff.log`. Input manifest SHA-256:
 `daa2012b5e57c24c33e21af7a980d29e5fcc60d246fe2971f3b54a1a73cbd3a3`.
-The actual `quartus_sh`/`quartus_map` processes are confirmed live at this
-observation. Mapping, fitted scope, full-flow result, timing and any RBF remain
-unproven. Nothing is loaded on a MiSTer; previous fit evidence is preserved.
+The full flow finishes **zero** at 23:07:13 UTC, with 162 warnings. This is
+compilation, not acceptance: setup fails **-46.374 ns**, with selected HDMI/
+video mux setup **-18.205/-12.228 ns**. Reported hold/recovery/removal/pulse-width
+minima are +0.210/+4.879/+0.982/+0.529 ns. The design is not fully constrained;
+MTBF is not calculated because timing fails. Original reports stay intact.
+Generated RBF SHA-256:
+`257c94efae3a26768655c19c75ea058ed99390aee426b798ea4b3b951c5608b1`.
+It lives in that snapshot's `output_files/` and is **unqualified**, including
+because it predates both following reset fixes. Nothing is loaded on a MiSTer.
+
+### Reset with stopped CE and aborted-epoch retry
+
+Native phase-three reset with readiness held low fails on the original
+controller; the same phase with readiness high passes. Reset now may leave
+video while remaining blank, without waiting for capture needed for unblanking.
+The connected actual DV-epoch fixture then exposed a second bug: aborting a
+video epoch and retrying while `ce_pix` remains stopped toggled the one-bit
+token twice, matching stale completion. That negative fails with exit 1.
+The controller now drains an outstanding video token before issuing another;
+reset may bypass that wait only to choose blanked HDMI. Ordinary video
+unblanking still requires readiness. No shared-machine reset RTL changes.
+
+Current controller SHA-256:
+`71c4f0d4a9aa96b188f7eee1f799eb89f55376a21db4e4aeea0cf75c3cb1f663`.
+The frozen native reset matrix finishes zero: two video rates, three HDMI
+rates, eight actual controller phases and readiness high/low give **96 cases**.
+`audit_hdmi_handoff_reset_runs.py` independently requires the exact ordered
+matrix, explicit completion, reviewed warnings and unchanged source hashes.
+Its positive and fifteen invalid-result controls pass. Log:
+`/tmp/x1-hdmi-handoff-reset-drained-96.log`.
+
+Six actual extracted-register/epoch cases finish zero with **4,994 exact
+output checks**, including reset-abort/retry while CE stays stopped, then
+recovery on CE resumption. Log:
+`/tmp/x1-hdmi-handoff-policy-reset-retry-corrected.log`.
+Twelve tagged clock-handoff profiles also finish zero:
+`/tmp/x1-hdmi-handoff-v9.log`. Their readiness input is tied high; they do
+not replace the connected epoch test. Neither set qualifies full upstream
+OSD/DDR/raster behavior, original Main reset dispatch, routed timing, PLL loss
+or physical output. The smaller prior isolated fitted timing inventory and
+the completed board build both use the older controller; a fresh corrected-
+source fit is required, not retrospective qualification of their RBF/netlist.
+
+`quartus_hdmi_handoff_board_paths.tcl` supplies an additive full-board worst-
+path diagnostic with original SDC only, refuses an existing report directory,
+and never writes over flow reports. Native execution finishes zero without
+warnings at 23:11:11 UTC, log `/tmp/x1-hdmi-board-paths-4800715-v1.log`.
+Before/after hashes of the original STA report, summary and RBF are identical.
+New `handoff-board-paths-v1/global_setup.rpt` identifies the worst path as
+`blank_ack` to `ack_meta`, from selected HDMI back to SYS: 44.968 ns data
+delay (44.633 ns routing) and -46.374 ns slack. Completed-generation feedback
+also fails. Held `active_mode[0]` to selected output registers reports
+-18.205 ns. These are raw first-stage/control-bundle diagnostics, not
+synchronous second-stage acceptance or grounds for whole-domain exceptions.
+Placement/CDC and justified scoped timing constraints need separate review.
+
+The corrected-source actual raw-policy negative is retaken in a fresh frozen
+directory and fails the intended pipeline assertion with verified exit 1:
+`/tmp/x1-hdmi-handoff-raw-negative-reset-v5.log`. The default 72-case static
+policy and wrong-clock negative also pass their existing regression.
 
 ## Next gates
 
