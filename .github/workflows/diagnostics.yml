@@ -85,7 +85,7 @@ jobs:
             test-machine-dma-x3-fast test-machine-dma-x3-timing test-machine-dma-x3-snapshot \
             test-dual-snapshot test-dual-write-snapshot test-video-dump test-continue-native-dual \
             test-dma-reset test-cpu-busreq test-d88-scanner test-d88-crc \
-            test-d88-metadata test-fdc-abort test-fdc-sd-abort test-joystick test-rgb12 test-z-palette-ram test-z-palette-access test-z-gram-fetch test-machine-z-palette-cpu test-machine-z-palette-disabled test-z-palette-probe-scripts test-mister-matrix-safety test-fm test-fm-cpu test-probe-timeout; do
+            test-d88-metadata test-fdc-abort test-fdc-sd-abort test-joystick test-rgb12 test-z-palette-ram test-z-palette-access test-z-palette-owner test-z-gram-fetch test-machine-z-palette-cpu test-machine-z-palette-video test-machine-z-palette-disabled test-z-palette-probe-scripts test-mister-matrix-safety test-fm test-fm-cpu test-probe-timeout; do
             # Bound each original fixture without changing its assertions or
             # simulated duration. A stall must fail with an identifiable target.
             limit_s=180

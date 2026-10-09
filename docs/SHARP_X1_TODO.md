@@ -58,6 +58,12 @@ arbitration; this standalone gate does not complete Z3.
 The full delay-aware baseline suite also exits zero after the CPU-palette
 integration (`fe734f1`); its frozen ordinary-profile runner remains unchanged.
 This is local diagnostic evidence, not optional-device or hardware acceptance.
+The [palette ownership follow-up](TURBO_Z_PALETTE_OWNER_STATUS.md) corrects the
+CPU experiment's C6 polarity (40 columns is C6=1), adds a connected blank-window
+lease/drain, and passes original real-CRTC CPU cold/warm waits. The retained
+read-tail fix closes a reproduced late-IN failure without changing its ROM;
+the extra-store diagnostic's phase-dependent pass is not substituted for it.
+Analog pixels, DMA/native ASIC timing and hardware still remain open.
 
 The expanded [hosted diagnostic run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37865161650)
 now completes successfully on `95c3e4a`. The newer `99eb141` palette-RAM/

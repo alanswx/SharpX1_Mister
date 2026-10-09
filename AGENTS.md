@@ -99,7 +99,12 @@ combinations, disables palette display reads and qualifies only the explicit
 low-scan/40-column external palette sequence. Upper read bits and native ASIC
 reset controls remain provisional. Use `test-machine-z-palette-cpu` and
 `test-machine-z-palette-disabled`; see `docs/TURBO_Z_PALETTE_CPU_STATUS.md`.
-Never enable its constant ownership permission with a display consumer.
+Its functional blank-window handshake now supplies CPU permission; it is not
+native ASIC BUSRQ/WAIT timing. Any future display consumer must honor
+`display_allowed` and response validity. Use `test-z-palette-owner` and
+`test-machine-z-palette-video` for connected lease and actual-CRTC WAIT checks.
+The completed palette read tail is only eligible until memory/ACK/other I/O;
+do not broaden it into a general unmapped-data override.
 During an owned reset drain, CPU CE stops while DMA/target CE and host SD ACK
 processing continue. Do not replace actual BUSACK ownership with BUSRQ or
 reset the CPU before the already-started pair completes. Uploads must honor

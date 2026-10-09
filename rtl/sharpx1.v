@@ -140,6 +140,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     wire io_write = !core_reset && !iorq && !wr && m1;
     wire io_cycle = io_read || io_write;
     wire z_palette_selected, z_palette_wait_n;
+    wire z_palette_read_tail;
     wire [7:0] z_palette_data;
     wire machine_wait_n=cg_wait_n && z_palette_wait_n;
     generate if(TURBO_Z_PALETTE_CPU) begin : z_palette_cpu
@@ -158,23 +159,43 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
                 end
             end
         wire enabled=mode==8'h80 && (control==8'h80 || control==8'h88)
-                     && !turbo_scrn[0] && !mode_c[6];
+                     && !turbo_scrn[0] && mode_c[6];
         wire ram_access,ram_write,ram_valid,read_valid;
+        wire read_hold;
+        wire [3:0] held_nibble;
+        reg tail_pending=0;
+        always @(posedge clk_sys or posedge core_reset)
+            if(core_reset) tail_pending<=0;
+            else if(!mreq || !m1 || (io_cycle && !(z_palette_selected && io_read))) tail_pending<=0;
+            else if(read_valid) tail_pending<=1;
+        // TV80 can sample a completed WAIT-stretched IN after IORQ/RD rise.
+        // Retain only that palette tail; a memory/ACK/other I/O start clears it.
+        assign z_palette_read_tail=tail_pending && read_hold && !core_reset
+            && mreq && iorq && m1 && a[15:8]>=8'h10 && a[15:8]<=8'h12;
+        wire palette_permit, palette_display_allowed;
         wire [11:0] ram_address;
         wire [1:0] ram_component;
         wire [3:0] ram_nibble,ram_data,read_nibble;
+        // Provisional functional blank-window policy, not native ASIC pin
+        // timing. The return handshake prevents reusing a previous lease.
+        x1_z_palette_owner ownership(
+            .cpu_clk(clk_sys),.video_clk(clk_28636),.reset(core_reset || video_reset),
+            .cpu_request(z_palette_selected && !z_palette_wait_n),.video_blank(VBlank),
+            .cpu_permit(palette_permit),.display_allowed(palette_display_allowed)
+        );
         x1_z_palette_access access(
             .clk(clk_sys),.reset(core_reset),.external_enabled(enabled),
-            .read_mode(control[3]),.permit(1'b1),
+            .read_mode(control[3]),.permit(palette_permit),
             .io_read(io_read && !dam),.io_write(io_write && !dam),
             .address(a),.data(data_out),.selected(z_palette_selected),
             .wait_n(z_palette_wait_n),.read_valid(read_valid),.read_nibble(read_nibble),
+            .read_hold(read_hold),.read_hold_nibble(held_nibble),
             .ram_access(ram_access),.ram_write(ram_write),.ram_address(ram_address),
             .ram_component(ram_component),.ram_nibble(ram_nibble),
             .ram_valid(ram_valid),.ram_data(ram_data)
         );
-        // No display consumer yet, hence no beam-side collision/grant. This
-        // constant permission must be replaced before enabling analog output.
+        // No display consumer yet. Future reads must honor the arbiter's
+        // palette_display_allowed and carry the corresponding validity tag.
         x1_z_palette_ram store(
             .cpu_clk(clk_sys),.video_clk(clk_28636),.cpu_reset(core_reset),.video_reset(video_reset),
             .cpu_access(ram_access),.cpu_write(ram_write),.cpu_address(ram_address),
@@ -184,11 +205,13 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         );
         // Upper nibble is a provisional experimental value, NOT qualified
         // native pin behavior. CPU acceptance must mask to the lower nibble.
-        assign z_palette_data=read_valid ? {4'd0,read_nibble} : 8'hff;
+        assign z_palette_data=read_valid ? {4'd0,read_nibble} :
+                              z_palette_read_tail ? {4'd0,held_nibble} : 8'hff;
     end else begin : no_z_palette_cpu
         assign z_palette_selected=0;
         assign z_palette_wait_n=1;
         assign z_palette_data=8'hff;
+        assign z_palette_read_tail=0;
     end endgenerate
     wire dsw_selected;
     wire [7:0] dsw_data;
@@ -351,7 +374,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
               : ctc_cs && io_read ? ctc_data
               : dma_cs && io_read ? dma_data
               : dsw_selected ? dsw_data
-              : z_palette_selected && io_read ? z_palette_data
+              : (z_palette_selected && io_read) || z_palette_read_tail ? z_palette_data
               : io_read && !dam && a[15:2] == 14'h03fe ? fdc_data
               : io_read && !dam && a[15:8] == 8'h1b ? psg_data
               : (cg_access && io_read) || cg_read_tail ? cg_cpu_data

@@ -12,6 +12,8 @@ module z_palette_access_tb;
     logic [7:0] data=0;
     wire selected,wait_n,read_valid,ram_access,ram_write,ram_valid;
     wire [3:0] read_nibble,ram_nibble,ram_data;
+    wire read_hold;
+    wire [3:0] read_hold_nibble;
     wire [11:0] ram_address;
     wire [1:0] ram_component;
     logic allow_response=1;
@@ -59,6 +61,7 @@ module z_palette_access_tb;
         assert(wait_n && !read_valid && requests==before_requests+(reading ? 0 : 1)
                && writes==before_writes+(reading ? 0 : 1)) else $fatal(1,"held OUT dedup/selector");
         idle();
+        assert(!read_hold) else $fatal(1,"new OUT retained previous read tail");
     endtask
     task automatic read(input integer port,input integer expected);
         integer before_requests,before_writes;
@@ -72,6 +75,8 @@ module z_palette_access_tb;
         assert(read_valid && read_nibble==4'(expected) && requests==before_requests+1)
             else $fatal(1,"read response must persist without another RAM request");
         idle();
+        assert(read_hold && read_hold_nibble==4'(expected))
+            else $fatal(1,"completed read tail lost after inactive bus");
     endtask
     initial begin
         if($value$plusargs("CE_PERIOD=%d",ce_period)) begin end

@@ -13,6 +13,10 @@ module x1_z_palette_access (
     input wire [7:0] data,
     output wire selected, wait_n, read_valid,
     output wire [3:0] read_nibble,
+    // Retained completed response for the upstream CPU's inactive I/O tail.
+    // Upstream must exclude memory/IACK/new transactions before using it.
+    output wire read_hold,
+    output wire [3:0] read_hold_nibble,
     output wire ram_access, ram_write,
     output wire [11:0] ram_address,
     output wire [1:0] ram_component,
@@ -27,6 +31,7 @@ module x1_z_palette_access (
     reg [1:0] held_component=0;
     reg [3:0] held_nibble=0;
     reg held_write=0, held_read=0;
+    reg completed_read=0;
     wire bus_active=io_read || io_write;
     wire component_port=address[15:8]>=8'h10 && address[15:8]<=8'h12;
     // Reject illegal simultaneous read/write. IACK/DAM/decode exclusion is
@@ -41,6 +46,8 @@ module x1_z_palette_access (
     assign wait_n=reset || !selected || state==DONE;
     assign read_valid=!reset && bus_active && state==DONE && held_read;
     assign read_nibble=read_valid ? response : 4'd0;
+    assign read_hold=!reset && completed_read;
+    assign read_hold_nibble=read_hold ? response : 4'd0;
     assign ram_access=!reset && state==REQUEST && permit && bus_active;
     assign ram_write=held_write;
     assign ram_address=held_address;
@@ -50,12 +57,13 @@ module x1_z_palette_access (
         if(reset) begin
             state<=DISARMED;selector<=0;response<=0;
             held_address<=0;held_component<=0;held_nibble<=0;
-            held_write<=0;held_read<=0;
+            held_write<=0;held_read<=0;completed_read<=0;
         end else if(!bus_active) begin
-            state<=IDLE;held_read<=0;response<=0;
+            state<=IDLE;held_read<=0;
         end else case(state)
             DISARMED: begin end // old held strobe after reset cannot replay
             IDLE: begin
+                completed_read<=0;
                 if(selected) begin
                     held_address<={address[7:0],io_write ? data[7:4] : selector};
                     held_component<=2'(address[15:8]-8'h10);
@@ -71,7 +79,7 @@ module x1_z_palette_access (
             REQUEST: if(permit) begin
                 state<=held_write ? DONE : RESPONSE;
             end
-            RESPONSE: if(ram_valid) begin response<=ram_data;state<=DONE;end
+            RESPONSE: if(ram_valid) begin response<=ram_data;completed_read<=1;state<=DONE;end
             DONE: begin end
             default: state<=DISARMED;
         endcase

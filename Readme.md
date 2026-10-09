@@ -244,6 +244,10 @@ those transactions through the shared Z80, including retained warm reset and
 a disabled-profile negative control. Upper read bits, general native decode,
 DMA/beam ownership and rendering remain gates; ordinary profiles and RBFs
 are unchanged. This is not full Turbo Z support.
+The [functional palette ownership path](docs/TURBO_Z_PALETTE_OWNER_STATUS.md)
+now waits for real video blanking and passes actual-CRTC CPU cold/warm checks,
+including a corrected 40-column guard and retained late-IN responses. Native
+ASIC timing and display integration remain unqualified.
 The [sequential Z GRAM fetch buffer](docs/TURBO_Z_GRAM_FETCH_STATUS.md) now
 passes all-address/five-layout bank/parity and synchronous-read tests using
 the real machine RAM primitive. CRTC, pixel and palette integration remain open.

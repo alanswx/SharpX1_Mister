@@ -103,6 +103,11 @@ extra GRAM. The digital RGB output reduces analog multi-mode colors to eight
   sequence, real CPU WAIT and retained palette reset. Upper input bits,
   general native decode and DMA/beam ownership remain open. No analog display
   consumer is connected, so Z2/Z3 are still incomplete.
+  The [functional ownership follow-up](TURBO_Z_PALETTE_OWNER_STATUS.md) now
+  corrects C6=1 for 40 columns, connects a blank-window lease/drain and passes
+  real-CRTC CPU waits and the unchanged original late-read failure after a
+  narrowly scoped retained-response fix. Native ASIC pin timing, display
+  consumer/deadlines and DMA ownership still need qualification.
   Exhaust palette entries/components and read-selector transactions; verify
   address/data latch and held-strobe behavior, WAIT/bus ownership, live changes
   during blanking/active display and mode switches without reset.

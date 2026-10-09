@@ -52,6 +52,15 @@ $(HEADLESS_DIR)/z-gram-fetch/Vz_gram_fetch_tb: tests/z_gram_fetch_tb.sv ../rtl/x
 	  -j 4 tests/z_gram_fetch_tb.sv ../rtl/x1_z_gram_fetch.sv ../rtl/x1_video_ram.v ../rtl/x1_video_timing.sv
 .PHONY: test-z-gram-fetch
 
+test-z-palette-owner: $(HEADLESS_DIR)/z-palette-owner/Vz_palette_owner_tb
+	@for half in 17500 11640 25000; do \
+	  ./$(HEADLESS_DIR)/z-palette-owner/Vz_palette_owner_tb +video_half=$$half || exit 1; done
+$(HEADLESS_DIR)/z-palette-owner/Vz_palette_owner_tb: tests/z_palette_owner_tb.sv ../rtl/x1_z_palette_owner.sv ../rtl/x1_z_palette_access.sv ../rtl/x1_z_palette_ram.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module z_palette_owner_tb --Mdir $(@D) \
+	  -j 4 tests/z_palette_owner_tb.sv ../rtl/x1_z_palette_owner.sv ../rtl/x1_z_palette_access.sv ../rtl/x1_z_palette_ram.sv
+.PHONY: test-z-palette-owner
+
 test-turbo-dsw: $(HEADLESS_DIR)/turbo-dsw/Vturbo_dsw_tb
 	./$(HEADLESS_DIR)/turbo-dsw/Vturbo_dsw_tb
 $(HEADLESS_DIR)/turbo-dsw/Vturbo_dsw_tb: tests/turbo_dsw_tb.sv ../rtl/x1_turbo_dsw.sv Makefile
@@ -178,10 +187,12 @@ $(Z_PALETTE_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h
 	  -MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 test-machine-z-palette-cpu: turbo-z-palette-cpu
 	python3 tests/test_machine_z_palette.py ./$(Z_PALETTE_DIR)/Vtop
+test-machine-z-palette-video: turbo-z-palette-cpu
+	python3 tests/test_machine_z_palette.py ./$(Z_PALETTE_DIR)/Vtop --video
 test-machine-z-palette-disabled:
 	$(MAKE) turbo-z-palette-cpu Z_PALETTE_CPU=0 Z_PALETTE_DIR=obj_dir_v12_z_palette_disabled
 	python3 tests/test_machine_z_palette.py ./obj_dir_v12_z_palette_disabled/Vtop --expect-disabled
-.PHONY: turbo-z-palette-cpu test-machine-z-palette-cpu test-machine-z-palette-disabled
+.PHONY: turbo-z-palette-cpu test-machine-z-palette-cpu test-machine-z-palette-video test-machine-z-palette-disabled
 turbo-single: obj_dir_turbo_single/Vtop
 # Match the actual fitted single-master board clock, not the nominal crystal.
 # Isolated, non-savable diagnostic runners; existing profiles stay unchanged.

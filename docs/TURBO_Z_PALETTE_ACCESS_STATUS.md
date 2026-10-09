@@ -4,7 +4,9 @@ October 9, 2026. Original `rtl/x1_z_palette_access.sv` connects to the real
 `x1_z_palette_ram.sv` in an asset-free diagnostic. The later opt-in
 [CPU-only experiment](TURBO_Z_PALETTE_CPU_STATUS.md) also connects it to the
 shared Z80; neither establishes full Turbo Z support. The exhaustive adapter
-results below remain standalone evidence, not CPU/display acceptance.
+results below describe the original checkpoint. The later retained-response
+extension and fresh unit/CPU qualifications are in the
+[ownership report](TURBO_Z_PALETTE_OWNER_STATUS.md), not inferred from old hashes.
 
 The normal explicit selector/write/read sequence follows the primary
 [programming audit](TURBO_Z_PALETTE_CONTRACT.md). No emulator implementation,
@@ -20,7 +22,9 @@ published assembly listing, ROM, font or commercial bytes were copied.
   direction. A denied permission holds WAIT and those fields. Exactly one
   accepted RAM operation occurs when permission is granted; stretched strobes
   do not repeat it. A pending read requires actual backend validity, then
-  retains its response until the bus becomes inactive.
+  retains its active response until the bus becomes inactive. A later completed
+  response hold output supports a narrowly guarded CPU inactive I/O tail;
+  upstream must exclude memory, ACK and new operations before using that value.
 - Live address/mode changes cannot redirect an acquired request or release
   its WAIT. Reset flushes the adapter, not palette RAM. After reset, an old
   held strobe cannot replay: the adapter must observe an inactive bus first.
@@ -30,8 +34,9 @@ published assembly listing, ROM, font or commercial bytes were copied.
 
 Upstream supplies `external_enabled`, `read_mode` and actual ownership
 `permit`. These are **not invented native AEN/APEN/bank or blanking policies**.
-The CPU-only experiment supplies CPU bus strobes but disables display reads
-and excludes DMA; no CPU/DMA/beam arbiter supplies permission yet. The selector's reset value,
+The CPU-only experiment now supplies CPU bus strobes and a provisional
+blank-window lease handshake, but disables display reads and excludes DMA.
+Native CPU/DMA/beam ownership is not qualified. The selector's reset value,
 ignored-access side effects and lifetime across ASIC control changes remain
 native qualification gates. CPU input high bits are deliberately not supplied:
 the primary read examples do not independently qualify their value. The
@@ -81,8 +86,8 @@ hosted CI; its source-bound hosted result is not inferred from local execution.
 ## Integration still required
 
 Native model/control decode, internal/text palettes, full/reduced CPU/display
-index/bank policy and eight-bit input-bus behavior; genuine CPU and DMA WAIT/
-ownership; video-domain arbitration and synchronous fetch/render integration;
+index/bank policy and eight-bit input-bus behavior; broader CPU-tail isolation
+and DMA WAIT/ownership; native video-domain arbitration and synchronous fetch/render integration;
 mode-exit/reset/drain and profile-bound snapshot tests; unchanged base/Turbo
 acceptance, combined source-bound Quartus fit/CDC and physical Z software/output.
 
