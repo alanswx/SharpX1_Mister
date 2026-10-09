@@ -26,8 +26,13 @@ required. This does not complete any broad work group.
 The blink-source `6e334b4` fit now finishes zero. Independent native blink
 inventory/timing checks pass all 12,080 reported synchronous rows at eight
 corners, including all 85 final consumer keepers. Raw input remains open;
-full global timing, the current 120-case matrix and physical/native acceptance
-are not established by those bounded paths.
+the full global audit still fails setup −12.162 ns despite positive reported
+hold/recovery/removal/pulse-width minima. The current 120-case matrix and
+physical/native acceptance are not established by those bounded paths.
+Next timing work must address actual CRTC MPU-register SYS-to-VID transfers
+(`R_Nadj`/`R_Nr`) and raw reset/control consumers, alongside mode-aware HDMI
+output routing and scaler data contracts. Synchronizing each bit independently
+or cutting whole clock domains does not establish coherent register updates.
 
 The experimental [SYS VSYNC increment](VSYNC_SYS_CDC_STATUS.md) adds two-stage
 sampling before frame-wait/configuration consumers. Nine local clock pairs

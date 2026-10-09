@@ -21,8 +21,10 @@ the remaining physical and unimplemented-feature gates.
 The experimental X3 [text-blink crossing](docs/VIDEO_BLINK_CDC_STATUS.md)
 now uses two video-domain samples. Delay-aware 40/80-column blink pixels and
 snapshot checks pass; ordinary profiles retain their direct path. Fresh
-five-title ordinary gameplay tests also pass. New-source fitting, the complete
-combined-Z matrix and physical/native acceptance remain open.
+five-title ordinary gameplay tests also pass. The new source fits and its
+reported blink stage/consumer paths pass eight-corner timing. Overall setup
+still fails; the complete combined-Z matrix and physical/native acceptance
+remain open.
 
 An experimental-only [SYS VSYNC synchronizer](docs/VSYNC_SYS_CDC_STATUS.md)
 now passes nine local clock combinations and two failing-control checks.
