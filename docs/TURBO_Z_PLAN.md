@@ -101,13 +101,15 @@ extra GRAM. The digital RGB output reduces analog multi-mode colors to eight
   An opt-in [shared-Z80 CPU experiment](TURBO_Z_PALETTE_CPU_STATUS.md) now
   latches `1FB0/1FC5` and tests the explicit low-scan/40-column `80h/88h`
   sequence, real CPU WAIT and retained palette reset. Upper input bits,
-  general native decode and DMA/beam ownership remain open. No analog display
-  consumer is connected, so Z2/Z3 are still incomplete.
+  general native decode and DMA/beam ownership remain open. The separate
+  [full-color renderer experiment](TURBO_Z_VIDEO_STATUS.md) now connects an
+  external-palette display consumer and passes identity/custom 320x200/4096
+  pixels and retained reset; Z2/Z3 remain incomplete beyond that explicit subset.
   The [functional ownership follow-up](TURBO_Z_PALETTE_OWNER_STATUS.md) now
   corrects C6=1 for 40 columns, connects a blank-window lease/drain and passes
   real-CRTC CPU waits and the unchanged original late-read failure after a
   narrowly scoped retained-response fix. Native ASIC pin timing, display
-  consumer/deadlines and DMA ownership still need qualification.
+  general display deadlines and DMA ownership still need qualification.
   Exhaust palette entries/components and read-selector transactions; verify
   address/data latch and held-strobe behavior, WAIT/bus ownership, live changes
   during blanking/active display and mode switches without reset.
@@ -121,7 +123,10 @@ extra GRAM. The digital RGB output reduces analog multi-mode colors to eight
   A [sequential GRAM buffer](TURBO_Z_GRAM_FETCH_STATUS.md) now passes the full
   within-bank address/five-layout/page/parity matrix through the real RAM
   primitive at three clock ratios, with exact response latency and reset seams.
-  It is not connected to CRTC/pixel/palette stages yet and does not close Z3.
+  The full-color experiment connects it to CRTC/pixel/palette stages for
+  320x200/4096, with all 64,000 pixels checked under identity/custom palettes
+  and retained reset. Four reduced formats and native ASIC/priority gates
+  remain open; this does not close Z3.
   Verify MA wrap, screen-page capacity, priority/transparency and blackclip
   before/after palette stages; compare every active pixel and native HS/VS.
 - [ ] Z4: text-display/priority control `1FC0`, analog text colors, background

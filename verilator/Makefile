@@ -14,6 +14,17 @@ FM_MASTER_HZ ?= 32000000
 
 all: headless
 
+test-dam-control: $(HEADLESS_DIR)/dam-control/Vdam_control_tb
+	./$(HEADLESS_DIR)/dam-control/Vdam_control_tb
+$(HEADLESS_DIR)/dam-control/Vdam_control_tb: tests/dam_control_tb.sv ../rtl/x1_dam_control.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module dam_control_tb --Mdir $(@D) \
+	  -j 4 tests/dam_control_tb.sv ../rtl/x1_dam_control.sv
+.PHONY: test-dam-control
+test-machine-dam-control: headless
+	python3 tests/test_dam_control.py ./$(HEADLESS_EXE)
+.PHONY: test-machine-dam-control
+
 test-mister-matrix-safety:
 	python3 ../scripts/test_mister_matrix.py
 .PHONY: test-mister-matrix-safety
@@ -51,6 +62,14 @@ $(HEADLESS_DIR)/z-gram-fetch/Vz_gram_fetch_tb: tests/z_gram_fetch_tb.sv ../rtl/x
 	$(V) --binary --timing --assert --timescale 1ps/1ps --top-module z_gram_fetch_tb --Mdir $(@D) \
 	  -j 4 tests/z_gram_fetch_tb.sv ../rtl/x1_z_gram_fetch.sv ../rtl/x1_video_ram.v ../rtl/x1_video_timing.sv
 .PHONY: test-z-gram-fetch
+
+test-z-graphics: $(HEADLESS_DIR)/z-graphics/Vz_graphics_tb
+	@for half in 17500 11640 25000; do ./$(HEADLESS_DIR)/z-graphics/Vz_graphics_tb +video_half=$$half || exit 1; done
+$(HEADLESS_DIR)/z-graphics/Vz_graphics_tb: tests/z_graphics_tb.sv ../rtl/x1_z_graphics.sv ../rtl/x1_z_gram_fetch.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module z_graphics_tb --Mdir $(@D) \
+	  -j 4 tests/z_graphics_tb.sv ../rtl/x1_z_graphics.sv ../rtl/x1_z_gram_fetch.sv
+.PHONY: test-z-graphics
 
 test-z-palette-owner: $(HEADLESS_DIR)/z-palette-owner/Vz_palette_owner_tb
 	@for half in 17500 11640 25000; do \
@@ -178,6 +197,21 @@ single-fast: obj_dir_single_fast/Vtop
 
 # Partial Turbo peripherals behind an explicit experimental model parameter.
 turbo: obj_dir_turbo/Vtop
+Z_VIDEO_DIR ?= obj_dir_v13_z_video
+turbo-z-video: $(Z_VIDEO_DIR)/Vtop
+$(Z_VIDEO_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
+	$(V) -cc --timing --assert --trace-fst --exe --build -j 4 --Mdir $(Z_VIDEO_DIR) --top-module top \
+	  -GTURBO=1 -GTURBO_VIDEO_MASTER=1 -GTURBO_Z_PALETTE_CPU=1 -GTURBO_Z_VIDEO=1 \
+	  -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_Z_PALETTE_CPU -DX1_Z_VIDEO" \
+	  -MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
+.PHONY: turbo-z-video
+test-machine-z-video: turbo-z-video
+	@run_root=$$(mktemp -d $(Z_VIDEO_DIR)/pixel-matrix-XXXXXX); \
+	  python3 tests/test_machine_z_video.py ./$(Z_VIDEO_DIR)/Vtop --output $$run_root/identity-cold && \
+	  python3 tests/test_machine_z_video.py ./$(Z_VIDEO_DIR)/Vtop --warm --output $$run_root/identity-warm && \
+	  python3 tests/test_machine_z_video.py ./$(Z_VIDEO_DIR)/Vtop --custom --output $$run_root/custom-cold && \
+	  python3 tests/test_machine_z_video.py ./$(Z_VIDEO_DIR)/Vtop --custom --warm --output $$run_root/custom-warm
+.PHONY: test-machine-z-video
 Z_PALETTE_DIR ?= obj_dir_v12_z_palette_cpu
 Z_PALETTE_CPU ?= 1
 turbo-z-palette-cpu: $(Z_PALETTE_DIR)/Vtop

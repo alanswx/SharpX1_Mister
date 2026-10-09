@@ -353,6 +353,7 @@ int main(int argc, char **argv) {
         // a reconstructed RAM bootstrap. Only quiescent host interfaces are
         // supported; disk contents must match and clocks keep absolute phase.
         uint64_t resume_time = 0;
+        // v13: transaction-bound DAM arming adds pending state.
         // v12: added full-color output port; reject older serialized models.
         // v10: X3 destination-clock video reset release.
         // v09: Turbo text expansion and reserved underline raster state.
@@ -394,9 +395,9 @@ int main(int argc, char **argv) {
             ^ (1ULL << 44) // Separate experimental glyph pipeline revision 1.
 #endif
             ;
-        // Preserve single-drive v12 bytes. Dual-drive headers have a distinct
+        // Preserve single-drive v13 bytes. Dual-drive headers have a distinct
         // identity and a fifth field: ordered B-media fingerprint.
-        const uint64_t snapshot_magic = 0x5831534e41503132ULL ^ sys_hz ^ snapshot_profile
+        const uint64_t snapshot_magic = 0x5831534e41503133ULL ^ sys_hz ^ snapshot_profile
             ^ (dual_snapshot ? (1ULL << 42) : 0);
 #ifdef X1_SAVABLE
         if (restore_path) {
@@ -919,7 +920,12 @@ int main(int argc, char **argv) {
 #else
         constexpr const char *z_palette_cpu = "false";
 #endif
-        std::printf("{\"machine\":\"sharpx1\",\"turbo_foundation\":%s,\"turbo_video_master\":%s,\"turbo_dma\":%s,\"turbo_dma_irq\":%s,\"turbo_kanji\":%s,\"z_palette_cpu_experiment\":%s,\"intra_assignment_delays\":%s,\"sys_hz\":%llu,\"video_hz\":%llu,"
+#ifdef X1_Z_VIDEO
+        constexpr const char *z_video = "true";
+#else
+        constexpr const char *z_video = "false";
+#endif
+        std::printf("{\"machine\":\"sharpx1\",\"turbo_foundation\":%s,\"turbo_video_master\":%s,\"turbo_dma\":%s,\"turbo_dma_irq\":%s,\"turbo_kanji\":%s,\"z_palette_cpu_experiment\":%s,\"z_video_experiment\":%s,\"intra_assignment_delays\":%s,\"sys_hz\":%llu,\"video_hz\":%llu,"
                     "\"time_ps\":%llu,\"sys_edges\":%llu,\"video_edges\":%llu,"
                     "\"reset_edges\":%llu,\"cpu_enables\":%llu,\"delayed_sys_edges\":%llu,"
                     "\"hs_edges\":%llu,\"vs_edges\":%llu,\"hs_period_ps\":%llu,\"vs_period_ps\":%llu,\"video_hash\":\"%016llx\","
@@ -927,7 +933,7 @@ int main(int argc, char **argv) {
                     "\"ps2_bytes_sent\":%llu,\"disk_requests\":%llu,\"disk_writes\":%llu,\"frames\":%llu,\"frame_width\":%u,\"frame_height\":%u,\"frame_hash\":\"%016llx\","
                     "\"sub_pc\":%u,\"sub_address\":%u,\"sub_control\":%u,\"sub_running\":%s,\"sub_tx_busy\":%s,\"sub_rx_empty\":%s,"
                     "\"dma_grants\":%llu,\"dma_reads\":%llu,\"dma_writes\":%llu,\"cpu_fdc_data_reads\":%llu,\"cpu_fdc_data_writes\":%llu}\n",
-                    turbo_foundation, turbo_video_master, turbo_dma, turbo_dma_irq, turbo_kanji, z_palette_cpu, VM_TIMING ? "true" : "false",
+                    turbo_foundation, turbo_video_master, turbo_dma, turbo_dma_irq, turbo_kanji, z_palette_cpu, z_video, VM_TIMING ? "true" : "false",
                     (unsigned long long)sys_hz,
                     (unsigned long long)video_hz, (unsigned long long)context.time(), (unsigned long long)top.sys_edges,
                     (unsigned long long)top.video_edges, (unsigned long long)top.reset_edges,

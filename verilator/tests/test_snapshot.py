@@ -34,10 +34,10 @@ with tempfile.TemporaryDirectory(prefix="x1-snapshot-") as folder:
     # This is a negative fixture, never a state conversion/bypass.
     incompatible = folder / "incompatible-version.bin"
     broken = bytearray(state.read_bytes())
-    magic = (0x5831534E41503132 ^ 32000000).to_bytes(8, "little")
+    magic = (0x5831534E41503133 ^ 32000000).to_bytes(8, "little")
     position = broken.find(magic)
-    assert position >= 0, "v12 header absent"
-    old_magic = (0x5831534E41503131 ^ 32000000).to_bytes(8, "little")
+    assert position >= 0, "v13 header absent"
+    old_magic = (0x5831534E41503132 ^ 32000000).to_bytes(8, "little")
     broken[position:position + 8] = old_magic
     incompatible.write_bytes(broken)
     rejected = subprocess.run([exe, "--cycles", "4096", "--restore-state", str(incompatible)],

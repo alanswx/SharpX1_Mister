@@ -72,6 +72,7 @@ module x1_vid #(parameter ENABLE_CRTC = 0, TURBO_SUPPORT = 0, TURBO_CLOCKS = 0, 
 // VRAM / GRAM
   O_VA,
   O_GRAPHICS_RA,
+  O_GRAPHICS_START, O_GRAPHICS_LOAD, O_CG_TRANSPARENT, O_GRAPHICS_DISP,
 // VRAM
   O_TXT_WE, O_ATT_WE, O_KAN_WE,
   I_TXT_D,  I_ATT_D,  I_KAN_D,
@@ -141,6 +142,9 @@ output [13:0] O_VA;
 // Expose the full raster independently of the text/beam address. The active
 // machine applies Turbo GRAM paging without changing text or PCG selection.
 output [4:0] O_GRAPHICS_RA;
+// Original shared-machine extension: expose existing enables/layer inputs;
+// no replacement timing counter or generated clock is introduced.
+output O_GRAPHICS_START, O_GRAPHICS_LOAD, O_CG_TRANSPARENT, O_GRAPHICS_DISP;
 
 // VRAM
 output      O_TXT_WE , O_ATT_WE , O_KAN_WE;
@@ -595,6 +599,10 @@ assign O_VDISP = vdisp;
 assign O_HBLANK = ~out_disp;
 assign O_VBLANK = ~vdisp;
 assign O_CE_PIXEL = video_step & ~QP & QA;
+assign O_GRAPHICS_START = video_step && !ppres && pris==0;
+assign O_GRAPHICS_LOAD = video_step & ~QP & QA & ~QD & ~QC & ~QB;
+assign O_CG_TRANSPARENT = cg_trans;
+assign O_GRAPHICS_DISP = disp_d;
 
 /****************************************************************************
   CPU read data

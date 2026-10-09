@@ -33,6 +33,9 @@ set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_turbo_dsw.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_z_palette_ram.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_z_palette_access.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_z_palette_owner.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_z_gram_fetch.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_z_graphics.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_dam_control.sv
 set_global_assignment -name VERILOG_FILE rtl/x1_disk_control.v
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_disk_media.sv
 set_global_assignment -name VERILOG_FILE rtl/x1_clock_enables.v

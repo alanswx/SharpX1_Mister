@@ -21,7 +21,10 @@ remain unobservable. No deterministic dual-clock read/write collision data is
 claimed. An abnormally long/stopped CPU lease remains exclusive even if blanking
 ends; this can suppress display pixels. Exact native active-display behavior,
 deadline/availability and fitted metastability/CDC constraints remain gates.
-Shared-machine display reads remain disabled; current RBFs are unchanged.
+The CPU-only profile still disables display reads. The separate
+`TURBO_Z_VIDEO` [full-color experiment](TURBO_Z_VIDEO_STATUS.md) now honors
+display permission and response tags with actual identity/custom pixels and
+retained-reset checks. Current RBFs are unchanged.
 
 ## Executed connected fixture
 

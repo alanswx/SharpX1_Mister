@@ -64,6 +64,19 @@ lease/drain, and passes original real-CRTC CPU cold/warm waits. The retained
 read-tail fix closes a reproduced late-IN failure without changing its ROM;
 the extra-store diagnostic's phase-dependent pass is not substituted for it.
 Analog pixels, DMA/native ASIC timing and hardware still remain open.
+The [connected 4096-color prototype](TURBO_Z_VIDEO_STATUS.md) now compiles and
+passes all-address/eight-pixel/twelve-bit shifter checks at three clock rates.
+Actual CPU-written identity-palette pixels now pass all 64,000 pixels and
+line/frame periods. Custom-palette and retained warm reset are being qualified;
+the initial DAM/width failure and early custom/reset failure are preserved.
+No complete multi-mode/native/hardware gate is marked complete from this case.
+Custom-palette cold pixels also pass. Both retained-reset captures reproduce
+seven pixels corrupted by PPI mode-set at aliased GRAM `1A03h`; the
+[transaction-bound DAM correction](DAM_TRANSACTION_STATUS.md) passes standalone
+and actual-CPU regressions. Fixed identity/custom retained-reset pixels each
+pass all 64,000 pixels, with post-reset I/O proving no refill. The new complete
+baseline is in progress. Current snapshots require v13; prior v12 qualifications remain
+source-bound history, not acceptance of this pending-state change.
 
 The expanded [hosted diagnostic run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37865161650)
 now completes successfully on `95c3e4a`. The newer `99eb141` palette-RAM/

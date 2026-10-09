@@ -251,6 +251,15 @@ ASIC timing and display integration remain unqualified.
 The [sequential Z GRAM fetch buffer](docs/TURBO_Z_GRAM_FETCH_STATUS.md) now
 passes all-address/five-layout bank/parity and synchronous-read tests using
 the real machine RAM primitive. CRTC, pixel and palette integration remain open.
+An initial [connected 4096-color experiment](docs/TURBO_Z_VIDEO_STATUS.md)
+now passes exhaustive standalone shifter checks and all 64,000 shared-CPU
+identity/custom-palette pixels with correct periods. Retained-reset pixels now
+pass with post-reset I/O proving no refill; this is not a completed Z renderer
+or a new RBF.
+Its retained-reset test exposes a [PPI/DAM control-write corruption](docs/DAM_TRANSACTION_STATUS.md).
+The transaction-bound correction passes standalone/CPU tests and requires
+fresh **v13** snapshots; earlier v12 snapshots and game qualifications remain
+historical. Fixed full-pixel/reset tests pass; the complete baseline is running.
 
 The headless simulator has been compiled with Verilator 5.044 on macOS.
 The timing/reset regression passes. A 200,000-system-cycle run reports:

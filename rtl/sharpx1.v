@@ -1,6 +1,6 @@
 // Sharp X1 base-machine integration. Shared by MiSTer and simulation.
 // See docs/BASE_X1_CONTRACT.md for address-map sources and limitations.
-module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0, TURBO_DSW = 241, TURBO_DMA_RESTART_IRQ = 0, TURBO_Z_PALETTE_CPU = 0) (
+module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0, TURBO_DSW = 241, TURBO_DMA_RESTART_IRQ = 0, TURBO_Z_PALETTE_CPU = 0, TURBO_Z_VIDEO = 0) (
     input clk_sys, clk_28636, reset,
     input pal, scandouble,
     input ioctl_download,
@@ -97,6 +97,8 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     initial begin
         if(TURBO_Z_PALETTE_CPU && (!TURBO || TURBO_DMA))
             $error("CPU-only Z palette experiment requires TURBO and excludes unqualified DMA ownership");
+        if(TURBO_Z_VIDEO && !(TURBO_Z_PALETTE_CPU && TURBO_VIDEO_MASTER && !SINGLE_CLOCK))
+            $error("Z video experiment requires palette CPU and enabled X3, not compensated single-clock timing");
         if (TURBO_DMA_IRQ && !(TURBO && TURBO_DMA))
             $error("TURBO_DMA_IRQ requires TURBO and TURBO_DMA");
         if (TURBO_DMA_RESTART_IRQ && !TURBO_DMA_IRQ)
@@ -142,11 +144,29 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     wire z_palette_selected, z_palette_wait_n;
     wire z_palette_read_tail;
     wire [7:0] z_palette_data;
+    wire z_video_enabled, z_display_allowed, z_palette_valid;
+    wire [11:0] z_graphics_index, z_palette_rgb12;
+    wire z_graphics_valid, z_graphics_start, z_graphics_load, z_cg_transparent, z_graphics_disp;
+    wire z_gram_read;
+    wire [14:0] z_gram_address;
     wire machine_wait_n=cg_wait_n && z_palette_wait_n;
     generate if(TURBO_Z_PALETTE_CPU) begin : z_palette_cpu
         // Explicit CPU-only full external-palette experiment. No Z signature,
         // native register readback, reduced/internal/text palettes or renderer.
         reg [7:0] mode=0, control=0;
+        if(TURBO_Z_VIDEO) begin : controls_crossing
+            // Cross one supported-mode predicate, not independently sampled
+            // bits of a multi-bit register. Other live controls remain the
+            // existing experimental Turbo crossing and require CDC review.
+            (* async_reg = "true" *) reg enabled_meta=0, enabled_video=0;
+            always @(posedge clk_28636 or posedge video_reset)
+                if(video_reset) begin enabled_meta<=0;enabled_video<=0;end
+                else begin enabled_meta<=mode==8'h80;enabled_video<=enabled_meta;end
+            assign z_video_enabled=enabled_video && width_video && !turbo_scrn_video[0]
+                && !turbo_scrn_video[2] && !turbo_scrn_video[7] && turbo_black_video==0;
+        end else begin : no_video_controls
+            assign z_video_enabled=0;
+        end
         reg control_write_old=0;
         wire control_write=io_write && !dam && (a==16'h1fb0 || a==16'h1fc5);
         always @(posedge clk_sys or posedge core_reset)
@@ -173,6 +193,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         assign z_palette_read_tail=tail_pending && read_hold && !core_reset
             && mreq && iorq && m1 && a[15:8]>=8'h10 && a[15:8]<=8'h12;
         wire palette_permit, palette_display_allowed;
+        assign z_display_allowed=palette_display_allowed;
         wire [11:0] ram_address;
         wire [1:0] ram_component;
         wire [3:0] ram_nibble,ram_data,read_nibble;
@@ -194,14 +215,16 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
             .ram_component(ram_component),.ram_nibble(ram_nibble),
             .ram_valid(ram_valid),.ram_data(ram_data)
         );
-        // No display consumer yet. Future reads must honor the arbiter's
-        // palette_display_allowed and carry the corresponding validity tag.
+        // Full-colour experiment honors real ownership and uses the same
+        // one-edge palette latency as the legacy registered RGB/blank decision.
         x1_z_palette_ram store(
             .cpu_clk(clk_sys),.video_clk(clk_28636),.cpu_reset(core_reset),.video_reset(video_reset),
             .cpu_access(ram_access),.cpu_write(ram_write),.cpu_address(ram_address),
             .cpu_component(ram_component),.cpu_nibble(ram_nibble),
             .cpu_data(ram_data),.cpu_valid(ram_valid),
-            .display_read(1'b0),.display_address(12'd0),.display_rgb12(),.display_valid()
+            .display_read(TURBO_Z_VIDEO && z_video_enabled && z_graphics_valid &&
+                          z_cg_transparent && z_graphics_disp && palette_display_allowed),
+            .display_address(z_graphics_index),.display_rgb12(z_palette_rgb12),.display_valid(z_palette_valid)
         );
         // Upper nibble is a provisional experimental value, NOT qualified
         // native pin behavior. CPU acceptance must mask to the lower nibble.
@@ -212,6 +235,10 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         assign z_palette_wait_n=1;
         assign z_palette_data=8'hff;
         assign z_palette_read_tail=0;
+        assign z_video_enabled=0;
+        assign z_display_allowed=0;
+        assign z_palette_valid=0;
+        assign z_palette_rgb12=0;
     end endgenerate
     wire dsw_selected;
     wire [7:0] dsw_data;
@@ -403,14 +430,9 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         .opb(), .ipc(8'hff), .opc(mode_c),
         .sna_load(1'b0), .sna_opa(8'd0), .sna_opb(8'd0), .sna_opc(8'd0), .sna_control(8'd0)
     );
-    reg old_mode5, dam;
-    always @(posedge clk_sys or posedge core_reset)
-        if (core_reset) begin old_mode5 <= 1; dam <= 0; end
-        else begin
-            old_mode5 <= mode_c[5];
-            if (io_read) dam <= 0;
-            else if (old_mode5 && !mode_c[5]) dam <= 1;
-        end
+    wire dam;
+    x1_dam_control dam_control(.clk(clk_sys),.reset(core_reset),
+        .mode5(mode_c[5]),.io_read(io_read),.io_write(io_write),.dam(dam));
 
     wire [7:0] psg_data;
     wire [9:0] psg_sound;
@@ -563,7 +585,19 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         .scrn(turbo_scrn_video), .raster(graphics_ra),
         .text_address(vaddr[10:0]), .graphics_address(graphics_addr)
     );
-    wire [GRAM_AW-1:0] gram_video_addr = GRAM_AW'(graphics_addr);
+    wire [GRAM_AW-1:0] gram_video_addr = GRAM_AW'(z_gram_read ? z_gram_address : graphics_addr);
+    generate if(TURBO_Z_VIDEO) begin : z_graphics
+        x1_z_graphics graphics(
+            .clk(clk_28636),.reset(video_reset),.enabled(z_video_enabled),
+            .character_start(z_graphics_start),.character_load(z_graphics_load),.pixel_step(ce_pix),
+            .base_address(graphics_addr[13:0]),.read_enable(z_gram_read),.read_address(z_gram_address),
+            .blue_q(grb_vid),.red_q(grr_vid),.green_q(grg_vid),
+            .palette_index(z_graphics_index),.index_valid(z_graphics_valid)
+        );
+    end else begin : no_z_graphics
+        assign z_gram_read=0;assign z_gram_address=0;
+        assign z_graphics_index=0;assign z_graphics_valid=0;
+    end endgenerate
     x1_video_ram #(GRAM_AW) gram_b(clk_sys,gram_cpu_addr,data_out,io_write && ((a[15:14] == 1) ^ dam),grb_cpu,clk_28636,gram_video_addr,grb_vid);
     x1_video_ram #(GRAM_AW) gram_r(clk_sys,gram_cpu_addr,data_out,io_write && ((a[15:14] == 2) ^ dam),grr_cpu,clk_28636,gram_video_addr,grr_vid);
     x1_video_ram #(GRAM_AW) gram_g(clk_sys,gram_cpu_addr,data_out,io_write && ((a[15:14] == 3) ^ dam),grg_cpu,clk_28636,gram_video_addr,grg_vid);
@@ -601,7 +635,10 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         .I_TXT_CS(1'b0), .I_ATT_CS(1'b0), .I_KAN_CS(1'b0),
         .I_GRB_CS(1'b0), .I_GRR_CS(1'b0), .I_GRG_CS(1'b0),
         .I_VCLK(clk_28636), .I_CLK1(clk1), .O_VQ(), .I_W40(TURBO_VIDEO_MASTER ? width_video : mode_c[6]),
-        .O_VA(vaddr), .O_GRAPHICS_RA(graphics_ra), .O_TXT_WE(), .O_ATT_WE(), .O_KAN_WE(),
+        .O_VA(vaddr), .O_GRAPHICS_RA(graphics_ra),
+        .O_GRAPHICS_START(z_graphics_start),.O_GRAPHICS_LOAD(z_graphics_load),
+        .O_CG_TRANSPARENT(z_cg_transparent),.O_GRAPHICS_DISP(z_graphics_disp),
+        .O_TXT_WE(), .O_ATT_WE(), .O_KAN_WE(),
         .I_TXT_D(text_vid), .I_ATT_D(attr_vid), .I_KAN_D(TURBO ? kan_vid : 8'd0),
         .O_GRB_WE(), .O_GRR_WE(), .O_GRG_WE(),
         .I_GRB_D(grb_vid), .I_GRR_D(grr_vid), .I_GRG_D(grg_vid),
@@ -615,6 +652,18 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     // Full-color boundary uses conventional R:G:B nibbles. Digital modes
     // retain their exact eight colors; future Z palette logic belongs here,
     // upstream of both physical output and simulator capture.
-    assign rgb12 = {{4{r}}, {4{g}}, {4{b}}};
+    generate if(TURBO_Z_VIDEO) begin : z_output
+        reg graphics_selected=0;
+        always @(posedge clk_28636 or posedge video_reset)
+            if(video_reset) graphics_selected<=0;
+            else graphics_selected<=z_video_enabled && z_cg_transparent && z_graphics_disp;
+        // Transparent-text full-colour prototype. Native analog text/priority
+        // is not implemented: opaque text retains the digital renderer result.
+        // A denied/invalid graphics response is black, never stale RAM color.
+        assign rgb12=graphics_selected ? (z_palette_valid ? z_palette_rgb12 : 12'd0)
+                                      : {{4{r}}, {4{g}}, {4{b}}};
+    end else begin : digital_output
+        assign rgb12 = {{4{r}}, {4{g}}, {4{b}}};
+    end endgenerate
     assign video = {8{r || g || b}}; // Historical mono output; RGB is authoritative.
 endmodule

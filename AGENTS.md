@@ -71,13 +71,13 @@ do not embed private font bytes. See `docs/TURBO_VIDEO_CLOCK_STATUS.md` for
 exact checks and missing Kanji/text/high-speed PCG behavior. The FPGA revision
 `sharpx1_turbo_video` requests its own PLL; record the fitted frequency,
 source-bound timing and hardware results separately from nominal simulation.
-Snapshot format v12 rejects older states after adding the RGB12 output port
-(v11 added opt-in CPU/DMA bus and instrumentation;
+Snapshot format v13 rejects older states after transaction-bound DAM arming
+(v12 added the RGB12 output port; v11 added opt-in CPU/DMA bus and instrumentation;
 v09 added text-raster state;
 v08 added X3 PPI sampling; v07 added PCG/metadata state). Regenerate from native boot,
 never convert or patch state bytes to bypass model compatibility checks.
 DMA-enabled states also require DMA revision 7 after separating an auto-loaded
-first destination from later starting-buffer writes; non-DMA v12 is unchanged.
+first destination from later starting-buffer writes; all current profiles need v13.
 Use `docs/TURBO_TEXT_RASTER_STATUS.md` for the provisional digital expansion/
 underline policy and CRTC R9=31/R5=0 regression. Unit success does not complete
 the documented row/width or native BASIC acceptance matrix. Mode 01 graphics
@@ -105,6 +105,15 @@ native ASIC BUSRQ/WAIT timing. Any future display consumer must honor
 `test-machine-z-palette-video` for connected lease and actual-CRTC WAIT checks.
 The completed palette read tail is only eligible until memory/ACK/other I/O;
 do not broaden it into a general unmapped-data override.
+`TURBO_Z_VIDEO=1` / `turbo-z-video` is a separate non-savable full-color
+prototype requiring the palette CPU experiment and X3 timing. Ordinary board
+and simulator defaults stay unchanged. Preserve per-byte shifts, phase-zero
+fetch/phase-14 load and one-edge palette/selection/blank alignment; honor the
+palette owner's display permission and response validity. See
+`docs/TURBO_Z_VIDEO_STATUS.md`: standalone shifter tests are not native pixels,
+reduced-mode/text support or hardware acceptance. CPU fixtures must clear DAM
+with a real IN after PPI mode-set before writing width; never loosen timing or
+pixel assertions to accept an incorrectly initialized diagnostic.
 During an owned reset drain, CPU CE stops while DMA/target CE and host SD ACK
 processing continue. Do not replace actual BUSACK ownership with BUSRQ or
 reset the CPU before the already-started pair completes. Uploads must honor
