@@ -421,3 +421,10 @@ combined setup/hold +0.495 ns, max physical data 12.973 ns.
 Source/artifact identities and failed global timing are in the
 [corrected-flow evidence](SCALER_RESET_TIMING_AUDIT.md#corrected-full-flow-and-native-stage-timing).
 No native firmware, whole-design CDC or hardware compatibility is established.
+
+The selected reset/mux `6133f27` refit also passes the same independently
+inventoried 8-capture/0-stage-replica report profile: all 48 request and 16
+response corner reports pass. Snapshot audit retains 72 bits in every one
+of 16 files (1,152 rows), minimum combined setup/hold +0.533 ns, maximum
+physical data 13.138 ns. This does not excuse newly exposed VSYNC or other
+clock-domain crossings; see the [selected refit](TURBO_Z_BOARD_BUILD_STATUS.md#selected-resetmux-refit-and-real-remaining-crossings).

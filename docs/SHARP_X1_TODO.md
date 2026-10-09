@@ -141,6 +141,13 @@ Mapped scope also validates. Only experimental Z selects those exact raw
 pins and the independently scoped mux aliases for a fresh fit; no RTL change.
 Setup/hold, CDC/I/O, physical reset/mode switching and native/hardware gates
 remain open; do not treat the experiment as a qualified RBF.
+The selected `6133f27` refit now completes: PCG/snapshot and reported scaler
+stage/downstream paths pass; constrained global recovery is +4.375 ns.
+Setup/hold remain −47.729/−1.275 ns with newly visible raw VSYNC SYS samplers.
+Active master-to-own-mux-alias and internal HDMI paths report positive, but
+CDC/input-stage scope, inactive mode branches, I/O and physical/native gates
+remain open. Fresh full ordinary local suite finishes zero (143 PASS reports),
+not a new Turbo Z/game/hardware claim.
 The [Turbo Z in-flight control reset test](TURBO_Z_INFLIGHT_RESET_STATUS.md)
 passes at three independent video rates, including a deliberately failing
 asynchronous-reset-removal control. Exact reset frames, pending palette/

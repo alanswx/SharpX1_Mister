@@ -220,3 +220,12 @@ probe. The independently scoped mux alias candidate is also selected for
 that new fit; ordinary revisions keep their previous constraints. Repeat
 all-corner endpoint/chain/downstream/payload/crossing checks and I/O review.
 Setup/hold, other CDC and physical/native gates remain open.
+
+The selected `6133f27` refit now completes zero. Native inventory retains
+six stages and six input pins; 48 stage-transfer paths pass all corners,
+minimum combined setup/hold +0.208 ns. Downstream counts change with fitting
+to 1/14/8 for input/HDMI/Avalon (48 files/368 rows), all from stage 1 with
+minimum recovery/removal +0.386 ns. Global recovery minimum is +4.375 ns;
+global setup/hold still fail. Raw input reports are excepted, not physical
+passes. Source/artifact identities, alias-aware failures and remaining gates
+are in the [selected-refit evidence](TURBO_Z_BOARD_BUILD_STATUS.md#selected-resetmux-refit-and-real-remaining-crossings).

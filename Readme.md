@@ -110,6 +110,10 @@ The six-pin scaler input experiment preserves all reported stage/downstream
 timing and gives positive constrained recovery at eight corners. Experimental
 Z now selects that scope and the narrow mux aliases for a fresh fit;
 setup/hold, CDC/I/O and physical/native gates remain open.
+The selected refit now completes with positive reported recovery and active
+HDMI pipeline timing, but overall setup/hold still fail on newly visible
+VSYNC samplers and other crossings. The full ordinary local suite passes;
+no timing-qualified or hardware/native Turbo Z claim is made.
 The [summary table](docs/CHIP_IMPLEMENTATION_TABLE.md) and
 [chip reuse survey](docs/CHIP_REUSE.md) describe available replacement sources
 and the remaining integration work.

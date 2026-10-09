@@ -41,6 +41,10 @@ foreach model {slow fast} {
             system_mux_hdmi system mux_hdmi
             mux_video_system mux_video system
             system_mux_video system mux_video
+            hdmi_mux_hdmi hdmi mux_hdmi
+            mux_hdmi_hdmi mux_hdmi hdmi
+            video_mux_video video mux_video
+            mux_video_video mux_video video
         } {
             foreach check {setup hold} {
                 report_timing -$check -from_clock [dict get $clocks $from] -to_clock [dict get $clocks $to] -npaths 100 -detail full_path -file ${prefix}_${label}_${check}.rpt

@@ -38,7 +38,7 @@ foreach label {system video hdmi mux_hdmi mux_video} {
             if {!$failed || [llength $corners] || [dict size $reports]} {error "$label/$mode accepted partial coverage"}
             continue
         }
-        if {$failed || [dict size $reports] != 256 || [llength $corners] != 8} {error "wrong coverage: $message"}
+        if {$failed || [dict size $reports] != 320 || [llength $corners] != 8} {error "wrong coverage: $message"}
         foreach model {slow fast} {
             foreach temperature {-40 0 85 100} {
                 set prefix output_files/sharpx1_turbo_z_video_x3_clock_${model}_${temperature}
@@ -52,7 +52,7 @@ foreach label {system video hdmi mux_hdmi mux_video} {
                         if {[lindex $args 0] ne "-$check" || $from ne $objects($domain) || $to ne $objects($domain)} {error "wrong same-clock scope"}
                     }
                 }
-                foreach {pair from_label to_label} {system_video system video video_system video system mux_hdmi_system mux_hdmi system system_mux_hdmi system mux_hdmi mux_video_system mux_video system system_mux_video system mux_video} {
+                foreach {pair from_label to_label} {system_video system video video_system video system mux_hdmi_system mux_hdmi system system_mux_hdmi system mux_hdmi mux_video_system mux_video system system_mux_video system mux_video hdmi_mux_hdmi hdmi mux_hdmi mux_hdmi_hdmi mux_hdmi hdmi video_mux_video video mux_video mux_video_video mux_video video} {
                     foreach check {setup hold} {
                         set args [dict get $reports ${prefix}_${pair}_${check}.rpt]
                         set from [lindex $args [expr {[lsearch -exact $args -from_clock]+1}]]
@@ -64,4 +64,4 @@ foreach label {system video hdmi mux_hdmi mux_video} {
         }
     }
 }
-puts "PASS: 256 reports, five distinct clocks including both mux aliases, six crossing directions, eight corners; 15 invalid inventories reject (mock only)"
+puts "PASS: 320 reports, five clocks, six SYS crossing directions and four master/own-alias directions, eight corners; 15 invalid inventories reject (mock only)"

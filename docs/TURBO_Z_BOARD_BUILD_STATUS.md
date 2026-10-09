@@ -186,6 +186,59 @@ duplicate/merged inventories before reporting; CI selects it. Native execution,
 clock frequency/propagation and coverage review remain pending on the new fit.
 Bounded 100-path reports are diagnostics, not full CDC or I/O acceptance.
 
+## Selected reset/mux refit and real remaining crossings
+
+Source `6133f27a2975f0ace85f9b341dc6384669a52a31` full flow finishes zero at
+18:30:11 UTC after 8:42, frozen folder `output_files/quartus-linux-1wZ1xxDx`.
+Original reports/RBF are local in `completed-flow/`, sequential native audits
+in `acceptance/`. RBF SHA-256
+`439cd3520d587e408168f7353be48e245f6751688c89bf4d52a0e4b19f9eca1a`
+remains **unqualified**. Input manifest SHA-256
+`68efe55068b056e21446db5a5ae16630e82fee5d765fc5e8a3619aa712a7e694`;
+386 input files match, only Quartus-written QPF differs.
+
+Sequential all-corner, inventories, global/clock, snapshot, PCG and scaler
+audits finish zero at 18:36:31 UTC, log
+`/tmp/x1-quartus-6133f27-native-acceptance.log`. All eight global minima:
+setup **−47.729 ns**, hold **−1.275 ns**, recovery **+4.375 ns**, removal
++0.262 ns, pulse width +0.529 ns. Initial Slow 100 C hold is positive but
+does not represent all-corner hold acceptance. Scaler recovery now reports
+positive after the selected raw-input scope; physical reset review remains.
+
+Alias inventory reports HDMI 6.732 ns /148.54 MHz, VID 23.280 ns /42.95 MHz,
+both divide-one from their correct masters and inputs 2/3 at the mux output.
+Internal post-mux HDMI same-clock setup now has minimum **+0.734 ns** across
+440 reported paths/eight corners. This is a real routing improvement, not
+full pipeline/I/O qualification. The reporter now also covers four related
+master ↔ own-alias directions, in addition to six SYS crossings: 320 expected
+reports. Mock scope controls pass; the extended native check finishes zero,
+no warnings at 18:43:34 UTC, log
+`/tmp/x1-quartus-6133f27-related-clock-acceptance.log`, reports separately in
+`related-clock-acceptance/`. Master HDMI → HDMI alias setup/hold contains
+464 rows/16 files, minimum +0.029 ns; VID → VID alias 384 rows/16 files,
+minimum +1.759 ns. Both reverse directions are empty, not called passes.
+These bounded reports do not establish exhaustive CDC or external pin timing.
+
+The largest newly visible failure is `hdmi_out_vs~_Duplicate_1` → `vs_d0`,
+alias HDMI → SYS, −47.729 ns with 46.472 ns data delay and zero logic levels.
+`vs_d1` and `vsd` are also raw VSYNC endpoints. Source inspection finds
+`vs_d0 <= HDMI_TX_VS` followed by `if(vs_d0 == HDMI_TX_VS) vs_d1 <= vs_d0`:
+the second stage rereads the asynchronous signal. The configuration sampler
+similarly uses first-stage `vsd` in edge detection. These are CDC-design and
+physical first-stage scope questions, not permission for clock-wide cuts.
+Next: destination-local synchronization before these SYS consumers, actual
+edge/filter/configuration tests and stage-only timing review. Unselected
+HDMI-OSD → video-mode data branches also remain reported; mode-aware static
+analysis needs an explicit clock/data-selection contract, not a blanket
+HDMI/VID exclusion. Physical switching/native software remain open.
+
+The fresh full ordinary `make -C verilator test` also finishes zero with
+143 PASS reports (`/tmp/x1-6133f27-full-local-test.log`). Its ordinary
+delay-aware runner retains SHA-256
+`166bf9129b272ce03b8d6c2d2d72ebf157627705fab59f569060a4c79cbd14e1`.
+This is local regression execution, not new five-game/Turbo Z/hardware
+qualification. No MiSTer is loaded.
+
 ```sh
 QUARTUS_REVISION=sharpx1_turbo_z_video bash scripts/build_quartus_linux.sh --build
 ```
