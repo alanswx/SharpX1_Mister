@@ -72,6 +72,10 @@ the hold path is a held video-measurement snapshot bundle. Production constraint
 review and native/physical acceptance remain open. The fresh full delay-aware
 baseline finishes zero (140 PASS reports); fresh ordinary snapshots pass,
 and both ordinary runners are byte-identical to their previously qualified v17 builds.
+The [bounded dimensions snapshot constraint](TURBO_Z_SNAPSHOT_TIMING_STATUS.md)
+now checks the real two-period protocol window and passes 72-bit payload
+setup/hold at eight prior-fit corners. It is selected only by the experimental
+Z QSF; fresh map/fit and remaining CDC/HDMI/native/physical gates remain open.
 The [Turbo Z in-flight control reset test](TURBO_Z_INFLIGHT_RESET_STATUS.md)
 passes at three independent video rates, including a deliberately failing
 asynchronous-reset-removal control. Exact reset frames, pending palette/

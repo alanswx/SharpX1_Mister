@@ -12,6 +12,32 @@ module cdc_snapshot_case #(parameter SOURCE_HALF = 5, DEST_HALF = 7) (output reg
     wire valid;
     x1_cdc_snapshot #(.WIDTH(64)) dut(source_clk,destination_clk,{counter,~counter},result,valid);
     integer publications = 0;
+    integer launches = 0, captures = 0;
+    realtime last_launch = 0, last_capture = 0;
+    reg previous_ack = 0, previous_request = 1;
+    // Measure real handshake transitions, not a chosen fabricated delay.
+    // An ACK launch accompanies held_data; destination capture changes request.
+    always @(posedge source_clk) begin
+        #0.001;
+        if(dut.acknowledgement != previous_ack) begin
+            if(launches != 0)
+                assert(captures == launches && $realtime-last_capture >= 4*SOURCE_HALF-0.002)
+                    else $fatal(1,"bundle overwritten before roundtrip hold window");
+            launches++;
+            last_launch=$realtime;
+            previous_ack=dut.acknowledgement;
+        end
+    end
+    always @(posedge destination_clk) begin
+        #0.001;
+        if(dut.request != previous_request) begin
+            assert(launches == captures+1 && $realtime-last_launch >= 4*DEST_HALF-0.002)
+                else $fatal(1,"bundle captured before two destination periods");
+            captures++;
+            last_capture=$realtime;
+            previous_request=dut.request;
+        end
+    end
     reg [63:0] previous = 0;
     always @(negedge destination_clk) begin
         if(valid) begin
@@ -59,14 +85,16 @@ module cdc_snapshot_case #(parameter SOURCE_HALF = 5, DEST_HALF = 7) (output reg
 endmodule
 
 module cdc_snapshot_tb;
-    wire [3:0] done;
+    wire [5:0] done;
     cdc_snapshot_case #(5,17) a(done[0]);
     cdc_snapshot_case #(23,7) b(done[1]);
     cdc_snapshot_case #(11,13) c(done[2]);
     cdc_snapshot_case #(7,7) d(done[3]);
+    cdc_snapshot_case #(15.625,11.64021164) sys_to_x3(done[4]);
+    cdc_snapshot_case #(11.64021164,15.625) x3_to_sys(done[5]);
     initial begin
         wait(&done);
-        $display("PASS: atomic snapshot at four clock ratios, initialization, monotonic refresh and both stopped-clock recoveries");
+        $display("PASS: atomic snapshot at six clock ratios including SYS/X3, two-period capture/hold windows, initialization, monotonic refresh and both stopped-clock recoveries");
         $finish;
     end
     initial begin #100000; $fatal(1,"snapshot handshake timeout"); end

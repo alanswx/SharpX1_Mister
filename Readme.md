@@ -72,6 +72,9 @@ now gives the experimental X3 owner independent two-edge reset releases;
 stopped-clock/connected-RAM tests and all six fresh custom/warm pixel cases pass,
 The fresh full baseline suite and snapshot checks also pass. The new fit
 completes but fails setup/recovery/hold timing; native/physical acceptance remains open.
+A [narrow held-snapshot constraint](docs/TURBO_Z_SNAPSHOT_TIMING_STATUS.md)
+passes prior-fit eight-corner payload checks and is now selected by the
+experimental Z revision; a new full fit and remaining CDC/HDMI gates are required.
 The [summary table](docs/CHIP_IMPLEMENTATION_TABLE.md) and
 [chip reuse survey](docs/CHIP_REUSE.md) describe available replacement sources
 and the remaining integration work.

@@ -3,3 +3,4 @@
 # Inherits independent 32 MHz SYS and requested X3 VID; DMA/SIO/FM/Kanji off.
 source sharpx1_turbo_video.qsf
 set_global_assignment -name VERILOG_MACRO "X1_TURBO_Z_VIDEO_EXPERIMENT=1"
+set_global_assignment -name SDC_FILE sharpx1_turbo_z_video.sdc
