@@ -9,6 +9,8 @@
 // synchronous modes and live frame reconfiguration are unsupported.
 // WR3 Auto Enables gates RX by DCD and new TX characters by CTS, in addition
 // to the software enables. Inputs must be synchronized by the caller.
+// Asynchronous RTS deassertion waits for the active character and holding
+// byte to drain; assertion remains immediate (UM0081 printed 288).
 // IRQ_ENABLE is used only by the separate standalone interrupt wrapper:
 // it adds first/all-character RX, TX-empty and CTS/DCD requests, B-only RR2, A-only return,
 // and channel command events. The default polled wrapper remains unchanged.
@@ -146,12 +148,17 @@ module x1_sio_async_channel #(parameter IRQ_ENABLE=0, parameter CHANNEL_B=0, par
     reg [6:0] tx_phase;
     reg [3:0] tx_bit, tx_stop_bit;
     reg [7:0] tx_stop_ticks;
+    reg rts_asserted;
     wire tx_take = tx_tick && tx_enabled && !tx_busy && tx_holding_full;
     // UM0081 printed 288: Send Break forces TxD spacing independently of
     // serial ticks and TX enable. Only idle/no-pending-data use is qualified;
     // frame/queue behavior while breaking remains explicitly unsupported.
     assign txd = wr5[4] ? 1'b0 : tx_busy ? tx_shift[0] : 1'b1;
-    assign rts_n = !wr5[1];
+    // Retain only a previously asserted request. Pending data must not
+    // invent RTS assertion if software never requested it. The post-edge
+    // real shifter/holding state releases RTS at the final stop tick, not a
+    // guessed byte length or an extra serial tick. Sync remains unsupported.
+    assign rts_n = !(wr5[1] || (wr4[3:2]!=0 && rts_asserted && (tx_busy || tx_holding_full)));
     assign dtr_n = !wr5[7];
 
     always @(posedge clk) begin
@@ -169,7 +176,11 @@ module x1_sio_async_channel #(parameter IRQ_ENABLE=0, parameter CHANNEL_B=0, par
             tx_holding_full<=0; tx_busy<=0; tx_holding<=0;
             tx_shift<=12'hfff; tx_phase<=0; tx_bit<=0; tx_stop_bit<=9;
             tx_divisor<=16; tx_stop_ticks<=16;
+            rts_asserted<=0;
         end else if (ce) begin
+            if(write_event && control && pointer==5 && cpu_din[1]) rts_asserted<=1;
+            else if(wr5[1]) rts_asserted<=1;
+            else if(!tx_busy && !tx_holding_full) rts_asserted<=0;
             if(error_reset || !error_locked) error_read_seen<=0;
             else if(read_event && !control) error_read_seen<=1;
             if(!cpu_cs || cpu_rd_n) read_seen<=0;
@@ -219,12 +230,12 @@ module x1_sio_async_channel #(parameter IRQ_ENABLE=0, parameter CHANNEL_B=0, par
                         end
                         5: begin
                             wr5<=cpu_din;
-                            // Only an enable-only change is qualified during
-                            // a frame. Length, break and modem changes retain
+                            // Only TX-enable/RTS changes are qualified during
+                            // a frame. Length, break and DTR changes retain
                             // their unsupported diagnostics; frame data and
                             // timing remain the latched values from tx_take.
                             if((cpu_din & 8'h05)!=0 ||
-                               (tx_busy && (cpu_din ^ wr5)!=8'h08) ||
+                               (tx_busy && (((cpu_din ^ wr5) & 8'hf5)!=0 || cpu_din==wr5)) ||
                                (cpu_din[4] && tx_holding_full)) unsupported<=1;
                         end
                         default: unsupported<=1;

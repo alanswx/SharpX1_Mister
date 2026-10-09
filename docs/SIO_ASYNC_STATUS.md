@@ -53,7 +53,10 @@ outside the polled slice are not established by this increment.
 - RR0 reports buffer state and actual active-low CTS/DCD inputs. RTS/DTR
   outputs follow WR5. A subsequent [automatic-enable increment](SIO_AUTO_ENABLE_STATUS.md)
   qualifies WR3 D5 CTS/DCD gating in addition to the software enables;
-  physical pin phases and deferred RTS release remain open.
+  physical pin phases remain open. The subsequent
+  [asynchronous RTS increment](SIO_RTS_STATUS.md) retains a cleared request
+  through the active character and queued data until all-sent; 3,024 actual
+  pin/format/seam cases plus idle/reset/isolation tests pass.
 - WR0 channel reset affects only that channel; Error Reset clears the
   overrun and parity latches. Chip reset works on SYS even when advancement
   CE is stopped.
@@ -101,7 +104,8 @@ the serialized machine or require conversion of v11 states.
 
 ## Next gates
 
-1. Externally synchronized x1 mode, receive/busy-transmit break, exact modem phases/RTS latches and
+1. Externally synchronized x1 mode, receive/busy-transmit break, exact modem phases,
+   5-or-less variable-length encoding and
    exact error-reset effects outside this polled subset. Live frame changes
    are flagged unsupported and frame parameters are latched at start/take;
    the manual's live RX-length adjustment is **not implemented**. Validate

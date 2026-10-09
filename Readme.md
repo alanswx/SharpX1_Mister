@@ -412,6 +412,9 @@ A [standalone automatic-enable increment](docs/SIO_AUTO_ENABLE_STATUS.md)
 adds WR3 CTS/DCD gating with software-enable AND, receive restart and
 1,512 actual CTS drop/resume format cases. All twelve related SIO targets
 pass; exact modem phases, IRQ/Ready combinations and machine wiring remain open.
+A [standalone RTS correction](docs/SIO_RTS_STATUS.md) now retains asynchronous
+RTS until the active character and queued data drain. Its 3,024 pin/format
+cases and idle/reset/isolation checks pass with all thirteen related SIO targets.
 The SIO wrappers are not connected to the machine; native reset arming,
 remaining external sources, x1/full break/exact WAIT/Ready and full
 multi-device arbitration remain open.

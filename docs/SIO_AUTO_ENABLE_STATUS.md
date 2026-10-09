@@ -37,7 +37,9 @@ not the external interrupt's retained RR0 snapshot.
 
 Unsupported synchronous, x1, CRC/hunt and live receive reconfiguration still
 remain diagnosed. The caller must synchronize modem pins. RTS/DTR output
-timing is unchanged; deferred asynchronous RTS release is still pending.
+timing is unchanged at this checkpoint; the subsequent
+[RTS drain increment](SIO_RTS_STATUS.md) separately qualifies deferred
+asynchronous release, not physical pin timing.
 
 ## Terminal verification
 

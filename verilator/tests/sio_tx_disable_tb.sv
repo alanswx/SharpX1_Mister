@@ -2,10 +2,10 @@
 // Original pin-driven WR5 transmitter-disable regression. No forced DUT state.
 `timescale 1ns/1ps
 module sio_tx_disable_tb;
-    reg clk=0, ce=0, reset=1;
+    reg clk=0, ce=0, reset=1, pause_ce=0;
     always #5 clk=~clk;
-    integer period=1, edges=0, cases=0, modem=0;
-    always @(negedge clk) begin edges=edges+1; ce=(edges%period)==0; end
+    integer period=1, edges=0, cases=0, modem=0, rts_mode=0;
+    always @(negedge clk) begin edges=edges+1; ce=!pause_ce && (edges%period)==0; end
     reg cpu_cs=0, cpu_rd_n=1, cpu_wr_n=1;
     reg [1:0] address=0;
     reg [7:0] cpu_din=0;
@@ -34,7 +34,10 @@ module sio_tx_disable_tb;
         put(1,5); put(1,value);
     endtask
     task automatic gate_transmitter(input reg [7:0] value);
-        if(modem!=0) cts_n[0]=!value[3];
+        if(modem!=0) begin
+            cts_n[0]=!value[3];
+            if(rts_mode!=0) wr5(value | 8'h08); // CTS alone gates TX; WR5 changes RTS only.
+        end
         else wr5(value);
     endtask
     function automatic [1:0] length_code(input integer bits);
@@ -67,6 +70,7 @@ module sio_tx_disable_tb;
     initial begin
         if(!$value$plusargs("CE_PERIOD=%d",period)) period=1;
         if(!$value$plusargs("MODEM=%d",modem)) modem=0;
+        if(!$value$plusargs("RTS=%d",rts_mode)) rts_mode=0;
         for(integer bits=5;bits<=8;bits=bits+1)
         for(integer parity_mode=0;parity_mode<3;parity_mode=parity_mode+1)
         for(integer stops=1;stops<=3;stops=stops+1)
@@ -78,6 +82,7 @@ module sio_tx_disable_tb;
             final_bit=bits+1+(parity_mode!=0 ? 1 : 0);
             enabled_wr5={1'b1,length_code(bits),5'b01010};
             disabled_wr5=enabled_wr5 & 8'hf7;
+            if(rts_mode!=0) disabled_wr5=disabled_wr5 & 8'hfd;
             disable_bit=seam==0 ? 0 : seam==2 ? final_bit : seam==4 ? bits+1 : 4;
             cases=cases+1;
             reset=1; tx_tick=0; cts_n=modem!=0 ? 0 : 3; repeat(8) step(); reset=0;
@@ -94,6 +99,7 @@ module sio_tx_disable_tb;
                 for(integer tick=0;tick<duration;tick=tick+1) begin
                     if(txd!=={serial_bit(8'h96,bit_number,bits,parity_mode),serial_bit(8'h69,bit_number,bits,parity_mode)})
                         $fatal(1,"active character truncated case=%0d seam=%0d bit=%0d tick=%0d pins=%b",cases,seam,bit_number,tick,txd);
+                    if(rts_mode!=0 && rts_n!==0) $fatal(1,"RTS released before active/queued drain case=%0d bit=%0d tick=%0d",cases,bit_number,tick);
                     if(bit_number==final_bit && tick==duration-1) begin
                         tx_tick=0;
                         put(1,1); get(1,value); if(value!==0) $fatal(1,"A all sent before final stop tick");
@@ -110,15 +116,19 @@ module sio_tx_disable_tb;
             put(1,1); get(1,value); if(value!==0) $fatal(1,"queued A falsely all sent");
             put(3,1); get(3,value); if(value!==1) $fatal(1,"B all-sent disturbed");
             tx_tick=3;
-            repeat(200) begin step(); if(txd!==3) $fatal(1,"disabled A started queued byte"); end
+            repeat(200) begin
+                step(); if(txd!==3) $fatal(1,"disabled A started queued byte");
+                if(rts_mode!=0 && rts_n!==0) $fatal(1,"RTS released with blocked queued byte");
+            end
             tx_tick=0;
-            gate_transmitter(enabled_wr5);
+            gate_transmitter(rts_mode!=0 ? enabled_wr5 & 8'hfd : enabled_wr5);
             tx_tick=3; step(); tx_tick=0;
             tx_tick=3;
             for(integer bit_number=0;bit_number<=final_bit;bit_number=bit_number+1) begin
                 duration=bit_number==final_bit ? (stops==1 ? divisor : stops==2 ? divisor+divisor/2 : divisor*2) : divisor;
                 for(integer tick=0;tick<duration;tick=tick+1) begin
                     if(txd!=={1'b1,serial_bit(8'ha5,bit_number,bits,parity_mode)}) $fatal(1,"queued frame changed on resume case=%0d",cases);
+                    if(rts_mode!=0 && rts_n!==0) $fatal(1,"RTS released before resumed stop completed");
                     if(bit_number==final_bit && tick==duration-1) begin
                         tx_tick=0;
                         put(1,1); get(1,value); if(value!==0) $fatal(1,"resumed A all sent before final stop tick");
@@ -128,11 +138,34 @@ module sio_tx_disable_tb;
                 end
             end
             tx_tick=0;
+            if(rts_mode!=0 && rts_n!==1) $fatal(1,"RTS did not release exactly at all-sent; B disturbed");
             put(1,1); get(1,value); if(value!==1) $fatal(1,"resumed A not all sent");
             if(unsupported) $fatal(1,"supported resume rejected");
         end
         if(cases!=504) $fatal(1,"incomplete disable format matrix %0d",cases);
-        $display("PASS: 504 disable cases across 108 formats, start/data/parity/stop and re-enable seams; queued resume; B isolation CE=%0d MODEM=%0d",period,modem);
+        if(rts_mode!=0) begin
+            reset=1; tx_tick=0; cts_n=modem!=0 ? 0 : 3; repeat(8) step(); reset=0;
+            config_channel(0,8,0,1,1); config_channel(1,8,0,1,1);
+            wr5(8'he8);
+            if(rts_n!==1) $fatal(1,"idle RTS release delayed/B disturbed");
+            put(0,8'ha5);
+            if(rts_n!==1) $fatal(1,"queued data invented RTS assertion");
+            wr5(8'hea);
+            if(rts_n!==0) $fatal(1,"RTS assertion waited for serial tick");
+            wr5(8'he8);
+            if(rts_n!==0) $fatal(1,"queued-only RTS released before holding drain");
+            @(negedge clk); #1; pause_ce=1;
+            repeat(20) begin @(posedge clk); #1; if(rts_n!==0) $fatal(1,"stopped CE lost retained RTS"); end
+            @(negedge clk); #1; pause_ce=0;
+            put(2,8'h96); tx_tick=2; step(); tx_tick=0;
+            put(1,8'h18);
+            if(rts_n!==1 || txd!==1 || unsupported) $fatal(1,"A channel reset failed/B active frame disturbed");
+            @(negedge clk); #1; pause_ce=1; reset=1;
+            repeat(5) begin @(posedge clk); #1; end
+            if(rts_n!==3 || dtr_n!==3 || txd!==3 || unsupported) $fatal(1,"stopped-CE chip reset retained RTS/frame");
+            @(negedge clk); #1; reset=0; pause_ce=0;
+        end
+        $display("PASS: 504 disable cases across 108 formats, start/data/parity/stop and re-enable seams; queued resume; B isolation CE=%0d MODEM=%0d RTS=%0d",period,modem,rts_mode);
         $finish;
     end
     initial begin #100000000; $fatal(1,"watchdog"); end

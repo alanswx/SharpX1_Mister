@@ -66,7 +66,7 @@ jobs:
       - name: Run original standalone and shared-machine fixtures
         run: |
           for target in \
-            test-sio-async test-sio-tx-disable test-sio-auto-enable test-sio-break test-sio-formats test-sio-irq test-sio-first-status \
+            test-sio-async test-sio-tx-disable test-sio-auto-enable test-sio-rts test-sio-break test-sio-formats test-sio-irq test-sio-first-status \
             test-sio-flow test-sio-cpu test-sio-cpu-irq-reset test-sio-dma test-sio-dma-cpu \
             test-dma test-dma-compare test-dma-search test-dma-cpu test-dma-service test-dma-service-cpu \
             test-dma-native-irq test-dma-native-irq-cpu test-dma-ready-irq test-dma-ready-irq-cpu \

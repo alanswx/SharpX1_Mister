@@ -726,6 +726,10 @@ $(HEADLESS_DIR)/sio-auto-enable/Vsio_auto_enable_tb: tests/sio_auto_enable_tb.sv
 		-j 4 tests/sio_auto_enable_tb.sv ../rtl/x1_sio_async.sv -Wno-fatal
 .PHONY: test-sio-auto-enable
 
+test-sio-rts: $(HEADLESS_DIR)/sio-tx-disable/Vsio_tx_disable_tb
+	@for mode in 0 1; do for rate in 1 4 7; do ./$(HEADLESS_DIR)/sio-tx-disable/Vsio_tx_disable_tb +CE_PERIOD=$$rate +MODEM=$$mode +RTS=1 || exit 1; done; done
+.PHONY: test-sio-rts
+
 test-sio-break: $(HEADLESS_DIR)/sio-break/Vsio_break_tb
 	@for rate in 1 4 7; do ./$(HEADLESS_DIR)/sio-break/Vsio_break_tb +CE_PERIOD=$$rate || exit 1; done
 $(HEADLESS_DIR)/sio-break/Vsio_break_tb: tests/sio_break_tb.sv ../rtl/x1_sio_async.sv

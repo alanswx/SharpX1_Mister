@@ -92,3 +92,6 @@ busy/receive break, exact modem phases, x1/synchronous modes and physical valida
 remain open; this increment does not finish work group 1 or Turbo Z.
 The subsequent [automatic-enable increment](SIO_AUTO_ENABLE_STATUS.md) separately
 qualifies functional CTS/DCD gating, not physical modem timing or machine wiring.
+The later [RTS drain increment](SIO_RTS_STATUS.md) additionally qualifies busy
+WR5 changes limited to TX-enable/RTS, retaining the unchanged-configuration
+negative guard and length/break/DTR restrictions.
