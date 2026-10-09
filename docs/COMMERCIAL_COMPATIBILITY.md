@@ -10,11 +10,13 @@ Runner, machine, support scripts/keys and IPL are copied before launch;
 snapshots are reused or converted; native prefix remains sixteen seconds
 in unchanged eight-second chunks, with original controls/assertions.
 
-Xevious and Druaga collectors have completed with all native stage codes
+Xevious, Druaga, Mappy and Galaga collectors have completed with all native stage codes
 and control codes zero, `gameplay_verified=true`, original inputs unchanged,
 repeatable RGB/RAM/reports, and movement `(30,40) -> (36,40)` and
-`(68,32) -> (67,32)` respectively. Mappy is running; Galaga/Shanghai remain
-queued. Logs are `/tmp/x1-crtc-native-TITLE.log`. The final full frozen-input
+`(68,32) -> (67,32)` for the first two. Mappy moves `(129,84) -> (126,84)`;
+Galaga moves `(32,24) -> (40,24)` and separately passes active-enemy,
+firing/projectile travel and release/repeatability checks with return code zero.
+Shanghai is running. Logs are `/tmp/x1-crtc-native-TITLE.log`. The final full frozen-input
 audit is scheduled after all five finish, not yet complete.
 This runner predates the subsequent read-only X3 JSON/short-restore C++
 increment; ordinary machine RTL/layout is unchanged by that increment.

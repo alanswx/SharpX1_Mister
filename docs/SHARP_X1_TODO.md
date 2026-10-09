@@ -22,11 +22,12 @@ fixed-destination two-LOAD sequence in the new diagnostic was corrected;
 DMA RTL was not changed. The baseline transcript reaches its final fixture
 with 143 PASS reports; its outer exit status was lost during a tool reset and
 is not invented. The PCG-replica follow-up full flow completes zero but still
-fails reported setup -12.003 ns. Native CRTC reporting now validates the exact
-acknowledgement replica and produces 192 reports. Independent acceptance
-still fails MPU consumer coverage: original `R_ADR[0]` name lookup expands
-to its fitted replica as well. Exact physical/alias inventory and local reset
-source coverage need qualification; no native CRTC timing pass is claimed.
+fails reported setup -12.003 ns. The native CRTC follow-up resolves Quartus
+name-expanded replica fanout using exact physical collections, retains all
+MPU replicas, and qualifies the local video reset source. Independent auditing
+passes 192 reports/43,056 synchronous rows (minimum +0.218 ns) and 144 held
+packet rows (maximum physical delay 0.999 ns). Raw request/ACK input timing,
+MTBF/placement and whole-core timing remain open; no qualified RBF is claimed.
 Nine actual pending-transaction snapshots pass ninety byte-identical
 continuations; cold-start/clock guards remain tested. Fresh combined-Z
 pixels, current-source Quartus bundle/consumer timing and native/hardware

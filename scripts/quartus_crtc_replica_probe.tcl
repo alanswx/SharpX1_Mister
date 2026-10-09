@@ -27,6 +27,11 @@ foreach field {{R_ADR[0]} {R_ADR[0]~DUPLICATE}} {
     foreach_in_collection node [get_fanouts [list $name]] {
         post_message "CRTC probe output $field [get_node_info -name $node] ([get_node_info -type $node])"
     }
+    set physical [get_registers -no_duplicates [list $name]]
+    if {[get_collection_size $physical] != 1} {error "missing exact physical probe keeper"}
+    foreach_in_collection node [get_fanouts $physical] {
+        post_message "CRTC probe physical output $field [get_node_info -name $node] ([get_node_info -type $node])"
+    }
     set label [expr {$field eq {R_ADR[0]} ? "primary" : "replica"}]
     foreach check {setup hold} {
         report_timing -$check -from $source -npaths 10000 -detail full_path -file output_files/crtc_replica_probe_${label}_${check}.rpt

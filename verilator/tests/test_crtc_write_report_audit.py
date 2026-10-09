@@ -4,7 +4,7 @@ import sys
 import tempfile
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2] / "scripts"))
-from audit_crtc_write_reports import audit, PREFIX, MPU_PREFIX, PACKET, SYS, VIDEO
+from audit_crtc_write_reports import audit, PREFIX, MPU_PREFIX, MPU_RESET, PACKET, SYS, VIDEO
 
 with tempfile.TemporaryDirectory(prefix="crtc-report-controls-") as directory:
     root = pathlib.Path(directory)
@@ -27,6 +27,9 @@ with tempfile.TemporaryDirectory(prefix="crtc-report-controls-") as directory:
                   for source, meta in (("request", "request_meta"), ("acknowledgement", "acknowledgement_meta"))]
     log_lines += ["Info: CRTC MPU register " + name for name in mpu]
     log_lines += ["Info: CRTC endpoint native fanout " + source + " " + " ".join(targets) for source, targets in fanouts.items()]
+    log_lines += ["Info: CRTC endpoint physical scope " + source for source in fanouts]
+    log_lines += ["Info: CRTC local reset source " + MPU_RESET,
+                  "Info: CRTC local reset native fanout " + " ".join(mpu)]
     log_lines += ["Info: Evaluation of Tcl script crtc_reporter.tcl was successful"]
     log_lines += ["Info: Quartus Prime TimeQuest Timing Analyzer was successful. 0 errors, 0 warnings"]
     valid_log = "\n".join(log_lines) + "\n"
@@ -48,6 +51,7 @@ with tempfile.TemporaryDirectory(prefix="crtc-report-controls-") as directory:
     for kind, sources in (("capture_consumer", PACKET.values()), ("mpu_consumer", mpu)):
         contents[kind] = "".join(row(source, target) for source in sources for target in fanouts[source])
     contents["mpu_input"] = "".join(row(PREFIX + f"video_data[{i % 5}]", target) for i, target in enumerate(mpu))
+    contents["mpu_input"] += "".join(row(MPU_RESET, target) for target in mpu)
     for model in ("slow", "fast"):
         for temperature in (-40, 0, 85, 100):
             for check in ("setup", "hold"):
@@ -64,6 +68,14 @@ with tempfile.TemporaryDirectory(prefix="crtc-report-controls-") as directory:
     packet, chain, raw, ack = (path(k) for k in ("packet", "request_chain", "request_input", "ack_consumer"))
     capture, mpu_input, mpu_output = (path(k) for k in ("capture_consumer", "mpu_input", "mpu_consumer"))
     changes = [
+        (native, valid_log.replace("CRTC endpoint physical scope", "unqualified alias-group scope")),
+        (native, valid_log + "Info: CRTC endpoint physical scope " + mpu[0] + "\n"),
+        (native, valid_log.replace("CRTC local reset source " + MPU_RESET, "CRTC local reset source raw_reset")),
+        (native, valid_log.replace("CRTC local reset native fanout", "missing reset fanout")),
+        (native, valid_log.replace("Info: CRTC local reset native fanout " + " ".join(mpu), "Info: CRTC local reset native fanout unrelated")),
+        (mpu_input, originals[mpu_input].replace(MPU_RESET, "raw_reset", 1)),
+        (mpu_input, originals[mpu_input].replace(row(MPU_RESET, mpu[0]), "")),
+        (mpu_input, originals[mpu_input].replace(row(MPU_RESET, mpu[0]), row(MPU_RESET, mpu[0], SYS, VIDEO))),
         (packet, "Nothing to report."),
         (packet, "".join(originals[packet].splitlines(keepends=True)[:-1])),
         (packet, originals[packet].replace("held_packet[8]", "held_packet[7]")),
@@ -143,4 +155,4 @@ with tempfile.TemporaryDirectory(prefix="crtc-report-controls-") as directory:
         else:
             raise AssertionError(f"invalid CRTC alias report accepted: {p.name}")
         p.write_text(clone_log if p == native else clone_originals[p])
-print("PASS: CRTC parser primary/native-alias coverage and 38 invalid scope/domain/payload/native-log controls; not fitted evidence")
+print("PASS: CRTC parser physical/native-alias/reset coverage and 46 invalid scope/domain/payload/native-log controls; not fitted evidence")

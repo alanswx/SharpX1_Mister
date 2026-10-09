@@ -5,6 +5,7 @@ package provide ::quartus::sta 1
 foreach name {project_open create_timing_netlist read_sdc update_timing_netlist post_message delete_timing_netlist project_close} {proc $name args {}}
 set prefix {emu:emu|sharpx1:sharpx1|x1_crtc_write:x3_crtc.writes|}
 set mpu_prefix {emu:emu|sharpx1:sharpx1|x1_vid:display|crtc6845s:crtc6845s|mpu_if:mpu_if|}
+set reset_name {emu:emu|sharpx1:sharpx1|x1_reset_release:video_reset_domain.release_reset|release_pipe[1]}
 set names {}
 foreach field {request request_meta request_sync acknowledgement acknowledgement_meta acknowledgement_sync video_rs pending_write busy done seen} {lappend names ${prefix}$field}
 for {set bit 0} {$bit < 9} {incr bit} {lappend names "${prefix}held_packet\[$bit\]"}
@@ -13,7 +14,10 @@ set mpu_names {}
 foreach field {R_Nadj R_Nr} {
     for {set bit 0} {$bit < 5} {incr bit} {lappend mpu_names "${mpu_prefix}${field}\[$bit\]"}
 }
-proc get_registers query {
+proc get_registers args {
+    set exact [expr {[llength $args] == 2 && [lindex $args 0] eq "-no_duplicates"}]
+    if {[llength $args] != 1 && !$exact} {error "unsupported register lookup options"}
+    set query [lindex $args end]
     if {$query eq "*x3_crtc.writes*|*"} {
         set result $::names
         if {$::ack_replica} {lappend result ${::prefix}acknowledgement~DUPLICATE}
@@ -41,8 +45,16 @@ proc get_registers query {
     }
     if {$::mode eq "lookup_missing"} {return {}}
     if {$::mode eq "lookup_duplicate"} {return [concat $query $query]}
+    if {$query eq [list $::reset_name]} {
+        if {!$exact} {error "reset keeper lookup not physical"}
+        if {$::mode eq "reset_missing"} {return {}}
+        return $query
+    }
     foreach name $query {
-        if {[lsearch -exact $::names $name]<0 && !($::ack_replica && $name eq "${::prefix}acknowledgement~DUPLICATE")} {error "unexpected exact query $query"}
+        if {[lsearch -exact $::names $name]<0 && [lsearch -exact $::mpu_names $name]<0 && !($::ack_replica && $name eq "${::prefix}acknowledgement~DUPLICATE")} {error "unexpected exact query $query"}
+    }
+    if {$::ack_replica && !$exact && $query eq [list ${::prefix}acknowledgement]} {
+        return [list ${::prefix}acknowledgement ${::prefix}acknowledgement~DUPLICATE]
     }
     return $query
 }
@@ -50,6 +62,11 @@ proc get_collection_size regs {llength $regs}
 proc get_register_info {option reg} {return $reg}
 proc get_fanouts query {
     set name [lindex $query 0]
+    if {$name eq $::reset_name} {
+        if {$::mode eq "reset_fanout_missing"} {return {}}
+        if {$::mode eq "reset_fanout_duplicate"} {return [concat $::mpu_names $::mpu_names]}
+        return $::mpu_names
+    }
     foreach field {request acknowledgement} {
         if {$name eq "${::prefix}${field}_meta"} {
             if {$::mode eq "fanout_missing"} {return {}}
@@ -106,7 +123,7 @@ proc report_timing args {
 }
 foreach name {set_false_path set_clock_groups set_max_delay set_min_delay set_multicycle_path} {proc $name args {error "no exceptions allowed"}}
 proc run_tool {} {global quartus tool fields; source $tool}
-foreach mode {valid valid_ack_replica valid_ack_primary alias_inputs_missing alias_inputs_differ wrong_revision extra_arg missing_request missing_pending duplicate extra_packet missing_packet missing_data wrong_hierarchy replica lookup_missing lookup_duplicate fanout_missing fanout_extra fanout_wrong consumer_missing consumer_duplicate fanout_nonreg firstdata_nonreg mpu_missing r5_missing r9_missing mpu_duplicate endpoint_fanout_missing endpoint_fanout_duplicate pin_missing pin_duplicate data_source_wrong data_source_missing} {
+foreach mode {valid valid_ack_replica valid_ack_primary alias_inputs_missing alias_inputs_differ wrong_revision extra_arg missing_request missing_pending duplicate extra_packet missing_packet missing_data wrong_hierarchy replica lookup_missing lookup_duplicate fanout_missing fanout_extra fanout_wrong consumer_missing consumer_duplicate fanout_nonreg firstdata_nonreg mpu_missing r5_missing r9_missing mpu_duplicate endpoint_fanout_missing endpoint_fanout_duplicate pin_missing pin_duplicate data_source_wrong data_source_missing reset_missing reset_fanout_missing reset_fanout_duplicate} {
     set ack_replica [expr {$mode in {valid_ack_replica valid_ack_primary alias_inputs_missing alias_inputs_differ}}]
     set quartus(args) sharpx1_turbo_z_video
     if {$mode eq "wrong_revision"} {set quartus(args) sharpx1}
@@ -166,4 +183,4 @@ foreach mode {valid valid_ack_replica valid_ack_primary alias_inputs_missing ali
         }
     }
 }
-puts "PASS: CRTC reporter 192 scopes/eight corners, primary/actual-replica source profiles, 31 rejected inventories; no exceptions (mock only)"
+puts "PASS: CRTC reporter 192 scopes/eight corners, physical primary/replica and local reset profiles, 34 rejected inventories; no exceptions (mock only)"

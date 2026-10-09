@@ -251,6 +251,52 @@ source, rerun the final reporter and independent all-corner audit. Until then
 there is no native CRTC synchronous/bundle pass. Raw input/MTBF, global timing,
 native software and physical acceptance remain open.
 
+### Exact physical collections: bounded native CRTC audit passes
+
+Installed Quartus 17 primary command documentation
+`common/tcl/internal/init/sdc_ext.cmds.hlp` specifies that `get_registers`
+normally includes fitted duplicates; `-no_duplicates` excludes automatic
+name expansion. Passing its returned native collection to `get_fanouts`
+isolates each physical keeper without omitting replicas from the full MPU
+inventory. The focused probe confirms original `R_ADR[0]` has three actual
+consumers while its separately inventoried replica has 72. No missing pair
+was waived or alias-normalized in the auditor.
+
+The reporter now follows exact collections for ACK equivalence and all
+transport/MPU fanout observations, checks lookup identity, and marks exact
+physical inventory scope. The auditor requires that scope for every capture
+and MPU source, rejecting the earlier alias-expanded evidence. It also
+requires the exact video reset-release keeper and its native MPU fanout set,
+then checks every corresponding reset-to-MPU row is local VID-to-VID with
+nonnegative slack. This does not qualify raw reset assertion, recovery/removal
+or synchronizer MTBF. Mock tests pass 34 reporter and 46 auditor invalid
+controls, including absent/raw/wrong-clock/reset coverage cases.
+
+The final reporting-only native run finishes zero errors/warnings at
+21:39:41 UTC. Its 192 reports pass the independent all-eight-corner audit:
+
+- 43,056 synchronous rows, minimum slack **+0.218 ns**.
+- 144 held-packet rows, maximum physical delay **0.999 ns**, below the
+  conservative 23.28 ns bound; unrelated asynchronous edge slack is not
+  treated as synchronous closure.
+- 32 raw request/ACK input rows, minimum edge slack **-9.071 ns**, still OPEN.
+
+Reporter SHA-256:
+`3828056ddcf54fa328c7a020276ee8aade799a633235f30ea1ecd48c53293ccc`.
+Independent auditor SHA-256:
+`0aff5532e7cbf32c6b7773c093caf3b068b8a0f4e0f6b2f140340c185b7206ab`.
+Log `/tmp/x1-crtc-native-physical-reset-timing.log`; retrieved reports under
+ignored `output_files/quartus-linux-6FBt6YWN/crtc-physical-acceptance/`.
+Prior reports are preserved separately. This uses the same frozen `fcd1086`
+fit/RBF and original constraints, not a refit or new timing exception.
+
+Next timing step: implement and independently qualify a guarded, per-pair
+held-packet physical-delay constraint consistent with the actual handshake,
+then re-audit full timing. Raw request/ACK input treatment and FPGA
+synchronizer placement remain separate open work. Overall reported setup
+still fails -12.003 ns; this bounded pass does not qualify the RBF or native
+Turbo/Z behavior.
+
 ## Actual pending-transaction snapshot follow-up
 
 Read-only X3 runner JSON now exposes held packet, handshake phase and actual

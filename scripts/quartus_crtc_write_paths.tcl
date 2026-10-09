@@ -37,6 +37,17 @@ if {[llength [lsort -unique $prefixes]] != 1 ||
 foreach field {request request_meta request_sync acknowledgement acknowledgement_meta acknowledgement_sync video_rs pending_write} {
     if {![dict exists $fields $field]} {error "missing CRTC field $field"}
 }
+proc crtc_exact {name} {
+    # Quartus 17 get_registers normally adds fitted clones to a primary-name
+    # lookup. Keep all clones in the inventory, but follow each actual keeper
+    # separately; a node-ID string is not a native collection.
+    set result [get_registers -no_duplicates [list $name]]
+    if {[get_collection_size $result] != 1} {error "CRTC endpoint lookup not unique: $name"}
+    foreach_in_collection node $result {
+        if {[get_register_info -name $node] ne $name} {error "CRTC endpoint lookup changed identity: $name"}
+    }
+    return $result
+}
 # Exactly one reviewed source replica is allowed, never stage replicas or
 # arbitrary aliases. Check native data/control/clock input keepers before
 # selecting the source that actually feeds the first-stage data pin.
@@ -44,7 +55,7 @@ if {[dict exists $fields acknowledgement~DUPLICATE]} {
     set keeper_sets {}
     foreach field {acknowledgement acknowledgement~DUPLICATE} {
         set keepers {}
-        foreach_in_collection node [get_fanins [list [dict get $fields $field]]] {
+        foreach_in_collection node [get_fanins [crtc_exact [dict get $fields $field]]] {
             lappend keepers [list [get_node_info -name $node] [get_node_info -type $node]]
         }
         if {![llength $keepers]} {error "missing CRTC acknowledgement replica inputs"}
@@ -56,9 +67,7 @@ if {[dict exists $fields acknowledgement~DUPLICATE]} {
 }
 proc crtc_reg {field} {
     set name [dict get $::fields $field]
-    set result [get_registers [list $name]]
-    if {[get_collection_size $result] != 1} {error "CRTC endpoint lookup not unique: $name"}
-    return $result
+    return [crtc_exact $name]
 }
 set packet_names {}; set capture_names [list [dict get $fields video_rs]]
 for {set bit 0} {$bit < 9} {incr bit} {
@@ -77,14 +86,14 @@ if {[get_collection_size $packet] != 9 || [get_collection_size $capture] != 9} {
 foreach pair {{request_meta request_sync} {acknowledgement_meta acknowledgement_sync}} {
     lassign $pair first last
     set nodes {}
-    foreach_in_collection node [get_fanouts [list [dict get $fields $first]]] {
+    foreach_in_collection node [get_fanouts [crtc_reg $first]] {
         if {[get_node_info -type $node] ne "reg"} {error "CRTC first stage has non-register fanout"}
         lappend nodes [get_node_info -name $node]
     }
     if {$nodes ne [list [dict get $fields $last]]} {error "CRTC first stage escapes its synchronizer"}
     post_message "CRTC native fanout $first $nodes"
     set nodes {}
-    foreach_in_collection node [get_fanouts [list [dict get $fields $last]]] {
+    foreach_in_collection node [get_fanouts [crtc_reg $last]] {
         if {[get_node_info -type $node] ne "reg"} {error "CRTC final stage has non-register fanout"}
         lappend nodes [get_node_info -name $node]
     }
@@ -109,7 +118,7 @@ if {[lsort -integer $nadj] ne {0 1 2 3 4} || [lsort -integer $nr] ne {0 1 2 3 4}
 }
 foreach source [concat $capture_names $mpu_names] {
     set nodes {}
-    foreach_in_collection node [get_fanouts [list $source]] {
+    foreach_in_collection node [get_fanouts [crtc_exact $source]] {
         if {[get_node_info -type $node] ne "reg"} {error "CRTC packet/MPU fanout contains a non-register endpoint"}
         lappend nodes [get_node_info -name $node]
     }
@@ -117,7 +126,22 @@ foreach source [concat $capture_names $mpu_names] {
         error "CRTC packet/MPU fanout empty/duplicated"
     }
     post_message "CRTC endpoint native fanout $source $nodes"
+    post_message "CRTC endpoint physical scope $source"
 }
+# MPU synchronous reset is driven by the video-domain release register, not
+# a SYS register. Include its exact keeper/fanout observation; this does not
+# qualify the reset input synchronizer or waive recovery/removal timing.
+set reset_name {emu:emu|sharpx1:sharpx1|x1_reset_release:video_reset_domain.release_reset|release_pipe[1]}
+set reset_nodes {}
+foreach_in_collection node [get_fanouts [crtc_exact $reset_name]] {
+    if {[get_node_info -type $node] ne "reg"} {error "CRTC local reset has non-register fanout"}
+    lappend reset_nodes [get_node_info -name $node]
+}
+if {![llength $reset_nodes] || [llength $reset_nodes] != [llength [lsort -unique $reset_nodes]]} {
+    error "CRTC local reset fanout missing/duplicated"
+}
+post_message "CRTC local reset source $reset_name"
+post_message "CRTC local reset native fanout $reset_nodes"
 # Native pin/fanin observations do not authorize exceptions or prove MTBF.
 set data_pins [dict create request_meta 0 acknowledgement_meta 0]
 set ack_field acknowledgement

@@ -8,6 +8,7 @@ from audit_video_blink_reports import VIDEO
 
 PREFIX = "emu:emu|sharpx1:sharpx1|x1_crtc_write:x3_crtc.writes|"
 MPU_PREFIX = "emu:emu|sharpx1:sharpx1|x1_vid:display|crtc6845s:crtc6845s|mpu_if:mpu_if|"
+MPU_RESET = "emu:emu|sharpx1:sharpx1|x1_reset_release:video_reset_domain.release_reset|release_pipe[1]"
 KINDS = ("request_input", "request_chain", "request_first_fanout", "request_consumer",
          "ack_input", "ack_chain", "ack_first_fanout", "ack_consumer", "packet",
          "capture_consumer", "mpu_input", "mpu_consumer")
@@ -93,11 +94,18 @@ def inventory(log):
         assert source not in fanouts, "duplicate native endpoint observation"
         fanouts[source] = set(keeper_tokens(targets))
     assert set(fanouts) == set(PACKET.values()) | mpu, "incomplete native packet/MPU fanout inventory"
-    return stages, mpu, fanouts, input_sources
+    physical = matching("CRTC endpoint physical scope")
+    assert len(physical) == len(set(physical)) and set(physical) == set(fanouts), "missing/duplicate exact physical inventory scope"
+    assert matching("CRTC local reset source") == [MPU_RESET], "wrong/missing local reset keeper"
+    reset_fanouts = matching("CRTC local reset native fanout")
+    assert len(reset_fanouts) == 1, "missing/duplicate local reset fanout"
+    reset_mpu = set(keeper_tokens(reset_fanouts[0])) & mpu
+    assert reset_mpu, "local reset has no actual MPU consumer"
+    return stages, mpu, fanouts, input_sources, reset_mpu
 
 
 def audit(directory, log):
-    stages, mpu, fanouts, input_sources = inventory(log)
+    stages, mpu, fanouts, input_sources, reset_mpu = inventory(log)
     synchronous, raw, bundle = [], [], []
     files = 0
     for model in ("slow", "fast"):
@@ -131,8 +139,9 @@ def audit(directory, log):
                     expected = {(s, t) for s in sources for t in fanouts[s]}
                     assert {(r[1], r[2]) for r in reports[kind]} == expected, f"incomplete native {kind} keepers"
                 assert {r[2] for r in reports["mpu_input"]} == mpu, "incomplete MPU input coverage"
+                assert {r[2] for r in reports["mpu_input"] if r[1] == MPU_RESET} == reset_mpu, "incomplete native local reset/MPU coverage"
                 for r in reports["mpu_input"]:
-                    assert r[1] in mpu | set(PACKET.values()) | {PREFIX + "pending_write"}, "unexpected MPU launch source"
+                    assert r[1] in mpu | set(PACKET.values()) | {PREFIX + "pending_write", MPU_RESET}, "unexpected MPU launch source"
                 for kind in KINDS:
                     if (kind.endswith("_input") and kind != "mpu_input") or kind == "packet":
                         continue
