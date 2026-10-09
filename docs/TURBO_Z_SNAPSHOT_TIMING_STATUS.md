@@ -78,6 +78,15 @@ The candidate is now connected to the experimental QSF, but needs a fresh
 source-bound full flow to verify SDC ordering, map/fit endpoint retention,
 all corners and actual frequencies. This prior-fit experiment cannot qualify
 that future placement or RBF. Check physical delays again after every fit.
+The fresh flow is confirmed live on `misterubuntu`, source
+`32a3210362ad8dfada8798a405a8f48f1e7a4ca8`, isolated folder
+`/home/alans/mister/SharpX1_Mister/output_files/quartus-linux-EDi2XntO`;
+actual `quartus_sh`/`quartus_map` processes are observed after clean-checkout
+and host-idle checks. Log `/tmp/x1-quartus-32a3210-z-bundle-build.log`.
+No completion or new-RBF timing claim is made yet. The exact-SDC report audit
+independently confirms 16 corner files, 72 nonnegative paths each and maximum
+11.800 ns payload data delay; copied reports are retained separately under
+`output_files/quartus-linux-nyZrupn1/snapshot-exact-sdc/`.
 Other snapshot/PCG bundles, first-stage synchronizers, reset release,
 clock-mux/data selection, HDMI routing and unconstrained I/O remain open.
 No FPGA hardware, native software or full work-group completion is claimed.
