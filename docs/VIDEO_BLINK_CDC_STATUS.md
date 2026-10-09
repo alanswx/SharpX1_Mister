@@ -77,8 +77,13 @@ The ordinary baseline binary remains hash-identical to its qualified build.
 The matrix scheduler now performs a short profile check before any long case;
 the actual wrongly linked frozen runner is rejected by that check, without
 launching a pixel case. Original pixel durations/assertions remain unchanged.
-A new disposable frozen run is required; do not resume or relabel the failed
-root as corrected qualification.
+A new disposable frozen run starts under
+`verilator/obj_dir_headless/z-blink-combined/qualified-inputs-UKsvP0/all-120/`,
+log `/tmp/x1-blink-z-fixed-all-120.log`. Its profile preflight passes before
+the first pixel case starts. Scheduler SHA-256:
+`638fd9ef33f6e316a5ff7435683362f2c5a92614f1eb13a92793d6e460e5f1df`.
+Completion is pending; do not resume or relabel the failed root as corrected
+qualification.
 
 `scripts/quartus_video_blink_paths.tcl` prepares a reporting-only eight-corner
 inventory/path audit. It requires two unreplicated paired stages and exclusive
