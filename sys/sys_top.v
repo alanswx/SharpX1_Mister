@@ -659,6 +659,9 @@ wire clk_hdmi  = hdmi_clk_out;
 ascal 
 #(
 	.RAMBASE(32'h20000000),
+`ifdef X1_TURBO_Z_VIDEO_EXPERIMENT
+	.LOCAL_RESET_RELEASE("true"),
+`endif
 `ifdef MISTER_SMALL_VBUF
 	.RAMSIZE(32'h00200000),
 `else

@@ -114,6 +114,8 @@ USE ieee.numeric_std.ALL;
 ENTITY ascal IS
 	GENERIC (
 		MASK         : unsigned(7 DOWNTO 0) :=x"FF";
+		-- X1 board-only experiment; ordinary revisions retain inherited reset.
+		LOCAL_RESET_RELEASE : boolean := false;
 		RAMBASE      : unsigned(31 DOWNTO 0);
 		RAMSIZE      : unsigned(31 DOWNTO 0) := x"0080_0000"; -- =8MB
 		INTER        : boolean := true;
@@ -1109,9 +1111,19 @@ ARCHITECTURE rtl OF ascal IS
 BEGIN
 
 	-----------------------------------------------------------------------------
-	i_reset_na<='0'   WHEN reset_na='0' ELSE '1' WHEN rising_edge(i_clk);
-	o_reset_na<='0'   WHEN reset_na='0' ELSE '1' WHEN rising_edge(o_clk);
-	avl_reset_na<='0' WHEN reset_na='0' ELSE '1' WHEN rising_edge(avl_clk);
+	legacy_reset_release: IF NOT LOCAL_RESET_RELEASE GENERATE
+		i_reset_na<='0'   WHEN reset_na='0' ELSE '1' WHEN rising_edge(i_clk);
+		o_reset_na<='0'   WHEN reset_na='0' ELSE '1' WHEN rising_edge(o_clk);
+		avl_reset_na<='0' WHEN reset_na='0' ELSE '1' WHEN rising_edge(avl_clk);
+	END GENERATE;
+	x1_domain_reset: IF LOCAL_RESET_RELEASE GENERATE
+		input_release: ENTITY work.x1_scaler_reset_release
+			PORT MAP (clk => i_clk, async_reset_na => reset_na, reset_na => i_reset_na);
+		output_release: ENTITY work.x1_scaler_reset_release
+			PORT MAP (clk => o_clk, async_reset_na => reset_na, reset_na => o_reset_na);
+		avalon_release: ENTITY work.x1_scaler_reset_release
+			PORT MAP (clk => avl_clk, async_reset_na => reset_na, reset_na => avl_reset_na);
+	END GENERATE;
 
 	-----------------------------------------------------------------------------
 	-- Input pixels FIFO and shreg

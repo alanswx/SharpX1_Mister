@@ -118,6 +118,12 @@ global setup/recovery remain −15.158/−4.881 ns, with hold now +0.059 ns.
 The native scaler audit exposes 32 empty raw-input reports from inherited
 clock groups, not passes. Full CDC/reset/HDMI and native/hardware acceptance
 remain open; see the latest [fresh-fit evidence](VIDEO_RESET_TIMING_EXPERIMENT.md#fresh-selected-constraint-fit).
+The next experimental scaler increment adds independent two-edge releases
+for input-video, HDMI and Avalon, preserving the default legacy branch.
+Actual-helper GHDL tests at four clocks and one-edge failing control pass;
+the modified scaler analyzes. No added timing cut; fresh FPGA inventory,
+timing, raw-crossing review and physical acceptance remain open. See
+[scaler increment](SCALER_RESET_TIMING_AUDIT.md#experimental-destination-local-release-increment).
 The [Turbo Z in-flight control reset test](TURBO_Z_INFLIGHT_RESET_STATUS.md)
 passes at three independent video rates, including a deliberately failing
 asynchronous-reset-removal control. Exact reset frames, pending palette/

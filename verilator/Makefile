@@ -1760,6 +1760,21 @@ test-scaler-reset-paths:
 	tclsh tests/scaler_reset_paths_tb.tcl
 .PHONY: test-scaler-reset-paths
 
+test-scaler-reset-release:
+	mkdir -p $(HEADLESS_DIR)/scaler-reset
+	cd $(HEADLESS_DIR)/scaler-reset && ghdl -a --std=08 ../../../rtl/x1_scaler_reset_release.vhd ../../../sys/ascal.vhd ../../tests/scaler_reset_release_tb.vhd
+	cd $(HEADLESS_DIR)/scaler-reset && ghdl -e --std=08 scaler_reset_release_tb
+	@cd $(HEADLESS_DIR)/scaler-reset && for half in 11640 3366 10000 15625; do \
+	  ghdl -r --std=08 scaler_reset_release_tb -gHALF_PS=$$half --assert-level=error --stop-time=20us >half-$$half.log 2>&1 || exit 1; \
+	  rg -q 'PASS: scaler two-edge release' half-$$half.log || exit 1; \
+	  tail -n 2 half-$$half.log; \
+	done
+	@if (cd $(HEADLESS_DIR)/scaler-reset && ghdl -r --std=08 scaler_reset_release_tb -gEARLY_CONTROL=true --assert-level=error --stop-time=20us >early-control.log 2>&1); then \
+	  echo 'FAIL: inherited one-edge negative control passed'; exit 1; \
+	fi
+	@rg -q 'release before second local edge' $(HEADLESS_DIR)/scaler-reset/early-control.log
+.PHONY: test-scaler-reset-release
+
 test-pcg-report-audit:
 	python3 tests/test_pcg_report_audit.py
 .PHONY: test-pcg-report-audit

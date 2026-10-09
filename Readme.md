@@ -95,6 +95,10 @@ snapshot and core release paths at eight corners. Overall setup and scaler
 recovery still fail; the [scaler audit](docs/SCALER_RESET_TIMING_AUDIT.md)
 also identifies excluded raw-input timing coverage. Native/physical gates
 remain open; this is not a timing-qualified Turbo Z RBF.
+The experimental scaler now has opt-in independent two-edge reset releases
+for its three clock domains. GHDL helper tests pass and the modified scaler
+analyzes; ordinary revisions retain inherited releases. Fresh FPGA timing
+and physical acceptance remain open.
 The [summary table](docs/CHIP_IMPLEMENTATION_TABLE.md) and
 [chip reuse survey](docs/CHIP_REUSE.md) describe available replacement sources
 and the remaining integration work.

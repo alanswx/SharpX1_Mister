@@ -66,3 +66,35 @@ crossings. Next: inventory physical asynchronous reset pins and review those
 specific clock-group effects without pretending that the three single-stage
 releases have the core's two-stage contract. Physical reset qualification and
 any framework correction remain open.
+
+## Experimental destination-local release increment
+
+`rtl/x1_scaler_reset_release.vhd` adds asynchronous active-low assertion and
+two rising edges to release, with preserved stage registers. The scaler's
+new `LOCAL_RESET_RELEASE` generic defaults false; its false branch retains
+the original three one-edge assignments. Only `X1_TURBO_Z_VIDEO_EXPERIMENT`
+in `sys/sys_top.v` selects true. The input-video, HDMI-output and Avalon
+domains each instantiate their own pipeline directly from raw reset, never
+from another domain's released output. The helper is a board-only VHDL
+dependency in `files.qip`, not part of the shared Verilator machine list.
+
+This narrow inherited-framework edit is needed because raw reset enters the
+scaler internally; synchronizing only the wrapper's single input would still
+release the other two domains from the wrong clock. No new timing exception
+is added and existing clock-group coverage gaps remain unresolved.
+
+`make -C verilator test-scaler-reset-release` analyzes the actual modified
+scaler with GHDL 5.1.1 (inherited name-hiding warnings), then tests the actual
+release entity at half-periods 11,640/3,366/10,000/15,625 ps. Near-edge
+deassertion, short assertion, repeated between-stage reassertion and stopped
+clock checks pass. Each run must emit its PASS marker; a simulator time limit
+alone cannot pass. The inherited one-edge negative control fails with the
+expected early-release assertion. Outputs stay in ignored build directories.
+CI selects the target and installs GHDL. Wrapper ordinary/Z lint passes,
+but it does not elaborate the VHDL scaler or `sys_top`.
+
+Fresh native compilation, six-stage/pin inventory, all-corner chain/downstream
+timing, excluded raw-input review and physical video/Avalon/reset acceptance
+remain required. The old reporting tool intentionally requires the inherited
+three-register profile and must not be used to claim coverage of these new
+pipelines. No corrected timing or hardware behavior is claimed yet.
