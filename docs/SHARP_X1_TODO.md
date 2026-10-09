@@ -14,6 +14,15 @@ support before optional Turbo extensions.
 
 ## Active goal: items 1–6 and Turbo Z (October 6)
 
+The experimental [coherent CRTC transport](CRTC_WRITE_CDC_STATUS.md) now
+passes four helper clock ratios, three real-CPU clock ratios, five owned-DMA
+reset scenarios and all sixteen delay-aware X3 pixel cases. CPU/DMA WAIT
+acknowledges actual MPU consumption, not merely packet capture. A missing
+fixed-destination two-LOAD sequence in the new diagnostic was corrected;
+DMA RTL was not changed. Full baseline is still running. Fresh combined-Z
+pixels, current-source Quartus bundle/consumer timing and native/hardware
+qualification remain open; no broad goal work group is complete.
+
 The experimental X3 [blink crossing](VIDEO_BLINK_CDC_STATUS.md) now samples
 the real sub-CPU held level in the video domain. Four delay-aware blink pixel
 cases, helper reset/latency controls, snapshot rejection/continuation and

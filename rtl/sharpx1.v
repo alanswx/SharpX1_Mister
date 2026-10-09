@@ -136,7 +136,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
             .busrq_n(dma_busrq_n), .busak_n(cpu_busak_n),
             .mreq_n(dma_mreq), .iorq_n(dma_iorq), .rd_n(dma_rd), .wr_n(dma_wr),
             .address(dma_a), .data_out(dma_data_out), .data_in(di),
-            .wait_n(cg_wait_n), .rdy(!fdc_drq), .unsupported(dma_unsupported)
+            .wait_n(cg_wait_n && crtc_wait_n), .rdy(!fdc_drq), .unsupported(dma_unsupported)
         );
     end else begin : no_turbo_dma
         assign dma_busrq_n = 1;
@@ -177,7 +177,8 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     wire z_priority_selected,z_priority_tail;
     wire [7:0] z_priority_data;
     wire sio_wait_n;
-    wire machine_wait_n=cg_wait_n && z_palette_wait_n && sio_wait_n && fm_wait_n;
+    wire crtc_wait_n;
+    wire machine_wait_n=cg_wait_n && z_palette_wait_n && sio_wait_n && fm_wait_n && crtc_wait_n;
     wire fm_selected,fm_read_tail,fm_wait_n,fm_irq_n,fm_sample,fm_protocol_error;
     wire [7:0] fm_data;
     wire signed [15:0] fm_left,fm_right;
@@ -889,8 +890,25 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     assign cg_data = kanji_display_select ? kanji_display_data :
                      TURBO && turbo_scrn_video[0] ? ank16_data : cg8_data;
     wire r,g,b;
-    x1_vid #(.ENABLE_CRTC(SINGLE_CLOCK || TURBO_VIDEO_MASTER), .TURBO_SUPPORT(TURBO), .TURBO_CLOCKS(TURBO_VIDEO_MASTER), .SEPARATE_VIDEO_RESET(TURBO_VIDEO_MASTER), .KANJI_RENDER(TURBO_KANJI_RENDER)) display (
+    wire crtc_bus_write, crtc_bus_rs;
+    wire [7:0] crtc_bus_data;
+    generate if (TURBO_VIDEO_MASTER) begin : x3_crtc
+        x1_crtc_write writes (
+            .cpu_clk(clk_sys), .reset(core_reset),
+            .video_clk(clk_28636), .video_reset(video_reset),
+            .select(io_write && !dam && a[15:8]==8'h18),
+            .rs(a[0]), .data(data_out), .wait_n(crtc_wait_n),
+            .video_write(crtc_bus_write), .video_rs(crtc_bus_rs),
+            .video_data(crtc_bus_data)
+        );
+    end else begin : compatible_crtc
+        assign crtc_wait_n=1;
+        assign crtc_bus_write=0; assign crtc_bus_rs=0; assign crtc_bus_data=0;
+    end endgenerate
+    x1_vid #(.ENABLE_CRTC(SINGLE_CLOCK || TURBO_VIDEO_MASTER), .TURBO_SUPPORT(TURBO), .TURBO_CLOCKS(TURBO_VIDEO_MASTER), .SEPARATE_VIDEO_RESET(TURBO_VIDEO_MASTER), .KANJI_RENDER(TURBO_KANJI_RENDER), .SEPARATE_CRTC_BUS(TURBO_VIDEO_MASTER)) display (
         .I_VIDEO_RESET(video_reset),
+        .I_CRTC_BUS_CLK(clk_28636), .I_CRTC_BUS_RS(crtc_bus_rs),
+        .I_CRTC_BUS_DATA(crtc_bus_data), .I_CRTC_BUS_WRITE(crtc_bus_write),
         .I_TURBO_BLACK(turbo_black_video),
         .I_TURBO_HIGH_SCAN(TURBO && turbo_scrn_video[0]),
         .I_TURBO_TEXT_Y2(TURBO && turbo_scrn_video[2]),

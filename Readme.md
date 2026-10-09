@@ -18,6 +18,12 @@ the remaining physical and unimplemented-feature gates.
 
 ## Current status
 
+The experimental X3 [coherent CRTC write transport](docs/CRTC_WRITE_CDC_STATUS.md)
+now commits held CPU/DMA RS/data packets in the video domain. Real-CPU,
+owned-DMA reset and sixteen delay-aware video cases pass. Ordinary paths stay
+unchanged; fresh combined-Z pixels, Quartus timing and native/hardware
+acceptance remain open.
+
 The experimental X3 [text-blink crossing](docs/VIDEO_BLINK_CDC_STATUS.md)
 now uses two video-domain samples. Delay-aware 40/80-column blink pixels and
 snapshot checks pass; ordinary profiles retain their direct path. Fresh

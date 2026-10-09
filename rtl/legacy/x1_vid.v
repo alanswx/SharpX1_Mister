@@ -27,8 +27,9 @@
     VIDEO / GRAPHIC RAM read is not supported
 
 ****************************************************************************/
-module x1_vid #(parameter ENABLE_CRTC = 0, TURBO_SUPPORT = 0, TURBO_CLOCKS = 0, SEPARATE_VIDEO_RESET = 0, KANJI_RENDER = 0)(
+module x1_vid #(parameter ENABLE_CRTC = 0, TURBO_SUPPORT = 0, TURBO_CLOCKS = 0, SEPARATE_VIDEO_RESET = 0, KANJI_RENDER = 0, SEPARATE_CRTC_BUS = 0)(
   I_VIDEO_RESET,
+  I_CRTC_BUS_CLK, I_CRTC_BUS_RS, I_CRTC_BUS_DATA, I_CRTC_BUS_WRITE,
   I_TURBO_BLACK,
   I_TURBO_HIGH_SCAN,
   I_TURBO_TEXT_Y2,
@@ -92,6 +93,8 @@ module x1_vid #(parameter ENABLE_CRTC = 0, TURBO_SUPPORT = 0, TURBO_CLOCKS = 0, 
 
 input I_RESET;
 input I_VIDEO_RESET;
+input I_CRTC_BUS_CLK, I_CRTC_BUS_RS, I_CRTC_BUS_WRITE;
+input [7:0] I_CRTC_BUS_DATA;
 wire video_reset_active = SEPARATE_VIDEO_RESET ? I_VIDEO_RESET : I_RESET;
 input [6:0] I_TURBO_BLACK;
 input I_TURBO_HIGH_SCAN;
@@ -228,11 +231,11 @@ wire crtc_vsync;
 wire crtc_disptmg;
 
 crtc6845s #(.ENABLE_MODE(ENABLE_CRTC || TURBO_CLOCKS)) crtc6845s(
-  .I_E(~I_CCLK),
-  .I_DI(I_D),
-  .I_RS(I_A[0]),
-  .I_RWn(~I_WR),
-  .I_CSn(~I_CRTC_CS),
+  .I_E(SEPARATE_CRTC_BUS ? ~I_CRTC_BUS_CLK : ~I_CCLK),
+  .I_DI(SEPARATE_CRTC_BUS ? I_CRTC_BUS_DATA : I_D),
+  .I_RS(SEPARATE_CRTC_BUS ? I_CRTC_BUS_RS : I_A[0]),
+  .I_RWn(SEPARATE_CRTC_BUS ? ~I_CRTC_BUS_WRITE : ~I_WR),
+  .I_CSn(SEPARATE_CRTC_BUS ? ~I_CRTC_BUS_WRITE : ~I_CRTC_CS),
   .I_CLK((ENABLE_CRTC || TURBO_CLOCKS) ? I_VCLK : ~QD),
   .I_CE(video_step && ~ppres && pris == 4'b1111),
   .I_RSTn(~vid_reset),

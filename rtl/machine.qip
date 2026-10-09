@@ -1,6 +1,7 @@
 # Shared machine sources; paths relative to the repository root.
 # Also read by Verilator. Keep board PLL/framework files separate.
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_video_blink.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_crtc_write.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_fm_decode.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_fm_bus.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_fm.sv

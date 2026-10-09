@@ -1159,6 +1159,26 @@ test-video-blink-report-audit:
 	python3 tests/test_video_blink_report_audit.py
 .PHONY: test-video-blink-report-audit
 
+$(HEADLESS_DIR)/crtc-write/Vcrtc_write_tb: tests/crtc_write_tb.sv ../rtl/x1_crtc_write.sv ../rtl/x1_reset_release.sv ../rtl/legacy/crtc/crtc6845s.v
+	$(V) --binary --timing --assert --top-module crtc_write_tb --Mdir $(HEADLESS_DIR)/crtc-write -j 4 tests/crtc_write_tb.sv ../rtl/x1_crtc_write.sv ../rtl/x1_reset_release.sv ../rtl/legacy/crtc/crtc6845s.v -Wno-fatal
+test-crtc-write: $(HEADLESS_DIR)/crtc-write/Vcrtc_write_tb
+	@for half in 11640 17500 15625 125000; do ./$(HEADLESS_DIR)/crtc-write/Vcrtc_write_tb +VIDEO_HALF=$$half || exit 1; done
+	@if ./$(HEADLESS_DIR)/crtc-write/Vcrtc_write_tb +RAW_CONTROL >$(HEADLESS_DIR)/crtc-write/raw-control.log 2>&1; then echo "FAIL: raw CRTC control passed"; exit 1; fi
+	@rg -q 'CRTC register changed away from destination edge|CRTC Nadj packet corruption|CRTC Nr packet corruption' $(HEADLESS_DIR)/crtc-write/raw-control.log && echo 'PASS: raw CRTC bus control rejected'
+.PHONY: test-crtc-write
+
+$(HEADLESS_DIR)/crtc-machine/Vcrtc_machine_tb: tests/crtc_machine_tb.sv $(V_SRC)
+	$(V) --binary --timing --assert --top-module crtc_machine_tb --Mdir $(HEADLESS_DIR)/crtc-machine -j 4 tests/crtc_machine_tb.sv $(V_SRC) -Wno-fatal
+test-machine-crtc-write: $(HEADLESS_DIR)/crtc-machine/Vcrtc_machine_tb
+	@for half in 11640 17500 125000; do ./$(HEADLESS_DIR)/crtc-machine/Vcrtc_machine_tb +VIDEO_HALF=$$half || exit 1; done
+.PHONY: test-machine-crtc-write
+
+$(HEADLESS_DIR)/crtc-dma-reset/Vdma_machine_reset_tb: $(V_SRC) tests/dma_machine_reset_tb.sv
+	$(V) --binary --timing --assert --top-module dma_machine_reset_tb --Mdir $(HEADLESS_DIR)/crtc-dma-reset -GCRTC_TARGET=1 -j 4 $(V_SRC) tests/dma_machine_reset_tb.sv -Wno-fatal
+test-machine-crtc-dma-reset: $(HEADLESS_DIR)/crtc-dma-reset/Vdma_machine_reset_tb
+	@for kind in 0 1 2 3 4; do ./$< +RESET_KIND=$$kind || exit 1; done
+.PHONY: test-machine-crtc-dma-reset
+
 test-reset-release: $(HEADLESS_DIR)/reset-release/Vreset_release_tb
 	@for half in 3 7 31; do ./$(HEADLESS_DIR)/reset-release/Vreset_release_tb +VIDEO_HALF=$$half || exit 1; done
 	@for half in 15625 17500 11640 25000; do ./$(HEADLESS_DIR)/reset-release/Vreset_release_tb +VIDEO_HALF_PS=$$half || exit 1; done

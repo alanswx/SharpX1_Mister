@@ -386,6 +386,7 @@ int main(int argc, char **argv) {
 #ifdef X1_TURBO_VIDEO_MASTER
             ^ (1ULL << 55)
             ^ (1ULL << 63) // X3 revision 1: destination-clock blink state; reject old X3 states.
+            ^ (1ULL << 62) // X3 revision 2: coherent CRTC transport; ordinary v17 stays unchanged.
 #endif
 #ifdef X1_TURBO_DMA
             ^ (1ULL << 54) ^ (1ULL << 53) ^ (1ULL << 52) ^ (1ULL << 51) ^ (1ULL << 50) ^ (1ULL << 49) ^ (1ULL << 48) ^ (1ULL << 41) // DMA revision 7: independent reloaded destination; bit 47 belongs to IRQ.
