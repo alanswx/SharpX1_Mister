@@ -1,6 +1,6 @@
 # Private commercial-game bring-up
 
-## Current v13 requalification in progress
+## Five-title v13 bounded requalification passes
 
 Source `9748410` starts fresh native Galaga/Mappy boot chains after the
 transaction-bound DAM correction. Old v12 states are not converted or used.
@@ -23,12 +23,16 @@ Druaga also finishes with exit zero and `gameplay_verified: true`: controlled
 left movement, actual RGB change, repeatable RAM/frame/report and unchanged
 inputs. Log `/tmp/x1-v13-druaga-requalify.log`, output
 `verilator/obj_dir_v13_requalify/druaga-9748410/`. **Four v13 titles now pass
-bounded controls**. Shanghai's fresh native chain is still live on the same
-runner: `/tmp/x1-v13-shanghai-requalify.log`, output
-`verilator/obj_dir_v13_requalify/shanghai-9748410/`. It remains unqualified.
-Complete all five
-fresh v13 titles, exact controls/RGB/repeatability and unchanged-input checks
-before attributing historical five-title acceptance to the new state format.
+bounded controls**. Shanghai subsequently finishes with exit zero and
+`gameplay_verified: true` on the same runner: native cursor input, matching
+pair removal (0 to 2 removed tiles), actual RGB change and full dump/state/
+report repeatability. Its disk hash remains unchanged. Log
+`/tmp/x1-v13-shanghai-requalify.log`, output
+`verilator/obj_dir_v13_requalify/shanghai-9748410/`.
+**All five fresh v13 titles pass the release-bound bounded fast-model checks.**
+This requalifies the DAM/state correction at source `9748410`, not full-game
+completion, all releases, later experimental Z code, native Turbo, Arcus/
+Bastard Special or new-RBF hardware gameplay. Old snapshots were not converted.
 
 ## Historical qualified checkpoints
 

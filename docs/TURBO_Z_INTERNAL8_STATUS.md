@@ -64,11 +64,16 @@ remains excluded. Text/priority/blackclip and native acceptance remain open.
   Same runner; fixture SHA:
   `8d46fb897bdaccbe2f39e6f9c8c38e852400bb7df89d12e77dcc7bdd5b46b3fd`.
 
-Stronger identity cold and identity/custom warm cases are now running in
+Stronger identity cold and custom warm cases also finish with exit zero:
+all 256,000 pixels, CPU external-sentinel preservation and no-refill retained
+reset where applicable. Their logs/outputs follow the naming below. The
+stronger identity warm case is still running, not qualified.
+
+The stronger cases use directories
 `obj_dir_v13_z_internal8/{identity-cold,identity-warm,custom-warm}-isolation/`;
 logs `/tmp/x1-z-internal8-{identity-cold,identity-warm,custom-warm}-isolation.log`.
 They use the same frozen runner and stronger fixture; do not rebuild that
-runner until their exact handles finish. No pass is claimed for those cases yet.
+runner until the remaining identity-warm handle finishes.
 Current default-source timing/GRAM/DAM CPU checks and three wrapper lint
 profiles finish with exit zero; default runner SHA
 `4f4cbf7d2b7c8b68412082f7eea2be86af87d24174ad5d2aa11006491a826e5c`,
