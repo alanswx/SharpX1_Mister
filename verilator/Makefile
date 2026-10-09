@@ -1118,6 +1118,12 @@ test-turbo-video-snapshot: turbo-video-savable fast
 
 .PHONY: test-turbo-video-snapshot
 
+test-crtc-pending-snapshot: turbo-video-savable
+	@crtc_snapshot_root=$$(mktemp -d $(HEADLESS_DIR)/crtc-snapshot-XXXXXX); \
+	  cp obj_dir_turbo_video_savable/Vtop tests/test_crtc_pending_snapshot.py $$crtc_snapshot_root/ && \
+	  python3 $$crtc_snapshot_root/test_crtc_pending_snapshot.py $$crtc_snapshot_root/Vtop
+.PHONY: test-crtc-pending-snapshot
+
 test-video-timing: $(HEADLESS_DIR)/video-timing/Vvideo_timing_tb
 	./$(HEADLESS_DIR)/video-timing/Vvideo_timing_tb
 

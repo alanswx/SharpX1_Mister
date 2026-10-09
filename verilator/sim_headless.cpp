@@ -156,7 +156,7 @@ int main(int argc, char **argv) {
                 || (bus_end_ms && bus_end_ms <= bus_start_ms))
             throw std::runtime_error("require bus-start-ms < bus-end-ms <= 1000000000 (end 0 means unbounded)");
         // Bound time arithmetic and avoid an entirely reset-only smoke run.
-        if (cycles <= reset_cycles || reset_cycles == 0 || cycles > 1000000000000ULL)
+        if ((!restore_path && (cycles <= reset_cycles || reset_cycles == 0)) || cycles > 1000000000000ULL)
             throw std::runtime_error("require 0 < reset-cycles < cycles <= 1000000000000");
         if (video_hz == 0 || video_hz > 100000000)
             throw std::runtime_error("require 0 < video-hz <= 100000000");
@@ -223,7 +223,7 @@ int main(int argc, char **argv) {
         if (!downloads.empty())
             reset_cycles = std::max(reset_cycles,
                 ((static_cast<uint64_t>(downloads.size()) + 64) * 32000000 + sys_hz - 1) / sys_hz);
-        if (cycles <= reset_cycles) throw std::runtime_error("cycles must exceed download plus reset duration");
+        if (!restore_path && cycles <= reset_cycles) throw std::runtime_error("cycles must exceed download plus reset duration");
         std::ofstream bus;
         std::array<uint64_t, 11> bus_row{};
         bool bus_pending = false;
@@ -963,6 +963,34 @@ int main(int argc, char **argv) {
 #else
         constexpr const char *z_text_cpu = "false";
 #endif
+        std::string crtc_observation;
+#ifdef X1_TURBO_VIDEO_MASTER
+        // Read-only qualification observations. No new serialized machine
+        // state, bus stimulus, CRTC readback port or ordinary-profile output.
+        {
+            const auto *root = top.rootp;
+            char observation[512];
+            std::snprintf(observation, sizeof(observation),
+                ",\"crtc_busy\":%u,\"crtc_done\":%u,\"crtc_pending_write\":%u,"
+                "\"crtc_request\":%u,\"crtc_request_meta\":%u,\"crtc_request_sync\":%u,"
+                "\"crtc_ack\":%u,\"crtc_ack_meta\":%u,\"crtc_ack_sync\":%u,"
+                "\"crtc_packet\":%u,\"crtc_index\":%u,\"crtc_r5\":%u,\"crtc_r9\":%u",
+                unsigned(root->top__DOT__machine__DOT__x3_crtc__DOT__writes__DOT__busy),
+                unsigned(root->top__DOT__machine__DOT__x3_crtc__DOT__writes__DOT__done),
+                unsigned(root->top__DOT__machine__DOT__x3_crtc__DOT__writes__DOT__pending_write),
+                unsigned(root->top__DOT__machine__DOT__x3_crtc__DOT__writes__DOT__request),
+                unsigned(root->top__DOT__machine__DOT__x3_crtc__DOT__writes__DOT__request_meta),
+                unsigned(root->top__DOT__machine__DOT__x3_crtc__DOT__writes__DOT__request_sync),
+                unsigned(root->top__DOT__machine__DOT__x3_crtc__DOT__writes__DOT__acknowledgement),
+                unsigned(root->top__DOT__machine__DOT__x3_crtc__DOT__writes__DOT__acknowledgement_meta),
+                unsigned(root->top__DOT__machine__DOT__x3_crtc__DOT__writes__DOT__acknowledgement_sync),
+                unsigned(root->top__DOT__machine__DOT__x3_crtc__DOT__writes__DOT__held_packet),
+                unsigned(root->top__DOT__machine__DOT__display__DOT__crtc6845s__DOT__mpu_if__DOT__R_ADR),
+                unsigned(root->top__DOT__machine__DOT__display__DOT__crtc6845s__DOT__mpu_if__DOT__R_Nadj),
+                unsigned(root->top__DOT__machine__DOT__display__DOT__crtc6845s__DOT__mpu_if__DOT__R_Nr));
+            crtc_observation = observation;
+        }
+#endif
         std::printf("{\"machine\":\"sharpx1\",\"turbo_foundation\":%s,\"turbo_video_master\":%s,\"turbo_dma\":%s,\"turbo_dma_irq\":%s,\"turbo_kanji\":%s,\"turbo_fm_cpu\":%s,\"z_palette_cpu_experiment\":%s,\"z_video_experiment\":%s,\"z_multimode_experiment\":%s,\"z_internal8_experiment\":%s,\"z_text_cpu_experiment\":%s,\"intra_assignment_delays\":%s,\"sys_hz\":%llu,\"video_hz\":%llu,"
                     "\"time_ps\":%llu,\"sys_edges\":%llu,\"video_edges\":%llu,"
                     "\"reset_edges\":%llu,\"cpu_enables\":%llu,\"delayed_sys_edges\":%llu,"
@@ -970,7 +998,7 @@ int main(int argc, char **argv) {
                     "\"download_bytes\":%llu,\"cpu_address\":%u,\"halted\":%s,\"peek\":\"%s\","
                     "\"ps2_bytes_sent\":%llu,\"disk_requests\":%llu,\"disk_writes\":%llu,\"frames\":%llu,\"frame_width\":%u,\"frame_height\":%u,\"frame_hash\":\"%016llx\","
                     "\"sub_pc\":%u,\"sub_address\":%u,\"sub_control\":%u,\"sub_running\":%s,\"sub_tx_busy\":%s,\"sub_rx_empty\":%s,"
-                    "\"dma_grants\":%llu,\"dma_reads\":%llu,\"dma_writes\":%llu,\"cpu_fdc_data_reads\":%llu,\"cpu_fdc_data_writes\":%llu}\n",
+                    "\"dma_grants\":%llu,\"dma_reads\":%llu,\"dma_writes\":%llu,\"cpu_fdc_data_reads\":%llu,\"cpu_fdc_data_writes\":%llu%s}\n",
                     turbo_foundation, turbo_video_master, turbo_dma, turbo_dma_irq, turbo_kanji, turbo_fm_cpu, z_palette_cpu, z_video, z_multimode, z_internal8, z_text_cpu, VM_TIMING ? "true" : "false",
                     (unsigned long long)sys_hz,
                     (unsigned long long)video_hz, (unsigned long long)context.time(), (unsigned long long)top.sys_edges,
@@ -986,7 +1014,7 @@ int main(int argc, char **argv) {
                     top.sub_wait ? "true" : "false",top.sub_tx ? "true" : "false",top.sub_rx ? "true" : "false",
                     (unsigned long long)top.dma_grants, (unsigned long long)top.dma_reads,
                     (unsigned long long)top.dma_writes, (unsigned long long)top.cpu_fdc_data_reads,
-                    (unsigned long long)top.cpu_fdc_data_writes);
+                    (unsigned long long)top.cpu_fdc_data_writes, crtc_observation.c_str());
         const uint64_t expected_edges = sys_edge / 2;
         const uint64_t expected_delayed = expected_edges -
             (expected_edges && sys_time(expected_edges * 2 - 1) + 1000 > end_ps ? 1 : 0);

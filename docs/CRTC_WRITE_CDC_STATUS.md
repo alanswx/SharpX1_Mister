@@ -183,3 +183,67 @@ retrieved locally under ignored `output_files/quartus-linux-4005kWb5/`.
 The independent CRTC auditor now rejects any native error line or missing
 zero-error STA completion, including an SDC failure alongside a successful
 Tcl evaluation. It cannot turn the rejected original flow into acceptance.
+
+## Completed PCG follow-up fit; native CRTC inventory still open
+
+The `fcd1086` full flow finishes zero at 21:16:25 UTC, with no SDC inventory
+error. The RBF hash remains `5ffbe347971be075e4d080a99f9ef1cae170b8d79316d8aa27505d6639e916ac`:
+the repaired endpoint gate does not imply a new physical core. Reported flow
+minima are setup -12.003 ns, hold +0.127 ns, recovery +4.377 ns,
+removal +0.878 ns and pulse width +0.529 ns. These are the original flow
+summaries, not a completed independent eight-corner audit or timing closure.
+Original reports are preserved on the host in this build's `completed-flow/`.
+
+The first native CRTC reporter exits 3 before any corner reports: it rejects
+`acknowledgement~DUPLICATE`. Its log is `/tmp/x1-crtc-native-timing.log`.
+An isolated reporting-only inventory without SDC then finishes zero, log
+`/tmp/x1-crtc-fitted-inventory.log`, using
+`scripts/quartus_crtc_write_inventory.tcl`. It finds 29 transport registers
+(including the acknowledgement replica), 81 MPU registers, and actual
+first-data pins named through Quartus's untyped instance aliases. Request
+meta's ASDATA is fed by `request`; acknowledgement meta's ASDATA is fed by
+the replica. MPU replicas include `R_ADR[0]` and `R_Nhsp[3]`; R5/R9 remain
+primary bits. Next work must review native alias equivalence and bind reports
+to the actual first-stage source/pins, not simply accept arbitrary duplicates.
+No CRTC corner timing, bounded packet or physical placement pass is claimed.
+
+The [Standard Edition synchronizer-identification guidance](https://docs.altera.com/r/docs/683323/18.1/quartus-prime-standard-edition-user-guide-design-recommendations/force-the-identification-of-synchronization-registers?contentId=P3OZQDuuMGqhph_2qBxDhw)
+describes the Forced If Asynchronous setting. This is a newer documentation
+reference, not proof of Quartus 17 placement or a changed CRTC source hint.
+
+## Actual pending-transaction snapshot follow-up
+
+Read-only X3 runner JSON now exposes held packet, handshake phase and actual
+MPU R5/R9/index observations. No machine port, CRTC bus readback or serialized
+state is added; ordinary JSON remains unchanged. The cold-reset duration
+guard previously also rejected short restores, even though restored RTL does
+not take a cold reset. The runner now applies that guard only to cold starts,
+allowing zero/single-cycle continuation while retaining header/clock/range/
+asset checks. No snapshot format conversion or identity change is needed.
+
+`test-crtc-pending-snapshot` freezes its executable/emitter before running an
+original CPU program that sets actual CRTC timing then alternates R5/R9 data.
+It observes request-in-flight, captured-before-consumption and
+consumed-before-source-ACK states for three CPU-padding variants at the
+unchanged nominal X3 rate. Nine unmodified saved states pass ninety resumed
+versus straight-run comparisons, including zero and single-cycle boundaries,
+with byte-identical full serialized states, matching actual MPU/handshake/CPU
+observations, correct final HALT/registers and preserved original state hashes.
+Cold reset-only/zero-reset runs and forbidden X3 clock overrides remain rejected.
+
+Frozen runner SHA-256:
+`da47f228c34a9d095fcccc47398ea114d3fee2dc35cd01dcb40d2d20ac33f5c2`.
+The initial frozen pass is under
+`verilator/obj_dir_headless/crtc-snapshot-qualified-ZYufRv/`, with both hashes
+rechecked successfully; log `/tmp/x1-crtc-pending-snapshot-frozen.log`.
+The final target also includes cold/clock negative controls; log
+`/tmp/x1-crtc-pending-snapshot-final-target.log`.
+Existing X3 profile/continuation and ordinary snapshot regressions pass in
+`/tmp/x1-crtc-short-restore-profile-regression.log` and
+`/tmp/x1-crtc-short-restore-base-snapshot.log`.
+This is non-delay-aware snapshot qualification of generated diagnostics, not
+native game boot or a physical reset/timing claim. The invocation-local
+rolling `video_hash` is not serialized and cannot be compared between a zero
+continuation and an entire cold run; actual model bytes and observations are
+compared instead. Unprogrammed raster failures were corrected by actual CPU
+timing initialization, never by disabling frame bounds.

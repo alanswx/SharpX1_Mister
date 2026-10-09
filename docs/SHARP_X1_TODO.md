@@ -21,8 +21,11 @@ acknowledges actual MPU consumption, not merely packet capture. A missing
 fixed-destination two-LOAD sequence in the new diagnostic was corrected;
 DMA RTL was not changed. The baseline transcript reaches its final fixture
 with 143 PASS reports; its outer exit status was lost during a tool reset and
-is not invented. A reporting-only CRTC FPGA probe passes 26 malformed-scope
-controls, but native execution awaits the active fit. Fresh combined-Z
+is not invented. The PCG-replica follow-up full flow completes zero but still
+fails reported setup -12.003 ns. Native CRTC reporting rejects an unreviewed
+acknowledgement replica; the actual source/pin inventory is now captured.
+Nine actual pending-transaction snapshots pass ninety byte-identical
+continuations; cold-start/clock guards remain tested. Fresh combined-Z
 pixels, current-source Quartus bundle/consumer timing and native/hardware
 qualification remain open; no broad goal work group is complete.
 
