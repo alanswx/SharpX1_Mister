@@ -14,13 +14,14 @@ The Linux and Apple-container build helpers accept this revision explicitly.
 
 Both baseline and DMA-profile wrapper lint pass (Verilator 5.044); inherited
 framework warnings remain, log `/tmp/x1-dma-board-wrapper-lint.log`. Shell
-syntax checks pass. The native Quartus 17.0.2 full flow is running from frozen
+syntax checks pass. The native Quartus 17.0.2 full flow completed from frozen
 commit `818b0de28e6a3331e3894fd0313369bad618e534`, in build-host directory
 `output_files/quartus-linux-mlCE5xen/`. Input-manifest SHA-256 is
 `0ea6cc295cca21472203cb1a08cf8e56ebd66c8d3fc4dfd3ec68700c7ba00d99`.
-This paragraph does not claim its pending fitting/timing result.
-Analysis/synthesis has completed successfully and its hierarchy report retains
-the DMA IRQ bridge/reset guard. Quartus warns that reset-guard `pending` powers
+Build started 00:23:55 UTC October 9 and finished 00:31:08 UTC, exit zero,
+123 warnings. Fit uses 20,947 ALMs (50%), 394 RAM blocks (71%), 3,143,582
+memory bits. Its hierarchy report retains the DMA engine/service, IRQ bridge
+and reset guard. Quartus warns that reset-guard `pending` powers
 up high despite the RTL initializer (`18061`/`18010`). Do not suppress this or
 claim cold-start equivalence from the RTL initializer; physical startup/reset
 must be qualified. Inherited framework mode-array/CDC warnings remain too.
@@ -37,9 +38,34 @@ ssh misterubuntu 'cd /home/alans/mister/SharpX1_Mister && QUARTUS_REVISION=sharp
 ssh misterubuntu 'cd /home/alans/mister/SharpX1_Mister && QUARTUS_REVISION=sharpx1_turbo_dma_single bash scripts/build_quartus_linux.sh --build'
 ```
 
-Build/fit/all-corner timing and source/RBF identities must be recorded before
-deployment. No new RBF is qualified by this source addition. Actual CPU-driven
-hardware diagnostics need visible RGB success/failure markers: the existing
+The candidate is locally available at
+[sharpx1_turbo_dma_single.rbf](../output_files/quartus-linux-mlCE5xen/sharpx1_turbo_dma_single.rbf),
+SHA-256 `c1d83e6bc7218a5736d3c8cf4505cc3eb69d4c75c4ca958a5106f3c698bc8ca3`.
+Supplemental all-corner STA and path reports each exit zero, with RBF hash
+unchanged. Every local input matches the original 359-file manifest.
+Post-build snapshot verification intentionally reports a mismatch for
+`sharpx1.qpf`: Quartus added notices/date and the requested revision, preserving
+the original revision. All other 358 inputs, including RTL/QSF/SDC/assets,
+match. The failed checksum command remains recorded, not rewritten as a pass.
+Generated QPF SHA-256 is
+`c7c997185f5007e626d8fa70fa8ebac07a56b6f622f43194e262f37a2adac4a5`.
+
+| All eight models, constrained checks | Worst slack (ns) |
+|---|---:|
+| Setup | 0.649 |
+| Hold | 0.052 |
+| Recovery | 4.153 |
+| Removal | 0.434 |
+| Minimum pulse width | 1.122 |
+
+Zero unconstrained clocks, but 3 input ports / 7 input paths and 44 output
+ports / 50 output paths remain unconstrained. No global clock cuts or timing
+constraint changes were made. Inherited CDC/PLL/external-I/O and physical
+qualification are not closed by these positive numbers. Original STA reports
+are preserved before supplemental analysis. Local ignored reports/logs are
+under `output_files/quartus-linux-mlCE5xen/`.
+
+Actual CPU-driven hardware diagnostics need visible RGB success/failure markers: the existing
 RAM-completion-only simulation fixtures do not prove hardware success from a
 black screen. Protected disposable A/B media, restart/RETI, native boot/input,
 owned/pending-SD reset and broader video/audio must be tested separately.
@@ -64,8 +90,13 @@ earlier isolated first-destination-buffer bug control produces CPU `EE` after
 eight pairs and all 64,000 red pixels; production RTL is untouched.
 Outputs: ignored `output_files/dma-visible-818b0de/`; logs
 `/tmp/x1-dma-visible-ipl.log`, `/tmp/x1-dma-visible-bug-negative.log`.
-The separate SYS32 delay-aware visible matrix is still running; its result
-must not be inferred from the fast profile.
+The separate SYS32/video28,571,428 Hz delay-aware visible matrix also completes
+all eighteen cases, checking another 1,152,000 green pixels and the same CPU
+counts/guards/status/unchanged disks. Its frozen executable SHA-256 is
+`a8601ef7abbdee9871fd706a426a060e819966420d85f16e5bd48bbbc036d287`;
+outputs `output_files/dma-visible-timing-818b0de/`, log
+`/tmp/x1-dma-visible-ipl-timing.log`. This is independent-clock simulation,
+not board-frequency delay-aware or physical acceptance.
 
 ```sh
 make -C verilator test-machine-dma-restart-visible
@@ -75,4 +106,38 @@ make -C verilator test-machine-dma-restart-visible
 hashes, accepts only mister126/mister14 and defaults to no core loading.
 `--execute` loads each test and records actual PNGs, requiring exact 320×200
 green pixels and unchanged disposable disks. It refuses incomplete local
-fixture qualification. No hardware run of those tests is yet recorded.
+fixture qualification. The hardware matrix completed on released
+mister126 in `/media/fat/_Computer/X1DMA_20261009T003346Z/`, with local evidence
+under ignored `output_files/X1DMA_20261009T003346Z/`. All eighteen cases pass:
+six memory and twelve A/B sector-boundary restart programs, all three bus modes
+and both programmed transfer directions. Each captured PNG is exactly 320×200
+green; all 1,152,000 captured pixels match. Disposable generated A/B image hashes
+remain unchanged after every case. Log `/tmp/x1-dma-hardware-matrix.log`.
+
+The actual CPU program verifies payload/buffer isolation/guards, DMA/FDC status,
+live-counter readback and three genuine IM2 handlers followed by RETI before
+publishing green. Hardware grant/pair counts and exact bus/IRQ pin timing were
+not independently instrumented: those quantities remain simulation evidence.
+These are cold MGL/core/IPL loads, not power-cycle/physical-keyboard, concurrent
+interrupt, OSD-reset/owned-SD drain, writable-media or native Turbo acceptance.
+The recommended general native-game test RBF remains the DMA-disabled artifact;
+this is a separately qualified bounded DMA diagnostic candidate.
+
+The same first memory IPL also runs on the earlier DMA-disabled RBF
+`a0a03761…` as an independent hardware negative. Its captured 320×200 PNG is
+exactly red, not success; generated disks stay unchanged. Evidence:
+`output_files/X1DMA_20261009T004022Z/`, log
+`/tmp/x1-dma-hardware-disabled.log`. This does not measure hardware pair counts
+or identify every possible red-screen cause. `--disabled-control` runs only
+that case and explicitly expects red; the normal matrix still requires green.
+
+The native matrix helper now accepts explicit RBF path/hash and an optional
+single-title selector; its earlier defaults and observation-only verdict stay
+unchanged. A protected CROSS Chase trial on the DMA candidate completes:
+native title at 30 seconds, then keyboard input reaches "Press key" and a
+populated playfield. Actual PNGs were inspected, not inferred from filenames.
+Evidence `output_files/X1Matrix_20261009T004105Z/`, log
+`/tmp/x1-dma-native-cross-hardware.log`; copied disk/ROM hashes stay unchanged.
+This is native boot/input progression, not exact movement, game music, long
+compatibility, physical keyboard or native Turbo firmware acceptance. No five
+commercial games are newly qualified by this single homebrew trial.

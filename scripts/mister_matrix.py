@@ -28,9 +28,19 @@ def main():
     parser.add_argument("--host", choices=("mister126", "mister14"), required=True)
     parser.add_argument("--bridge", default="misterubuntu")
     parser.add_argument("--execute", action="store_true", help="load MGLs and send keyboard input")
+    parser.add_argument("--rbf-path", default=RBF, help="explicit already-staged RBF; requires matching --rbf-sha256")
+    parser.add_argument("--rbf-sha256", default=RBF_SHA)
+    parser.add_argument("--title", choices=("01_CROSS_Chase", "02_Galaga", "03_Druaga", "04_Mappy", "05_Xevious", "06_Shanghai"),
+                        help="optional single native title; does not qualify the entire matrix")
     parser.add_argument("--video-ipl", type=pathlib.Path,
                         help="instead test six generated graphics/text/PCG IPLs")
     args = parser.parse_args()
+    if not args.rbf_path.startswith("/media/fat/_Computer/") or not args.rbf_path.endswith(".rbf"):
+        parser.error("RBF must be an explicit file beneath /media/fat/_Computer/")
+    if len(args.rbf_sha256) != 64 or any(c not in "0123456789abcdef" for c in args.rbf_sha256):
+        parser.error("RBF SHA-256 must be 64 lowercase hex digits")
+    if args.title and args.video_ipl:
+        parser.error("--title selects native software, not generated video IPLs")
     host = {"mister126": "10.0.2.126", "mister14": "10.0.2.14"}[args.host]
 
     def ssh(command):
@@ -55,7 +65,7 @@ def main():
         return ssh("cat /tmp/CORENAME /tmp/RBFNAME")
 
     before = status()
-    assert RBF_SHA in ssh("sha256sum " + shlex.quote(RBF)), "Unexpected RBF; refusing load"
+    assert ssh("sha256sum " + shlex.quote(args.rbf_path)).split()[0] == args.rbf_sha256, "Unexpected RBF; refusing load"
     stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     name = "X1Matrix_" + stamp
     folder = ROOT / "output_files" / name
@@ -64,7 +74,7 @@ def main():
     media = "/media/fat/games/SharpX1/HWTest/" + name
     ssh("mkdir " + shlex.quote(remote_folder) + " " + shlex.quote(media))
     manifest = {"host": args.host, "bridge": args.bridge, "pre_load": before,
-                "rbf_sha256": RBF_SHA, "remote_mgl_directory": remote_folder,
+                "rbf_sha256": args.rbf_sha256, "remote_rbf": args.rbf_path, "remote_mgl_directory": remote_folder,
                 "executed": args.execute, "tests": []}
 
     def save():
@@ -85,6 +95,8 @@ def main():
         save()
 
     titles = ("01_CROSS_Chase", "02_Galaga", "03_Druaga", "04_Mappy", "05_Xevious", "06_Shanghai")
+    if args.title:
+        titles = (args.title,)
     if args.video_ipl:
         titles = tuple(f"{kind}-{columns}" for columns in (40, 80) for kind in ("graphics", "text", "pcg"))
         for title in titles:
@@ -112,7 +124,7 @@ def main():
             ssh("cp -n " + shlex.quote(old_path) + " " + shlex.quote(new_path))
             item.set("path", new_path)
             files.append(new_path)
-        tree.find("rbf").text = RBF.removeprefix("/media/fat/").removesuffix(".rbf")
+        tree.find("rbf").text = args.rbf_path.removeprefix("/media/fat/").removesuffix(".rbf")
         tree.find("setname").text = setname
         contents = ET.tostring(tree, encoding="utf-8") + b"\n"
         mgl = remote_folder + "/" + title + ".mgl"

@@ -163,6 +163,10 @@ The separate [DMA board qualification revision](docs/DMA_BOARD_BUILD_STATUS.md)
 now enables that subset on the single-clock FPGA wrapper. Fitting, timing and
 hardware acceptance must be recorded separately; it does not change existing
 board revisions or the recommended RBF.
+Its source-bound `818b0de` Quartus 17.0.2 fit now passes all eight constrained
+timing corners, and all eighteen generated memory/A/B restart diagnostics pass
+actual CPU-driven RGB checks on mister126. This is bounded DMA acceptance, not
+full DMA, native Turbo/Z software or physical timing signoff; see the same report.
 The [Kanji contract audit](docs/KANJI_CONTRACT_STATUS.md) adds an exhaustive
 schematic-derived first-level address component and a separately tested 128 KiB
 dual-clock ROM loader. Synthetic byte/read/reset checks pass; the opt-in shared

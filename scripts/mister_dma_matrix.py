@@ -32,6 +32,8 @@ def main():
     parser.add_argument("--bridge-rbf", required=True, help="same hashed RBF on build host")
     parser.add_argument("--fixtures", type=pathlib.Path, required=True)
     parser.add_argument("--execute", action="store_true")
+    parser.add_argument("--disabled-control", action="store_true",
+                        help="one memory case on a deliberately DMA-disabled RBF: require red, not green")
     args = parser.parse_args()
     host = {"mister126": "10.0.2.126", "mister14": "10.0.2.14"}[args.host]
     fixture = json.loads((args.fixtures / "manifest.json").read_text())
@@ -83,12 +85,13 @@ def main():
         put(remote+f"/drive-{drive}.d88", (args.fixtures / f"drive-{drive}.d88").read_bytes())
     manifest = {"host": args.host, "pre_load": before, "rbf_sha256": rbf_hash,
                 "fixtures": str(args.fixtures), "qualification": fixture,
-                "execute": args.execute, "remote_mgl_directory": mgl_directory, "tests": []}
+                "execute": args.execute, "disabled_control": args.disabled_control,
+                "remote_mgl_directory": mgl_directory, "tests": []}
 
     def save():
         (folder / "manifest.json").write_text(json.dumps(manifest, indent=2)+"\n")
 
-    for number, case in enumerate(cases, 1):
+    for number, case in enumerate(cases[:1] if args.disabled_control else cases, 1):
         name = case["name"]
         setname = "X1D_"+stamp+f"_{number:02d}"
         rom_path = remote+"/"+name+".rom"
@@ -128,13 +131,14 @@ def main():
         entry["png_sha256"] = digest(image)
         save()  # Preserve failed pixels before asserting success.
         dimensions, rgb = rgb_png(local_png)
-        assert dimensions == (320, 200) and rgb == b"\x00\xff\x00" * 64000, (name, dimensions, "CPU success color absent")
+        expected = b"\xff\x00\x00" if args.disabled_control else b"\x00\xff\x00"
+        assert dimensions == (320, 200) and rgb == expected * 64000, (name, dimensions, "Expected CPU result color absent")
         entry["checked_pixels"] = 64000
         entry["mismatching_pixels"] = 0
         for drive in (0, 1):
             assert ssh("sha256sum " + shlex.quote(remote+f"/drive-{drive}.d88")).split()[0] == fixture["disk_sha256"][drive]
         save()
-        print("PASS actual CPU-driven hardware RGB " + name, flush=True)
+        print(("PASS disabled hardware control remains red " if args.disabled_control else "PASS actual CPU-driven hardware RGB ") + name, flush=True)
     print("EVIDENCE " + str(folder), flush=True)
 
 

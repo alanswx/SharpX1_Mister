@@ -2,7 +2,10 @@
 
 Survey date: 2026-10-02. The original source/wiring audit below had no functional
 boot evidence. Subsequent bring-up now verifies native CROSS Chase boot and
-gameplay in simulation; hardware remains untested. Use the updated chip table
+gameplay in simulation. Subsequent bounded base-video/native-input and optional
+DMA hardware checks are recorded in [the hardware matrix](HARDWARE_VIDEO_MATRIX_STATUS.md)
+and [DMA qualification](DMA_BOARD_BUILD_STATUS.md); they are not full hardware
+signoff. Use the updated chip table
 for current status, not the historical defect descriptions below.
 
 The original audit below predates the first implementation increment. See

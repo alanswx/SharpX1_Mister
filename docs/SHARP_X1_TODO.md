@@ -75,7 +75,7 @@ builds and record synthesis, fit and timing separately.
 | Work group | Execution/acceptance still needed |
 |---|---|
 | 1. SIO | Owned serial read/write reset drain, idle Send Break and 12 actual-CPU stopped-CE ACK/handler/FIFO/RETI chip-reset cases pass separately; add channel/short-pulse and concurrent multi-device reset service; trace schematic clocks/modem/Ready/decode before opt-in shared-machine integration; finish remaining modes and native serial diagnostics |
-| 2. DMA | Reset/video/restart/comparison, search/stop and actual-CPU fast/delay-aware profiles pass; opt-in completion IRQ has real command and initial shared-machine IM2/HALT/RETI acceptance; broaden concurrent-service/reset/savable gates, implement Ready/restart IRQ and variable timing, resolve sequential non-Byte stop; broaden payload/Ready/DAM/native Turbo IPL and hardware acceptance |
+| 2. DMA | Reset/video/restart/comparison, search/stop and actual-CPU fast/delay-aware profiles pass; opt-in completion/restart IRQ has shared-machine IM2/HALT/RETI and snapshot acceptance; broaden concurrent-service/reset/savable gates, integrate Ready/mixed restart IRQ and variable timing, resolve sequential non-Byte stop; broaden payload/Ready/DAM/native Turbo IPL and hardware acceptance |
 | 3. Kanji/Turbo video | CPU latch/ROM/glyph paths with synthetic fixtures, then authorized native fonts; complete attribute/PCG/text combinations, ASIC behavior and native Turbo/400-line software |
 | 4. Timing/hardware | Narrow audited CDC/reset/mux constraints, current-source Quartus refit and positive setup/hold/recovery; hardware bandwidth/video/audio and Main/OSD reset verification |
 | 5. Disk/software | Format/density/HD/media-change contracts; native metadata qualification; Arcus/Bastard playability; delay-aware and hardware game matrix |
@@ -134,8 +134,11 @@ restart-specific concurrent/reset/owned-SD snapshots, native and hardware
 qualification remain open; no work group is marked complete.
 The [DMA board qualification revision](DMA_BOARD_BUILD_STATUS.md) now passes
 the explicit completion/restart capabilities through the single-clock wrapper;
-source-bound build/timing and actual visible CPU-driven hardware diagnostics
-remain required. Existing board revisions remain DMA-disabled.
+existing board revisions remain DMA-disabled.
+The subsequent `818b0de` fit now passes all eight constrained corners, and
+eighteen generated memory/A/B restart programs pass CPU-driven actual RGB
+checks on mister126. Exact physical timing/count instrumentation, concurrent/
+reset/writable/native gates remain open; this does not complete DMA or Turbo Z.
 The [Kanji contract audit](KANJI_CONTRACT_STATUS.md) now derives a tested
 first-level physical ROM address decoder from the model-20/30 schematic,
 covering all 131,072 bytes. Its connected standalone 128 KiB dual-clock ROM
