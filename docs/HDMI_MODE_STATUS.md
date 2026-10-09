@@ -686,10 +686,24 @@ python3 scripts/audit_hdmi_handoff_mode_inventory.py \
   --native-log /tmp/x1-handoff-mode-inventory-d8f7024-v3.log --source-root .
 ```
 
-The newer `3a61604` selected-input full flow remains live in its original
-frozen build directory; these reports are not from that new fit. The later
+The newer `3a61604` selected-input full flow terminates **unsuccessfully** at
+STA on October 9, 16:46:36 host time (8m56s). Fitting introduced
+`gate_request~DUPLICATE`; the exact-input candidate rejects that unreviewed
+source replica. Do not count this flow as acceptance or broaden its guard
+from naming alone. These reports are not from that new fit. The later
 OSD ordering guard adds no J/j metadata or machine behavior and does not
 retroactively change either build's source identity.
+
+The no-SDC `scripts/quartus_hdmi_handoff_replica_inventory.tcl` subsequently
+finishes zero errors/warnings in the failed flow's preserved fit. Its log is
+`/tmp/x1-handoff-replica-inventory-3a61604-v1.log`. Connectivity shows
+`gate_request_meta` is driven by the new replica, not the canonical source;
+the replica fans out only to that first stage, which still feeds only
+`gate_request_sample`. Canonical and replica fanins include the same FSM/
+settle/ACK controls, but connectivity is **not sequential equivalence proof**.
+Choose and qualify either supported replication prevention or exact physical
+source/equivalence handling, then repeat fitting and all timing audits. No
+SDC is loaded, exceptions changed or timing acceptance claimed by this probe.
 
 ## Next gates
 

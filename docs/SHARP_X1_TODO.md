@@ -21,6 +21,11 @@ Its coherent capture/epoch contract and clock-control fanout need separate
 qualification; first-output-edge settling does not cover them. No new
 exceptions or broad work-group completion are inferred. See
 [the domain inventory](HDMI_MODE_STATUS.md#complete-held-mode-timing-discovery-not-acceptance).
+The fresh `3a61604` selected-input flow fails STA when the fitter creates
+`gate_request~DUPLICATE`, now driving `gate_request_meta`. No-SDC connectivity
+discovery confirms first-stage-only fanout, not sequential equivalence.
+Qualify replication prevention or exact physical-source handling before a
+new flow; do not weaken the guard or call the failed build timing acceptance.
 
 The experimental [coherent CRTC transport](CRTC_WRITE_CDC_STATUS.md) now
 passes four helper clock ratios, three real-CPU clock ratios, five owned-DMA

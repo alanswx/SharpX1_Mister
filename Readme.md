@@ -62,6 +62,10 @@ It identifies a separate native-VID csync consumer (`dv_hs1`), which the first
 gated-output-edge checks cannot qualify. Its setup still fails -7.247 ns;
 no blanket held-mode exception is added. See the HDMI investigation for the
 output/native-video/control-domain inventory and unchanged-artifact evidence.
+The new selected-input fit fails its STA scope guard because fitting creates
+a source replica feeding the gate-enable first stage. Connectivity discovery
+confirms the changed driver; replication/equivalence and fresh timing still
+need qualification. The guard is not weakened and this flow is not accepted.
 Its isolated real-PLL controller maps/fits; a fitted-feedback audit led to an
 explicit falling-edge closure witness. Current native cases pass, while raw
 crossings, full-board timing and physical switching remain open. All 96 bounded
