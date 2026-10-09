@@ -88,9 +88,9 @@ module sio_tx_disable_tb;
             reset=1; tx_tick=0; cts_n=modem!=0 ? 0 : 3; repeat(8) step(); reset=0;
             config_channel(0,bits,parity_mode,stops,rate);
             config_channel(1,bits,parity_mode,stops,rate);
-            put(0,8'h69); put(2,8'h96);
+            put(0,bits==5 ? 8'h09 : 8'h69); put(2,bits==5 ? 8'h16 : 8'h96);
             tx_tick=3; step(); tx_tick=0;
-            put(0,8'ha5); // Only A has queued data; B is an independent control.
+            put(0,bits==5 ? 8'h05 : 8'ha5); // Table-28 five-bit encoding; only A queues.
             for(integer bit_number=0;bit_number<=final_bit;bit_number=bit_number+1) begin
                 if(bit_number==disable_bit) gate_transmitter(disabled_wr5);
                 if(seam==3 && bit_number==(bits>=6 ? 6 : 5)) gate_transmitter(enabled_wr5);

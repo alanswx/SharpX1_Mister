@@ -81,7 +81,10 @@ module sio_formats_tb;
     task automatic transmit_pair(input reg [7:0] a,b,input integer bits,parity_mode,stops,divisor);
         reg [1:0] expected;
         integer duration, final_bit;
-        put(0,a); put(2,b);
+        // Table 28 requires 000xxxxx for exactly five TX bits. Keep the
+        // existing expected low data/parity/pin durations, but send legal
+        // encodings rather than relying on unspecified ignored upper bits.
+        put(0,bits==5 ? a & 8'h1f : a); put(2,bits==5 ? b & 8'h1f : b);
         tx_tick=3; step(); tx_tick=0;
         check(1,4); check(3,4); rr1(0,0); rr1(1,0);
         final_bit=bits+1+(parity_mode!=0 ? 1 : 0);

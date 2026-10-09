@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Original standalone SIO asynchronous slice. Public register contract:
 // Zilog UM008101-0601. Not translated from an emulator or wired to the X1.
-// Supported: polled asynchronous 5..8 bits, N/E/O, 1/1.5/2 TX stops,
+// Supported: polled asynchronous RX 5..8 bits, TX 1..8 bits (table-28
+// encoded 1..5), N/E/O, 1/1.5/2 TX stops,
 // x16/x32/x64 RX/TX event clocks and idle-transmitter Send Break.
 // WR5 Transmit Enable may change during a frame: drain the current character,
 // then retain queued data until enabled again (UM0081 printed 288).
@@ -63,6 +64,20 @@ module x1_sio_async_channel #(parameter IRQ_ENABLE=0, parameter CHANNEL_B=0, par
         case(config_bits)
             0: character_bits=5; 1: character_bits=7;
             2: character_bits=6; 3: character_bits=8;
+        endcase
+    endfunction
+    // UM0081 printed 289–290, table 28: upper marker bits select the
+    // payload length in five-or-less mode; they are not data/parity bits.
+    // Zero reports an unspecified encoding to our diagnostic, not native RR1.
+    function automatic [3:0] transmit_bits(input [1:0] config_bits,input [7:0] data);
+        if(config_bits!=0) return character_bits(config_bits);
+        casez(data)
+            8'b1111000?: return 1;
+            8'b111000??: return 2;
+            8'b11000???: return 3;
+            8'b1000????: return 4;
+            8'b000?????: return 5;
+            default: return 0;
         endcase
     endfunction
     function automatic [6:0] clock_divisor(input [1:0] config_bits);
@@ -148,6 +163,8 @@ module x1_sio_async_channel #(parameter IRQ_ENABLE=0, parameter CHANNEL_B=0, par
     reg [6:0] tx_phase;
     reg [3:0] tx_bit, tx_stop_bit;
     reg [7:0] tx_stop_ticks;
+    wire [3:0] tx_decoded_bits = transmit_bits(wr5[6:5],tx_holding);
+    wire [3:0] tx_word_bits = tx_decoded_bits==0 ? 4'd5 : tx_decoded_bits;
     reg rts_asserted;
     wire tx_take = tx_tick && tx_enabled && !tx_busy && tx_holding_full;
     // UM0081 printed 288: Send Break forces TxD spacing independently of
@@ -341,15 +358,16 @@ module x1_sio_async_channel #(parameter IRQ_ENABLE=0, parameter CHANNEL_B=0, par
             if(!tx_configured) begin tx_busy<=0; tx_phase<=0; end
             else if(tx_tick) begin
                 if(tx_take) begin
+                    if(tx_decoded_bits==0) unsupported<=1;
                     // Becoming empty requires actual data, not merely enabling
                     // TX interrupts while its holding register is already empty.
                     // A same-edge replacement keeps holding full and cannot
                     // generate an empty interrupt.
                     if(wr1[1] && !(write_event && !control)) transmit_pending<=1;
-                    tx_shift<=transmit_frame(tx_holding,character_bits(wr5[6:5]),wr4[0],wr4[1]);
+                    tx_shift<=transmit_frame(tx_holding,tx_word_bits,wr4[0],wr4[1]);
                     tx_busy<=1; tx_phase<=0; tx_bit<=0;
                     tx_divisor<=clock_divisor(wr4[7:6]);
-                    tx_stop_bit<=character_bits(wr5[6:5])+4'd1+{3'b0,wr4[0]};
+                    tx_stop_bit<=tx_word_bits+4'd1+{3'b0,wr4[0]};
                     case(wr4[3:2])
                         1: tx_stop_ticks<={1'b0,clock_divisor(wr4[7:6])};
                         2: tx_stop_ticks<={1'b0,clock_divisor(wr4[7:6])}+{1'b0,(clock_divisor(wr4[7:6])>>1)};

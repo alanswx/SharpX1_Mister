@@ -72,3 +72,6 @@ decode, schematic clocks/modem/Ready pins, daisy chain and native serial
 software still require integration/acceptance. No default snapshot layout,
 frozen five-game runner or fitted Turbo-single RBF changes. Hosted CI now
 selects this target; its new source-bound result is not yet known.
+The subsequent [short-transmit increment](SIO_SHORT_TX_STATUS.md) separately
+qualifies table-28 one- through five-bit encodings and corrects the older
+five-bit fixtures' non-data upper bits; this RTS checkpoint stays historical.

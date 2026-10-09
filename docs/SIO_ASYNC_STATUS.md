@@ -4,6 +4,8 @@ October 5, 2026. `rtl/x1_sio_async.sv` is original local RTL, **not yet in
 `machine.qip` or connected to the X1**. It is a bounded polled asynchronous
 **5/6/7/8-bit, no/even/odd-parity, x16/x32/x64**
 slice, not a complete Z80 SIO. Machine serial and SIO IRQ support are absent.
+The subsequent [short-transmit correction](SIO_SHORT_TX_STATUS.md) adds
+table-28 one- through five-bit encoded TX; RX remains 5/6/7/8-bit.
 A separate [standalone RX/TX/CTS/DCD interrupt wrapper](SIO_IRQ_STATUS.md) now passes
 connected pin/service and actual-CPU IM2 tests; it does not change this
 default polled wrapper or connect either wrapper to the machine.
@@ -105,7 +107,7 @@ the serialized machine or require conversion of v11 states.
 ## Next gates
 
 1. Externally synchronized x1 mode, receive/busy-transmit break, exact modem phases,
-   5-or-less variable-length encoding and
+   short-frame IRQ/Ready/DMA combinations and
    exact error-reset effects outside this polled subset. Live frame changes
    are flagged unsupported and frame parameters are latched at start/take;
    the manual's live RX-length adjustment is **not implemented**. Validate
