@@ -109,12 +109,36 @@ in `/tmp/x1-v16-baseline.log`. Earlier ordinary v15
 baseline finishes zero with 140 PASS reports in `/tmp/x1-sio-x1-baseline.log`;
 that runner is `f1af4f88...`, not current-source v16 acceptance.
 
-Fresh five-game v16 native boot/control qualifications are running from the
+Fresh five-game v16 native boot/control qualifications now all terminate zero from the
 pre-frozen runner/support/IPL/source tree
 `verilator/obj_dir_v16_fm_machine/games-r7GvWa`. Executable SHA-256 is
 `b7ae59432af08fd357f5721840a54316587819a021c81dd82dc44df40105435a`;
 delay-aware v16 runner is `9b55d9cb5ef0502509d549d91fc2e3f9ad29b6f3dbc3f3413b189d6fe2b75231`.
 Private originals are protected and snapshots/screens/media remain ignored.
-These live jobs are not terminal passes; do not reuse/convert older states.
+An independent post-completion audit checks all collector flags/return codes,
+every native-prefix state hash, original/frozen input hashes and all six runner
+copies. Galaga firing also exits zero. See [commercial evidence](COMMERCIAL_COMPATIBILITY.md).
+The delay-aware baseline remains separate; do not reuse/convert older states.
 No new current-source Quartus fit, RBF or MiSTer load is claimed. Native
 FM/audio/Z acceptance and work groups 1–6 remain incomplete.
+
+## Explicit PPI C5 follow-up
+
+The initial program's PPI mode-set could itself arm DAM before the following
+C5 OUTs, so that earlier case primarily qualified mode-set-induced DAM. The
+strengthened IPL explicitly reads unselected `0702` after mode-set to clear
+that arm, then writes C5 high and low. The observer now requires both actual
+PPI values during unambiguous non-DAM writes, followed by the DAM `0700` OUT.
+All three clocks and the disabled negative terminate zero again, seven PASS
+reports in `/tmp/x1-v16-fm-ppi-transition-final.log`. The updated fixture hash is
+`ed0d96217b3dbe6a4466a4c3f883aa809534d5722da6e132bbe2b05fa76afdf4`;
+the earlier hash/log remains historical. Machine RTL/runner/snapshot layout is
+unchanged by this fixture-only extension.
+
+An authorized source-frozen Quartus 17.0.2 refit of pushed
+`832766f9a81146c10511dfc85b1876b4d16aa857` is now running on misterubuntu
+under `output_files/quartus-linux-c70iRYNK`;
+local log `/tmp/x1-quartus-832766f-turbo-single.log`. Host checkout was clean
+and no Quartus job was active before launch. This revision still disables
+FM/SIO/Z/X3/DMA/Kanji. No completed fit/timing/new RBF or enabled-FM physical
+acceptance is claimed from this live process. No MiSTer is accessed/loaded.

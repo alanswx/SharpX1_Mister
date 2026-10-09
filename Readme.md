@@ -370,9 +370,10 @@ After shared SIO integration, [both complete ordinary v15 suites](docs/BASELINE_
 and fresh v15 native boot/gameplay qualification of all five titles pass again.
 The serial profile remains off in that ordinary game runner; generated enabled
 SIO diagnostics are qualified separately, not by those game results.
-The optional shared FM increment now requires v16. Fresh full ordinary suites
-and five native game qualifications are running; the v15 passes above are
-historical, not acceptance of the pending v16 runners. See [FM integration status](docs/FM_MACHINE_STATUS.md).
+The optional shared FM increment now requires v16. Its full ordinary fast suite,
+snapshot tests and [fresh five-game native qualification](docs/COMMERCIAL_COMPATIBILITY.md)
+pass. The delay-aware baseline and source-bound Quartus refit remain running.
+The v15 passes above remain historical. See [FM integration status](docs/FM_MACHINE_STATUS.md).
 The [latest fitted Turbo single-clock RBF](output_files/quartus-linux-WosvSRv1/source/output_files/sharpx1_turbo_single.rbf)
 now builds on Quartus 17.0.2 and passes all eight constrained timing corners;
 [source/hash and exclusions](docs/HARDWARE_126_STATUS.md) are recorded separately.

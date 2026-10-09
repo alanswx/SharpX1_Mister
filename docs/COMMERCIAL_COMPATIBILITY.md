@@ -1,9 +1,42 @@
 # Private commercial-game bring-up
 
-Current-source follow-up: [shared FM integration](FM_MACHINE_STATUS.md) now
-requires snapshots v16. Fresh native qualification of all five titles is
-running on a separately frozen v16 runner. No result below is silently
-relabelled as acceptance of that pending runner; the v15 evidence is retained.
+## Current v16 qualification: all five bounded gameplay gates pass
+
+October 9: after [shared FM CPU-bus integration](FM_MACHINE_STATUS.md), all
+five freshly native-booted processes terminate zero on the frozen ordinary
+fast/savable v16 runner, SHA-256
+`b7ae59432af08fd357f5721840a54316587819a021c81dd82dc44df40105435a`.
+Each collector records gameplay verified, original inputs unchanged, successful
+control return and successful native-prefix stages with zero disk writes.
+Galaga's separate firing/active-enemy/projectile-travel check also exits zero.
+
+| Title | Actual native input evidence |
+|---|---|
+| Xevious | Right movement `(30,40) → (36,40)` |
+| Tower of Druaga | Left movement `(68,32) → (67,32)` |
+| Mappy | Left movement `(129,84) → (126,84)` |
+| Galaga | Right movement `(32,24) → (40,24)` plus native firing/projectile travel |
+| Shanghai | Cursor `(488,167) → (544,160)` and matching removal `0 → 2` |
+
+Ignored frozen root: `verilator/obj_dir_v16_fm_machine/games-r7GvWa/`.
+Runner, IPL, unmodified support scripts/keys and machine/runner sources are
+copied before launch. The original 16-second native boot runs as 8+8-second
+checkpoints; later native/control durations and release assertions are
+unchanged. No old snapshot is restored or converted, no RAM/game bytes are
+patched and no private original is overwritten.
+
+After all handles terminate, independent checks verify collector flags/codes,
+every original/frozen input hash, every native-prefix state hash, root/support
+manifest and all five copied runner hashes. SYS=32 MHz, VID=28.571428 MHz,
+cold reset=4159 SYS edges; actual RGB/memory/state/report repeatability checks
+remain enabled. Logs: `/tmp/x1-v16-{xevious,druaga,mappy,galaga,shanghai}.log`.
+
+This is bounded ordinary base-X1 fast-model gameplay, not full-game completion,
+delay-aware gameplay, native FM/SIO/Turbo Z, Arcus/Bastard Special or hardware
+acceptance. FM and SIO remain off in the ordinary runner. The full ordinary
+v16 fast suite and direct snapshot checks also pass; the delay-aware baseline
+and new source-bound Quartus refit remain separately in progress. Earlier
+v15 evidence is retained below, not silently relabelled.
 
 ## Historical v15 qualification: all five bounded gameplay gates pass
 

@@ -27,6 +27,7 @@ module machine_fm_tb #(parameter FM_ENABLED=1,SINGLE_CLOCK=0,MASTER_HZ=32000000)
     integer pc=0,dispatches=0,busy_reads=0,wait_edges=0,dma_reads=0,dma_writes=0,dam_writes=0,tail_checks=0;
     reg read_old=0,write_old=0,fm_read_old=0;
     reg [7:0] last_status=0;
+    reg ppi_high_seen=0,ppi_low_seen=0;
     wire fm_read=dut.fm_selected && dut.io_read;
     wire dma_read=dut.dma_owner && !dut.mreq && !dut.rd;
     wire dma_write=dut.dma_owner && !dut.mreq && !dut.wr;
@@ -43,6 +44,7 @@ module machine_fm_tb #(parameter FM_ENABLED=1,SINGLE_CLOCK=0,MASTER_HZ=32000000)
     always @(posedge clk) begin
         if(dut.core_reset) begin
             dispatches=0;busy_reads=0;wait_edges=0;dma_reads=0;dma_writes=0;dam_writes=0;tail_checks=0;
+            ppi_high_seen=0;ppi_low_seen=0;
         end else begin
             if(observed_dispatch) begin
                 dispatches++;
@@ -60,6 +62,10 @@ module machine_fm_tb #(parameter FM_ENABLED=1,SINGLE_CLOCK=0,MASTER_HZ=32000000)
             if(dma_write && !write_old) dma_writes++;
             if(dut.dam && dut.io_write && dut.a==16'h0700) begin
                 dam_writes++;assert(!dut.fm_selected) else $fatal(1,"DAM write reached FM");
+            end
+            if(dut.io_write && !dut.dam && dut.a==16'h1a02) begin
+                if(dut.data_out==8'h20 && dut.mode_c[5]) ppi_high_seen=1;
+                if(dut.data_out==0 && !dut.mode_c[5] && ppi_high_seen) ppi_low_seen=1;
             end
             if(dut.dma_owner || (!dut.m1 && !dut.iorq))
                 assert(!dut.fm_selected) else $fatal(1,"owned/ACK bus reached FM");
@@ -100,6 +106,7 @@ module machine_fm_tb #(parameter FM_ENABLED=1,SINGLE_CLOCK=0,MASTER_HZ=32000000)
             else $fatal(1,"shared FM CPU status readback %h/%h/%h/%h",dut.RAM.mem[16'h4100],
                 dut.RAM.mem[16'h4101],dut.RAM.mem[16'h4102],dut.RAM.mem[16'h4103]);
         assert(dispatches==10 && busy_reads>0 && wait_edges>0 && dam_writes>0 && tail_checks>0 &&
+            ppi_high_seen && ppi_low_seen &&
             dma_reads==4 && dma_writes==4 && observed_ct==3 && dut.fm_irq_n && !dut.dma_owner)
             else $fatal(1,"shared FM bus/queue/DAM/DMA counts dispatch=%0d busy=%0d wait=%0d dam=%0d DMA=%0d/%0d",dispatches,busy_reads,wait_edges,dam_writes,dma_reads,dma_writes);
         for(integer i=0;i<4;i++) assert(dut.RAM.mem[16'h9000+16'(i)]==8'h31+8'(i))
@@ -111,7 +118,9 @@ module machine_fm_tb #(parameter FM_ENABLED=1,SINGLE_CLOCK=0,MASTER_HZ=32000000)
         emit(8'hf3);emit(8'h31);emit(0);emit(8'hff);mark(0);
         port(16'h0701);emit(8'hed);emit(8'h78);store(16'h4100);mark(1);
         // Actual PPI mode/C5 transition arms DAM for the following OUT only.
-        port(16'h1a03);out_byte(8'h80);port(16'h1a02);out_byte(8'h20);out_byte(0);
+        port(16'h1a03);out_byte(8'h80);
+        port(16'h0702);emit(8'hed);emit(8'h78); // clear mode-set's own DAM arm
+        port(16'h1a02);out_byte(8'h20);out_byte(0);
         port(16'h0700);out_byte(8'h7f);
         port(16'h0702);emit(8'hed);emit(8'h78);store(16'h4103); // IN clears DAM
         reg_write(8'h1b,8'hc0);reg_write(8'h10,8'hfa);reg_write(8'h11,0);
