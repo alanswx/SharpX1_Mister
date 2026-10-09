@@ -11,14 +11,15 @@ TURBO_DSW_FLAGS = -GTURBO_DSW=$(TURBO_DSW) -CFLAGS "-DX1_TURBO_DSW=$(TURBO_DSW)"
 FM_MANIFEST = ../rtl/x1_fm.qip
 FM_SRC = $(addprefix ../,$(shell awk '/^set_global_assignment -name (SYSTEMVERILOG_FILE|VERILOG_FILE) / { print $$4 }' $(FM_MANIFEST)))
 FM_MASTER_HZ ?= 32000000
+PSG_SRC = $(wildcard ../references/chip-src/jt49/hdl/jt49*.v)
 
 all: headless
 
 test-psg-mix: $(HEADLESS_DIR)/psg-mix/Vpsg_mix_tb
 	./$(HEADLESS_DIR)/psg-mix/Vpsg_mix_tb
-$(HEADLESS_DIR)/psg-mix/Vpsg_mix_tb: tests/psg_mix_tb.sv ../rtl/x1_psg_signed.sv ../rtl/x1_fm_mix.sv Makefile
+$(HEADLESS_DIR)/psg-mix/Vpsg_mix_tb: tests/psg_mix_tb.sv ../rtl/x1_psg_signed.sv ../rtl/x1_fm_mix.sv ../rtl/x1_audio_mix.sv Makefile
 	mkdir -p $(@D)
-	$(V) --binary --timing --assert --top-module psg_mix_tb --Mdir $(@D) -j 4 tests/psg_mix_tb.sv ../rtl/x1_psg_signed.sv ../rtl/x1_fm_mix.sv
+	$(V) --binary --timing --assert --top-module psg_mix_tb --Mdir $(@D) -j 4 tests/psg_mix_tb.sv ../rtl/x1_psg_signed.sv ../rtl/x1_fm_mix.sv ../rtl/x1_audio_mix.sv
 .PHONY: test-psg-mix
 
 test-machine-fm: $(HEADLESS_DIR)/machine-fm/Vmachine_fm_tb $(HEADLESS_DIR)/machine-fm-disabled/Vmachine_fm_tb $(HEADLESS_DIR)/machine-fm-single-nominal/Vmachine_fm_tb $(HEADLESS_DIR)/machine-fm-single-board/Vmachine_fm_tb
@@ -307,6 +308,15 @@ $(HEADLESS_DIR)/fm-$(FM_MASTER_HZ)/Vfm_tb: $(FM_SRC) tests/fm_tb.sv $(FM_MANIFES
 	$(V) --binary --timing --assert --top-module fm_tb -GMASTER_HZ=$(FM_MASTER_HZ) \
 		--Mdir $(HEADLESS_DIR)/fm-$(FM_MASTER_HZ) -j 4 $(FM_SRC) tests/fm_tb.sv -Wno-fatal
 .PHONY: test-fm
+
+test-fm-psg: $(HEADLESS_DIR)/fm-psg-$(FM_MASTER_HZ)/Vfm_tb
+	./$(HEADLESS_DIR)/fm-psg-$(FM_MASTER_HZ)/Vfm_tb +OUTPUT=$(HEADLESS_DIR)/fm-psg-$(FM_MASTER_HZ)/mixed
+	python3 tests/test_fm_psg_audio.py $(HEADLESS_DIR)/fm-psg-$(FM_MASTER_HZ)/mixed
+$(HEADLESS_DIR)/fm-psg-$(FM_MASTER_HZ)/Vfm_tb: $(FM_SRC) $(PSG_SRC) tests/fm_tb.sv $(FM_MANIFEST) Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module fm_tb -GMASTER_HZ=$(FM_MASTER_HZ) -GMIXED_PSG=1 \
+		--Mdir $(@D) -j 4 $(FM_SRC) $(PSG_SRC) tests/fm_tb.sv -Wno-fatal
+.PHONY: test-fm-psg
 
 test-fm-cpu: $(HEADLESS_DIR)/fm-cpu-$(FM_MASTER_HZ)/Vfm_cpu_tb
 	@for rate in 1 4 8; do ./$(HEADLESS_DIR)/fm-cpu-$(FM_MASTER_HZ)/Vfm_cpu_tb +CE_PERIOD=$$rate || exit 1; done

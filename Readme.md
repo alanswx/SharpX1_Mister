@@ -376,8 +376,9 @@ pass. The delay-aware baseline also passes (140 PASS reports), and the
 source-bound Quartus refit completes successfully.
 The v15 passes above remain historical. See [FM integration status](docs/FM_MACHINE_STATUS.md).
 The standalone [signed PSG conversion/mixer](docs/PSG_FM_MIX_STATUS.md)
-passes 2,236,486 scalar checks; genuine mixed-chip audio and machine output
-delivery remain unfinished. Default unsigned audio is unchanged.
+passes 2,236,486 scalar checks. Genuine concurrent JT49/JT51 waveform,
+pitch/panning and reset-repeatability tests pass at three master frequencies;
+machine output delivery remains unfinished. Default unsigned audio is unchanged.
 The [latest fitted Turbo single-clock RBF](output_files/quartus-linux-c70iRYNK/source/output_files/sharpx1_turbo_single.rbf)
 builds on Quartus 17.0.2, binding `832766f`. Its reported Slow 1100 mV
 100 C corner passes; supplemental eight-corner acceptance remains pending.

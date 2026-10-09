@@ -8,10 +8,15 @@ module psg_mix_tb;
     wire signed [15:0] sound;
     logic signed [15:0] fm_left=0, fm_right=0;
     wire signed [15:0] left, right, mono;
+    wire signed [15:0] sampled_left, sampled_right, sampled_mono;
     x1_psg_signed dut(.*);
     x1_fm_mix mix(.fm_left(fm_left),.fm_right(fm_right),.psg(sound),
                   .left(left),.right(right),.mono(mono));
+    x1_audio_mix sampled(.clk(clk),.reset(reset),.sample_ce(sample_ce),.psg(psg),
+        .fm_left(fm_left),.fm_right(fm_right),.left(sampled_left),
+        .right(sampled_right),.mono(sampled_mono));
     longint signed dc_ref=0, sound_ref=0, target, step;
+    longint signed held_l=0, held_r=0;
     integer checks=0;
     function automatic integer clip(input longint signed value);
         if (value > 32767) return 32767;
@@ -34,8 +39,9 @@ module psg_mix_tb;
     task automatic tick(input bit rst, input bit ce, input integer value);
         @(negedge clk);
         reset=rst; sample_ce=ce; psg=10'(value);
-        if(rst) begin dc_ref=0; sound_ref=0; end
+        if(rst) begin dc_ref=0; sound_ref=0; held_l=0; held_r=0; end
         else if(ce) begin
+            held_l=longint'(fm_left); held_r=longint'(fm_right);
             target=longint'(value)*32;
             sound_ref=target-(dc_ref/65536);
             // Independent signed division with explicit floor for negative
@@ -54,6 +60,10 @@ module psg_mix_tb;
         assert(int'(right)==clip(longint'(fm_right)+sound_ref)) else $fatal(1,"right mix");
         assert(int'(mono)==clip(longint'(fm_left)+longint'(fm_right)+sound_ref))
             else $fatal(1,"mono mix (PSG must occur once)");
+        assert(int'(sampled_left)==clip(held_l+sound_ref)
+            && int'(sampled_right)==clip(held_r+sound_ref)
+            && int'(sampled_mono)==clip(held_l+held_r+sound_ref))
+            else $fatal(1,"sample-aligned audio hold/mix");
         checks++;
     endtask
     initial begin
@@ -67,7 +77,11 @@ module psg_mix_tb;
                         for(integer b=0;b<9;b++) begin
                             fm_left=16'(boundary(a)); fm_right=16'(boundary(b));
                             tick(0,1,direction != 0 ? 1023-v : v);
-                            for(integer g=1;g<gap;g++) tick(0,0,(v+503)%1024);
+                            for(integer g=1;g<gap;g++) begin
+                                fm_left=16'(boundary((a+g)%9));
+                                fm_right=16'(boundary((b+g)%9));
+                                tick(0,0,(v+503)%1024);
+                            end
                         end
                     end
                 end
@@ -82,6 +96,8 @@ module psg_mix_tb;
             tick(0,1,1023);
             @(negedge clk); sample_ce=0; #2; reset=1; #1;
             assert(sound==0 && dut.dc==0) else $fatal(1,"asynchronous reset failed");
+            assert(sampled_left==0 && sampled_right==0 && sampled_mono==0)
+                else $fatal(1,"sample-aligned asynchronous reset failed");
             tick(1,0,1023);
             repeat(20) tick(0,1,0);
             assert(left==0 && right==0 && mono==0) else $fatal(1,"reset silence");

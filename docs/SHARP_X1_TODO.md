@@ -35,8 +35,10 @@ the [shared FM CPU-bus increment](FM_MACHINE_STATUS.md) now passes generated
 IPL busy/status/WAIT, actual PPI DAM, real DMA and retained-reset checks at
 three clocks. Native IRQ/audio delivery and full FM hardware remain open.
 The standalone [signed PSG/mixer foundation](PSG_FM_MIX_STATUS.md) passes
-independent scalar DC/CE/reset/stereo/mono saturation checks; genuine mixed
-chip waveforms, machine delivery and analog calibration remain required.
+independent scalar DC/CE/reset/stereo/mono saturation checks. Its sample-aligned
+output now passes genuine concurrent JT49/JT51 waveform, pitch/panning and
+reset-repeatability tests at three master frequencies; machine delivery and
+analog calibration remain required.
 Current ordinary snapshots require v16; its full fast suite, direct snapshots
 and fresh five-game native qualification pass. The delay-aware baseline also
 passes (140 PASS reports). The `832766f` refit completes with positive reported

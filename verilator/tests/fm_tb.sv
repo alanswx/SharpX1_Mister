@@ -1,6 +1,6 @@
 `timescale 1ps/1ps
 // Original synthetic register/audio fixture, no CPU/BIOS/game or forced state.
-module fm_tb #(parameter integer MASTER_HZ = 32000000);
+module fm_tb #(parameter integer MASTER_HZ = 32000000, parameter bit MIXED_PSG=0);
     localparam longint unsigned HALF_PS = 64'd500000000000 / 64'(MASTER_HZ);
     logic clk=0, reset=1, enable=1;
     always #(HALF_PS) clk=!clk;
@@ -9,6 +9,23 @@ module fm_tb #(parameter integer MASTER_HZ = 32000000);
     wire [7:0] status;
     wire wait_n, irq_n, ct1, ct2, sample, ce4, ce2, fault;
     wire signed [15:0] left, right;
+    logic psg_bdir=0, psg_bc1=0;
+    logic [7:0] psg_din=0;
+    wire [9:0] psg_raw;
+    wire signed [15:0] audio_left, audio_right, audio_mono;
+    generate if(MIXED_PSG) begin: mixed
+        jt49_bus psg(.rst_n(!reset),.clk(clk),.clk_en(ce2),
+            .bdir(psg_bdir),.bc1(psg_bc1),.din(psg_din),.sel(1'b1),
+            .sound(psg_raw),.dout(),.A(),.B(),.C(),.sample(),
+            .IOA_in(8'hff),.IOB_in(8'hff),.IOA_out(),.IOB_out(),.IOA_oe(),.IOB_oe());
+        x1_audio_mix mix(.clk(clk),.reset(reset),.sample_ce(sample),.psg(psg_raw),
+            .fm_left(left),.fm_right(right),.left(audio_left),.right(audio_right),.mono(audio_mono));
+    end else begin: unmixed
+        assign psg_raw=0;
+        assign audio_left=left;
+        assign audio_right=right;
+        assign audio_mono=0;
+    end endgenerate
     x1_fm #(.MASTER_HZ(MASTER_HZ)) dut (
         .clk(clk), .reset(reset), .enable(enable), .cpu_cs(cs),
         .cpu_rd_n(rd_n), .cpu_wr_n(wr_n), .cpu_a0(a0), .cpu_data_in(data),
@@ -35,7 +52,7 @@ module fm_tb #(parameter integer MASTER_HZ = 32000000);
     end
     always @(posedge clk or posedge reset) begin
         edges++;
-        assert(edges < 40000000) else $fatal(1,"FM watchdog");
+        assert(edges < (MIXED_PSG ? 100000000 : 40000000)) else $fatal(1,"FM watchdog");
         if (reset) begin
             enabled_edges=0; chip_ticks=0; half_ticks=0; dispatches=0;
         end else begin
@@ -57,9 +74,16 @@ module fm_tb #(parameter integer MASTER_HZ = 32000000);
     endtask
     task automatic restart;
         @(negedge clk); reset=1; cs=0; rd_n=1; wr_n=1; enable=1;
+        psg_bdir=0; psg_bc1=0;
         ticks(40); reset=0; ticks(2000);
         assert(irq_n && !ct1 && !ct2 && wait_n && !fault)
             else $fatal(1,"FM reset/interface not idle");
+    endtask
+    task automatic psg_register(input logic [7:0] regno, value);
+        @(negedge clk); psg_bdir=1; psg_bc1=1; psg_din=regno;
+        ticks(4); psg_bdir=0; psg_bc1=0; ticks(4);
+        psg_bdir=1; psg_din=value; ticks(4);
+        psg_bdir=0; ticks(4);
     endtask
     task automatic write_bus(input logic select, input logic [7:0] value,
                              input integer hold_extra=0);
@@ -143,10 +167,18 @@ module fm_tb #(parameter integer MASTER_HZ = 32000000);
         register_write(8'h20,pan|8'h07); // algorithm 7, no feedback
         register_write(8'h60,8'h20); // one carrier, bounded level
         register_write(8'h08,8'h08); // channel 0 operator M1 on
+        if(MIXED_PSG) begin
+            for(integer r=0;r<16;r++) psg_register(8'(r),0);
+            // 2 MHz / (16 * 125) = 1 kHz, A only; no noise/envelope.
+            psg_register(0,125); psg_register(1,0);
+            psg_register(7,8'h3e); psg_register(8,8'h0f);
+        end
     endtask
     integer output_file=0, samples=0;
     string prefix, output_name;
     longint unsigned last_sample_tick;
+    longint signed dc_ref=0, psg_ref=0, delta_ref;
+    integer raw_l, raw_r, raw_psg;
     logic signed [15:0] mix_fm_l=0, mix_fm_r=0, mix_psg=0;
     wire signed [15:0] mix_l, mix_r, mix_m;
     x1_fm_mix mixer(mix_fm_l,mix_fm_r,mix_psg,mix_l,mix_r,mix_m);
@@ -210,9 +242,12 @@ module fm_tb #(parameter integer MASTER_HZ = 32000000);
                 2: note(8'hc0);
                 3: note(8'h00);
             endcase
-            // Settle 200 samples, then record 6250 samples (~100 ms at 4 MHz).
+            // Warm up coupling to remove the initial PSG DC transient.
             samples=0;
-            while(samples<200) begin @(negedge clk); if(sample) samples++; end
+            // The mix updates from reset, including programming time; the
+            // capture oracle starts by tracking every sample in the separate
+            // always block below, not by reading or seeding the DUT estimate.
+            while(samples<(MIXED_PSG ? 20000 : 200)) begin @(negedge clk); if(sample) samples++; end
             output_name=$sformatf("%s-%0d.csv",prefix,profile);
             output_file=$fopen(output_name,"w");
             assert(output_file!=0) else $fatal(1,"cannot create FM waveform");
@@ -223,12 +258,34 @@ module fm_tb #(parameter integer MASTER_HZ = 32000000);
                     if(samples>0) assert(chip_ticks-last_sample_tick==64)
                         else $fatal(1,"FM sample cadence changed");
                     last_sample_tick=chip_ticks;
-                    $fwrite(output_file,"%0d,%0d\n",left,right); samples++;
+                    if(MIXED_PSG) begin
+                        raw_l=int'(left); raw_r=int'(right); raw_psg=int'(psg_raw);
+                        @(posedge clk); #1;
+                        assert(int'(audio_left)==expected_clip(raw_l+int'(psg_ref))
+                            && int'(audio_right)==expected_clip(raw_r+int'(psg_ref))
+                            && int'(audio_mono)==expected_clip(raw_l+raw_r+int'(psg_ref)))
+                            else $fatal(1,"genuine chip sample alignment/mix mismatch");
+                        $fwrite(output_file,"%0d,%0d,%0d,%0d,%0d,%0d,%0d\n",
+                            raw_l,raw_r,raw_psg,psg_ref,audio_left,audio_right,audio_mono);
+                    end else $fwrite(output_file,"%0d,%0d\n",left,right);
+                    samples++;
                 end
             end
             $fclose(output_file);
         end
         $display("PASS FM register/timers/enable/sample diagnostics MASTER=%0d; external waveform verifier required",MASTER_HZ);
         $finish;
+    end
+    // Independent reference runs throughout reset/programming/warm-up. No
+    // state injection: only the publicly driven raw PSG and sample pulse.
+    always @(posedge clk or posedge reset) begin
+        if(reset) begin dc_ref=0; psg_ref=0; end
+        else if(MIXED_PSG && sample) begin
+            psg_ref=longint'(psg_raw)*32-dc_ref/65536;
+            delta_ref=longint'(psg_raw)*32*65536-dc_ref;
+            if(delta_ref<0) delta_ref=-((-delta_ref+2047)/2048);
+            else delta_ref=delta_ref/2048;
+            dc_ref=dc_ref+delta_ref;
+        end
     end
 endmodule

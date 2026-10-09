@@ -51,11 +51,67 @@ with `mono mix (PSG must occur once)`; log `/tmp/x1-psg-mix-negative.log`.
 The production mixer is not modified. This negative demonstrates that the
 mono oracle detects that specific regression, not native analog fidelity.
 
+## Sample-aligned output and genuine-chip follow-up
+
+Original `rtl/x1_audio_mix.sv` captures FM L/R on the same sample edge as
+the PSG converter. Its signed stereo/mono outputs hold between enables.
+Reset clears all outputs even with CE stopped. It remains standalone in
+`x1_fm.qip`; machine ports, board audio and snapshots are unchanged.
+
+The strengthened scalar fixture also checks this sampled output, changing
+both FM channels and PSG during stopped enables. All 2,236,486 cases pass
+again, including between-edge asynchronous reset. Log:
+`/tmp/x1-psg-mix-sampled.log`. The older fixture/runner table above is
+historical; current fixture hash is
+`936b77f5126d5f4f71a4b322564bf72aab33a4236605b871e61165ce4e961ef0`,
+and its runner is `0fa44c86f18b7873a273da02a9494ce74df4fb47e469c12cd37b0064630d71e7`.
+
+`test-fm-psg` programs genuine JT49 through BDIR/BC1 and genuine JT51
+through the existing bus adapter, not injected oscillator samples or chip
+state. PSG A uses period 125 at 2 MHz for a 1 kHz tone, noise/envelope/B/C
+muted. FM uses the existing documented A4/MUL=1 carrier program. Five
+profiles cover FM left/right/both/neither and an exact reset/reprogram
+repeat. Each warms up for 20,000 samples and captures 6,250 actual sample
+events, asserting 64 input-chip ticks per event. Rounded integer-ps clocks
+are simulation approximations, not fitted or measured board frequencies.
+
+An independent integer DC oracle tracks every sample from reset through
+programming/warm-up, never seeded from DUT state. SV checks sample-aligned
+sums; Python checks all 31,250 captured rows per frequency, PSG DC/pitch,
+FM pitch/panning, saturation sums and exact first/final waveform equality.
+Actual signed mixed stereo WAVs and CSVs are ignored build outputs.
+PSG measured crossing frequencies are 1000.081 Hz at 32 MHz and 999.919 Hz
+at both single-clock frequencies; all pass the 0.5% frequency bound.
+The ordinary unmixed `test-fm` also passes after the fixture extension,
+including unchanged timer/queue/busy checks and 491.619 Hz FM pitch.
+
+| Master Hz | Concurrent-chip runner SHA-256 |
+|---|---|
+| 32,000,000 | `f4801813de637c4f6fbb6985aedce3cd8972f136d6145e1c62fba86a38391199` |
+| 28,636,364 | `03f52616cdd22c2659cbc47474720fdd7ffb105e37959efb252c2f6f39806c4d` |
+| 28,571,428 | `0758cab7763a8d72c5613dbef38e038be45eece140cd3f8f54438ba72f0fa4c6` |
+
+First three runs terminate zero in `/tmp/x1-fm-psg-{HZ}.log`.
+The three executable hashes are checked before a second complete run;
+all three terminate zero again in `/tmp/x1-fm-psg-{HZ}-final.log`.
+Post-run executable hashes remain unchanged. No rebuild replaces a runner
+during these final captures.
+Source/audio hashes: `x1_audio_mix.sv`
+`cee9b0848b9ad4b4656d29401c1c44a843ba8d15b98ddc5a53d9867dd7e036d1`;
+`fm_tb.sv` `831923294c7f37812db3772f1be60d37b745b47189a5b3b366d9d29eb97f470c`;
+Python verifier `a3780c36ff6c2734d94cc314498ccd7953483abf0923e7a1ea64fec32964c9fb`.
+No private media or vendor sources are changed. Hosted CI selects the new
+target; no hosted result is claimed yet.
+
+An isolated `/tmp/x1-audio-hold-negative.SMtE0Z` copy removes the FM
+register sample-enable guard. The strengthened scalar test exits 1 with
+`sample-aligned audio hold/mix` at the first stopped-enable profile, after
+the constant-CE case passes. Log `/tmp/x1-audio-hold-negative.log`.
+No mutation is applied to production RTL.
+
 ## Remaining acceptance
 
-Drive the converter/mixer from genuine concurrent JT49/JT51 notes at all
-three master frequencies; capture samples and verify sample timing, PSG/FM
-frequency/panning, clipping and reset. Then integrate an explicit signed
+Integrate the qualified sampled mixer through an explicit signed
 stereo/mono machine output without reinterpreting the default unsigned port,
 qualify actual CPU programs and shared reset, regenerate any affected
 snapshots, and perform native/hardware sound and analog calibration.
