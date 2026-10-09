@@ -115,3 +115,34 @@ Quartus fit and available-board physical acceptance. Ordinary v15 baseline,
 fast/snapshot and fresh commercial qualifications are tracked separately;
 older v14 gameplay and fitted RBF evidence remain source-bound history.
 Work groups 1–6 and Turbo Z are not complete.
+
+## Quartus 17 parser portability follow-up
+
+The source-bound `25e1c39` Turbo single-clock refit on misterubuntu terminates
+with exit 3 before synthesis: Quartus 17.0.2 rejects module-level implicit
+generate loops at `x1_sio_async.sv:403` and `x1_sio_irq.sv:100`. Source snapshot
+and failure evidence remain under ignored `output_files/quartus-linux-dNvICqze`
+locally and on the host; input-manifest SHA-256 is
+`76d446426ada226957497420fb87176b892c62fd00bbc82fa262f4ee31c0f404`.
+The build ran `2026-10-09T11:53:58Z` to `11:54:05Z`; it produced no qualified
+new RBF, fit or timing result. The prior fitted `f013d02` artifact is unchanged.
+
+The two original wrappers now use explicit `generate/endgenerate` around the
+same named `channels` loops, preserving hierarchy and all functional logic.
+All **23** SIO/decode/clock/format/modem/IRQ/CPU/reset/DMA/device-chain/shared-
+machine targets exit zero with **195** PASS reports, including their required
+wrong-owner/disabled/lost-event controls (`/tmp/x1-v15-sio-portability.log`).
+Inherited complete-machine warnings remain; no suppression was added.
+Updated wrapper source SHA-256:
+
+| Source | SHA-256 |
+|---|---|
+| `rtl/x1_sio_async.sv` | `945b31ee8bbc6e14f9a52de1717418224179afb588371c635fd8d1862a0d46d0` |
+| `rtl/x1_sio_irq.sv` | `1c1896f9891cca227da98c8abcb887750e80df20043a67e882297ba74f7f5576` |
+
+Rebuilding ordinary `fast` also exits zero and produces the **identical**
+`f484bede...` executable SHA-256 above (`/tmp/x1-v15-portability-fast.log`).
+Thus the independently frozen five-game qualifications bind exactly the
+ordinary executable still produced after this parser-only edit; no old state
+conversion or relaxed assertion was used. Enabled serial snapshot/hardware
+and the fresh native Quartus retry remain separate gates.
