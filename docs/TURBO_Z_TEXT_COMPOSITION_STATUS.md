@@ -49,9 +49,12 @@ enables this experiment, and its simulator profile remains non-savable.
   under a text-on-top counterfactual differs at 15,377 pixels; this is not
   merely a case whose image is independent of priority.
 
-`test-machine-z-paired-text` now defines twelve frozen custom cold/warm cases
-for both front banks and all three defined orderings. That full recipe is
-now running in `/tmp/x1-z-paired-text-matrix.log`; it is not completed. It
+`test-machine-z-paired-text` defines twelve frozen custom cold/warm cases
+for both front banks and all three defined orderings. The original full recipe
+now terminates with exit zero in `/tmp/x1-z-paired-text-matrix.log`: 12/12
+cases pass on runner `52f6c189e67c37b5553b5be7b9f9b3a4473a91d0664d8347beb0ca212659f693`
+and fixture `e961dcfebab0dce590e57105a27888bc3edd45f3bafc29c17d996aa3983457cc`.
+It
 requires 64,000 exact pixels/periods per case, real reboot
 CRTC/PPI/priority writes and no text/graphics palette or VRAM refill.
 Native intensity/opacity, complete attributes/live/reset seams, native software
@@ -62,7 +65,13 @@ the original graphics-on-top scenes never selected any text. Their exact-frame
 passes must not be described as beneath-graphics text acceptance. Between-screen
 cases do select text. Corrected CPU-written transparent windows and all-color
 visibility assertions are now being executed on independently frozen tests;
-the earlier running matrix retains its original fixture and limitation.
+the earlier completed matrix retains its original fixture and limitation.
+That fixture also aliases text palette entries 1/5 and 2/6; its passes do
+not prove those indices are distinguished. After confirming the old handle
+terminated, a fresh separate twelve-case recipe starts in
+`/tmp/x1-z-strengthened-paired-text-matrix.log`. It freezes the corrected
+windows, seven distinct writable text RGB entries and all-color visibility
+assertions. It is still running, not a completed strengthened acceptance gate.
 
 ## Snapshot boundary
 

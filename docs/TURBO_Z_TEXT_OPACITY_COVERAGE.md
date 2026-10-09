@@ -97,3 +97,10 @@ program hash `2637ee82f0a666faa08cdc20c7d0f74e9e68e2e671a73187660d42a9f6e25adb`.
 No older running fixture is replaced. Fresh complete matrices still need
 these stronger distinct-entry fixtures; no native intensity/opacity rule or
 RTL behavior was changed by this test correction.
+
+The original paired-text matrix subsequently terminates with exit zero,
+12/12 cases, retaining its original visibility/alias limitations. Only after
+that terminal handle was observed, a new independent twelve-case strengthened
+matrix was launched in `/tmp/x1-z-strengthened-paired-text-matrix.log` with
+the current fixture. It remains pending; the other old matrices and the
+independently frozen reverse/warm case continue unchanged.
