@@ -129,6 +129,12 @@ mandatory PCG stage replica. Native inventory confirms six scaler stages/
 six raw input pins and an unreplicated PCG state profile. Revised strict
 35/36-endpoint guard passes native syntax and 84 negative controls; fresh
 flow, all-corner timing/report coverage and physical/native gates remain open.
+The corrected `ed3c332` flow now completes zero. Native PCG unreplicated
+profile and snapshot payload pass all-corner audits; six scaler stage-chain
+and reported downstream releases pass. Global setup/hold/recovery still fail
+−15.064/−0.033/−4.835 ns; raw reset coverage, real HDMI routing, other CDC/I/O
+and native/hardware acceptance remain open. The unselected exact mux candidate
+executes successfully but preserves real failures, not a timing-pass claim.
 The [Turbo Z in-flight control reset test](TURBO_Z_INFLIGHT_RESET_STATUS.md)
 passes at three independent video rates, including a deliberately failing
 asynchronous-reset-removal control. Exact reset frames, pending palette/

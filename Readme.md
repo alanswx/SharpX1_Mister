@@ -102,6 +102,10 @@ and physical acceptance remain open.
 The first scaler-reset fit succeeds, but final STA rejects a now-absent PCG
 state replica. Revised native inventory and strict mocked checks pass;
 the corrected guard still requires a fresh flow and all-corner audits.
+The corrected flow now completes zero; PCG, snapshot and reported scaler
+stage/downstream timing pass eight-corner checks. Overall setup/hold/raw-reset
+recovery remain negative. An analysis-only mux candidate preserves real
+HDMI and SYS/VID failures; no timing-qualified Turbo Z RBF is claimed.
 The [summary table](docs/CHIP_IMPLEMENTATION_TABLE.md) and
 [chip reuse survey](docs/CHIP_REUSE.md) describe available replacement sources
 and the remaining integration work.

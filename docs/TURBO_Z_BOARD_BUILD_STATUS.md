@@ -153,6 +153,19 @@ selection, confirm native scope and retained real same-clock/master crossings;
 then refit and repeat coverage, I/O and physical HDMI acceptance. Suppressing
 impossible alternative-clock pairings is not a remedy for real routing or CDC.
 
+The exact candidate now runs on the preserved `ed3c332` fit, native 17.0.2,
+terminal zero, at 18:09:28 UTC. Retrieved reports share its separate
+`acceptance/` folder, prefix `mux_candidate_probe`. Native pin names and
+distinct masters resolve; the QSF and fitted RBF are unchanged. At Slow 100 C,
+alias HDMI setup still fails **−2.401 ns**; SYS → VID **−11.385 ns** and
+VID → SYS **−9.091 ns** remain visible. Candidate global setup is −12.642 ns.
+Original HDMI → original VID reports no paths after mux aliases; no claim of
+retaining that particular master pair is made. The selectable same-clock and
+SYS/VID setup/hold corner files are retained (bounded 100-path reports, not
+exhaustive CDC acceptance). Across all eight HDMI same-clock setup reports,
+440 paths remain with minimum −2.401 ns. The candidate is still unselected;
+native syntax/scope success is not physical timing closure.
+
 ```sh
 QUARTUS_REVISION=sharpx1_turbo_z_video bash scripts/build_quartus_linux.sh --build
 ```

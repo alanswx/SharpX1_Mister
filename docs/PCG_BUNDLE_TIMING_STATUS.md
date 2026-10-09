@@ -409,3 +409,15 @@ Generated controls pass captures 8/9/10/16 at both stage profiles and reject
 the wrong profile, in addition to the prior corrupt/missing reports (23
 negative controls total). The prior `89f8226` native replicated fit still
 passes with nine CPU captures. No new-fit timing qualification is claimed.
+
+The subsequent `ed3c332` full flow finishes zero. Native fitted inventory is
+eight CPU captures, primary PCG states without the optional clone. Independent
+report audit now passes the actual 0-replica profile: 48 request reports /
+4,672 paths, 16 response reports /128 paths, all corners, every mandatory
+endpoint and physical bound. Explicit call:
+`bash scripts/audit_pcg_timing_reports.sh output_files/quartus-linux-HMU7HdXp/acceptance 8 0`.
+Snapshot payload also passes 16 files/1,152 rows with all 72 bits, minimum
+combined setup/hold +0.495 ns, max physical data 12.973 ns.
+Source/artifact identities and failed global timing are in the
+[corrected-flow evidence](SCALER_RESET_TIMING_AUDIT.md#corrected-full-flow-and-native-stage-timing).
+No native firmware, whole-design CDC or hardware compatibility is established.

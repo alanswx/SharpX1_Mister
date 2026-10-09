@@ -150,3 +150,34 @@ and downstream audits, plus explicit raw-input coverage review. The PCG
 report auditor's old replica-specific profile needs matching native reports
 before qualification of this new unreplicated representation. No work-group,
 native-software or hardware acceptance is claimed from the failed final STA.
+
+## Corrected full flow and native stage timing
+
+Source `ed3c332` completes zero at 18:05:04 UTC after 8:27, frozen folder
+`output_files/quartus-linux-HMU7HdXp`. Original reports/RBF are local under
+`completed-flow/`, supplemental reports under `acceptance/`. RBF SHA-256
+`1014088699325fdf0037e0357c1a22209739094100398f63174fddd549ec6f50`
+is unchanged from the earlier fitted-only run and remains **unqualified**.
+Input manifest SHA-256
+`92d91f7af57e95f838fcd6584f4965a82347e216d71ce5f409c6caf15a0fca38`;
+384 inputs match, only Quartus-written QPF differs.
+
+Sequential native all-corner, inventories, path, snapshot, PCG, new scaler
+release and analysis-only mux probes finish zero, last at 18:09:28 UTC, log
+`/tmp/x1-quartus-ed3c332-native-acceptance.log`. Native scaler stage lookup
+resolves all six named collections uniquely. Independent all-corner chain
+audit passes 48 files/48 paths: stage 0 → 1, same clock, minimum combined
+setup/hold **+0.249 ns**. Downstream audit passes 48 files/384 paths, all from
+stage 1, minimum combined recovery/removal **+0.261 ns**. Input/HDMI/Avalon
+downstream counts are 2/14/8 per report; no report reaches its 10,000-path cap.
+This qualifies reported digital stage/downstream paths, not MTBF or physical
+reset behavior.
+
+Raw input-video recovery still fails, minimum **−4.835 ns** (both stages).
+HDMI/Avalon raw input reports remain empty due inherited clock groups, not
+passes. Global eight-corner minima: setup **−15.064 ns**, hold **−0.033 ns**,
+recovery **−4.835 ns**, removal +0.261 ns, pulse width +0.529 ns.
+Only the existing four core reset input pins are excepted; no new scaler
+raw-pin exceptions have been added. Next: separately probe precisely those
+six raw pins while retaining all chain/downstream checks and reviewing
+physical placement/pulse/MTBF, plus the remaining mux/HDMI/CDC/I/O gates.
