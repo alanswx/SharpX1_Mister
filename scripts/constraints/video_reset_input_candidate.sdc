@@ -1,4 +1,4 @@
-# Analysis-only: never selected by a QSF. The raw request asserts these reset
+# Experimental Z only. The raw request asserts these reset
 # synchronizers asynchronously; their output releases on two local edges.
 # Cut ONLY the four raw asynchronous reset pins, not D inputs, clocks, stage
 # transfer, or release output fanout. This is not pulse-width/MTBF signoff.

@@ -342,11 +342,37 @@ must still be qualified separately. Initial setup/hold/recovery fail at
 SHA-256 `6aff05809308fca9c8d999c006378345e773ebc40fc3f248eb2b35d9039f7d18`.
 
 Sequential all-corner, fitted-inventory, same-clock/global, snapshot and PCG
-audits are now running after host-idle/original-artifact checks; log
+audits now finish zero after host-idle/original-artifact checks; log
 `/tmp/x1-quartus-67de103-pcg-acceptance.log`. Their before/after probe reports
 already include integrated bounds, not an unconstrained comparison. No
-current-fit payload timing claim follows until those reports are retrieved
+current-fit payload timing claim was made until those reports were retrieved
 and independently audited. No hardware is loaded.
+
+### Fresh-fit payload acceptance, not full timing closure
+
+The local report auditor now passes the actual `67de103` fit at **ten CPU
+captures** (eight primary bits plus bits 0/3 replicas), as confirmed by native
+fitted inventory. All 48 request / sixteen response corner files pass endpoint,
+coverage, clock-direction, nonnegative-slack and physical-delay checks.
+Request setup/hold minima are **+11.617/+1.106 ns**, maximum data delay
+**5.960 ns**; response minima **+22.061/+1.085 ns**, maximum data delay
+**11.294 ns**. Counts remain 4,688 request and 160 response paths, including
+every primary capture and replica. This qualifies these bounded buses on the
+source-bound fit, not native scanline-trap behavior or the entire design.
+
+The independent snapshot audit confirms 16 files / 72 paths each (1,152
+total), minimum selected slack +0.498 ns and maximum data delay 12.929 ns.
+Retrieved reports and post-input audit are retained in ignored
+`output_files/quartus-linux-5wJWPc6b/acceptance/`. Input audit confirms 383
+matching files, only the Quartus-rewritten QPF mismatch; no RTL/SDC drift.
+
+Global eight-corner setup/hold/recovery remain **−14.856/−0.591/−10.127 ns**,
+removal/pulse minima +0.409/+0.529 ns. Slow 100 C same-clock setup is SYS
++7.199 ns, VID +8.503 ns, HDMI **−2.183 ns**. Thus the RBF remains unqualified
+despite the newly accepted PCG and snapshot bus gates. The separate
+[reset-input experiment](VIDEO_RESET_TIMING_EXPERIMENT.md) preserves chain/
+downstream timing, but framework scaler recovery and actual HDMI routing
+remain open; a further experimental reset-constraint refit is required.
 
 Audit source payload paths into RAM data/write controls, selected addresses
 and response selection separately; response-to-CPU is a distinct held bus.

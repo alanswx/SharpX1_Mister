@@ -99,9 +99,15 @@ gate on same-bit CPU capture replicas. Fitter reports confirm bits 0/3 cloned;
 revised native inventories include all ten captures. New full flow/all-corner
 qualification remains required; its generated RBF is unqualified.
 The subsequent `67de103` full flow completes zero with the replica-aware
-guards. Initial setup/hold/recovery still fail; sequential all-corner/global/
-snapshot/PCG audits are running. Original artifacts are preserved, and no
+guards. Eight-corner PCG and snapshot payload audits now pass, including both
+CPU capture replicas. Global setup/hold/recovery still fail; original artifacts
+are preserved, and no
 timing-qualified or hardware/native Turbo Z claim is made.
+The [reset-input experiment](VIDEO_RESET_TIMING_EXPERIMENT.md) preserves both
+stage-transfer paths and all 341 reported downstream release paths per corner.
+Only four validated core asynchronous input pins are selected by experimental
+Z; fresh-fit/physical qualification remains open. Scaler recovery and HDMI
+routing still fail and are not masked by this scope.
 The [Turbo Z in-flight control reset test](TURBO_Z_INFLIGHT_RESET_STATUS.md)
 passes at three independent video rates, including a deliberately failing
 asynchronous-reset-removal control. Exact reset frames, pending palette/

@@ -84,8 +84,12 @@ inventory checks, and the revised completed-fit request probe passes all eight
 corners. Request/response bounds are selected only by the experimental Z revision.
 The corrected refit fits, but final STA rejects two router-duplicated CPU
 response captures. Replica-aware inventory checks now pass and the subsequent
-full flow finishes zero. Overall setup/hold/recovery still fail; fresh
-all-corner payload audits and native/physical acceptance remain open.
+full flow finishes zero. Fresh all-corner PCG and snapshot payload audits now
+pass, including both CPU capture replicas. Overall setup/hold/recovery still
+fail; native/physical acceptance remains open. The
+[reset-input experiment](docs/VIDEO_RESET_TIMING_EXPERIMENT.md) preserves all
+reported stage/downstream paths and is selected only for experimental Z;
+its fresh-fit and physical gates remain open.
 The [summary table](docs/CHIP_IMPLEMENTATION_TABLE.md) and
 [chip reuse survey](docs/CHIP_REUSE.md) describe available replacement sources
 and the remaining integration work.

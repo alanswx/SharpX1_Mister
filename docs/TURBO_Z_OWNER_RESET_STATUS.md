@@ -27,8 +27,9 @@ evidence, not metastability, minimum physical pulse width or a reset-path
 timing exception. Raw asynchronous pipeline-input recovery and downstream
 synchronous release/placement must be audited separately.
 An [input-pin-only timing experiment](VIDEO_RESET_TIMING_EXPERIMENT.md) now
-passes its mocked exact-scope/negative tests; native STA is still unexecuted
-and it is not selected by a project. No reset timing exception is qualified.
+passes native eight-corner chain/downstream preservation checks and mocked
+exact-scope negatives. It is selected only by experimental Z, pending fresh-fit
+and physical pulse-width/MTBF qualification. Scaler recovery still fails.
 
 `make -C verilator test-z-palette-owner test-z-palette-owner-local-reset`
 finishes zero (`/tmp/x1-z-owner-local-reset.log`), with no emitted warnings:
