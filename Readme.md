@@ -328,6 +328,10 @@ fast runner: Druaga, Xevious, Mappy and Galaga movement, Galaga firing,
 and Shanghai cursor/matching-pair removal. Original media and frozen support
 files remain unchanged. This is not optional Turbo Z, delay-aware gameplay
 or current-source hardware acceptance.
+The [current-source Turbo single-clock RBF](output_files/quartus-linux-xsC7rEDR/sharpx1_turbo_single.rbf)
+now builds on Quartus 17.0.2 and passes all eight constrained timing corners;
+[source/hash and exclusions](docs/HARDWARE_126_STATUS.md) are recorded separately.
+It is not deployed or hardware-qualified and does not enable Z/X3/DMA/Kanji/SIO/FM.
 
 The headless simulator has been compiled with Verilator 5.044 on macOS.
 The timing/reset regression passes. A 200,000-system-cycle run reports:

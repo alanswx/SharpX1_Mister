@@ -55,8 +55,11 @@ attributes, live/reset races, native firmware and physical gates remain open.
 `test-machine-z-single-text` defines sixteen custom cold/warm cases: full and
 selected-bank-1 64-color, controls `00/01/EA/EB`, real CPU completion and
 64,000 exact pixels plus periods per case. Warm cases require real control
-reinitialization without text/graphics palette or VRAM refill. The recipe has
-now running in `/tmp/x1-z-single-text-matrix.log`, not completed. It deliberately
+reinitialization without text/graphics palette or VRAM refill. The original
+recipe now exits zero in `/tmp/x1-z-single-text-matrix.log`, 16/16 cases, on
+the recorded `6420d299...` runner and fixture
+`d2a26b9876a38cb229c7b4aaf34d74e96f70a8f3e83967734c338c5d638e19d8`.
+It deliberately
 programs nonzero graphics/text codes black and includes an alternate-order
 oracle whose image must differ from the actual frame. Existing experiments
 remain non-savable; ordinary v14 snapshot behavior is unchanged by the new
@@ -67,4 +70,13 @@ executables. Their passes remain source-bound and cannot qualify this extension.
 The subsequent [visibility audit](TURBO_Z_TEXT_OPACITY_COVERAGE.md) also finds
 the original full-color graphics-on-top scene selected no text: its 64,000-pixel
 pass is graphics/order acceptance, not proof of beneath-graphics text output.
-Corrected real-CPU window/warm tests are running; do not erase the older record.
+Corrected real-CPU full/paired window/warm tests pass; do not erase the older
+record. After observing the original sixteen-case handle terminate, a fresh
+strengthened recipe starts in `/tmp/x1-z-strengthened-single-text-matrix.log`,
+under `verilator/obj_dir_v13_z_paired/single-text-matrix-V9LH9y/`. It retains
+the current compositor runner, but freezes fixture
+`1e03a9ecd39af3f049ef924db059c5bd5827c10879e479a593181da517009117`,
+including transparent windows, seven distinct writable text RGB entries and
+all-color/runner/font/retained-reset checks. That matrix is still running;
+the original passes do not qualify the strengthened beneath-graphics or
+palette-index discrimination gate.
