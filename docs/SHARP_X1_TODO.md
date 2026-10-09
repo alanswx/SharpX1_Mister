@@ -98,6 +98,10 @@ The `3dc3727` refit fits successfully but final STA fails the response inventory
 gate on same-bit CPU capture replicas. Fitter reports confirm bits 0/3 cloned;
 revised native inventories include all ten captures. New full flow/all-corner
 qualification remains required; its generated RBF is unqualified.
+The subsequent `67de103` full flow completes zero with the replica-aware
+guards. Initial setup/hold/recovery still fail; sequential all-corner/global/
+snapshot/PCG audits are running. Original artifacts are preserved, and no
+timing-qualified or hardware/native Turbo Z claim is made.
 The [Turbo Z in-flight control reset test](TURBO_Z_INFLIGHT_RESET_STATUS.md)
 passes at three independent video rates, including a deliberately failing
 asynchronous-reset-removal control. Exact reset frames, pending palette/

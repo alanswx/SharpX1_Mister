@@ -330,10 +330,23 @@ not prove native replica timing. The new target is selected in CI. The
 auditor's fixed request inventory is the observed fitted profile, not a
 generic substitute for revisiting endpoint coverage on future architectures.
 
-The `67de103f105cafe31dfdb7e6e93ece1219728e5d` full flow is still live in
-`quartus-linux-5wJWPc6b`, log `/tmp/x1-quartus-67de103-pcg-replica-build.log`.
-Original reports/RBF must be preserved before supplemental analyses. No
-current-fit timing claim follows from the historical/generated audit passes.
+The `67de103f105cafe31dfdb7e6e93ece1219728e5d` full flow now finishes
+**exit zero**, 17:01:42 UTC, elapsed 8:20, in `quartus-linux-5wJWPc6b`;
+log `/tmp/x1-quartus-67de103-pcg-replica-build.log`. Final SDC loading no
+longer fails the replica inventory. Original manifest/reports/RBF are
+preserved in ignored `output_files/quartus-linux-5wJWPc6b/completed-flow/`.
+RBF SHA-256 `21612f4cad108978e11efa257a5c433794dcff54c8cdf7b7fca68ae61c5bde13`
+matches the prior failed-STA run's binary, but the flow result/constraints
+must still be qualified separately. Initial setup/hold/recovery fail at
+−14.856/−0.552/−10.127 ns; the RBF remains **unqualified**. Input manifest
+SHA-256 `6aff05809308fca9c8d999c006378345e773ebc40fc3f248eb2b35d9039f7d18`.
+
+Sequential all-corner, fitted-inventory, same-clock/global, snapshot and PCG
+audits are now running after host-idle/original-artifact checks; log
+`/tmp/x1-quartus-67de103-pcg-acceptance.log`. Their before/after probe reports
+already include integrated bounds, not an unconstrained comparison. No
+current-fit payload timing claim follows until those reports are retrieved
+and independently audited. No hardware is loaded.
 
 Audit source payload paths into RAM data/write controls, selected addresses
 and response selection separately; response-to-CPU is a distinct held bus.

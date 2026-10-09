@@ -83,8 +83,9 @@ differ from fitted endpoints. Both explicit representations now pass native
 inventory checks, and the revised completed-fit request probe passes all eight
 corners. Request/response bounds are selected only by the experimental Z revision.
 The corrected refit fits, but final STA rejects two router-duplicated CPU
-response captures. Replica-aware inventory checks now pass; a new full-flow
-timing audit and native/physical acceptance remain open.
+response captures. Replica-aware inventory checks now pass and the subsequent
+full flow finishes zero. Overall setup/hold/recovery still fail; fresh
+all-corner payload audits and native/physical acceptance remain open.
 The [summary table](docs/CHIP_IMPLEMENTATION_TABLE.md) and
 [chip reuse survey](docs/CHIP_REUSE.md) describe available replacement sources
 and the remaining integration work.
