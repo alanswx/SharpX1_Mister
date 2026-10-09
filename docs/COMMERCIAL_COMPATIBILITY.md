@@ -1,13 +1,13 @@
 # Private commercial-game bring-up
 
-## Current v14 qualification: Xevious and Druaga pass, three titles pending
+## Current v14 qualification: three titles pass, Galaga/Shanghai pending
 
 October 9: source `c7c35b2` builds a fresh ordinary fast/savable runner with
 snapshot v14. Its SHA-256 is
 `c03a0de6b0fa08af4fe763cb0ca6a92b7590c9b5b4a10611ce78bc78656a5c86`.
-Fresh Xevious and Druaga native boots and controls terminate successfully;
-Mappy and Galaga are running, with Shanghai queued in the two-worker batch.
-Two v14 titles are counted so far, not five.
+Fresh Xevious, Druaga and Mappy native boots and controls terminate successfully;
+Galaga and Shanghai are running in the two-worker batch.
+Three v14 titles are counted so far, not five.
 
 The isolated ignored qualification root is
 `verilator/obj_dir_v14_c7c35b2_requalify/frozen-4CLvS6/`. It contains frozen
@@ -43,6 +43,13 @@ main RAM/report/RGB repeats and unchanged media. Native live-state SHA-256
 is `6b97bc24a4ee6c452855258f6918e9fd703831bfc4ba1696eb49b99180fc01c8`.
 Terminal collector gameplay/input checks and independent frozen-support/private
 input hashes pass on the same runner/configuration, without RAM injection.
+
+Mappy passes the unchanged native Space-start chain and 300 ms idle/left/repeat
+test: `(129,84)` to `(126,84)`, RGB `12a8415dfa9a77e0` / `fadfbb7c90035011`,
+RAM/report/RGB repeatability and unchanged inputs. Native live-state SHA-256
+is `8814b6c48bee74fe8ebacf77a0d9f0a51f07f222cbbc66a056bf3938a9cc57de`.
+Terminal collector gameplay/input checks and independent frozen-support/private
+input hashes pass, using the same baseline fast runner/configuration.
 
 ## Five-title v13 bounded requalification passes
 

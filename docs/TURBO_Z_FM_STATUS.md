@@ -149,6 +149,39 @@ workflow adds CPU/FM: [run 37515820620](https://github.com/alanswx/SharpX1_Miste
 passes all 22 targets on `421f5c9`, including CPU/FM CE=1/4/8. The other two
 FM master frequencies are locally executed gates, not hosted by this workflow.
 
+### October 9 primary board-pin follow-up
+
+The same hashed local CZ-880 service manual was rendered and visually inspected
+again: main-board sheets 43/44 and sub-board sheets 47/48, with enlarged IC404
+crops. This is a drawing audit, not measured hardware or an emulator run.
+
+| IC404 YM2151 connection | Visible primary evidence |
+|---|---|
+| Clock pin 24 | Sheet 48 labels the net 4 MHz; sheet 47 connector T-2 carries 4 MHz |
+| CS pin 7 | Sheet 48 labels YM2151; sheet 47 connector T-1 carries that select; sheet 43 IC17 IX0861CE names YM2151CE at pin 35 |
+| A0 pin 4 | Sheet 48 labels AB0 |
+| WR/RD pins 5/6 | Sheet 48 labels IOWE/IORD |
+| Data pins 10,12–18 | Sheet 48 labels BD0–BD7 |
+| CT1/CT2 pins 8/9 | Sheet 48 explicitly marks both NC |
+
+The [Yamaha application manual](https://map.grauw.nl/resources/sound/yamaha_ym2151_synthesis.pdf)
+pin diagram independently identifies 8/9 as CT1/CT2 and 2 as the IRQ output.
+The CT output NC markings therefore must not be replaced with an invented
+CTC trigger connection. IC17's select label does not disclose the ASIC's
+address truth table, aliases, DAM/WAIT rules or interrupt arbitration.
+
+The inspected sub-board sheets show no separate OPM CTC; main sheet 44
+identifies the existing main Z80 CTC. This is bounded drawing evidence, not
+proof that every optional expansion is absent. In particular it does not
+authorize treating local MAME's optional `0704..0707` CTC as the built-in
+Turbo Z sound path. The IC404 IRQ pin-2 route is not resolved by these crops;
+do not infer direct CPU IRQ or physical NC merely because a line was not
+found. Trace the full select/interrupt/expansion path before connecting it.
+
+Ignored renders are `/tmp/x1-fm-net-audit-{47,48}.png`,
+`/tmp/x1-fm-main-{decode,ctc}.png` and enlarged
+`/tmp/x1-fm-chip-{left,right}.png`. No PDF/scan was added to the repository.
+
 ### Remaining machine gates
 
 Trace native decode/aliases, CTC IRQ input/polarity, CT outputs and bus/WAIT
