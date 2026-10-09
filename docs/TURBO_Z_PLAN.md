@@ -113,6 +113,10 @@ extra GRAM. The digital RGB output reduces analog multi-mode colors to eight
   for every mode, including 640×200/64. The current one-byte-per-component
   renderer is insufficient; qualify a synchronous video fetch/buffer schedule
   and arbitration rather than attaching a palette to quantized digital pixels.
+  A [sequential GRAM buffer](TURBO_Z_GRAM_FETCH_STATUS.md) now passes the full
+  within-bank address/five-layout/page/parity matrix through the real RAM
+  primitive at three clock ratios, with exact response latency and reset seams.
+  It is not connected to CRTC/pixel/palette stages yet and does not close Z3.
   Verify MA wrap, screen-page capacity, priority/transparency and blackclip
   before/after palette stages; compare every active pixel and native HS/VS.
 - [ ] Z4: text-display/priority control `1FC0`, analog text colors, background

@@ -244,6 +244,9 @@ those transactions through the shared Z80, including retained warm reset and
 a disabled-profile negative control. Upper read bits, general native decode,
 DMA/beam ownership and rendering remain gates; ordinary profiles and RBFs
 are unchanged. This is not full Turbo Z support.
+The [sequential Z GRAM fetch buffer](docs/TURBO_Z_GRAM_FETCH_STATUS.md) now
+passes all-address/five-layout bank/parity and synchronous-read tests using
+the real machine RAM primitive. CRTC, pixel and palette integration remain open.
 
 The headless simulator has been compiled with Verilator 5.044 on macOS.
 The timing/reset regression passes. A 200,000-system-cycle run reports:

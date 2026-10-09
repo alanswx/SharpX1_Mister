@@ -50,6 +50,14 @@ cold/read/write/dummy-selector and retained warm-reset tests at 19 boundary
 indices across all components. The unchanged diagnostic fails as expected
 with the feature disabled. Full native decode, DMA/beam arbitration and
 rendering remain open; ordinary profiles and RBFs are not enabled.
+The [sequential GRAM buffer](TURBO_Z_GRAM_FETCH_STATUS.md) passes all base
+addresses/five source layouts/pages/parities using real component RAM at three
+clock ratios, including exact latency/reset seams and a wrong-bank negative
+control. Connect it to native CRTC addressing, pixel serialization and palette
+arbitration; this standalone gate does not complete Z3.
+The full delay-aware baseline suite also exits zero after the CPU-palette
+integration (`fe734f1`); its frozen ordinary-profile runner remains unchanged.
+This is local diagnostic evidence, not optional-device or hardware acceptance.
 
 The expanded [hosted diagnostic run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37865161650)
 now completes successfully on `95c3e4a`. The newer `99eb141` palette-RAM/

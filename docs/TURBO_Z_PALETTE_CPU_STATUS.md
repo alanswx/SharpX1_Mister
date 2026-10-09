@@ -72,8 +72,12 @@ build-path failure is not a palette functional result.
 
 ## Remaining acceptance
 
-Baseline regression is tracked in `/tmp/x1-z-palette-machine-baseline.log`;
-do not infer overall completion from individual passing cases. Bus fault
+The full `make -C verilator test` baseline regression now exits zero in
+`/tmp/x1-z-palette-machine-baseline.log`. Its ordinary-profile runner SHA-256
+is `420fac723265e953dfa367d2332814e63d86d28134439a38f307c792266d3329`,
+unchanged at the final check, with shared machine RTL from `fe734f1`. This
+establishes the unchanged baseline diagnostic gate, not optional Z display
+or native/hardware acceptance. Bus fault
 injection and upload/reset overlap still need explicit CPU fixtures.
 Mode-exit/unsupported-mode write protection is now covered;
 general control policy, upper read bits, selector lifetime,

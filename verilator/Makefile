@@ -43,6 +43,15 @@ $(HEADLESS_DIR)/z-palette-access/Vz_palette_access_tb: tests/z_palette_access_tb
 	  -j 4 tests/z_palette_access_tb.sv ../rtl/x1_z_palette_access.sv ../rtl/x1_z_palette_ram.sv
 .PHONY: test-z-palette-access
 
+test-z-gram-fetch: $(HEADLESS_DIR)/z-gram-fetch/Vz_gram_fetch_tb
+	@for half in 17500 11640 25000; do \
+	  ./$(HEADLESS_DIR)/z-gram-fetch/Vz_gram_fetch_tb +video_half=$$half || exit 1; done
+$(HEADLESS_DIR)/z-gram-fetch/Vz_gram_fetch_tb: tests/z_gram_fetch_tb.sv ../rtl/x1_z_gram_fetch.sv ../rtl/x1_video_ram.v ../rtl/x1_video_timing.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --timescale 1ps/1ps --top-module z_gram_fetch_tb --Mdir $(@D) \
+	  -j 4 tests/z_gram_fetch_tb.sv ../rtl/x1_z_gram_fetch.sv ../rtl/x1_video_ram.v ../rtl/x1_video_timing.sv
+.PHONY: test-z-gram-fetch
+
 test-turbo-dsw: $(HEADLESS_DIR)/turbo-dsw/Vturbo_dsw_tb
 	./$(HEADLESS_DIR)/turbo-dsw/Vturbo_dsw_tb
 $(HEADLESS_DIR)/turbo-dsw/Vturbo_dsw_tb: tests/turbo_dsw_tb.sv ../rtl/x1_turbo_dsw.sv Makefile
