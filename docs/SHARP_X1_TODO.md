@@ -43,8 +43,11 @@ captures and C++ stereo WAV checks; native IRQ/analog/hardware remain open.
 Current ordinary snapshots require v17; direct continuation/old-v16 rejection
 passes. The [live FM/audio owned-DMA reset fixture](FM_OWNED_RESET_STATUS.md)
 also passes at three clocks, including a failing premature-audio-reset control;
-owned disk-host/mixed-service and physical reset gates remain open. The full
-v17 fast suite finishes zero with 137 PASS reports.
+owned disk-host/mixed-service and physical reset gates remain open. The
+live-FM [pending-SD reset matrix](FM_SD_RESET_STATUS.md) now passes all sixteen
+payload cases with generated media, alongside sixteen FM-disabled controls.
+Its expanded metadata matrix is running; do not count it as completion.
+The full v17 fast suite finishes zero with 137 PASS reports.
 The delay-aware suite finishes zero with 140 PASS reports, and all five fresh
 native game qualifications pass on frozen source/inputs, including Galaga
 firing; see [v17 acceptance](BASELINE_V17_STATUS.md).

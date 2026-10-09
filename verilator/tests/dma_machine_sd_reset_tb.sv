@@ -2,7 +2,7 @@
 // Original CPU program and generated D88, through real loader/SD interfaces.
 // No private assets, forced ownership, register edits or injected Ready.
 `timescale 1ps/1ps
-module dma_machine_sd_reset_tb #(parameter DMA_IRQ = 0);
+module dma_machine_sd_reset_tb #(parameter DMA_IRQ = 0, FM_ENABLED = 0);
     reg clk_sys=0, clk_video=0, reset=1, mounted=0;
     always #15625 clk_sys=~clk_sys;
     always #17500 clk_video=~clk_video;
@@ -15,6 +15,23 @@ module dma_machine_sd_reset_tb #(parameter DMA_IRQ = 0);
     wire host_drive, sd_rd, sd_wr;
     wire [31:0] lba;
     wire [7:0] host_read;
+    wire signed [15:0] audio_left,audio_right,audio_mono;
+    wire audio_sample;
+    wire [1:0] fm_ct;
+    bit fm_seen=0,psg_seen=0;
+    generate if(FM_ENABLED) begin : fm_observation
+        assign fm_ct={dut.machine.turbo_fm_cpu.bus.device.ct2,
+                      dut.machine.turbo_fm_cpu.bus.device.ct1};
+    end else begin : no_fm_observation
+        assign fm_ct=0;
+    end endgenerate
+    always @(posedge clk_sys or posedge dut.machine.core_reset) begin
+        if(dut.machine.core_reset) begin fm_seen=0;psg_seen=0;end
+        else if(audio_sample) begin
+            if(dut.machine.fm_left!=0) fm_seen=1;
+            if(audio_right!=0) psg_seen=1;
+        end
+    end
     reg [7:0] rom[0:8191], image_a[0:1535], image_b[0:1535];
     reg [7:0] original_a[0:1535], original_b[0:1535];
     integer size=0, writing_arg=0, phase_arg=0, drive_arg=0, stage_arg=0, pulse_arg=0, split_arg=0, poll_at;
@@ -36,7 +53,7 @@ module dma_machine_sd_reset_tb #(parameter DMA_IRQ = 0);
             assert(!dut.machine.fdc.sd_busy) else $fatal(1,"old ACK failed to release SD busy");
             captured_ack_drained=1;
         end
-    top #(.TURBO(1), .TURBO_DMA(1), .TURBO_DMA_IRQ(DMA_IRQ)) dut (
+    top #(.TURBO(1), .TURBO_DMA(1), .TURBO_DMA_IRQ(DMA_IRQ), .TURBO_FM_CPU(FM_ENABLED)) dut (
         .clk_sys(clk_sys), .clk_28636(clk_video), .reset(reset),
         .ioctl_download(download), .ioctl_index(8'd0), .ioctl_wr(load_write),
         .ioctl_addr(load_address), .ioctl_dout(load_data), .ioctl_wait(),
@@ -51,6 +68,7 @@ module dma_machine_sd_reset_tb #(parameter DMA_IRQ = 0);
         .sub_control(), .sub_wait(), .sub_tx(), .sub_rx(), .cpu_address(),
         .cpu_in(), .cpu_out(), .cpu_mreq_n(), .cpu_iorq_n(), .cpu_rd_n(),
         .cpu_wr_n(), .cpu_halt_n(), .video(), .rgb(), .rgb12(), .audio(), .ce_pix(),
+        .audio_left(audio_left),.audio_right(audio_right),.audio_mono(audio_mono),.audio_sample(audio_sample),
         .HSync(), .VSync(), .HBlank(), .VBlank(), .sys_edges(), .video_edges(),
         .reset_edges(), .cpu_enables(), .delayed_sys_edges(), .dma_grants(),
         .dma_reads(), .dma_writes(), .cpu_fdc_data_reads(), .cpu_fdc_data_writes()
@@ -64,6 +82,25 @@ module dma_machine_sd_reset_tb #(parameter DMA_IRQ = 0);
     endtask
     task automatic dma_byte(input reg [7:0] value);
         out_port(16'h1f80,value);
+    endtask
+    task automatic fm_register(input reg [7:0] address,value);
+        out_port(16'h0700,address);out_port(16'h0701,value);
+    endtask
+    task automatic sound_program;
+        // Key on only channel 0/operator 0. Other channels/operators stay
+        // genuinely reset/off; no chip register or sample injection.
+        fm_register(8'h20,8'h47);fm_register(8'h28,8'h4a);
+        fm_register(8'h30,0);fm_register(8'h38,0);
+        fm_register(8'h40,1);fm_register(8'h60,8'h20);
+        fm_register(8'h80,8'h1f);fm_register(8'ha0,0);
+        fm_register(8'hc0,0);fm_register(8'he0,8'h0f);
+        fm_register(8'h08,8'h08);
+        fm_register(8'h1b,8'hc0);fm_register(8'h10,8'hfa);
+        fm_register(8'h11,0);fm_register(8'h14,5);
+        out_port(16'h1c00,0);out_port(16'h1b00,125);
+        out_port(16'h1c00,1);out_port(16'h1b00,0);
+        out_port(16'h1c00,7);out_port(16'h1b00,8'h3e);
+        out_port(16'h1c00,8);out_port(16'h1b00,8'h0f);
     endtask
     task automatic store(input reg [15:0] address, input reg [7:0] value);
         emit(8'h3e); emit(value); emit(8'h32); emit(address[7:0]); emit(address[15:8]);
@@ -182,6 +219,7 @@ module dma_machine_sd_reset_tb #(parameter DMA_IRQ = 0);
         emit(8'hf3); emit(8'h31); emit(8'hff); emit(8'hff);
         emit(8'h21); emit(0); emit(8'hf1); emit(8'h34); // INC retained entry count
         store(16'hf101,0);
+        if(FM_ENABLED) sound_program();
         for(integer i=0;i<256;i++) store(16'h9000+16'(i),payload(i)^8'h5c);
         // Real CPU mount delay, identical on cold and warm entry.
         emit(8'h11); emit(8'h80); emit(8'h3e); poll_at=size;
@@ -219,7 +257,12 @@ module dma_machine_sd_reset_tb #(parameter DMA_IRQ = 0);
         download=0; load_write=0; mounted=1;
         repeat(8) @(negedge clk_sys); mounted=0; reset=0;
         wait(captured);
+        if(FM_ENABLED) assert(fm_seen && psg_seen && fm_ct==3 && !dut.machine.fm_irq_n)
+            else $fatal(1,"pending SD reset did not start with live FM/PSG/timer");
         @(negedge clk_sys); reset=1; #2000;
+        if(FM_ENABLED) assert(audio_left==0 && audio_right==0 && audio_mono==0 &&
+            !audio_sample && fm_ct==0 && dut.machine.fm_irq_n && dut.machine.fm_wait_n)
+            else $fatal(1,"pending SD reset failed to clear FM/audio");
         reads_before=int'(dut.dma_reads); writes_before=int'(dut.dma_writes);
         assert(!dut.machine.dma_owner && dut.machine.core_reset)
             else $fatal(1,"unexpected owned bus at SD wait");
@@ -267,6 +310,11 @@ module dma_machine_sd_reset_tb #(parameter DMA_IRQ = 0);
             else $fatal(1,"native reboot/count/payload failure entry=%h result=%h pairs=%0d/%0d",
                 dut.machine.RAM.mem[16'hf100],dut.machine.RAM.mem[16'hf101],dut.dma_reads,dut.dma_writes);
         verify_media(1);
+        if(FM_ENABLED) begin
+            assert(fm_seen && psg_seen && fm_ct==3 && !dut.machine.fm_irq_n)
+                else $fatal(1,"retained SD reboot failed to reprogram live FM/PSG/timer");
+            $display("PASS live FM/PSG pending SD reset and retained reboot; real timer/control/audio");
+        end
         $display("PASS: shared-machine DMA SD reset drive=%0d write=%0d phase=%0d stage=%0d short=%0d split=%0d, transport/metadata drain, retained native reboot, exact 256 fresh pairs",drive_b,writing,phase,capture_stage,short_reset,split_header);
         $finish;
     end

@@ -808,6 +808,25 @@ $(HEADLESS_DIR)/dma-machine-sd-reset/Vdma_machine_sd_reset_tb: $(V_SRC) tests/dm
 		-GDMA_IRQ=$(DMA_TEST_IRQ) -j 4 $(V_SRC) tests/dma_machine_sd_reset_tb.sv -Wno-fatal
 .PHONY: test-machine-dma-sd-reset
 
+test-machine-fm-sd-reset: $(HEADLESS_DIR)/machine-fm-sd-reset/Vdma_machine_sd_reset_tb
+	@for drive in 0 1; do for writing in 0 1; do for phase in 0 1; do for pulse in 0 1; do \
+		./$(HEADLESS_DIR)/machine-fm-sd-reset/Vdma_machine_sd_reset_tb +DRIVE_B=$$drive +WRITING=$$writing +PHASE=$$phase +SHORT_RESET=$$pulse || exit 1; \
+	done; done; done; done
+$(HEADLESS_DIR)/machine-fm-sd-reset/Vdma_machine_sd_reset_tb: $(V_SRC) tests/dma_machine_sd_reset_tb.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module dma_machine_sd_reset_tb --Mdir $(@D) \
+		-GFM_ENABLED=1 -j 4 $(V_SRC) tests/dma_machine_sd_reset_tb.sv -Wno-fatal
+.PHONY: test-machine-fm-sd-reset
+
+test-machine-fm-sd-metadata-reset: $(HEADLESS_DIR)/machine-fm-sd-reset/Vdma_machine_sd_reset_tb
+	@for drive in 0 1; do for split in 0 1; do \
+		if [ $$split = 0 ]; then stages='1 2'; else stages='1 2 3 4'; fi; \
+		for stage in $$stages; do for phase in 0 1; do for pulse in 0 1; do \
+			./$(HEADLESS_DIR)/machine-fm-sd-reset/Vdma_machine_sd_reset_tb +DRIVE_B=$$drive +WRITING=1 +PHASE=$$phase +SHORT_RESET=$$pulse +SPLIT_HEADER=$$split +CAPTURE_STAGE=$$stage || exit 1; \
+		done; done; done; \
+	done; done
+.PHONY: test-machine-fm-sd-metadata-reset
+
 test-machine-dma-sd-short-reset: $(HEADLESS_DIR)/dma-machine-sd-reset/Vdma_machine_sd_reset_tb
 	@for drive in 0 1; do for writing in 0 1; do for phase in 0 1; do \
 		./$(HEADLESS_DIR)/dma-machine-sd-reset/Vdma_machine_sd_reset_tb +DRIVE_B=$$drive +WRITING=$$writing +PHASE=$$phase +SHORT_RESET=1 || exit 1; \
