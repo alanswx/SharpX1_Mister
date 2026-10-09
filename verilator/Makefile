@@ -709,6 +709,13 @@ $(HEADLESS_DIR)/sio-async/Vsio_async_tb: tests/sio_async_tb.sv ../rtl/x1_sio_asy
 	$(V) --binary --timing --assert --top-module sio_async_tb --Mdir $(HEADLESS_DIR)/sio-async \
 		-j 4 tests/sio_async_tb.sv ../rtl/x1_sio_async.sv -Wno-fatal
 .PHONY: test-sio-async
+test-sio-tx-disable: $(HEADLESS_DIR)/sio-tx-disable/Vsio_tx_disable_tb
+	@for rate in 1 4 7; do ./$(HEADLESS_DIR)/sio-tx-disable/Vsio_tx_disable_tb +CE_PERIOD=$$rate || exit 1; done
+$(HEADLESS_DIR)/sio-tx-disable/Vsio_tx_disable_tb: tests/sio_tx_disable_tb.sv ../rtl/x1_sio_async.sv
+	mkdir -p $(HEADLESS_DIR)/sio-tx-disable
+	$(V) --binary --timing --assert --top-module sio_tx_disable_tb --Mdir $(HEADLESS_DIR)/sio-tx-disable \
+		-j 4 tests/sio_tx_disable_tb.sv ../rtl/x1_sio_async.sv -Wno-fatal
+.PHONY: test-sio-tx-disable
 
 test-sio-break: $(HEADLESS_DIR)/sio-break/Vsio_break_tb
 	@for rate in 1 4 7; do ./$(HEADLESS_DIR)/sio-break/Vsio_break_tb +CE_PERIOD=$$rate || exit 1; done

@@ -39,6 +39,10 @@ outside the polled slice are not established by this increment.
 - TX has separate holding and shifting registers. RR0 holding-empty and
   RR1 all-sent are distinct while a character is being transmitted. Serial
   progression stops when serial tick enables stop, while CPU access continues.
+  A subsequent [Transmit Enable drain](SIO_TX_DISABLE_STATUS.md) qualifies
+  clearing/re-enabling WR5 D3 alone during a frame: finish that character,
+  retain queued data while disabled, then resume normally. Other busy frame
+  configuration writes remain diagnosed as unsupported.
 - Idle/no-pending-data WR5 D4 Send Break forces TxD low independently of
   serial ticks and TX enable. Clearing it returns idle TxD high. Queued-data
   writes during break, asserting break with pending data, and WR5 changes

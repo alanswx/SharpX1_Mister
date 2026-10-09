@@ -400,6 +400,10 @@ retained short request, stopped enables, one-pair drain, reboot without reload
 and fresh byte/count checks. IRQ-service reset and machine integration remain open.
 A bounded [idle Send Break increment](docs/SIO_ASYNC_STATUS.md#october-6-idle-send-break-increment)
 now passes A/B pin/register/reset tests at CE=1/4/7 with serial ticks stopped.
+A [standalone transmitter-disable correction](docs/SIO_TX_DISABLE_STATUS.md)
+now finishes an already-started character when WR5 Transmit Enable clears,
+retains queued data and resumes it after re-enable. Original pin/format/IRQ/
+CPU/flow/reset/DMA regressions pass; no shared-machine SIO is added.
 Queued/busy break and receive-break detection remain unsupported.
 The SIO wrappers are not connected to the machine; native reset arming,
 remaining external sources, x1/full break/exact WAIT/Ready and full

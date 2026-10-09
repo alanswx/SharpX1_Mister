@@ -3,6 +3,8 @@
 // Zilog UM008101-0601. Not translated from an emulator or wired to the X1.
 // Supported: polled asynchronous 5..8 bits, N/E/O, 1/1.5/2 TX stops,
 // x16/x32/x64 RX/TX event clocks and idle-transmitter Send Break.
+// WR5 Transmit Enable may change during a frame: drain the current character,
+// then retain queued data until enabled again (UM0081 printed 288).
 // Interrupts, x1, WAIT/Ready, receive/busy-transmit break and modem
 // gating, synchronous modes and live frame reconfiguration are unsupported.
 // IRQ_ENABLE is used only by the separate standalone interrupt wrapper:
@@ -80,7 +82,8 @@ module x1_sio_async_channel #(parameter IRQ_ENABLE=0, parameter CHANNEL_B=0, par
         (FLOW_ENABLE || wr1[7:5]==0) : wr1==0;
     wire polled_frame = supported_interrupts && wr4[7:6]!=0 && wr4[5:4]==0 && wr4[3:2]!=0;
     wire rx_enabled = polled_frame && wr3[0] && (wr3 & 8'h3e)==0;
-    wire tx_enabled = polled_frame && wr5[3] && (wr5 & 8'h15)==0;
+    wire tx_configured = polled_frame && (wr5 & 8'h15)==0;
+    wire tx_enabled = tx_configured && wr5[3];
     reg [7:0] fifo_data[0:2];
     reg [6:0] fifo_error[0:2];
     reg fifo_first[0:2];
@@ -214,7 +217,13 @@ module x1_sio_async_channel #(parameter IRQ_ENABLE=0, parameter CHANNEL_B=0, par
                         end
                         5: begin
                             wr5<=cpu_din;
-                            if((cpu_din & 8'h05)!=0 || tx_busy || (cpu_din[4] && tx_holding_full)) unsupported<=1;
+                            // Only an enable-only change is qualified during
+                            // a frame. Length, break and modem changes retain
+                            // their unsupported diagnostics; frame data and
+                            // timing remain the latched values from tx_take.
+                            if((cpu_din & 8'h05)!=0 ||
+                               (tx_busy && (cpu_din ^ wr5)!=8'h08) ||
+                               (cpu_din[4] && tx_holding_full)) unsupported<=1;
                         end
                         default: unsupported<=1;
                     endcase
@@ -312,7 +321,11 @@ module x1_sio_async_channel #(parameter IRQ_ENABLE=0, parameter CHANNEL_B=0, par
                 end else rx_phase<=rx_phase+1'b1;
             end
 
-            if(!tx_enabled) begin tx_busy<=0; tx_phase<=0; end
+            // Disable inhibits the next holding-register take, not the
+            // already-started character. Continue its real serial clocks,
+            // including every configured stop tick, without consuming the
+            // queued byte. Chip/channel reset still cancels both immediately.
+            if(!tx_configured) begin tx_busy<=0; tx_phase<=0; end
             else if(tx_tick) begin
                 if(tx_take) begin
                     // Becoming empty requires actual data, not merely enabling
