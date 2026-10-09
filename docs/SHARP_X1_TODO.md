@@ -41,7 +41,10 @@ reset-repeatability tests at three master frequencies. The [shared signed audio
 path](FM_MACHINE_AUDIO_STATUS.md) now passes actual CPU-programmed cold/warm
 captures and C++ stereo WAV checks; native IRQ/analog/hardware remain open.
 Current ordinary snapshots require v17; direct continuation/old-v16 rejection
-passes and its full fast suite finishes zero with 137 PASS reports.
+passes. The [live FM/audio owned-DMA reset fixture](FM_OWNED_RESET_STATUS.md)
+also passes at three clocks, including a failing premature-audio-reset control;
+owned disk-host/mixed-service and physical reset gates remain open. The full
+v17 fast suite finishes zero with 137 PASS reports.
 The delay-aware suite finishes zero with 140 PASS reports, and all five fresh
 native game qualifications pass on frozen source/inputs, including Galaga
 firing; see [v17 acceptance](BASELINE_V17_STATUS.md).

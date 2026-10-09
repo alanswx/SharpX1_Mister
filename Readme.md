@@ -44,8 +44,11 @@ bit-synchronized RX/TX diagnostics; fractional-stop/native timing remains open.
 The [FM decoder increment](docs/FM_DECODE_STATUS.md) adds conservative address/
 bus qualification and real-CPU neighboring-port tests with JT51. A new
 [default-off shared FM CPU bus](docs/FM_MACHINE_STATUS.md) passes generated
-IPL busy/status/WAIT/DAM/DMA/reset checks at three clocks. Native IRQ and mixed
-audio delivery remain open; no board/C++ profile enables it.
+IPL busy/status/WAIT/DAM/DMA/reset checks at three clocks. Opt-in signed
+[PSG/FM audio](docs/FM_MACHINE_AUDIO_STATUS.md) and an FM-enabled FPGA revision
+are now implemented and fitted; native IRQ and physical sound remain open.
+The [live-audio owned-DMA reset test](docs/FM_OWNED_RESET_STATUS.md) also passes
+at three clocks. Ordinary profiles keep FM disabled.
 The [CZ-851 selector audit](docs/SIO_MACHINE_WIRING_AUDIT.md) now adds verified
 DTRB polarity/source switching and documents the differing CZ-880 drawing;
 CZ-851 CTC1-to-A-alternate and CTC2-to-B routes are now traced and tested with

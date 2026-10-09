@@ -65,6 +65,16 @@ $(HEADLESS_DIR)/machine-fm-audio-$(FM_MASTER_HZ)/Vmachine_fm_tb: tests/machine_f
 		--Mdir $(@D) -j 4 tests/machine_fm_tb.sv $(MACHINE_SRC) -Wno-fatal
 .PHONY: test-machine-fm-audio
 
+test-machine-fm-owned-reset: $(HEADLESS_DIR)/machine-fm-owned-reset-$(FM_MASTER_HZ)/Vmachine_fm_tb
+	./$(HEADLESS_DIR)/machine-fm-owned-reset-$(FM_MASTER_HZ)/Vmachine_fm_tb +OUTPUT=$(HEADLESS_DIR)/machine-fm-owned-reset-$(FM_MASTER_HZ)/mixed
+	python3 tests/test_fm_psg_audio.py $(HEADLESS_DIR)/machine-fm-owned-reset-$(FM_MASTER_HZ)/mixed --profiles 0 4
+$(HEADLESS_DIR)/machine-fm-owned-reset-$(FM_MASTER_HZ)/Vmachine_fm_tb: tests/machine_fm_tb.sv $(MACHINE_SRC) Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module machine_fm_tb -GAUDIO_TEST=1 -GOWNED_RESET=1 \
+		-GMASTER_HZ=$(FM_MASTER_HZ) $(if $(filter-out 32000000,$(FM_MASTER_HZ)),-GSINGLE_CLOCK=1) \
+		--Mdir $(@D) -j 4 tests/machine_fm_tb.sv $(MACHINE_SRC) -Wno-fatal
+.PHONY: test-machine-fm-owned-reset
+
 test-machine-fm-wav: test-machine-fm-audio turbo-fm
 	./$(FM_RUNNER_DIR)/Vtop --cycles 25600000 --rom $(HEADLESS_DIR)/machine-fm-audio-$(FM_MASTER_HZ)/generated.ipl \
 		--audio $(FM_RUNNER_DIR)/generated.wav --peek 0x4000 > $(FM_RUNNER_DIR)/generated.json

@@ -11,9 +11,9 @@ Wrapper macro `X1_TURBO_FM_CPU` requires Turbo foundation and selects signed
 L/R with `AUDIO_S=1`. The subsequent separate `sharpx1_turbo_fm.qsf` revision
 now enables it on the actual 28.571428 MHz single master; all pre-existing
 revisions remain off. Base/FM wrapper lint passes with a PLL stand-in only;
-the new revision needs source-bound fitting/timing and hardware acceptance.
-There is no completed FM-enabled fit/RBF/hardware
-sound claim. The new delay-aware `turbo-fm` C++ profile enables FM, not DMA,
+the new revision now has a source-bound fit and eight constrained-corner
+passes; see [the build audit](FM_BOARD_BUILD_STATUS.md). Unconstrained I/O
+and physical sound acceptance remain open. The new delay-aware `turbo-fm` C++ profile enables FM, not DMA,
 SIO/Z/Kanji. `--audio` writes signed stereo at 48 kHz without a second DC
 blocker. Default mono capture retains its original deterministic 1 kHz
 PSG test, which passes. No FM savable/SDL profile is advertised.
@@ -82,5 +82,8 @@ See [v17 acceptance](BASELINE_V17_STATUS.md). V16 games remain
 historical. Native Turbo FM software/IRQ, mixed-service/owned-SD resets,
 FM DMA access, exact pins, analog calibration and physical acceptance remain
 open. This is not full Turbo Z or completed work groups 1–6.
+The subsequent [owned-DMA live-audio reset test](FM_OWNED_RESET_STATUS.md)
+passes at three clocks and rejects an isolated premature-audio-reset mutation.
+It covers RAM-to-RAM ownership, not owned disk-host or mixed-service traffic.
 The separate [FM FPGA profile/build](FM_BOARD_BUILD_STATUS.md) fits and passes
 eight constrained corners, but is not deployed or hardware accepted.

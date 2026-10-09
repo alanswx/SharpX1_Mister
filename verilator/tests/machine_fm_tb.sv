@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Original generated-IPL shared CPU/JT51 diagnostic; no private assets/state.
 `timescale 1ps/1ps
-module machine_fm_tb #(parameter FM_ENABLED=1,SINGLE_CLOCK=0,MASTER_HZ=32000000,AUDIO_TEST=0);
+module machine_fm_tb #(parameter FM_ENABLED=1,SINGLE_CLOCK=0,MASTER_HZ=32000000,AUDIO_TEST=0,OWNED_RESET=0);
     localparam longint unsigned HALF_PS=64'd500000000000/64'(MASTER_HZ);
     reg clk=0,video_clk=0,reset=1;
     always #(HALF_PS) clk=~clk;
@@ -36,13 +36,16 @@ module machine_fm_tb #(parameter FM_ENABLED=1,SINGLE_CLOCK=0,MASTER_HZ=32000000,
     wire dma_write=dut.dma_owner && !dut.mreq && !dut.wr;
     wire observed_dispatch,observed_a0,observed_busy;
     wire [1:0] observed_ct;
+    wire [31:0] observed_dc;
     generate if(FM_ENABLED) begin : observe_fm
         assign observed_dispatch=dut.turbo_fm_cpu.bus.device.dispatch;
         assign observed_a0=dut.turbo_fm_cpu.bus.device.saved_a0;
         assign observed_busy=dut.turbo_fm_cpu.bus.device.status[7];
         assign observed_ct={dut.turbo_fm_cpu.bus.device.ct2,dut.turbo_fm_cpu.bus.device.ct1};
+        assign observed_dc=dut.turbo_fm_audio.mixer.coupling.dc;
     end else begin : observe_absent_fm
         assign observed_dispatch=0;assign observed_a0=0;assign observed_busy=0;assign observed_ct=0;
+        assign observed_dc=0;
     end endgenerate
     always @(posedge clk) begin
         if(dut.core_reset) begin
@@ -138,8 +141,8 @@ module machine_fm_tb #(parameter FM_ENABLED=1,SINGLE_CLOCK=0,MASTER_HZ=32000000,
         psg_reg(0,125);psg_reg(1,0);psg_reg(7,8'h3e);psg_reg(8,8'h0f);
     endtask
     longint signed dc_ref=0,psg_ref=0,delta_ref;
-    always @(posedge clk or posedge reset) begin
-        if(reset) begin dc_ref=0;psg_ref=0;end
+    always @(posedge clk or posedge dut.core_reset) begin
+        if(dut.core_reset) begin dc_ref=0;psg_ref=0;end
         else if(audio_sample) begin
             psg_ref=longint'(dut.psg_sound)*32-dc_ref/65536;
             delta_ref=longint'(dut.psg_sound)*32*65536-dc_ref;
@@ -150,6 +153,55 @@ module machine_fm_tb #(parameter FM_ENABLED=1,SINGLE_CLOCK=0,MASTER_HZ=32000000,
         return value>32767 ? 32767 : value < -32768 ? -32768 : value;
     endfunction
     string prefix;
+    bit watch_drain=0,drain_read_old=0,drain_write_old=0;
+    integer drain_reads=0,drain_writes=0,drain_edges=0;
+    always @(posedge clk) begin
+        if(watch_drain) begin
+            if(dma_read && !drain_read_old) drain_reads++;
+            if(dma_write && !drain_write_old) drain_writes++;
+            drain_read_old=dma_read;drain_write_old=dma_write;
+            if(dut.dma_draining) begin
+                drain_edges++;
+                assert(!dut.core_reset && !dut.cpu_ce && !dut.fm_selected && observed_ct==3 && !dut.fm_irq_n)
+                    else $fatal(1,"FM or CPU reset early during owned DMA drain");
+            end
+        end
+    end
+    task automatic owned_reboot;
+        logic [31:0] retained_dc;
+        logic signed [15:0] retained_l,retained_r,retained_m;
+        assert(AUDIO_TEST && FM_ENABLED) else $fatal(1,"owned FM reset requires live audio profile");
+        wait(dut.dma_owner && !dut.dma_busrq_n);
+        watch_drain=1;
+        wait(dma_read);
+        assert(observed_ct==3 && !dut.fm_irq_n &&
+            (audio_left!=0 || audio_right!=0 || audio_mono!=0))
+            else $fatal(1,"owned reset did not start with live FM control/timer/audio");
+        // Between-edge pulse, shorter than one SYS cycle. Real BUSACK must
+        // survive; target/DMA enables continue until the started pair commits.
+        #1000;
+        retained_dc=observed_dc;
+        retained_l=audio_left;retained_r=audio_right;retained_m=audio_mono;
+        assert(retained_dc!=0) else $fatal(1,"owned FM reset had no live DC state");
+        reset=1;#1;
+        assert(dut.dma_draining && !dut.core_reset && !dut.cpu_ce && upload_wait && observed_ct==3)
+            else $fatal(1,"raw reset abandoned owned FM/DMA state");
+        assert(observed_dc==retained_dc &&
+            audio_left==retained_l && audio_right==retained_r && audio_mono==retained_m)
+            else $fatal(1,"signed FM state reset before DMA drain completed");
+        #2000;reset=0;
+        wait(dut.core_reset);#1;
+        assert(drain_reads==1 && drain_writes==1 && drain_edges>0 &&
+            dut.RAM.mem[16'h9000]==8'h31 && dut.RAM.mem[16'h9001]==8'hee &&
+            dut.RAM.mem[16'h9002]==8'hee && dut.RAM.mem[16'h9003]==8'hee)
+            else $fatal(1,"owned FM reset lost/duplicated pair reads=%0d writes=%0d edges=%0d",drain_reads,drain_writes,drain_edges);
+        assert(audio_left==0 && audio_right==0 && audio_mono==0 && !audio_sample &&
+            observed_ct==0 && dut.fm_irq_n && dut.fm_wait_n && !dut.fm_read_tail)
+            else $fatal(1,"drained FM reset did not clear signed/control state");
+        watch_drain=0;
+        wait(!dut.core_reset);
+        $display("PASS live FM/audio short reset during real DMA read: exactly one pair committed; retained IPL reboot MASTER=%0d",MASTER_HZ);
+    endtask
     task automatic capture(input integer profile);
         integer count,fd,raw_l,raw_r,raw_psg;
         count=0;
@@ -188,13 +240,19 @@ module machine_fm_tb #(parameter FM_ENABLED=1,SINGLE_CLOCK=0,MASTER_HZ=32000000,
         port(16'h0702);emit(8'hed);emit(8'h78);store(16'h4103); // IN clears DAM
         reg_write(8'h1b,8'hc0);reg_write(8'h10,8'hfa);reg_write(8'h11,0);
         reg_write(8'h14,5);mark(2); // genuine timer flag/IRQ, not routed to CPU
+        if(OWNED_RESET) begin
+            audio_program();
+            // Real CPU delay lets tone and DC state become nonzero before DMA.
+            emit(8'h06);emit(0);emit(8'h10);emit(8'hfe);
+            for(integer i=0;i<4;i++) begin load(8'hee);store(16'h9000+16'(i));end
+        end
         for(integer i=0;i<4;i++) begin load(8'h31+8'(i));store(16'h8000+16'(i));end
         port(16'h1f80);out_byte(8'h7d);out_byte(0);out_byte(8'h80);out_byte(3);out_byte(0);
         out_byte(8'h14);out_byte(8'h10);out_byte(8'h80);out_byte(8'h8d);out_byte(0);
         out_byte(8'h90);out_byte(8'h8a);out_byte(8'hcf);out_byte(8'h87);
         port(16'h0701);poll(1,1);store(16'h4101);
         reg_write(8'h14,8'h10);port(16'h0700);emit(8'hed);emit(8'h78);store(16'h4102);
-        if(AUDIO_TEST) audio_program();
+        if(AUDIO_TEST && !OWNED_RESET) audio_program();
         mark(8'haa);emit(8'h76);
         assert(pc<8192) else $fatal(1,"FM generated IPL overflow");
         if($value$plusargs("IPL_OUTPUT=%s",ipl_output)) begin
@@ -210,6 +268,7 @@ module machine_fm_tb #(parameter FM_ENABLED=1,SINGLE_CLOCK=0,MASTER_HZ=32000000,
         @(negedge clk);#1;download=0;upload_wr=0;repeat(16) tick();reset=0;
         wait(dut.RAM.mem[16'h4000]==1);
         assert(dut.RAM.mem[16'h4100]==0) else $fatal(1,"shared FM programmed decode/read failed");
+        if(OWNED_RESET) owned_reboot();
         complete();if(AUDIO_TEST) capture(0);reboot();
         wait(!dut.fm_irq_n && !dut.dma_owner && dut.dma_busrq_n);reboot();
         complete();if(AUDIO_TEST) capture(4);$finish;
