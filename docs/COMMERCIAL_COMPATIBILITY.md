@@ -1,6 +1,11 @@
 # Private commercial-game bring-up
 
-## Current v15 qualification: all five bounded gameplay gates pass
+Current-source follow-up: [shared FM integration](FM_MACHINE_STATUS.md) now
+requires snapshots v16. Fresh native qualification of all five titles is
+running on a separately frozen v16 runner. No result below is silently
+relabelled as acceptance of that pending runner; the v15 evidence is retained.
+
+## Historical v15 qualification: all five bounded gameplay gates pass
 
 October 9: after the default-off shared SIO integration, a fresh ordinary
 fast/savable v15 runner has SHA-256

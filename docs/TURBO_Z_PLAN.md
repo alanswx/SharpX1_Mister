@@ -172,6 +172,9 @@ extra GRAM. The digital RGB output reduces analog multi-mode colors to eight
   A subsequent [conservative FM decoder](FM_DECODE_STATUS.md) qualifies exact
   ports and CPU neighboring-port isolation through genuine JT51; native ASIC
   aliases, IRQ routing and actual shared-machine ownership remain required.
+  The [shared CPU-bus increment](FM_MACHINE_STATUS.md) now passes genuine
+  generated-IPL JT51 status/WAIT and PPI DAM/real-DMA isolation at three clocks.
+  Native IRQ/audio delivery, DMA-owned FM access and hardware remain open.
   Reuse audited JT51 sources, preserve licenses, verify busy/status/timers,
   stereo panning, clipping and deterministic note WAVs. Manual page 3 routes
   PSG equally to L/R and combines FM channels for the internal mono speaker;

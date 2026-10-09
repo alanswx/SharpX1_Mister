@@ -353,6 +353,7 @@ int main(int argc, char **argv) {
         // a reconstructed RAM bootstrap. Only quiescent host interfaces are
         // supported; disk contents must match and clocks keep absolute phase.
         uint64_t resume_time = 0;
+        // v16: shared-machine optional FM bus integration/model increment.
         // v15: shared-machine serial interface/optional device integration.
         // v14: raw glyph output changes elaborated observation/state layout.
         // v13 added transaction-bound DAM pending state.
@@ -399,7 +400,7 @@ int main(int argc, char **argv) {
             ;
         // Dual-drive headers have a distinct
         // identity and a fifth field: ordered B-media fingerprint.
-        const uint64_t snapshot_magic = 0x5831534e41503135ULL ^ sys_hz ^ snapshot_profile
+        const uint64_t snapshot_magic = 0x5831534e41503136ULL ^ sys_hz ^ snapshot_profile
             ^ (dual_snapshot ? (1ULL << 42) : 0);
 #ifdef X1_SAVABLE
         if (restore_path) {

@@ -14,6 +14,29 @@ FM_MASTER_HZ ?= 32000000
 
 all: headless
 
+test-machine-fm: $(HEADLESS_DIR)/machine-fm/Vmachine_fm_tb $(HEADLESS_DIR)/machine-fm-disabled/Vmachine_fm_tb $(HEADLESS_DIR)/machine-fm-single-nominal/Vmachine_fm_tb $(HEADLESS_DIR)/machine-fm-single-board/Vmachine_fm_tb
+	./$(HEADLESS_DIR)/machine-fm/Vmachine_fm_tb
+	./$(HEADLESS_DIR)/machine-fm-single-nominal/Vmachine_fm_tb
+	./$(HEADLESS_DIR)/machine-fm-single-board/Vmachine_fm_tb
+	@ulimit -c 0; if ./$(HEADLESS_DIR)/machine-fm-disabled/Vmachine_fm_tb >$(HEADLESS_DIR)/machine-fm-disabled/negative.log 2>&1; then \
+		echo 'ERROR: disabled machine FM unexpectedly passed'; exit 1; \
+	fi; rg -q 'shared FM programmed decode/read failed' $(HEADLESS_DIR)/machine-fm-disabled/negative.log || \
+		{ echo 'ERROR: wrong disabled machine FM failure'; exit 1; }; \
+	echo 'PASS shared-machine disabled-FM negative rejects missing CPU read'
+$(HEADLESS_DIR)/machine-fm/Vmachine_fm_tb: tests/machine_fm_tb.sv $(MACHINE_SRC) Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module machine_fm_tb --Mdir $(@D) -j 4 tests/machine_fm_tb.sv $(MACHINE_SRC) -Wno-fatal
+$(HEADLESS_DIR)/machine-fm-disabled/Vmachine_fm_tb: tests/machine_fm_tb.sv $(MACHINE_SRC) Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module machine_fm_tb -GFM_ENABLED=0 --Mdir $(@D) -j 4 tests/machine_fm_tb.sv $(MACHINE_SRC) -Wno-fatal
+$(HEADLESS_DIR)/machine-fm-single-nominal/Vmachine_fm_tb: tests/machine_fm_tb.sv $(MACHINE_SRC) Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module machine_fm_tb -GSINGLE_CLOCK=1 -GMASTER_HZ=28636364 --Mdir $(@D) -j 4 tests/machine_fm_tb.sv $(MACHINE_SRC) -Wno-fatal
+$(HEADLESS_DIR)/machine-fm-single-board/Vmachine_fm_tb: tests/machine_fm_tb.sv $(MACHINE_SRC) Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module machine_fm_tb -GSINGLE_CLOCK=1 -GMASTER_HZ=28571428 --Mdir $(@D) -j 4 tests/machine_fm_tb.sv $(MACHINE_SRC) -Wno-fatal
+.PHONY: test-machine-fm
+
 test-fm-decode: $(HEADLESS_DIR)/fm-decode/Vfm_decode_tb test-fm-cpu $(HEADLESS_DIR)/fm-cpu-disabled-$(FM_MASTER_HZ)/Vfm_cpu_tb
 	./$(HEADLESS_DIR)/fm-decode/Vfm_decode_tb
 	@ulimit -c 0; if ./$(HEADLESS_DIR)/fm-cpu-disabled-$(FM_MASTER_HZ)/Vfm_cpu_tb >$(HEADLESS_DIR)/fm-cpu-disabled-$(FM_MASTER_HZ)/negative.log 2>&1; then \

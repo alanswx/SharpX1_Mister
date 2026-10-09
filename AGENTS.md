@@ -124,7 +124,8 @@ The PPI width latch is retained during this reset; do not assume it clears.
 See `docs/TURBO_Z_PAIRED_VIDEO_STATUS.md` for current composition and running
 pixel gates. This diagnostic does not qualify rendered pixels or hardware CDC placement.
 
-Snapshot format v15 rejects older states after adding the shared serial interface
+Snapshot format v16 rejects older states after the optional shared FM bus/model
+increment (v15 added the shared serial interface)
 (v14 exposed raw glyph color)
 (v13 added transaction-bound DAM arming)
 (v12 added the RGB12 output port; v11 added opt-in CPU/DMA bus and instrumentation;
@@ -132,7 +133,13 @@ v09 added text-raster state;
 v08 added X3 PPI sampling; v07 added PCG/metadata state). Regenerate from native boot,
 never convert or patch state bytes to bypass model compatibility checks.
 DMA-enabled states also require DMA revision 7 after separating an auto-loaded
-first destination from later starting-buffer writes; all current profiles need v15.
+first destination from later starting-buffer writes; all current profiles need v16.
+`TURBO_FM_CPU=1` enables only the conservative CPU-bus JT51 subset, not a board/
+C++ profile or native IRQ/audio capability. `docs/FM_MACHINE_STATUS.md` records
+actual generated-IPL status/WAIT/PPI DAM/real DMA/reset checks. Preserve the
+retained read response and use drained `core_reset`; never invent CPU IRQ or
+CT-to-CTC wiring from an unresolved schematic route. Existing unsigned PSG
+audio is unchanged until signed stereo/mono conversion is qualified.
 `TURBO_SIO=1` is an opt-in shared-machine functional CZ-851 profile, currently
 tested through `test-machine-sio`, not an enabled board/C++ runner revision.
 Serial inputs must already be synchronous to SYS; no physical pin CDC is

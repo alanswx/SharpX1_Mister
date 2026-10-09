@@ -1,5 +1,9 @@
 # Turbo Z FM foundation
 
+Current follow-up: [shared-machine FM CPU bus](FM_MACHINE_STATUS.md) now
+passes generated IPL-driven busy/status/WAIT/DAM/DMA/reset checks. It does
+not yet connect native IRQ or mixed stereo output; board/C++ profiles stay off.
+
 October 9 follow-up: [conservative decode and CPU isolation](FM_DECODE_STATUS.md)
 adds exhaustive control/address guards and real neighboring-port transactions
 to the standalone CPU/JT51 fixture. Shared-machine decode/IRQ/audio integration

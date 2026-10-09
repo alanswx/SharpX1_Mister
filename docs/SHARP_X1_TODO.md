@@ -31,7 +31,12 @@ bit-synchronization behavior; ×1 fractional-stop and native timing are still
 required before full serial acceptance.
 The [FM decoder increment](FM_DECODE_STATUS.md) connects conservative exact-port
 selection to the real CPU/JT51 fixture and exhausts bus-control isolation;
-shared-machine FM/audio/IRQ integration remains open.
+the [shared FM CPU-bus increment](FM_MACHINE_STATUS.md) now passes generated
+IPL busy/status/WAIT, actual PPI DAM, real DMA and retained-reset checks at
+three clocks. Native IRQ/audio delivery and full FM hardware remain open.
+Current ordinary snapshots require v16; its full baseline/fast and fresh
+five-game native qualifications are running separately. Earlier v15 passes
+above are source-bound history, not acceptance of those pending runners.
 
 The [DMA-build hardware feature matrix](HARDWARE_DMA_FEATURE_MATRIX_STATUS.md)
 records six exact 40/80-column graphics/text/PCG cases before and after warm

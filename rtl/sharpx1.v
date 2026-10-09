@@ -1,6 +1,6 @@
 // Sharp X1 base-machine integration. Shared by MiSTer and simulation.
 // See docs/BASE_X1_CONTRACT.md for address-map sources and limitations.
-module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0, TURBO_DSW = 241, TURBO_DMA_RESTART_IRQ = 0, TURBO_Z_PALETTE_CPU = 0, TURBO_Z_VIDEO = 0, TURBO_Z_MULTIMODE = 0, TURBO_Z_INTERNAL8 = 0, TURBO_Z_TEXT_CPU = 0, TURBO_SIO = 0) (
+module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0, TURBO_DSW = 241, TURBO_DMA_RESTART_IRQ = 0, TURBO_Z_PALETTE_CPU = 0, TURBO_Z_VIDEO = 0, TURBO_Z_MULTIMODE = 0, TURBO_Z_INTERNAL8 = 0, TURBO_Z_TEXT_CPU = 0, TURBO_SIO = 0, TURBO_FM_CPU = 0) (
     input clk_sys, clk_28636, reset,
     input pal, scandouble,
     input ioctl_download,
@@ -174,7 +174,25 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     wire z_priority_selected,z_priority_tail;
     wire [7:0] z_priority_data;
     wire sio_wait_n;
-    wire machine_wait_n=cg_wait_n && z_palette_wait_n && sio_wait_n;
+    wire machine_wait_n=cg_wait_n && z_palette_wait_n && sio_wait_n && fm_wait_n;
+    wire fm_selected,fm_read_tail,fm_wait_n,fm_irq_n,fm_sample,fm_protocol_error;
+    wire [7:0] fm_data;
+    wire signed [15:0] fm_left,fm_right;
+    generate if(TURBO && TURBO_FM_CPU) begin : turbo_fm_cpu
+        x1_fm_bus #(.MASTER_HZ(SINGLE_CLOCK ? MASTER_HZ : 32000000)) bus(
+            .clk(clk_sys),.reset(core_reset),.enable(1'b1),.cpu_allowed(!dma_owner),.dam(dam),
+            .m1_n(m1),.mreq_n(mreq),.iorq_n(iorq),.rd_n(rd),.wr_n(wr),
+            .address(a),.cpu_data(data_out),.selected(fm_selected),.read_tail(fm_read_tail),
+            .wait_n(fm_wait_n),.response(fm_data),.irq_n(fm_irq_n),.sample(fm_sample),
+            .left(fm_left),.right(fm_right),.protocol_error(fm_protocol_error));
+        // Do not invent the unresolved built-in YM2151 IRQ route or signed
+        // PSG/stereo gains. Outputs remain available for diagnostic observers;
+        // existing CPU IRQ and unsigned PSG audio paths are unchanged.
+    end else begin : no_fm_cpu
+        assign fm_selected=0;assign fm_read_tail=0;assign fm_wait_n=1;
+        assign fm_data=8'hff;assign fm_irq_n=1;assign fm_sample=0;
+        assign fm_left=0;assign fm_right=0;assign fm_protocol_error=0;
+    end endgenerate
     generate if(TURBO_Z_PALETTE_CPU) begin : z_palette_cpu
         // Explicit palette experiments; subordinate options add video/internal
         // and text CPU storage. No native Z signature or general decode claim.
@@ -618,6 +636,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
                                          : ram_data)
               : !m1 && !iorq ? (TURBO ? irq_vector : sub_data)
               : (sio_selected && io_read) || sio_read_tail ? sio_data
+              : (fm_selected && io_read) || fm_read_tail ? fm_data
               : sub_cs && io_read && !dam ? sub_data
               : ppi_cs && io_read ? ppi_data
               : ctc_cs && io_read ? ctc_data

@@ -78,6 +78,7 @@ verilator/obj_dir_turbo_dsw_f5_fast/
 verilator/obj_dir_qualification_fast/
 verilator/obj_dir_v14_*/
 verilator/obj_dir_v15_*/
+verilator/obj_dir_v16_*/
 software/
 /x1/
 references/software/private-downloads/

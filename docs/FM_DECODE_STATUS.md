@@ -1,5 +1,10 @@
 # Conservative FM decoder and actual-CPU isolation
 
+Follow-up: [default-off shared FM CPU bus](FM_MACHINE_STATUS.md) now connects
+this decoder/adapter/JT51 through the real machine. `machine.qip` now includes
+those dependencies. Native IRQ/audio and full hardware gates remain open;
+the standalone observations below retain their original scope.
+
 October 9, 2026. Original `rtl/x1_fm_decode.sv`, exhaustive oracle and additions
 to the original CPU/JT51 diagnostic. This is a standalone integration seam,
 not an enabled shared-machine FM device or completed Turbo Z audio.

@@ -1,4 +1,5 @@
-# Standalone FM qualification sources. Not connected to machine.qip yet.
+# Standalone FM qualification sources. Shared CPU-profile dependencies are
+# also listed explicitly in machine.qip; the mixer is not integrated there.
 # Original adapter plus unchanged, attributed JT51 snapshot.
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_fm.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_fm_decode.sv

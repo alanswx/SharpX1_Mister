@@ -42,8 +42,10 @@ profile and FPGA integration remain open. Existing board/C++ profiles stay off.
 An [asynchronous ×1 extension](docs/SIO_X1_STATUS.md) adds externally
 bit-synchronized RX/TX diagnostics; fractional-stop/native timing remains open.
 The [FM decoder increment](docs/FM_DECODE_STATUS.md) adds conservative address/
-bus qualification and real-CPU neighboring-port tests with JT51. Shared FM
-bus/audio/IRQ integration remains open; no board profile enables it.
+bus qualification and real-CPU neighboring-port tests with JT51. A new
+[default-off shared FM CPU bus](docs/FM_MACHINE_STATUS.md) passes generated
+IPL busy/status/WAIT/DAM/DMA/reset checks at three clocks. Native IRQ and mixed
+audio delivery remain open; no board/C++ profile enables it.
 The [CZ-851 selector audit](docs/SIO_MACHINE_WIRING_AUDIT.md) now adds verified
 DTRB polarity/source switching and documents the differing CZ-880 drawing;
 CZ-851 CTC1-to-A-alternate and CTC2-to-B routes are now traced and tested with
@@ -342,7 +344,7 @@ An opt-in [analog text composition follow-up](docs/TURBO_Z_TEXT_COMPOSITION_STAT
 now connects raw glyph color and retained text palette to paired ordering.
 Its first 64,000-pixel text-between-screens case passes; the complete cold/warm
 matrix is running. Intensity mapping is provisional.
-Current snapshots require v15 after the shared serial-interface increment;
+Current snapshots require v16 after the optional shared FM bus/model increment;
 regenerate old states from native execution, never convert them.
 The [single-screen text follow-up](docs/TURBO_Z_SINGLE_TEXT_STATUS.md) now
 builds for both 320x200/4096 and selected-bank 320x200/64, with captured mode
@@ -368,6 +370,9 @@ After shared SIO integration, [both complete ordinary v15 suites](docs/BASELINE_
 and fresh v15 native boot/gameplay qualification of all five titles pass again.
 The serial profile remains off in that ordinary game runner; generated enabled
 SIO diagnostics are qualified separately, not by those game results.
+The optional shared FM increment now requires v16. Fresh full ordinary suites
+and five native game qualifications are running; the v15 passes above are
+historical, not acceptance of the pending v16 runners. See [FM integration status](docs/FM_MACHINE_STATUS.md).
 The [latest fitted Turbo single-clock RBF](output_files/quartus-linux-WosvSRv1/source/output_files/sharpx1_turbo_single.rbf)
 now builds on Quartus 17.0.2 and passes all eight constrained timing corners;
 [source/hash and exclusions](docs/HARDWARE_126_STATUS.md) are recorded separately.
