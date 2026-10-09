@@ -25,6 +25,10 @@ The standalone [SIO clock-event adapter](docs/SIO_EDGE_CLOCK_STATUS.md) now
 preserves serial edges and sampled RX data across enable gaps; independent
 queue tests and real CTC/SIO diagnostics pass. Native clock selection, pin CDC,
 machine integration and serial/mouse acceptance remain open.
+The standalone [SIO bus decoder](docs/SIO_DECODE_STATUS.md) now passes exhaustive
+address/control checks and real Z80 neighboring-port/DAM/enable isolation,
+alongside the existing CPU IRQ/flow/reset diagnostics. It is not yet connected
+to the shared machine or a hardware profile.
 The [CZ-851 selector audit](docs/SIO_MACHINE_WIRING_AUDIT.md) now adds verified
 DTRB polarity/source switching and documents the differing CZ-880 drawing;
 CZ-851 CTC1-to-A-alternate and CTC2-to-B routes are now traced and tested with

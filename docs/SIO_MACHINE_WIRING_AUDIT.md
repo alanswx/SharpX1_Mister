@@ -169,6 +169,11 @@ remain required; the event-only routing evidence above is unchanged.
    `machine.qip`; prove actual Z80 decode/pointer/status/read-write, held
    strobes, neighboring ports, DAM exclusion and interrupt-ACK exclusion.
    Keep the ordinary/base machine and board defaults unchanged until accepted.
+   The [standalone decoder](SIO_DECODE_STATUS.md) now qualifies `1F90..93`,
+   direction, neighboring-port, DAM, disabled and ACK/reset exclusions through
+   exhaustive checks plus real CPU diagnostics/negative controls. Shared
+   machine response/ownership, pin/model configuration and full integration
+   remain open; no machine profile is claimed from the decoder alone.
 4. Extend daisy-chain ownership for SIO before DMA/CTC/keyboard. Exercise
    simultaneous RX/TX/external/CTC/DMA/keyboard requests, nested service,
    stretched/stopped-CE ACK, stable vectors, RETI vs RETN/indexed opcode tails,

@@ -261,6 +261,12 @@ polarities for ZC rise/fall. Implement/qualify explicit two-phase enables,
 counter trigger sampling and native duration; a next-rising-CE prototype was
 withdrawn despite passing its own tests. No waveform or integration gate is
 marked complete from that prototype.
+The [SIO decode increment](SIO_DECODE_STATUS.md) now passes 8,388,608 exhaustive
+address/control cases, nine real CPU neighboring/DAM/disabled profiles and
+three intended-failure controls. Existing nine CPU IRQ/flow and twelve
+stopped-CE service/reset profiles pass with the decoder. It remains standalone;
+connect and qualify the default-disabled shared-machine profile, response
+retention and shared ACK/RETI ownership before claiming native SIO or group 1.
 The new standalone [DMA service engine](DMA_SERVICE_STATUS.md) passes 4,096
 arbitration and 2,048 status-vector cases, plus twelve connected CPU/DMA
 completion/IM2/RETI profiles. Native

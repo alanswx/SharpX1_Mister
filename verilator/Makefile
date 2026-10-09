@@ -801,10 +801,21 @@ test-sio-cpu: $(HEADLESS_DIR)/sio-cpu/Vsio_cpu_tb
 		./$(HEADLESS_DIR)/sio-cpu/Vsio_cpu_tb +CE_PERIOD=$$rate +first-status || exit 1; \
 		./$(HEADLESS_DIR)/sio-cpu/Vsio_cpu_tb +CE_PERIOD=$$rate +flow || exit 1; \
 	done
-$(HEADLESS_DIR)/sio-cpu/Vsio_cpu_tb: tests/sio_cpu_tb.sv ../rtl/x1_sio_async.sv ../rtl/x1_sio_irq.sv ../rtl/x1_irq_bridge.sv ../rtl/cpu.v $(wildcard ../rtl/tv80/*.v)
+test-sio-decode: $(HEADLESS_DIR)/sio-decode/Vsio_decode_tb $(HEADLESS_DIR)/sio-cpu/Vsio_cpu_tb
+	./$(HEADLESS_DIR)/sio-decode/Vsio_decode_tb
+	@for rate in 1 4 7; do for profile in '' '+first-status' '+flow'; do ./$(HEADLESS_DIR)/sio-cpu/Vsio_cpu_tb +CE_PERIOD=$$rate +decode $$profile || exit 1; done; done
+	@for fault in BYPASS_DAM BYPASS_ENABLE WIDE_DECODE; do if ./$(HEADLESS_DIR)/sio-cpu/Vsio_cpu_tb +CE_PERIOD=4 +decode +$$fault > $(HEADLESS_DIR)/sio-cpu/decode-negative-$$fault.log 2>&1; then echo "FAIL: $$fault decode negative unexpectedly passed"; exit 1; fi; if [ "$$fault" = WIDE_DECODE ]; then rg -q 'CPU programmed unsupported SIO behavior' $(HEADLESS_DIR)/sio-cpu/decode-negative-$$fault.log || exit 1; else rg -q 'SIO selected during excluded bus cycle' $(HEADLESS_DIR)/sio-cpu/decode-negative-$$fault.log || exit 1; fi; done
+	@echo 'PASS: DAM/disabled/wide-port actual CPU negative controls'
+$(HEADLESS_DIR)/sio-decode/Vsio_decode_tb: tests/sio_decode_tb.sv ../rtl/x1_sio_decode.sv
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --timescale 1ns/1ps --top-module sio_decode_tb --Mdir $(HEADLESS_DIR)/sio-decode \
+		-j 4 tests/sio_decode_tb.sv ../rtl/x1_sio_decode.sv
+.PHONY: test-sio-decode
+
+$(HEADLESS_DIR)/sio-cpu/Vsio_cpu_tb: tests/sio_cpu_tb.sv ../rtl/x1_sio_decode.sv ../rtl/x1_sio_async.sv ../rtl/x1_sio_irq.sv ../rtl/x1_irq_bridge.sv ../rtl/cpu.v $(wildcard ../rtl/tv80/*.v)
 	mkdir -p $(@D)
 	$(V) --binary --timing --assert --top-module sio_cpu_tb --Mdir $(HEADLESS_DIR)/sio-cpu \
-		-j 4 tests/sio_cpu_tb.sv ../rtl/x1_sio_async.sv ../rtl/x1_sio_irq.sv ../rtl/x1_irq_bridge.sv ../rtl/cpu.v \
+		-j 4 tests/sio_cpu_tb.sv ../rtl/x1_sio_decode.sv ../rtl/x1_sio_async.sv ../rtl/x1_sio_irq.sv ../rtl/x1_irq_bridge.sv ../rtl/cpu.v \
 		../rtl/tv80/tv80e.v ../rtl/tv80/tv80_core.v ../rtl/tv80/tv80_mcode.v ../rtl/tv80/tv80_alu.v ../rtl/tv80/tv80_reg.v \
 		-Wno-fatal
 .PHONY: test-sio-cpu

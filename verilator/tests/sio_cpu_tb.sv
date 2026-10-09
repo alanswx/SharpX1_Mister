@@ -7,6 +7,8 @@ module sio_cpu_tb;
     always #5 clk=~clk;
     integer period=1,edges=0,pc=0,ack_count=0,reti_count=0;
     reg first_status=0,flow_profile=0;
+    reg decode_profile=0,sio_enabled=1,dam=0;
+    reg bypass_dam=0,bypass_enable=0,wide_decode=0;
     reg stop_ce=0;
     reg abort_reset_sender=0, reset_sender_done=0;
     integer irq_reset_phase=-1;
@@ -18,13 +20,20 @@ module sio_cpu_tb;
     reg [7:0] memory[0:65535];
     reg [7:0] memory_data=0;
     reg io_response_active=0;
-    wire cpu_cs=!iorq_n && m1_n && address[15:2]==14'(16'h1f90>>2);
+    wire decoded_cs;
+    wire cpu_cs=wide_decode ? (sio_enabled && !reset && !dam && m1_n && !iorq_n &&
+        (rd_n != wr_n) && address[15:4]==12'h1f9) : decoded_cs;
+    x1_sio_decode decode(.enabled(bypass_enable || sio_enabled),.reset(reset),.dam(!bypass_dam && dam),
+        .m1_n(m1_n),.iorq_n(iorq_n),.rd_n(rd_n),.wr_n(wr_n),
+        .address(address),.selected(decoded_cs),.read_access(),.write_access());
+    reg unmapped_response_active=0;
     wire acknowledge=!iorq_n && !m1_n;
     // Keep a clocked I/O read response through bus release until the next
     // memory read. TV80 can retain T2 for its automatic I/O wait after its
     // external strobes release, so an idle-bus RAM mux is not a valid response.
     wire [7:0] cpu_di=acknowledge ? ack_vector :
-        (cpu_cs || (io_response_active && mreq_n)) ? sio_data : memory_data;
+        (cpu_cs || (io_response_active && mreq_n)) ? sio_data :
+        ((!iorq_n && m1_n) || (unmapped_response_active && mreq_n)) ? 8'hff : memory_data;
     reg [1:0] rx_tick=0,tx_tick=0,rxd=3,cts_n=3,dcd_n=3;
     wire [1:0] txd,rts_n,dtr_n;
     wire unsupported,irq,ieo,reti;
@@ -61,9 +70,13 @@ module sio_cpu_tb;
         memory_data<=memory[address];
         if(reset || (!mreq_n && !rd_n)) io_response_active<=0;
         else if(cpu_cs && !rd_n) io_response_active<=1;
+        if(reset || (!mreq_n && !rd_n)) unmapped_response_active<=0;
+        else if(!iorq_n && m1_n && !rd_n && !cpu_cs) unmapped_response_active<=1;
         if(!reset && !mreq_n && !wr_n) memory[address]<=cpu_data;
         if(reset) begin ack_old<=0; ack_count<=0; reti_count<=0; end
         else begin
+            if(cpu_cs && (acknowledge || dam || !sio_enabled))
+                $fatal(1,"SIO selected during excluded bus cycle");
             ack_old<=acknowledge;
             if(acknowledge && !ack_old) begin
                 case(ack_count)
@@ -180,13 +193,45 @@ module sio_cpu_tb;
         if(!$value$plusargs("CE_PERIOD=%d",period)) period=1;
         first_status=$test$plusargs("first-status"); expected_irqs=first_status ? 4 : 3;
         flow_profile=$test$plusargs("flow");
+        decode_profile=$test$plusargs("decode");
+        bypass_dam=$test$plusargs("BYPASS_DAM");
+        bypass_enable=$test$plusargs("BYPASS_ENABLE");
+        wide_decode=$test$plusargs("WIDE_DECODE");
+        if(!decode_profile && (bypass_dam || bypass_enable || wide_decode))
+            $fatal(1,"decode negatives require the decode profile");
         if($value$plusargs("IRQ_RESET_PHASE=%d",irq_reset_phase)) begin end
         if(irq_reset_phase>=0 && (first_status || flow_profile))
             $fatal(1,"IRQ reset is a separate fixture profile");
         if(flow_profile && first_status) $fatal(1,"separate fixture profiles required");
+        if(decode_profile && irq_reset_phase>=0) $fatal(1,"decode and reset are separate profiles");
         for(integer i=0;i<65536;i=i+1) memory[i]=0;
         emit(8'hf3); emit(8'h31); emit(8'h00); emit(8'hff); // DI; LD SP,ff00
         load_a(2); emit(8'hed); emit(8'h47); emit(8'hed); emit(8'h5e); // LD I,A; IM 2
+        if(decode_profile) begin
+            // Real OUT/IN at both neighboring ranges. Invalid FF control bytes
+            // must not change a SIO pointer, FIFO, diagnostic or modem output.
+            for(integer i=0;i<16;i++) begin
+                port(i<4 ? 16'h1f8c+16'(i) : 16'h1f90+16'(i));
+                out_byte(8'hff);emit(8'hed);emit(8'h78);store(16'h4200+16'(i));
+            end
+            mark(8'hd0);
+            for(integer i=0;i<4;i++) begin
+                port(16'h1f90+16'(i));out_byte(8'hff);
+                emit(8'hed);emit(8'h78);store(16'h4210+16'(i));
+            end
+            mark(8'hd1);
+            // Restore checks use separate addresses from blocked read results.
+            port(16'h1f91);emit(8'hed);emit(8'h78);store(16'h4220);
+            port(16'h1f93);emit(8'hed);emit(8'h78);store(16'h4221);
+            mark(8'he0);
+            for(integer i=0;i<4;i++) begin
+                port(16'h1f90+16'(i));out_byte(8'hff);
+                emit(8'hed);emit(8'h78);store(16'h4230+16'(i));
+            end
+            mark(8'he1);
+            port(16'h1f91);emit(8'hed);emit(8'h78);store(16'h4240);
+            port(16'h1f93);emit(8'hed);emit(8'h78);store(16'h4241);
+        end
         for(integer ch=0;ch<2;ch=ch+1) begin
             port(ch==0 ? 16'h1f91 : 16'h1f93); out_byte(8'h18);
             reg_write(4,8'h44); reg_write(3,8'hc1); reg_write(5,8'hea);
@@ -206,6 +251,7 @@ module sio_cpu_tb;
             port(16'h1f90); out_byte(8'h55); mark(6); out_byte(8'h17);
         end
         mark(8'haa); emit(8'h76);
+        if(decode_profile && pc>=16'h02e4) $fatal(1,"decode program overlaps IM2 vector entries");
         pc=32'h0400; port(16'h1f92); emit(8'hed); emit(8'h78); store(16'h4100);
         load_a(8'he4); store(16'h4102); emit(8'hfb); emit(8'hed); emit(8'h4d);
         pc=32'h0440; port(16'h1f90); emit(8'hed); emit(8'h78); store(16'h4101);
@@ -225,7 +271,23 @@ module sio_cpu_tb;
         end
         vector_entry(8'he4,16'h0400); vector_entry(8'hee,16'h0440); vector_entry(8'he8,16'h0480);
         repeat(8) step(); reset=0;
+        if(decode_profile) begin
+            wait(memory[16'h4000]==8'hd0);@(negedge clk);#1;dam=1;
+            wait(memory[16'h4000]==8'hd1);@(negedge clk);#1;dam=0;
+            wait(memory[16'h4000]==8'he0);@(negedge clk);#1;sio_enabled=0;
+            wait(memory[16'h4000]==8'he1);@(negedge clk);#1;sio_enabled=1;
+        end
         stage(1); if(irq) $fatal(1,"IRQ before serial traffic");
+        if(decode_profile) begin
+            for(integer i=0;i<16;i++)
+                assert(memory[16'h4200+16'(i)]==8'hff) else $fatal(1,"neighbor port did not float FF");
+            for(integer i=0;i<4;i++)
+                assert(memory[16'h4210+16'(i)]==8'hff && memory[16'h4230+16'(i)]==8'hff)
+                    else $fatal(1,"blocked port read did not float FF");
+            assert(memory[16'h4220]==4 && memory[16'h4221]==4 &&
+                   memory[16'h4240]==4 && memory[16'h4241]==4)
+                else $fatal(1,"DAM/disabled access changed SIO or read response");
+        end
         if(irq_reset_phase>=0) reset_during_irq();
         receive(1,8'hb6,0);
         stage(2);
@@ -275,6 +337,7 @@ module sio_cpu_tb;
         if(ack_count!=expected_irqs || reti_count!=expected_irqs || irq || unsupported || txd!==3)
             $fatal(1,"CPU IRQ reasserted without new traffic");
         $display("PASS: actual Z80 IM2/ISR bytes/ACK/RETI=%0d, TX pins CE=%0d first/status=%0d flow=%0d",expected_irqs,period,first_status,flow_profile);
+        if(decode_profile) $display("PASS: actual CPU neighboring/DAM/disabled SIO decode isolation");
         $finish;
     end
     initial begin #20000000; $fatal(1,"CPU SIO watchdog PC=%h stage=%h ACKs=%0d RETIs=%0d",address,memory[16'h4000],ack_count,reti_count); end
