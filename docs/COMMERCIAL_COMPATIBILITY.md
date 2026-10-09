@@ -1,12 +1,13 @@
 # Private commercial-game bring-up
 
-## Current v14 qualification: native boots running, not yet accepted
+## Current v14 qualification: Xevious passes, four titles pending
 
 October 9: source `c7c35b2` builds a fresh ordinary fast/savable runner with
 snapshot v14. Its SHA-256 is
 `c03a0de6b0fa08af4fe763cb0ca6a92b7590c9b5b4a10611ce78bc78656a5c86`.
-Fresh Druaga and Xevious native boots have started; Mappy, Galaga and Shanghai
-are queued in the same two-worker batch. No v14 title is counted yet.
+Fresh Xevious native boot and controls terminate successfully; Druaga and
+Mappy are running, with Galaga and Shanghai queued in the two-worker batch.
+One v14 title is counted so far, not five.
 
 The isolated ignored qualification root is
 `verilator/obj_dir_v14_c7c35b2_requalify/frozen-4CLvS6/`. It contains frozen
@@ -25,6 +26,16 @@ games, Galaga firing, Shanghai cursor/pair removal and unchanged private inputs.
 Only terminal successful provenance will qualify this runner; the five-title
 v13 result below remains historical. Delay-aware gameplay, Turbo/Z native
 software, Arcus/Bastard and current-RBF hardware acceptance are still open.
+
+Xevious passes the unchanged 300 ms idle/right/repeat test: player `(30,40)`
+to `(36,40)`, actual RGB `cdabbdb5bde7e775` / `6db18481a8469bda`, main
+RAM/report/RGB repeatability and unchanged media. Native live-state SHA-256
+is `cb3194a81715b069aa9c83bac1cde11051e241464d79dab330196a85fed1c3a7`.
+The collector's final `gameplay_verified` and `unchanged_inputs` are true;
+an independent post-run check also verifies every frozen support/private
+input hash. This is baseline 32 MHz system / 28.571428 MHz video,
+4159 cold-reset edges, no inherited intra-assignment delays and no optional
+Turbo/Z/DMA devices, not delay-aware or hardware game acceptance.
 
 ## Five-title v13 bounded requalification passes
 
