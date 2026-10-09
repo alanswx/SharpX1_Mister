@@ -1,5 +1,29 @@
 # Downloaded Sharp X1 documentation
 
+## October 9 technical-book scans
+
+Retrieved two image-only X1-Techknow appendices from the
+[document archive](https://github.com/UnsatisfactoryResult/Sharp-X1-Fun/tree/main/Documents/X1-Techknow).
+They are published technical-book programming references, not identified here
+as Sharp-authored manuals. Both PDFs stay local/ignored; no redistribution
+permission is inferred from the archive.
+
+| Local file | Pages | SHA-256 | Git blob identity |
+|---|---:|---|---|
+| `X1_Techknow_Appendix_A_IO_Map.pdf` | 12 | `720c79f24169ad33ea91d5b4e2c32b98fab41c91430f226462eb254ac9e5505c` | `13cbc6e02b8cb73de72507df47dca10cda15028a` |
+| `X1_Techknow_Appendix_B_Turbo_Series.pdf` | 45 | `8de9339f5495b980e78a7da67861747786567c3b0ecb5e0a21fa32e5f9b142ba` | `807a4267cf1e3e8d9c4a3ddbc91c6b92d1bebb7e` |
+
+Sizes (337,839 / 1,833,854 bytes) and blob identities match GitHub's retrieved
+file inventory; `pdfinfo` confirms page counts and `pdftotext` finds no prose.
+Appendix A PDF pages 4–12 (printed 276–284) were rendered and visually read;
+its other pages were not. Appendix B only PDF pages 1/45 (printed 285/329)
+were read: BIOS entry and work-area tables, not its whole contents. The
+[palette audit](../../docs/TURBO_Z_PALETTE_CONTRACT.md) records newly corroborated
+index packing and a conflicting access-control label. No native program or
+hardware reference was executed to resolve that conflict.
+
+## Original machine-manual retrieval
+
 Retrieved 2026-10-02 from Philip Smart's
 [Sharp X1 manuals archive](https://eaw.app/sharpx1-manuals/).
 These are original machine manuals and published circuit diagrams hosted by

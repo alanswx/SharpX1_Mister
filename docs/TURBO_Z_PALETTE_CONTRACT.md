@@ -73,7 +73,25 @@ emulator comparison runs or proof of silicon behavior. No code was copied.
 6. Refit and test full-color scaler/physical output and unchanged native
    software. Synthetic capture alone does not prove the Z palette works.
 
-An online search for a specific CZ-880 palette programming manual did not
+At the original October 6 audit, an online search for a specific CZ-880 palette programming manual did not
 locate an additional usable primary register specification in this follow-up.
 The existing scan and local sources remain the actual evidence; unrelated
 modern Sharp download/manual results were not used to assign bits.
+
+## October 9: primary technical-book programming evidence
+
+Retrieved [X1-Techknow Appendix A I/O Map](https://github.com/UnsatisfactoryResult/Sharp-X1-Fun/blob/main/Documents/X1-Techknow/15%20X1-Techknow%20Appendix%20A%20IO%20Map.pdf),
+not another emulator. Its published-book diagrams are primary programming
+evidence, not a factory ASIC truth table or hardware measurement. The image-only
+scan was visually read at PDF pages 4–12 (printed 276–284); pages 1–3 remain
+uninspected. Hashes/provenance are in the [manual inventory](../references/manuals/README.md).
+
+| Diagram | New corroboration / unresolved gate |
+|---|---|
+| Printed 276 | Full palette index packs G/R in the low port byte and B in data bits 7–4; component value uses bits 3–0 at B/R/G ports `10/11/12`. |
+| Printed 280 | `1FB0` bit 7 selects compatibility/multicolor; bit 4's 4096/64-two-screen choice is qualified for 320×200. `1FB8` is labelled control, unlike a simple eighth color entry; reconcile its role. |
+| Printed 282 | `1FC5` bit 3 selects write/read, but bit-7 access-mode labels make bit 3 valid with access OFF and invalid with access ON. This conflicts with both emulators' APEN/APRD gating; do not silently invert the implementation. |
+
+These pages do not establish reset values, selector lifetime or active-display
+WAIT. Seek independent Sharp programming documentation and native register
+sequences before committing the conflicting gate policy. The audit remains open.

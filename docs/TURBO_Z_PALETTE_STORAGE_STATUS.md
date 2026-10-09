@@ -46,9 +46,76 @@ mutated. Logs: `/tmp/x1-z-palette-negative-build.log` and
 asset-free hardware-runner safety checks are added to hosted diagnostics;
 hosted execution is a separate gate, not inferred from local success.
 
+## Executed standalone Quartus inference/fit
+
+Quartus **17.0.0 Build 595**, the existing Apple amd64 runtime, completes
+Analysis & Synthesis and Fitter on the original storage RTL from `99eb141`.
+No board assembly, TimeQuest acceptance or MiSTer deployment is run. Synthetic
+32 MHz CPU / approximately 42.955 MHz video clocks and 53 virtual pins are
+not board constraints; the two automatically placed clock pins are not a
+MiSTer pinout. Existing main-project and RBF defaults remain unchanged.
+
+| Fitted standalone resource | Result |
+|---|---:|
+| ALMs | 39 |
+| Logic registers | 4 |
+| Logical palette memory bits | 49,152 |
+| M10K blocks | 6 (two per component) |
+| PLLs / DSPs | 0 / 0 |
+
+The fitter RAM summary retains three 4096×4 true-dual-port, dual-clock
+`altsyncram` instances, not duplicated CPU/video stores or RAM-sized flip-flop
+arrays. Local-port read-during-write is New data; mixed-port is Don't care.
+The three synthesis warnings `276027` explicitly retain undefined cross-clock
+collisions. Do not suppress them or claim collision arbitration from this fit.
+Other warnings concern processor settings, unavailable LogicLock and incomplete
+clock-pin assignments (`169085` critical warning); no board signoff follows.
+
+Evidence: ignored `output_files/z-palette-apple-DeLmblfn/`, log
+`/tmp/x1-z-palette-apple-probe-retry.log`, exit zero. All four input files
+hash-match after fitting; manifest SHA-256 is
+`db2d67b39d756090ba469b9e2c630254df203e452493d48a6a34182997de9fdc`.
+RTL SHA-256 is `754249117650a94d93391bb9fd6822b9f578a72fccc2fc2c11afb206919d528b`.
+Templates/helper were then-untracked, separately hashed inputs; the RTL is
+unchanged from `99eb141`. Container identity and helper hash are preserved.
+
+The original `z-palette-apple-fYuRqrM6` probe exits 3 before RTL synthesis
+because Quartus's QSF reader rejects a foreach loop. That failed snapshot/log
+is preserved. The fresh successful probe uses explicit virtual-pin assignments.
+Native Linux helper preflight passes while misterubuntu has an unrelated
+active Sharp MZ fit. After rechecking that its Quartus processes have ended,
+the isolated native **17.0.2 Build 602** probe also completes synthesis/fit,
+exit zero, with the same six M10Ks, 39 ALMs, 49,152 bits and three retained
+dual-clock RAM banks. All four input hashes remain unchanged and its manifest
+hash equals the Apple probe's. The clock-pin/collision scope remains unchanged.
+No competing job was killed or restarted, and no board binary was assembled.
+
+Native evidence is retained on misterubuntu at
+`/home/alans/mister/SharpX1_Mister/output_files/z-palette-driver-cQXbIS1q/output_files/z-palette-probe-wpMWbLIp/`.
+Copied reports/manifests are local under ignored
+`output_files/z-palette-native-wpMWbLIp/`; log
+`/tmp/x1-z-palette-native-probe.log`. The isolated driver avoids production
+checkout edits; the clean host checkout was fast-forwarded to the verified
+`99eb141` checkpoint before staging.
+
+```sh
+# Coordinate/inspect running containers or Quartus jobs before --build.
+bash scripts/probe_z_palette_quartus_apple.sh --check
+bash scripts/probe_z_palette_quartus_apple.sh --build
+# On the native Linux build host, once available:
+bash scripts/probe_z_palette_quartus.sh --check
+bash scripts/probe_z_palette_quartus.sh --build
+```
+
+Adding six blocks to the prior 394-block DMA fit would estimate 400/553;
+that arithmetic is not a combined-device fit or timing acceptance. Kanji,
+capture buffers, FM and the renderer still need their own actual integration
+and resource accounting.
+
 ## Required next gates
 
-- Quartus RAM inference/resource check; no storage fit has yet been executed.
+- Integrate storage under an established ASIC/ownership contract and refit the
+  combined machine; the standalone resource gate alone is now demonstrated.
 - Resolve the ASIC differences recorded in the contract audit before decoding
   native registers or exposing a Z detection signature.
 - Accepted-transaction adapter, held strobe deduplication, CPU/DMA/beam

@@ -18,6 +18,13 @@ test-mister-matrix-safety:
 	python3 ../scripts/test_mister_matrix.py
 .PHONY: test-mister-matrix-safety
 
+test-z-palette-probe-scripts:
+	@for script in probe_z_palette_quartus.sh probe_z_palette_quartus_apple.sh; do \
+	  bash -n ../scripts/$$script || exit 1; \
+	  bash ../scripts/$$script --invalid >/dev/null 2>&1; result=$$?; \
+	  test $$result -eq 2 || exit 1; done
+.PHONY: test-z-palette-probe-scripts
+
 test-z-palette-ram: $(HEADLESS_DIR)/z-palette-ram/Vz_palette_ram_tb
 	@for half in 17500 11640 25000; do for rate in 1 4 7; do \
 	  ./$(HEADLESS_DIR)/z-palette-ram/Vz_palette_ram_tb +VIDEO_HALF_PS=$$half +CE_PERIOD=$$rate || exit 1; done; done

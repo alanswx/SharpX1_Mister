@@ -23,8 +23,19 @@ writable/owned-SD reset, audio/physical-input and Turbo Z gates remain open.
 The [Turbo Z palette storage foundation](TURBO_Z_PALETTE_STORAGE_STATUS.md)
 now passes nine independent-clock/accepted-enable profiles, each exhausting
 4096 addresses, three components and sixteen nibble values. It is standalone:
-native ASIC registers, arbitration, renderer integration and fitted/hardware
-palette qualification remain open; Z2 and the Turbo Z work group are not done.
+native ASIC registers, arbitration, renderer integration and combined-machine/
+hardware palette qualification remain open. Its standalone Quartus probe now
+fits in six M10Ks and 39 ALMs. New technical-book programming diagrams
+corroborate full index packing but introduce an APEN/APRD gating conflict;
+see the [updated contract audit](TURBO_Z_PALETTE_CONTRACT.md). Z2 and the
+Turbo Z work group are not done.
+
+The expanded [hosted diagnostic run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37865161650)
+now completes successfully on `95c3e4a`. The newer `99eb141` palette-RAM/
+hardware-runner targets have their own hosted run still in progress when
+last checked; new probe-script checks likewise need their source-bound CI
+result. These are asset-free local/hosted gates, not complete native hardware
+or Turbo Z acceptance.
 
 The [Turbo DIP increment](TURBO_DIP_STATUS.md) now supplies configurable
 `1FFx` readback. Exhaustive decoder checks and fast real-CPU cold/warm F1
