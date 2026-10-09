@@ -1760,6 +1760,10 @@ test-scaler-reset-paths:
 	tclsh tests/scaler_reset_paths_tb.tcl
 .PHONY: test-scaler-reset-paths
 
+test-scaler-release-paths:
+	tclsh tests/scaler_release_paths_tb.tcl
+.PHONY: test-scaler-release-paths
+
 test-scaler-reset-release:
 	mkdir -p $(HEADLESS_DIR)/scaler-reset
 	cd $(HEADLESS_DIR)/scaler-reset && ghdl -a --std=08 ../../../rtl/x1_scaler_reset_release.vhd ../../../sys/ascal.vhd ../../tests/scaler_reset_release_tb.vhd

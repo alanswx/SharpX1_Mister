@@ -113,3 +113,6 @@ for the new topology. It requires two distinct stages per domain and refuses
 unknown replicas. Native named-stage collection lookup and actual endpoint
 coverage remain pending. No added exceptions; inherited raw-input clock-group
 cuts must be reviewed separately, not called passes from empty reports.
+`test-scaler-release-paths` passes mocked six-stage endpoint selection and all
+144 expected report scopes, with eight rejected inventories/profiles. It is
+selected in CI. These mocks do not prove native register matching or timing.
