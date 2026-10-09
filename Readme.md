@@ -18,6 +18,11 @@ the remaining physical and unimplemented-feature gates.
 
 ## Current status
 
+For a blank screen on first launch, see [IPL loading](docs/IPL_LOADING.md):
+the RBF does not bundle the boot ROM. Load a matching raw `.rom` through
+**Load IPL**, or configure `boot.rom`/an explicit MGL upload. A game disk alone
+is not sufficient; base X1 and Turbo require different IPL sizes.
+
 The experimental X3 [coherent CRTC write transport](docs/CRTC_WRITE_CDC_STATUS.md)
 now commits held CPU/DMA RS/data packets in the video domain. Real-CPU,
 owned-DMA reset and sixteen delay-aware video cases pass. Ordinary paths stay
