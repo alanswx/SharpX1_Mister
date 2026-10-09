@@ -8,8 +8,11 @@ audio clock is added. Digital gain/coupling remain provisional, not measured
 native analog values. Dependencies are explicit in `machine.qip`.
 
 Wrapper macro `X1_TURBO_FM_CPU` requires Turbo foundation and selects signed
-L/R with `AUDIO_S=1`. No checked-in FPGA revision enables it. Base/FM wrapper
-lint passes with a PLL stand-in only; there is no FM-enabled fit/RBF/hardware
+L/R with `AUDIO_S=1`. The subsequent separate `sharpx1_turbo_fm.qsf` revision
+now enables it on the actual 28.571428 MHz single master; all pre-existing
+revisions remain off. Base/FM wrapper lint passes with a PLL stand-in only;
+the new revision needs source-bound fitting/timing and hardware acceptance.
+There is no completed FM-enabled fit/RBF/hardware
 sound claim. The new delay-aware `turbo-fm` C++ profile enables FM, not DMA,
 SIO/Z/Kanji. `--audio` writes signed stereo at 48 kHz without a second DC
 blocker. Default mono capture retains its original deterministic 1 kHz

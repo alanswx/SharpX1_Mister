@@ -1,0 +1,5 @@
+# Explicit experimental FM CPU + signed PSG/FM stereo hardware profile.
+# Inherits the actual 28.571428 MHz single master; default revisions stay off.
+# Native YM2151 IRQ/analog/pin timing and full Turbo Z remain unqualified.
+source sharpx1_turbo_single.qsf
+set_global_assignment -name VERILOG_MACRO "X1_TURBO_FM_CPU=1"
