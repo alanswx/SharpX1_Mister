@@ -87,7 +87,8 @@ passes at three clocks and rejects an isolated premature-audio-reset mutation.
 It covers RAM-to-RAM ownership, not owned disk-host or mixed-service traffic.
 The [pending-SD live-FM extension](FM_SD_RESET_STATUS.md) subsequently passes
 sixteen A/B read/write/ACK/held-pulse reset cases and retained-program sound
-reboot, with unchanged whole-image assertions. Its expanded metadata matrix
-is still running; mixed-service/native/physical gates remain open.
+reboot, with unchanged whole-image assertions. Its expanded 48-case metadata/
+split-header matrix also finishes zero on the unchanged frozen executable:
+64 cases total. Mixed-service/native/physical gates remain open.
 The separate [FM FPGA profile/build](FM_BOARD_BUILD_STATUS.md) fits and passes
 eight constrained corners, but is not deployed or hardware accepted.

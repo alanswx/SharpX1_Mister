@@ -31,7 +31,7 @@ make -C verilator test-machine-fm-sd-reset
 make -C verilator test-machine-fm-sd-metadata-reset
 ```
 
-## Completed payload qualification; metadata in progress
+## Completed 64-case qualification
 
 The model builds successfully with Verilator 5.044, delay-aware scheduling
 and assertions. New fixture wiring adds no warning suppressions; inherited
@@ -41,11 +41,17 @@ the additional live-FM cold/reboot checks. The original FM-disabled sixteen-case
 payload matrix also finishes with exit zero
 (`/tmp/x1-fm-sd-disabled-final.log`). Pre/post executable hashes are unchanged;
 no long test used a subsequently rebuilt runner. A further
-48-case FM metadata matrix is running on the same frozen executable in
+48-case FM metadata matrix finishes with exit zero on the same frozen executable in
 `/tmp/x1-fm-sd-metadata-final.log`: A/B, held/pulsed, before/mid-ACK,
 single-block first-header read/write and split-header first/second read/write.
 This launch uses a shell loop equivalent to the metadata target; the composite
 Make recipe itself has not yet executed.
+An independent log audit requires exactly 48 unique profile tuples, no duplicate
+profile and 48 live-FM cold/reboot checks. It passes. Together with the sixteen
+payload cases, all 64 configurations complete. Pre/post fixture, machine and
+executable hashes still match after the final metadata case. Both A/B generated
+images are checked before retry and after completion in every case; a later
+successful retry cannot conceal incorrect partial metadata commits.
 
 Pre-run SHA-256 values:
 
@@ -55,8 +61,8 @@ Pre-run SHA-256 values:
 | Shared machine | `ddb49969b0c4e3cb0000c0aaac434c175e841e4dfa8c99f14b8c2f568e333b67` |
 | FM-enabled executable | `5050ddcb96151fa41fc175ea6a6a98e87f3184cd70f9fde7eafa0924de642b1f` |
 
-The expanded metadata matrix is not accepted until terminal completion.
-Partial CPU payload,
+The whole matrix covers bounded host publication/ACK phases, not every internal
+controller state or exact native timing. Partial CPU payload,
 Ready loss, mixed SIO/IRQ traffic, native Turbo firmware and physical audio/
 host acceptance remain separate gates. The earlier
 [owned RAM-DMA live-audio reset qualification](FM_OWNED_RESET_STATUS.md)

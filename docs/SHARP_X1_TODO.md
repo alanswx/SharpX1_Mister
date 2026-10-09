@@ -46,7 +46,9 @@ also passes at three clocks, including a failing premature-audio-reset control;
 owned disk-host/mixed-service and physical reset gates remain open. The
 live-FM [pending-SD reset matrix](FM_SD_RESET_STATUS.md) now passes all sixteen
 payload cases with generated media, alongside sixteen FM-disabled controls.
-Its expanded metadata matrix is running; do not count it as completion.
+Its expanded 48-case metadata/split-header matrix also finishes zero, giving
+64 completed live-FM pending-host cases. Partial payload/Ready loss,
+mixed-service and native/physical gates remain open.
 The [Turbo Z in-flight control reset test](TURBO_Z_INFLIGHT_RESET_STATUS.md)
 passes at three independent video rates, including a deliberately failing
 asynchronous-reset-removal control. Exact reset frames, pending palette/
