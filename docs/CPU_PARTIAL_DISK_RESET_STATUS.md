@@ -62,7 +62,7 @@ software and physical OSD/media/audio remain open. Work groups 1–6 are not don
 The existing Fujitsu datasheet was inspected again, locally and through its
 [manufacturer-authored scan](https://knetonator.de/dashboard/PPG/Manuals/WT-A%20MB8876A_FujitsuMediaDevices.pdf).
 PDF page 3/printed 4-29 describes READY admission for read/write separately
-from seeks; page 8/printed 4-34 describes live not-ready status and Type II/III
+from seeks; page 7/printed 4-33 describes live not-ready status and Type II/III
 admission. Type IV separately programs READY transition interrupt sources.
 That prose does not specify an unconditional immediate abort at every
 mid-payload READY fall. Do not add one merely to make a new fixture pass.
