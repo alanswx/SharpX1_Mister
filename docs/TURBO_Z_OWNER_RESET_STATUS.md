@@ -51,17 +51,20 @@ wrapper checks, not new exact palette pixels or FPGA timing closure.
 | Shared machine | `060d753fe9e82c292e013a4ab902fc3612c4dea79ab787ab2caabb84c57be578` |
 | Directed reset fixture | `56d53f4150484a805fedff009532a0554d39dc7b96f917932da9f027f92fe2bc` |
 
-## Pending source-bound acceptance
+## Fresh combined pixel acceptance / pending fit and baseline
 
 The new delay-aware combined C++ runner builds successfully. Six unchanged
-full-duration custom/warm pixel cases are launched from a newly frozen runner
+full-duration custom/warm pixel cases finish zero from a newly frozen runner
 in `verilator/obj_dir_headless/z-owner-combined/qualification-5S0L7l/`,
 pre-hashed before launch. Executable SHA-256
 `6c2d657da0821c25bdeeac5ab13ecc0d7817405010592a659d3b336c193e02df`;
 logs `/tmp/x1-z-owner-pixel-{internal8,paired-text,full-text,wide64,tall64,dual64}.log`.
-They must reach terminal status, exact frame comparisons and post-hash checks
-before being described as passing. The prior six passing cases bind the
-previous shared-machine SHA, not this release change.
+Independent byte comparisons of all six actual/expected PPMs pass, and the
+final executable/emitter/helper/ANK manifest matches its pre-launch hashes.
+Total: 704,000 exact pixels with retained reset/no refill. This covers the
+same selected internal8/paired-text/full-text/wide64/tall64/dual64 custom/warm
+cases as the previous qualification, not the complete cold/identity/front/order
+matrix or native software/hardware. Prior passing cases remain historical.
 
 Ordinary snapshot model remains v17: this new state exists only in an enabled
 X3 palette profile, whose C++ runner is non-savable. A fresh ordinary delay-aware
@@ -85,3 +88,21 @@ This change does not
 fix the same-clock HDMI routing failure or constrain bundled-data transfers.
 Destination-local reset recovery, first-stage synchronizers, all corners and
 native/physical reset acceptance still require source-bound timing review.
+
+## Prepared reporting-only mux probe (not executed yet)
+
+`scripts/quartus_hdmi_mux_probe.tcl` creates two divide-by-one generated clock
+aliases only at `hdmi_clk_sw|outclk`, with explicit HDMI/video masters and
+mutually exclusive alias groups. Both original PLLs remain concurrent, so it
+does not exclude their master clocks design-wide. Unique clock/pin collections
+are mandatory; empty or ambiguous matches fail. The script reports before/
+after same-HDMI-clock paths and remaining master crossings, plus global paths.
+It is not connected to project assignments and changes neither QSF nor SDC.
+
+The [Quartus 17 generated-clock API](https://resources.altera.com/quartushelp/17.0/tafs/tafs/tcl_pkg_sdc_ver_1.5_cmd_create_generated_clock.htm)
+documents explicit masters and `-add` for multiple clocks at a node; the
+[clock-group API](https://resources.altera.com/quartushelp/17.0/tafs/tafs/tcl_pkg_sdc_ver_1.5_cmd_set_clock_groups.htm)
+supports logically exclusive groups. This supports the proposed syntax and
+scope, not proof of constraint coverage. Native execution must wait for the
+active full flow to finish. It must retain the same-clock HDMI failure and
+show remaining master CDC paths before any candidate production constraint.
