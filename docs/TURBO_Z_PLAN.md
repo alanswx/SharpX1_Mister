@@ -87,13 +87,23 @@ extra GRAM. The digital RGB output reduces analog multi-mode colors to eight
   behavior remains unresolved; no palette registers are implemented yet.
   The standalone storage probe now fits in six M10Ks/39 ALMs, and the new
   technical-book I/O-map audit corroborates full index packing while exposing
-  a conflicting `1FC5` access-mode label. Combined integration and arbitration
+  a conflicting `1FC5` access-mode label. The screen-display chapter now
+  corroborates normal `80h` write / `88h` selector/read programming, requires
+  cold initialization distinct from retained IPL reset, and fixes text entry
+  zero as inaccessible black. Use those concrete integration requirements;
+  inactive-mode side effects and exact reduced bank mapping remain open.
+  Combined integration and arbitration
   remain required; do not treat the resource probe as completion of Z2.
   Exhaust palette entries/components and read-selector transactions; verify
   address/data latch and held-strobe behavior, WAIT/bus ownership, live changes
   during blanking/active display and mode switches without reset.
 - [ ] Z3: all five multi-mode pixel formats above, using real CPU-programmed
   GRAM, distinct pages/planes, horizontal pixel packing and raster boundaries.
+  The [screen-chapter fetch audit](TURBO_Z_PALETTE_CONTRACT.md#multi-mode-fetch-requirements-from-the-same-chapter)
+  now identifies the required bank/+400h source bytes and component significance
+  for every mode, including 640×200/64. The current one-byte-per-component
+  renderer is insufficient; qualify a synchronous video fetch/buffer schedule
+  and arbitration rather than attaching a palette to quantized digital pixels.
   Verify MA wrap, screen-page capacity, priority/transparency and blackclip
   before/after palette stages; compare every active pixel and native HS/VS.
 - [ ] Z4: text-display/priority control `1FC0`, analog text colors, background

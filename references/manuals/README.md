@@ -2,16 +2,17 @@
 
 ## October 9 technical-book scans
 
-Retrieved two image-only X1-Techknow appendices from the
+Retrieved image-only X1-Techknow chapters/appendices from the
 [document archive](https://github.com/UnsatisfactoryResult/Sharp-X1-Fun/tree/main/Documents/X1-Techknow).
 They are published technical-book programming references, not identified here
-as Sharp-authored manuals. Both PDFs stay local/ignored; no redistribution
+as Sharp-authored manuals. The PDFs stay local/ignored; no redistribution
 permission is inferred from the archive.
 
 | Local file | Pages | SHA-256 | Git blob identity |
 |---|---:|---|---|
 | `X1_Techknow_Appendix_A_IO_Map.pdf` | 12 | `720c79f24169ad33ea91d5b4e2c32b98fab41c91430f226462eb254ac9e5505c` | `13cbc6e02b8cb73de72507df47dca10cda15028a` |
 | `X1_Techknow_Appendix_B_Turbo_Series.pdf` | 45 | `8de9339f5495b980e78a7da67861747786567c3b0ecb5e0a21fa32e5f9b142ba` | `807a4267cf1e3e8d9c4a3ddbc91c6b92d1bebb7e` |
+| `X1_Techknow_Screen_Display.pdf` | 70 | `70b6f88f7d775ab5ee7a9c289958eb7ef09e4b86e4ca0a02eed3e231b0804a78` | `a8344b15a57b0ff360a90964637e0a132fff13dd` |
 
 Sizes (337,839 / 1,833,854 bytes) and blob identities match GitHub's retrieved
 file inventory; `pdfinfo` confirms page counts and `pdftotext` finds no prose.
@@ -21,6 +22,17 @@ were read: BIOS entry and work-area tables, not its whole contents. The
 [palette audit](../../docs/TURBO_Z_PALETTE_CONTRACT.md) records newly corroborated
 index packing and a conflicting access-control label. No native program or
 hardware reference was executed to resolve that conflict.
+
+The subsequent 2,636,540-byte [screen-display chapter](https://github.com/UnsatisfactoryResult/Sharp-X1-Fun/blob/main/Documents/X1-Techknow/09%20X1-Techknow%20Part%202%20Chapter%204%20Screen%20Display.pdf)
+also matches the retrieved GitHub size/blob identity. All 70 pages were rendered
+and English OCR was used only to locate numeric register/listing candidates;
+this is not a complete Japanese translation or page-by-page audit. PDF pages
+1, 16–22, 51–60 (printed 105, 120–126, 155–164) were visually inspected.
+The remaining pages were not visually audited. Published OUT/IN examples now
+corroborate the normal `1FC5=80h/88h` access sequence and identify cold palette
+initialization, retained IPL reset and fixed-black text entry zero. Some listing
+addresses contradict their headings; the [contract follow-up](../../docs/TURBO_Z_PALETTE_CONTRACT.md#screen-display-chapter-normal-access-and-power-on-contract)
+records those limitations. No example was executed against silicon or emulators.
 
 ## Original machine-manual retrieval
 

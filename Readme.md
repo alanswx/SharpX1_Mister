@@ -231,7 +231,10 @@ The standalone [Z palette storage](docs/TURBO_Z_PALETTE_STORAGE_STATUS.md)
 passes exhaustive RAM tests and a six-M10K/39-ALM Quartus probe; native palette
 registers/ownership/renderer integration remain open. Newly retrieved primary
 programming diagrams expose an access-gating conflict recorded in the
-[palette contract audit](docs/TURBO_Z_PALETTE_CONTRACT.md).
+[palette contract audit](docs/TURBO_Z_PALETTE_CONTRACT.md). A subsequent
+screen-programming chapter corroborates normal explicit write/read sequences
+and adds cold-initialization, retained-reset and fixed-black text requirements;
+those native behaviors are not implemented by the standalone RAM.
 
 The headless simulator has been compiled with Verilator 5.044 on macOS.
 The timing/reset regression passes. A 200,000-system-cycle run reports:

@@ -17,6 +17,12 @@ Independent resets flush/mask responses but do not clear RAM. Unwritten data
 and cross-clock same-address read/write collisions are deliberately unspecified.
 The future palette arbiter must prevent or qualify those collisions.
 
+The later screen-display chapter now specifies native power-on palette
+initialization, separately from retained IPL reset; see the contract audit.
+This primitive intentionally does not implement that sequencer or initial
+image. Its unspecified unwritten entries are a storage-layer limitation,
+not a proposed native Turbo Z cold-start policy.
+
 CPU access inputs represent already accepted local-clock operations, **not
 raw Z80 strobes**. Native register decode, AEN/APEN/APRD, selector lifetime,
 reduced-color banking, WAIT, DMA ownership and display arbitration remain

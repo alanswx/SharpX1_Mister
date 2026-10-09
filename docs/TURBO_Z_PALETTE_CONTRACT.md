@@ -95,3 +95,106 @@ uninspected. Hashes/provenance are in the [manual inventory](../references/manua
 These pages do not establish reset values, selector lifetime or active-display
 WAIT. Seek independent Sharp programming documentation and native register
 sequences before committing the conflicting gate policy. The audit remains open.
+
+## Screen-display chapter: normal access and power-on contract
+
+The subsequently retrieved [screen-display chapter](https://github.com/UnsatisfactoryResult/Sharp-X1-Fun/blob/main/Documents/X1-Techknow/09%20X1-Techknow%20Part%202%20Chapter%204%20Screen%20Display.pdf)
+provides published programming sequences, not just the appendix's bit labels.
+PDF pages 51–60 (printed 155–164) were visually inspected; its full provenance,
+hash and inspected scope are in the manual inventory. This changes the next
+implementation decision: the normal explicit write/read sequence is supported
+by primary programming evidence, rather than chosen by emulator agreement alone.
+
+- Printed 157 flow diagrams and listings on 158–159 enable multi-color with
+  `1FB0=80h`, use `1FC5=80h` for writes and `1FC5=88h` for reads. Reading first
+  performs an OUT to select the address high nibble, then an IN at the component
+  port. This supports APEN=1/APRD=0 writes and APEN=1/APRD=1 selector/read
+  operations in the documented normal sequence. The appendix's access-mode
+  labels do not justify inverting that sequence. APEN=0 side effects and
+  undocumented combinations are still unqualified.
+- Printed 156–157 corroborate low-port-byte plus data-high-nibble addressing
+  and B/R/G component ports. The physical PA-bit table lists pin permutations;
+  logical palette indices must not be equated to PA pin order without tracing
+  that permutation. CPU and display must use the same representation.
+- Printed 156 expressly distinguishes power-on initialization from the front
+  IPL switch: internal and external palettes initialize at power-on, not at
+  IPL reset. Printed 159–160 give default external colors and a software
+  initialization loop; logically, each index starts with its corresponding
+  B/R/G nibble values. Internal eight-color defaults and text defaults are
+  separately tabulated. The current storage primitive's unspecified unwritten
+  power-up values therefore cannot establish native cold-start acceptance.
+  Preserve warm-reset retention, but add a qualified cold initialization path
+  before exposing native Z output. Whether FPGA configuration initialization
+  or an explicit sequencer models the hardware remains an implementation gate.
+- Printed 162 states text entry zero at `1FB8` cannot be accessed and is fixed
+  zero; entries 1–7 use two bits/component, replicated to four-bit output.
+  This is stronger evidence than treating `1FB8` as an ordinary programmable
+  eighth color. Readback of the inaccessible entry, inactive-AEN effects and
+  any separate control decode still need qualification.
+- Printed 161 identifies the internal palette for 640×400 and external RAM
+  for other multi-modes. It explicitly requires expansion of effective reduced
+  color bits for external indexing. The CPU/display bank and exact replication
+  contract must still be reconciled with the physical diagrams and both
+  emulators before implementing all modes.
+
+Do not copy the listings verbatim into diagnostics: printed 158's write heading
+and stated colors disagree with its port/data literals; its read heading on
+158 likewise disagrees with the continuation's selector literals on 159.
+The flow diagram's final control-port label also differs from the setup port.
+Use independently authored tests with explicit expected indices and values.
+These inconsistencies do not erase repeated `80h/88h` setup agreement, but
+prevent treating every printed literal as an exact hardware oracle. No listing
+or register sequence was executed in this research checkpoint.
+
+Next integration gates are now concrete: cold defaults versus retained IPL
+reset; the supported explicit selector/write/read path with deduplicated held
+strobes; internal/external mode selection and fixed-zero text entry; independent
+CPU/display index oracles; then real ownership/WAIT and RGB12 renderer tests.
+Active-display contention, selector lifetime across control changes, default
+ASIC latches and inactive-mode behavior remain open. Z2 is not complete.
+
+## Multi-mode fetch requirements from the same chapter
+
+PDF pages 16–22 (printed 120–126) were also visually inspected. Diagrams
+4-8 through 4-14 and accompanying prose describe component-bit significance
+and bank/offset use. Here `q` means the base display byte position **within a
+component plane**, not the absolute B/R/G I/O address. Book bank 0/1 corresponds
+to the two physical 16 KiB component stores; do not confuse a bank with the
+additional `+400h` byte position inside that bank.
+
+| Native display | Component bits / required source bytes |
+|---|---|
+| 320×200/4096 | Bit 0: bank 0 at q; bit 1: bank 0 at q+400h; bit 2: bank 1 at q; bit 3: bank 1 at q+400h. |
+| 320×200/64, two screens | Per screen, bit 0 at q and bit 1 at q+400h. Bank 0 and bank 1 hold the separate screens. |
+| 640×200/64 | Bit 0: bank 0 at q; bit 1: bank 1 at q. |
+| 320×400/64 | On the bank selected by raster parity, bit 0 at q and bit 1 at q+400h; successive raster lines alternate banks. |
+| 640×400/8 | One bit/component from the bank selected by raster parity; use the internal eight-entry analog palette, not the external 4096 store. |
+
+Component order is B/R/G, while the final RGB12 interface remains R:G:B.
+The chapter's significance diagram makes bit 0 the most rapidly varying
+component bit; do not reverse nibble significance to make an image look right.
+Reduced-color replication and the palette-bank selector remain distinct from
+the GRAM source-bank selection in this table.
+
+There are scan-label/dimension inconsistencies in the prose and diagram 4-13:
+its width annotation conflicts with the named 320×400 mode. Retain native
+dimensions from the machine manual; derive character/raster addressing from
+the actual CRTC and byte positions, not that conflicting annotation. The
+chapter also distinguishes low-scan two-screen priority from high-scan use;
+the register truth table for simultaneous composition still needs qualification.
+
+The current `rtl/sharpx1.v` gives each component RAM only one display address,
+passes one byte/component into the digital renderer and derives RGB12 by
+replicating final digital bits. `x1_gram_address.sv` already handles ordinary
+Turbo raster bank interleave but does not fetch these extra Z bytes. Therefore
+neither connecting the external palette nor changing RGB12 alone implements
+Z3. Add a video-domain fetch schedule/buffer that obtains every needed source
+byte without corrupting the CPU port, and prove synchronous-read latency,
+bank/offset boundaries, CRTC phase and CPU/DMA contention. Do not assume extra
+GRAM ports or RAM replication fits without synthesis evidence.
+
+Acceptance must initialize distinct patterns through genuine CPU writes at
+each bank/offset, independently predict component indices and final RGB12,
+check every pixel in all five modes and both low-scan screens, then exercise
+live exits, retained reset and unchanged base/Turbo rendering. This is a
+documented integration contract, not executed Z-mode acceptance.
