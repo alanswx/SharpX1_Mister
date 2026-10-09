@@ -1427,12 +1427,39 @@ $(HEADLESS_DIR)/dma-ready-irq-cpu/Vdma_service_cpu_tb: tests/dma_service_cpu_tb.
 
 test-dma-irq-bridge: $(HEADLESS_DIR)/dma-irq-bridge/Vdma_irq_bridge_tb
 	@for rate in 1 4 7; do ./$(HEADLESS_DIR)/dma-irq-bridge/Vdma_irq_bridge_tb +CE_PERIOD=$$rate || exit 1; done
-$(HEADLESS_DIR)/dma-irq-bridge/Vdma_irq_bridge_tb: tests/dma_irq_bridge_tb.sv ../rtl/x1_dma.sv ../rtl/x1_dma_service.sv ../rtl/x1_dma_vector.sv ../rtl/x1_ctc.sv ../rtl/x1_irq_bridge.sv ../rtl/x1_dma_irq_bridge.sv
+$(HEADLESS_DIR)/dma-irq-bridge/Vdma_irq_bridge_tb: tests/dma_irq_bridge_tb.sv ../rtl/x1_dma.sv ../rtl/x1_dma_service.sv ../rtl/x1_dma_vector.sv ../rtl/x1_ctc.sv ../rtl/x1_irq_bridge.sv ../rtl/x1_dma_irq_bridge.sv ../rtl/x1_sio_async.sv ../rtl/x1_sio_irq.sv ../rtl/x1_sio_irq_bridge.sv
 	mkdir -p $(@D)
 	$(V) --binary --timing --assert --top-module dma_irq_bridge_tb --Mdir $(HEADLESS_DIR)/dma-irq-bridge \
 		-j 4 tests/dma_irq_bridge_tb.sv ../rtl/x1_dma.sv ../rtl/x1_dma_service.sv ../rtl/x1_dma_vector.sv \
 		../rtl/x1_ctc.sv ../rtl/x1_irq_bridge.sv ../rtl/x1_dma_irq_bridge.sv
 .PHONY: test-dma-irq-bridge
+
+test-sio-device-chain: $(HEADLESS_DIR)/sio-device-chain/Vdma_irq_bridge_tb
+	@for rate in 1 4 7; do ./$(HEADLESS_DIR)/sio-device-chain/Vdma_irq_bridge_tb +CE_PERIOD=$$rate || exit 1; done
+$(HEADLESS_DIR)/sio-device-chain/Vdma_irq_bridge_tb: tests/dma_irq_bridge_tb.sv ../rtl/x1_dma.sv ../rtl/x1_dma_service.sv ../rtl/x1_dma_vector.sv ../rtl/x1_ctc.sv ../rtl/x1_irq_bridge.sv ../rtl/x1_dma_irq_bridge.sv ../rtl/x1_sio_async.sv ../rtl/x1_sio_irq.sv ../rtl/x1_sio_irq_bridge.sv
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module dma_irq_bridge_tb -GSIO_CHAIN=1 --Mdir $(HEADLESS_DIR)/sio-device-chain \
+		-j 4 $^ -Wno-fatal
+.PHONY: test-sio-device-chain
+
+test-sio-chain-cpu: $(HEADLESS_DIR)/sio-chain-cpu/Vsio_chain_cpu_tb
+	@for rate in 1 4 7; do \
+		./$(HEADLESS_DIR)/sio-chain-cpu/Vsio_chain_cpu_tb +CE_PERIOD=$$rate || exit 1; \
+		./$(HEADLESS_DIR)/sio-chain-cpu/Vsio_chain_cpu_tb +CE_PERIOD=$$rate +RESET_NESTED || exit 1; \
+		ulimit -c 0; if ./$(HEADLESS_DIR)/sio-chain-cpu/Vsio_chain_cpu_tb +CE_PERIOD=$$rate +BAD_IUS >$(HEADLESS_DIR)/sio-chain-cpu/bad-ius-$$rate.log 2>&1; then \
+			echo 'ERROR: CPU wrong-owner control unexpectedly passed'; exit 1; \
+		fi; rg -q 'CPU SIO RETI owner' $(HEADLESS_DIR)/sio-chain-cpu/bad-ius-$$rate.log || \
+			{ echo 'ERROR: wrong CPU negative-control failure'; exit 1; }; \
+		echo "PASS actual CPU wrong-owner control CE=$$rate rejected"; \
+	done
+$(HEADLESS_DIR)/sio-chain-cpu/Vsio_chain_cpu_tb: tests/sio_chain_cpu_tb.sv ../rtl/x1_sio_decode.sv ../rtl/x1_sio_async.sv ../rtl/x1_sio_irq.sv ../rtl/x1_sio_irq_bridge.sv ../rtl/x1_dma.sv ../rtl/x1_dma_service.sv ../rtl/x1_dma_vector.sv ../rtl/x1_ctc.sv ../rtl/x1_irq_bridge.sv ../rtl/cpu.v $(wildcard ../rtl/tv80/*.v)
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module sio_chain_cpu_tb --Mdir $(HEADLESS_DIR)/sio-chain-cpu \
+		-j 4 tests/sio_chain_cpu_tb.sv ../rtl/x1_sio_decode.sv ../rtl/x1_sio_async.sv ../rtl/x1_sio_irq.sv \
+		../rtl/x1_sio_irq_bridge.sv ../rtl/x1_dma.sv ../rtl/x1_dma_service.sv ../rtl/x1_dma_vector.sv \
+		../rtl/x1_ctc.sv ../rtl/x1_irq_bridge.sv ../rtl/cpu.v ../rtl/tv80/tv80e.v ../rtl/tv80/tv80_core.v \
+		../rtl/tv80/tv80_mcode.v ../rtl/tv80/tv80_alu.v ../rtl/tv80/tv80_reg.v -Wno-fatal
+.PHONY: test-sio-chain-cpu
 
 DMA_TEST_CFLAGS ?= -O1
 $(HEADLESS_DIR)/dma/Vdma_tb: tests/dma_tb.sv ../rtl/x1_dma.sv Makefile

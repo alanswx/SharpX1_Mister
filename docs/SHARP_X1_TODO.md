@@ -236,8 +236,10 @@ builds and record synthesis, fit and timing separately.
 No legacy notices or private assets may be removed/bundled to claim completion.
 The [standalone SIO chain bridge](SIO_CHAIN_STATUS.md) now exports actual SIO
 IUS and checks nested SIO/DMA/CTC returns, held-vector/channel-reset ownership
-and stale-ACK quarantine. Its downstream service models are synthetic;
-combined real-device/CPU, shared-machine and native timing gates remain open.
+and stale-ACK quarantine. Its first downstream service models are synthetic;
+subsequent real SIO/DMA/CTC and actual-CPU nested IM2 fixtures pass at CE=1/4/7,
+including stopped-CE concurrent service reset and retained-program reboot.
+Shared-machine integration, broader reset phases and native timing remain open.
 The [October 9 SIO machine-wiring audit](SIO_MACHINE_WIRING_AUDIT.md) now
 records actual SIO/0 bus/clock pins, DTRB-controlled A clock selection,
 mouse-related B controls, model-specific carrier inputs and the absence of a

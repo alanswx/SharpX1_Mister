@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Original real DMA/CTC connected arbitration fixture; no forced chip state.
 `timescale 1ns/1ps
-module dma_irq_bridge_tb;
+module dma_irq_bridge_tb #(parameter SIO_CHAIN=0);
     logic clk=0,ce=0,reset=1,pause_ce=0;
     always #5 clk=!clk;
     integer period=1,edges=0,dma_acks=0,ctc_acks=0,kbd_cycles=0,dr=0,cr=0;
@@ -25,14 +25,40 @@ module dma_irq_bridge_tb;
     logic [3:0] trigger=0;
     wire ctc_irq,ctc_ieo;
     logic old_keyboard_ack=0;
+    wire sio_irq,sio_ieo,sio_service,sio_ack,sio_iei,sio_reti;
+    wire [7:0] sio_vector,sio_dout;
+    wire [1:0] sio_txd,sio_rts,sio_dtr;
+    wire sio_bad;
+    logic sio_cs=0,sio_rd_n=1,sio_wr_n=1;
+    logic [1:0] sio_address=0,sio_rxd=3;
+    logic [7:0] sio_din=0;
+    integer sio_acks=0,sio_returns=0;
     x1_dma #(.COMPLETION_IRQ(1)) dma(.iei(dma_iei),.acknowledge(dma_ack),.reti(dma_reti),
         .irq(dma_irq),.ieo(dma_ieo),.ack_vector(dma_vector),.*);
     x1_ctc ctc(.clk(clk),.reset(reset),.ce(ce),.wr(cwr),.channel(channel),.din(cdin),
         .dout(),.trigger(trigger),.iei(ctc_iei),.irq(ctc_irq),.ieo(ctc_ieo),
         .ack(ctc_ack),.reti(ctc_reti),.vector(ctc_vector),.zc());
-    x1_dma_irq_bridge bridge(.clk(clk),.reset(reset),.m1_n(bm1),.mreq_n(bmem),
+    generate if(SIO_CHAIN) begin : serial_chain
+        x1_sio_interrupt sio(.clk(clk),.ce(ce),.reset(reset),
+            .cpu_cs(sio_cs),.cpu_rd_n(sio_rd_n),.cpu_wr_n(sio_wr_n),
+            .address(sio_address),.cpu_din(sio_din),.cpu_dout(sio_dout),
+            .rx_tick(2'b11),.tx_tick(2'b11),.rxd(sio_rxd),.cts_n(2'b11),.dcd_n(2'b11),
+            .txd(sio_txd),.rts_n(sio_rts),.dtr_n(sio_dtr),.unsupported(sio_bad),
+            .iei(sio_iei),.acknowledge(sio_ack),.reti(sio_reti),
+            .irq(sio_irq),.ieo(sio_ieo),.service_active(sio_service),
+            .ack_vector(sio_vector),.wait_n(),.ready_n());
+        x1_sio_irq_bridge bridge(.clk(clk),.reset(reset),.m1_n(bm1),.mreq_n(bmem),
+            .iorq_n(bio),.rd_n(brd),.data(bdata),.upstream_iei(upstream_iei),
+            .sio_in_service(sio_service),.dma_in_service(irq_in_service),.*);
+    end else begin : original_chain
+        assign sio_irq=0;assign sio_ieo=upstream_iei;assign sio_service=0;
+        assign sio_ack=0;assign sio_iei=upstream_iei;assign sio_reti=0;
+        assign sio_vector=8'hff;assign sio_dout=8'hff;
+        assign sio_txd=3;assign sio_rts=3;assign sio_dtr=3;assign sio_bad=0;
+        x1_dma_irq_bridge bridge(.clk(clk),.reset(reset),.m1_n(bm1),.mreq_n(bmem),
         .iorq_n(bio),.rd_n(brd),.data(bdata),.upstream_iei(upstream_iei),
         .dma_in_service(irq_in_service),.dma_vector(dma_vector),.*);
+    end endgenerate
     always @(negedge clk) begin edges++;ce=!pause_ce && edges%period==0;if(ce) busak_n=busrq_n;end
     always @(posedge clk) if(!reset) begin
         if(dma_ack) dma_acks++;
@@ -41,7 +67,9 @@ module dma_irq_bridge_tb;
         old_keyboard_ack<=keyboard_ack;
         if(dma_reti) dr++;
         if(ctc_reti) cr++;
-        assert(!(dma_ack && (ctc_ack || keyboard_ack)) && !(ctc_ack && keyboard_ack))
+        if(sio_ack) sio_acks++;
+        if(sio_reti) sio_returns++;
+        assert(int'(sio_ack)+int'(dma_ack)+int'(ctc_ack)+int'(keyboard_ack)<=1)
             else $fatal(1,"multiple ACK consumers");
         assert(edges<200000) else $fatal(1,"connected bridge watchdog");
     end
@@ -66,10 +94,10 @@ module dma_irq_bridge_tb;
         assert(irq) else $fatal(1,"no pending IRQ for %h",expected);
         bm1=0;bio=0;#1;
         assert(ack_vector==expected && dma_ack==(device==0) && ctc_ack==(device==1) &&
-               keyboard_ack==(device==2)) else $fatal(1,"wrong first ACK owner/vector");
+               keyboard_ack==(device==2) && sio_ack==(device==3)) else $fatal(1,"wrong first ACK owner/vector");
         tick();pause_ce=1;
         repeat(40) begin
-            tick();assert(ack_vector==expected && !dma_ack && !ctc_ack &&
+            tick();assert(ack_vector==expected && !dma_ack && !ctc_ack && !sio_ack &&
                           keyboard_ack==(device==2)) else $fatal(1,"held ACK changed owner/vector");
         end
         pause_ce=0;bm1=1;bio=1;tick();
@@ -79,6 +107,78 @@ module dma_irq_bridge_tb;
         bm1=1;bmem=1;brd=1;tick();tick();
     endtask
     task automatic return_interrupt;opcode(8'hed);opcode(8'h4d);endtask
+    task automatic serial_put(input logic [1:0] port,input logic [7:0] value);
+        @(negedge clk);#1;sio_address=port;sio_din=value;sio_cs=1;sio_wr_n=0;
+        repeat(3) ctick();@(negedge clk);#1;sio_cs=0;sio_wr_n=1;ctick();
+        assert(!sio_bad) else $fatal(1,"unsupported serial configuration");
+    endtask
+    task automatic serial_reg(input logic ch,input logic [7:0] index,value);
+        serial_put({ch,1'b1},index);serial_put({ch,1'b1},value);
+    endtask
+    task automatic configure_serial;
+        for(integer ch=0;ch<2;ch++) begin
+            serial_reg(1'(ch),4,8'h44);serial_reg(1'(ch),3,8'hc1);
+            serial_reg(1'(ch),1,ch==1 ? 8'h14 : 8'h10);
+        end
+        serial_reg(1,2,8'he0);
+    endtask
+    task automatic receive_serial(input logic ch,input logic [7:0] value);
+        @(negedge clk);#1;sio_rxd[ch]=0;repeat(16) ctick();
+        for(integer bitno=0;bitno<8;bitno++) begin
+            sio_rxd[ch]=value[bitno];repeat(16) ctick();
+        end
+        sio_rxd[ch]=1;repeat(20) ctick();
+    endtask
+    task automatic read_serial(input logic ch,input logic [7:0] expected);
+        @(negedge clk);#1;sio_address={ch,1'b0};sio_cs=1;sio_rd_n=0;
+        repeat(3) begin ctick();assert(sio_dout==expected)
+            else $fatal(1,"serial FIFO byte %h expected %h",sio_dout,expected);end
+        @(negedge clk);#1;sio_cs=0;sio_rd_n=1;ctick();
+    endtask
+    task automatic connected_serial_matrix;
+        integer before_dr,before_cr,before_sa,before_sr;
+        keyboard_irq=1;keyboard_vector=8'hb0;
+        reset=1;repeat(4) ctick();reset=0;repeat(4) ctick();
+        configure_serial();cw(0,8'ha0);cw(0,8'hd5);cw(0,1);
+        before_dr=dr;before_cr=cr;before_sa=sio_acks;before_sr=sio_returns;
+        // Actual counter, completion IRQ and serial FIFO sources, no forced IUS.
+        trigger_ctc(0);ack(8'ha0,1);
+        configure_dma();put(8'h87);wait(dma_irq);ack(8'hc4,0);put(8'h8b);
+        receive_serial(1,8'hb6);ack(8'he4,3);read_serial(1,8'hb6);
+        receive_serial(0,8'ha5);ack(8'hec,3);read_serial(0,8'ha5);
+        assert(sio_service && irq_in_service && ctc.in_service[0] && !irq)
+            else $fatal(1,"real four-level service stack missing");
+        upstream_iei=0;return_interrupt();
+        assert(sio_service && irq_in_service && ctc.in_service[0] &&
+            sio_returns==before_sr+1 && dr==before_dr && cr==before_cr)
+            else $fatal(1,"real A RETI released lower service");
+        return_interrupt();
+        assert(!sio_service && irq_in_service && ctc.in_service[0] &&
+            sio_returns==before_sr+2 && dr==before_dr && cr==before_cr)
+            else $fatal(1,"real B RETI released lower service");
+        // Unacknowledged real FIFO pending cannot impersonate SIO IUS.
+        receive_serial(0,8'h3c);return_interrupt();
+        assert(!irq_in_service && ctc.in_service[0] && dr==before_dr+1 && cr==before_cr)
+            else $fatal(1,"real pending SIO stole DMA return");
+        read_serial(0,8'h3c);return_interrupt();
+        assert(ctc.in_service==0 && cr==before_cr+1 && sio_acks==before_sa+2)
+            else $fatal(1,"real downstream CTC return/count");
+        upstream_iei=1;tick();ack(8'hb0,2);keyboard_irq=0;
+        // Real B service held across stopped enables and global reset.
+        receive_serial(1,8'h69);bm1=0;bio=0;tick();
+        assert(sio_service && ack_vector==8'he4) else $fatal(1,"real B reset ACK entry");
+        pause_ce=1;keyboard_irq=1;reset=1;tick();reset=0;
+        repeat(20) begin
+            tick();assert(!sio_service && !irq_in_service && ctc.in_service==0 &&
+                !sio_ack && !dma_ack && !ctc_ack && !keyboard_ack)
+                else $fatal(1,"real stopped-CE reset replay/service");
+        end
+        bm1=1;bio=1;tick();ack(8'hb0,2);keyboard_irq=0;pause_ce=0;
+        configure_serial();receive_serial(0,8'h96);ack(8'hec,3);read_serial(0,8'h96);
+        return_interrupt();assert(!sio_service && !irq && !sio_bad)
+            else $fatal(1,"real fresh serial recovery");
+        $display("PASS real SIO/DMA/CTC chain CE=%0d: nested FIFO/completion/counter service, isolated RETI, pending-vs-IUS, stopped-CE reset quarantine and fresh bytes",period);
+    endtask
     task automatic reset_service_matrix;
         integer before_ctc;
         // Raw reset forgets service, but an already-held CPU ACK is not a
@@ -172,6 +272,7 @@ module dma_irq_bridge_tb;
         assert(!irq && !irq_pending && !irq_in_service && ctc.in_service==0)
             else $fatal(1,"bridge/device reset service");
         reset_service_matrix();
+        if(SIO_CHAIN) connected_serial_matrix();
         $display("PASS connected DMA/CTC bridge CE=%0d: priority/retained pending/held ACK/AF/nested isolated RETI/CTC internal nesting/keyboard/invalid ACK/reset quarantine/A3/C3/upstream-low RETI",period);
         $finish;
     end

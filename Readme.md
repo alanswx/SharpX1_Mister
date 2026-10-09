@@ -30,8 +30,10 @@ address/control checks and real Z80 neighboring-port/DAM/enable isolation,
 alongside the existing CPU IRQ/flow/reset diagnostics. It is not yet connected
 to the shared machine or a hardware profile.
 The new [SIO interrupt-chain bridge](docs/SIO_CHAIN_STATUS.md) checks nested
-service ownership and stable ACK vectors with the real SIO priority engine;
-combined real-device/CPU and shared-machine integration remain open.
+service ownership and stable ACK vectors. A new actual-CPU/real-SIO/DMA/CTC
+fixture passes nested IM2, received bytes, DMA payload and retained-program
+reset/reboot at three enable divisors. Shared-machine/native timing and
+hardware integration remain open.
 The [CZ-851 selector audit](docs/SIO_MACHINE_WIRING_AUDIT.md) now adds verified
 DTRB polarity/source switching and documents the differing CZ-880 drawing;
 CZ-851 CTC1-to-A-alternate and CTC2-to-B routes are now traced and tested with

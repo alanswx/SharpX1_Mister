@@ -80,3 +80,71 @@ Source SHA-256:
 
 The asset-free hosted workflow selects the new target; a hosted result is
 not claimed here. No private media, firmware, screenshots or state was added.
+
+## Connected real-device and actual-CPU follow-up
+
+Two subsequent original, asset-free fixtures use the same bridge and actual
+`x1_sio_interrupt`, `x1_dma(COMPLETION_IRQ=1)` and `x1_ctc`. They do not change
+machine RTL, default profiles, snapshot format or any fitted RBF.
+
+`test-sio-device-chain` opts the existing `dma_irq_bridge_tb.sv` into
+`SIO_CHAIN=1`. All original DMA/CTC assertions remain in that run, followed by
+actual A/B receive-pin frames (`B6`, `A5`), nested FIFO/completion/counter
+service, low-IEI isolated returns, unacknowledged FIFO pending vs DMA IUS,
+and stopped-CE global reset during a held B ACK. Fresh `96` reception/read/RETI
+passes after reprogramming the reset devices. Baseline `SIO_CHAIN=0` also
+passes separately. CPU bus phases in this fixture are task-generated.
+
+`test-sio-chain-cpu` uses the actual `cpu.v`/TV80 instead. An original RAM
+program configures all three devices through real OUT instructions at the
+conservative SIO ports, DMA `1F80` and CTC `1FA0`. No DUT registers, PC or
+service bits are forced. The generated IM2 table dispatches vectors
+`A0 → C4 → E4 → EC`: CTC channel 0, DMA completion, B RX, then higher A RX.
+Each handler saves/restores AF/BC. Real IN instructions store `B6` and `A5`;
+the actual DMA owns the CPU bus via BUSRQ/BUSACK and copies four bytes
+`31..34` from diagnostic RAM `8000..8003` to `9000..9003`. Exact reads/writes,
+payload, stable held vectors, all four ACKs/owned RETIs and empty final
+service stacks are asserted. A fixture-only `FFF0` host-release input holds
+lower handlers so nesting is deterministic; it is not proposed machine I/O.
+
+The `+RESET_NESTED` execution waits until A returns, while B, DMA and CTC
+remain serviced and the **DMA bus is drained**, then holds CPU/all devices in
+reset for eight SYS edges with CE stopped. Twenty stopped-CE release edges
+must not replay IRQ/ACK/service. Without program or RAM reload, the actual CPU
+reboots and repeats the entire nested program with fresh serial frames and
+DMA bus transfers. This is one concurrent-service reset phase, not a held
+CPU ACK reset or an owned-DMA-pair drain replacement. `+BAD_IUS` is a
+fixture-only disconnected SIO service input: unchanged CPU ownership
+assertions must fail at its first real SIO RETI, at every CE divisor.
+
+Executed command (Verilator 5.044, exit zero):
+
+```sh
+make -C verilator test-sio-chain-cpu test-sio-device-chain \
+  test-dma-irq-bridge test-sio-irq-bridge HEADLESS_DIR=obj_dir_v14_sio_devices
+```
+
+`/tmp/x1-sio-real-chain-final.log` records 23 PASS reports: six successful CPU
+executions (ordinary/reset at CE=1/4/7), three required wrong-owner failures,
+the two device profiles and earlier standalone bridge controls. The only
+reported build warning is inherited TV80 `DIRSET`; no new width suppression
+was added. SYS is 10 ns, not an X1 physical-frequency/pin-phase qualification;
+RX bits each use sixteen enabled events. The CPU fixture uses eight initial
+enabled reset edges; the device fixture retains four initial reset and four
+post-reset enabled edges. The initial CPU log failed because DMA's intentionally unsupported
+unprogrammed state was checked before the generated configuration; the final
+check, as in existing DMA CPU fixtures, requires supported configuration once
+the actual DMA is loaded. Valid-transfer, payload and ownership assertions
+remain unchanged. Nested handlers were also made register-preserving before
+qualification; early logs are retained, not substituted as passing evidence.
+
+| Source/artifact | SHA-256 |
+|---|---|
+| `verilator/tests/sio_chain_cpu_tb.sv` | `24b045219c3e3152eb37929e4336e503e8e6f5ff8f7144e954305bba24b73bdc` |
+| `verilator/tests/dma_irq_bridge_tb.sv` | `bf21f2157ba94d216d40707d813efcf128c5a83f6136660c4f4eb5eb67c80cd5` |
+| `obj_dir_v14_sio_devices/sio-chain-cpu/Vsio_chain_cpu_tb` | `3fa4445ddf363e2d5350750ff9231e50c0cb6c9029b8638e6779d928a2eb603f` |
+
+Both targets are selected by hosted CI; a hosted result remains unclaimed.
+Next gates are default-off shared-machine integration, additional concurrent
+reset/Ready/serial modes, native clocks/pin CDC, snapshot and FPGA/native
+software acceptance. This does not complete work groups 1–6 or Turbo Z.
