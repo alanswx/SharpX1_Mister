@@ -70,7 +70,8 @@ not a hardware-qualified candidate. Timing and hardware gates are tracked separa
 The [palette ownership reset correction](docs/TURBO_Z_OWNER_RESET_STATUS.md)
 now gives the experimental X3 owner independent two-edge reset releases;
 stopped-clock/connected-RAM tests and all six fresh custom/warm pixel cases pass,
-while the new fit and full baseline gates remain open.
+The fresh full baseline suite and snapshot checks also pass. The new fit
+completes but fails setup/recovery/hold timing; native/physical acceptance remains open.
 The [summary table](docs/CHIP_IMPLEMENTATION_TABLE.md) and
 [chip reuse survey](docs/CHIP_REUSE.md) describe available replacement sources
 and the remaining integration work.

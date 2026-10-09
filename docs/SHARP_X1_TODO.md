@@ -66,7 +66,12 @@ The subsequent [ownership reset correction](TURBO_Z_OWNER_RESET_STATUS.md)
 removes cross-domain reset-release feedback and passes three-clock connected
 RAM/stopped-clock tests, including a failing raw-release control. All six fresh
 custom/warm combined pixel cases also pass, with exact PPM and frozen-input checks.
-The new fit, full baseline and timing acceptance remain pending.
+The new fit completes but eight-corner timing fails setup/recovery/hold.
+The scoped mux probe preserves same-clock HDMI and both SYS/VID CDC failures;
+the hold path is a held video-measurement snapshot bundle. Production constraint
+review and native/physical acceptance remain open. The fresh full delay-aware
+baseline finishes zero (140 PASS reports); fresh ordinary snapshots pass,
+and both ordinary runners are byte-identical to their previously qualified v17 builds.
 The [Turbo Z in-flight control reset test](TURBO_Z_INFLIGHT_RESET_STATUS.md)
 passes at three independent video rates, including a deliberately failing
 asynchronous-reset-removal control. Exact reset frames, pending palette/

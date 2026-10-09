@@ -6,6 +6,11 @@ October 9, 2026. New default-off `sharpx1_turbo_z_video.qsf` inherits
 independent X3 video and no single-clock mode. It does not advertise a native
 Turbo Z machine identity or complete CZ-880 behavior.
 
+The later [destination-local ownership reset refit](TURBO_Z_OWNER_RESET_STATUS.md)
+also completes, with six fresh pixel passes, but still fails eight-corner
+setup/recovery/hold. Its current RBF/path/probe identities are recorded there;
+the following first-fit evidence remains source-bound history.
+
 The shared machine enables external palette CPU access/video, multi-mode
 fetch/shifting, internal-eight palette and text/priority CPU/composition
 together. Existing board revisions remain unchanged. SYS is requested at

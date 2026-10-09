@@ -51,7 +51,7 @@ wrapper checks, not new exact palette pixels or FPGA timing closure.
 | Shared machine | `060d753fe9e82c292e013a4ab902fc3612c4dea79ab787ab2caabb84c57be578` |
 | Directed reset fixture | `56d53f4150484a805fedff009532a0554d39dc7b96f917932da9f027f92fe2bc` |
 
-## Fresh combined pixel acceptance / pending fit and baseline
+## Fresh combined pixel and ordinary baseline acceptance
 
 The new delay-aware combined C++ runner builds successfully. Six unchanged
 full-duration custom/warm pixel cases finish zero from a newly frozen runner
@@ -72,24 +72,68 @@ build and `test_timing.py` finish zero, including reset/enable/delayed-event,
 repeatability and FST checks (`/tmp/x1-z-owner-baseline-timing.log`).
 `test-reset-release test-turbo-pcg-access` also finishes zero
 (`/tmp/x1-z-owner-pcg-reset.log`), including 16,395 high-speed CDC transactions.
-These focused checks do not establish full baseline/game/snapshot acceptance.
-The full ordinary delay-aware suite is now running separately
-(`/tmp/x1-z-owner-baseline-full.log`), with no completion claim yet.
+The full ordinary delay-aware suite now finishes zero with 140 PASS reports
+(`make -C verilator test HEADLESS_DIR=obj_dir_headless/z-owner-baseline`,
+`/tmp/x1-z-owner-baseline-full.log`). Final executable hash matches its initial
+identity. This does not establish optional-Z/native Turbo/hardware acceptance.
 
-A source-bound Quartus flow is now confirmed live on `misterubuntu`:
+The separately rebuilt ordinary fast/SDL/savable runner also finishes zero,
+and `test_snapshot.py` passes continuation/RAM/clock phase, old-v16/time/
+truncation negatives, clock mismatch and joystick persistence/override/live
+SDL checks (`/tmp/x1-z-owner-snapshot.log`). Fresh ordinary binaries are
+byte-identical to the previously fully qualified v17 runners:
+
+| Ordinary runner | Fresh SHA-256 (matches prior v17) |
+|---|---|
+| Delay-aware | `166bf9129b272ce03b8d6c2d2d72ebf157627705fab59f569060a4c79cbd14e1` |
+| Fast/SDL/savable | `73181a8f87e1194a8899bb2801263548ecb5c926ef7d8f78a87cb5983648c06f` |
+
+This supports isolation of the opt-in ownership change from ordinary models.
+The [prior full suites and five-game evidence](BASELINE_V17_STATUS.md) remain
+valid for these identical executables/unchanged inputs, but are not new runs,
+not enabled-Z/native Turbo evidence and not qualification of a new RBF.
+
+A source-bound Quartus flow completes on `misterubuntu`:
 source `c05edb03a6ea587e3ca9e23600872a2e9bb40a65`, revision
 `sharpx1_turbo_z_video`, frozen build folder
 `/home/alans/mister/SharpX1_Mister/output_files/quartus-linux-nyZrupn1`,
 observation log `/tmp/x1-quartus-c05edb0-z-owner-build.log`. The checkout was
-clean and the host idle before fast-forward/build; actual `quartus_sh` and
-`quartus_map` processes are observed. It must finish before supplemental STA,
-input/report/RBF audits or any timing claim. No hardware is contacted/loaded.
-This change does not
-fix the same-clock HDMI routing failure or constrain bundled-data transfers.
-Destination-local reset recovery, first-stage synchronizers, all corners and
-native/physical reset acceptance still require source-bound timing review.
+clean and the host idle before fast-forward/build. Full flow exit zero at
+15:29:09 UTC, elapsed 9:24, does **not** mean timing passed. Local initial
+artifacts are under `output_files/quartus-linux-nyZrupn1/completed-flow/`.
+Input audit: 379 files match; only Quartus-rewritten QPF fails its hash. No
+hardware is contacted/loaded. Final fit: 21,055 ALMs, 33,304 registers,
+3,192,734 RAM bits, 400 M10Ks, 32 DSPs and four PLLs on 5CSEBA6U23I7.
 
-## Prepared reporting-only mux probe (not executed yet)
+Eight-corner STA finishes zero but fails setup/recovery/**hold**:
+global minima −14.883/−9.870/−0.143 ns respectively; removal/pulse minima
+remain +0.397/+0.529 ns. Unconstrained I/O remains three inputs / seven paths
+and 44 outputs / 50 paths. Actual RBF SHA-256
+`3e078fdbc6e0940d0b4f14f740cf0644d181ca9a9e9e589b5081934d4129e5bf`,
+local `output_files/quartus-linux-nyZrupn1/completed-flow/sharpx1_turbo_z_video.rbf`.
+It is **unqualified**, not a replacement timing-passing Turbo Z build.
+
+Detailed Slow 1100 mV / 100 C reports give same-clock setup margins
+SYS +6.774 ns, VID +9.744 ns, HDMI **−2.240 ns**; same-clock recovery
+SYS +10.462 ns, VID +15.538 ns, HDMI +3.952 ns. Remaining worst recovery
+paths now terminate at video reset-release pipelines, not raw palette
+ownership registers or video release feeding CPU ownership. This is the
+expected structural correction, not permission to ignore asynchronous-reset
+recovery or claim all-corner same-clock closure. PCG setup remains negative.
+
+The Fast 1100 mV / −40 C hold sidecar identifies the −0.143 ns path as
+`video_calc`'s `dimensions_to_sys` snapshot `held_data[67]` →
+`destination_data[67]` (VID → SYS). It is a handshake-held bundle, not a
+same-clock HDMI hold failure. Proper bounded payload and synchronizer
+constraints still need protocol review and fitted checks; do not blanket
+false-path the bus. Log `/tmp/x1-quartus-c05edb0-z-fast-hold.log`, terminal zero.
+The reporting-only helper's optional `fast-hold` mode explicitly selects
+Fast 1100 mV / −40 C; unsupported analysis names fail. Current helper SHA-256
+`74786bee41a1ab816d1329dbf3a8ba73e44162d060eb482da999f847b10b8713`.
+Its unchanged default report branch is re-executed on this fit and also
+finishes zero with no warnings (`/tmp/x1-quartus-c05edb0-z-final-default-paths.log`).
+
+## Executed reporting-only mux probe
 
 `scripts/quartus_hdmi_mux_probe.tcl` creates two divide-by-one generated clock
 aliases only at `hdmi_clk_sw|outclk`, with explicit HDMI/video masters and
@@ -103,6 +147,21 @@ The [Quartus 17 generated-clock API](https://resources.altera.com/quartushelp/17
 documents explicit masters and `-add` for multiple clocks at a node; the
 [clock-group API](https://resources.altera.com/quartushelp/17.0/tafs/tafs/tcl_pkg_sdc_ver_1.5_cmd_set_clock_groups.htm)
 supports logically exclusive groups. This supports the proposed syntax and
-scope, not proof of constraint coverage. Native execution must wait for the
-active full flow to finish. It must retain the same-clock HDMI failure and
-show remaining master CDC paths before any candidate production constraint.
+scope, not proof of constraint coverage. Native 17.0.2 execution starts only
+after the flow is terminal and host idle. Initial and expanded probes both
+finish zero. Expanded script SHA-256
+`6e305e437b58d156e25cfd3f5c6a7f2c606cd5bb2344f0e62ff6572874b398fa`,
+log `/tmp/x1-quartus-c05edb0-z-mux-cdc.log`, local reports in
+`output_files/quartus-linux-nyZrupn1/mux-cdc/`.
+
+The aliases retain the real same-HDMI-clock failure: −2.250 ns, versus
+−2.240 ns before alias uncertainty rederivation. Both CPU/VID directions
+remain visible with unchanged extrema before/after: SYS → VID −11.209 ns,
+VID → SYS −9.325 ns. Original HDMI → original VID reports no remaining paths
+after separating the mux output; this does **not** prove other crossings safe.
+Global setup remains −12.391 ns, including alias-HDMI VS → system sampling
+and original HDMI scaler data → video-selected mux registers. Video-selected
+same-mux setup is +14.098 ns at this one corner. The probe has not been added
+to project SDC/QSF and does not change the RBF. Clock alternatives, data
+selection, CDC synchronizers and bounded transfers still need a production
+constraint audit and refit; merely grouping aliases does not repair this fit.

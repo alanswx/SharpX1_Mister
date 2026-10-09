@@ -16,10 +16,11 @@ read_sdc
 update_timing_netlist
 set hdmi [get_clocks {pll_hdmi|pll_hdmi_inst|altera_pll_i|*|divclk}]
 set video [get_clocks {*|turbo_video_pll|*|divclk}]
+set system [get_clocks {*|pll|pll_inst|altera_pll_i|*|divclk}]
 set mux [get_pins -compatibility_mode {hdmi_clk_sw|outclk}]
 set hdmi_input [get_pins -compatibility_mode {hdmi_clk_sw|inclk[2]}]
 set video_input [get_pins -compatibility_mode {hdmi_clk_sw|inclk[3]}]
-foreach {label collection} [list hdmi $hdmi video $video mux $mux hdmi_input $hdmi_input video_input $video_input] {
+foreach {label collection} [list hdmi $hdmi video $video system $system mux $mux hdmi_input $hdmi_input video_input $video_input] {
     if {[get_collection_size $collection] != 1} {
         error "expected exactly one $label object; refuse empty/ambiguous constraint"
     }
@@ -27,6 +28,8 @@ foreach {label collection} [list hdmi $hdmi video $video mux $mux hdmi_input $hd
 set prefix output_files/${revision}_mux_probe
 report_timing -setup -from_clock $hdmi -to_clock $hdmi -npaths 30 -detail full_path -file ${prefix}_before_hdmi_same.rpt
 report_timing -setup -from_clock $hdmi -to_clock $video -npaths 30 -detail full_path -file ${prefix}_before_cross.rpt
+report_timing -setup -from_clock $system -to_clock $video -npaths 30 -detail full_path -file ${prefix}_before_system_video.rpt
+report_timing -setup -from_clock $video -to_clock $system -npaths 30 -detail full_path -file ${prefix}_before_video_system.rpt
 
 # The two PLLs run concurrently. Only their alternatives at the shared
 # hdmi_tx_clk mux output are mutually exclusive; never exclude the original
@@ -43,6 +46,8 @@ report_timing -setup -from_clock [get_clocks x1_probe_video_mux] -to_clock [get_
 # Master-clock crossings outside the mux must remain visible, not become
 # accidentally excluded by the alias groups.
 report_timing -setup -from_clock $hdmi -to_clock $video -npaths 30 -detail full_path -file ${prefix}_after_master_cross.rpt
+report_timing -setup -from_clock $system -to_clock $video -npaths 30 -detail full_path -file ${prefix}_after_system_video.rpt
+report_timing -setup -from_clock $video -to_clock $system -npaths 30 -detail full_path -file ${prefix}_after_video_system.rpt
 report_timing -setup -npaths 30 -detail full_path -file ${prefix}_after_global.rpt
 delete_timing_netlist
 project_close
