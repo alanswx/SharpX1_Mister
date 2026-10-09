@@ -45,3 +45,19 @@ foreach field {response cpu_q} {
     }
 }
 puts "PASS: PCG response candidate exact eight-bit inventory; 12 negative cases refuse all constraints"
+set response $valid_response
+set cpu_q $valid_cpu_q
+foreach bit {0 3} {lappend cpu_q "[lindex $valid_cpu_q $bit]~DUPLICATE"}
+set applied {}
+if {[catch {source $candidate} message] || [llength $applied]!=2 ||
+    [lindex [lindex $applied 0] 4] ne $cpu_q} {
+    error "CPU replicas did not all receive the response bound: $message"
+}
+foreach invalid [list "[lindex $valid_cpu_q 0]~DUPLICATE" \
+    "[lindex $valid_cpu_q 1]~DUPLICATE2" {bad|cpu_q[8]~DUPLICATE} \
+    "[lindex $valid_response 0]~DUPLICATE"] {
+    set cpu_q [concat $valid_cpu_q [list "[lindex $valid_cpu_q 0]~DUPLICATE" $invalid]]
+    set applied {}
+    if {![catch {source $candidate}] || [llength $applied]} {error "invalid replica accepted: $invalid"}
+}
+puts "PASS: all CPU replica endpoints bounded; four invalid replica inventories reject every constraint"

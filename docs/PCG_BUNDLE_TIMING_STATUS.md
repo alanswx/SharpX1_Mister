@@ -269,6 +269,45 @@ Executed revised request SDC SHA-256
 inventory helper SHA-256
 `d4f2cbe80d3cec09e1432ecf29862dc9cb434e857d626eda245d712dc819e344`.
 
+### Corrected fit completes; response replicas stop final STA
+
+The `3dc37274ca56cdcd6264922dc6ceb9cb93fb583d` flow in
+`quartus-linux-LWmGXN2m` fits successfully (zero fitter errors, eleven
+warnings), then final STA rejects `cpu_q[0]~DUPLICATE`. Full flow ends
+**exit 3**, 16:48:14 UTC, elapsed 8:19; log
+`/tmp/x1-quartus-3dc3727-pcg-build.log`. The strict gate is not silently skipped.
+Initial partially loaded STA reports still fail setup/hold/recovery, and
+must not qualify any bus or complete project timing. Original manifest,
+reports, input audit and RBF are preserved under ignored
+`output_files/quartus-linux-LWmGXN2m/completed-fitter/`. The generated RBF
+`21612f4cad108978e11efa257a5c433794dcff54c8cdf7b7fca68ae61c5bde13`
+is **unqualified**, never loaded. Input audit: 382 matching files, only the
+Quartus-rewritten QPF mismatch; frozen RTL/SDCs are unchanged.
+
+The fitter's router-duplication table explicitly associates `cpu_q[0/3]`
+with same-bit `~DUPLICATE` captures. Native fitted inventory without SDC
+reports eight response bits, ten CPU capture registers, four stage registers,
+four frozen-address and twelve font-address registers. The revised response
+guard requires eight primary bits and includes at most one exactly named
+CPU `~DUPLICATE` replica per bit. Missing primaries, duplicate replicas,
+wrong field/bit/suffix and unchecked source replicas fail before bounds.
+Every accepted CPU replica receives the same bounded response bus timing.
+
+Native inventory/exception-syntax checks on the completed fit finish zero,
+no warnings (`/tmp/x1-quartus-3dc3727-replica-inventory.log`), including the
+strengthened request classifier. Unknown RAM data/WE suffixes now fail rather
+than being skipped during name classification. Mocked tests pass 52 request
+negative inventories and the response's twelve original/four extra replica
+negatives (`/tmp/x1-pcg-replica-tests.log`). These native checks do not load
+clocks or qualify physical timing; full source-bound refit/all corners remain
+required. No machine RTL change or hardware/native-software claim.
+
+| Revised artifact | SHA-256 |
+|---|---|
+| Replica-aware response SDC | `c7febd679ea944e88c314d6f5947eee44780511ca0b4e2240d51cfb71dcc6aba` |
+| Unknown-RAM-alias rejecting request SDC | `b2d5aa5752b13febd99284e835acd445420fe24196980f12fbc459bb686c2bbe` |
+| Fitted inventory/syntax helper | `6db2a0b73edede738f89137d5fa87e3e506415c5d7b11825c0120ebd9e5126a3` |
+
 Audit source payload paths into RAM data/write controls, selected addresses
 and response selection separately; response-to-CPU is a distinct held bus.
 First-stage request/ACK synchronizers require their own treatment, with the

@@ -13,6 +13,14 @@ set x1_req_we_names {}
 set x1_req_data_names {}
 foreach_in_collection x1_req_reg $x1_req_ram {
     set x1_req_name [get_register_info -name $x1_req_reg]
+    if {[regexp {~porta_we_reg} $x1_req_name] &&
+        ![regexp {~porta_we_reg$} $x1_req_name]} {
+        error "unrecognized PCG write-enable alias: $x1_req_name"
+    }
+    if {[regexp {~(PORT_A_DATA_IN_|porta_datain_reg)} $x1_req_name] &&
+        ![regexp {~(PORT_A_DATA_IN_[0-9]+|porta_datain_reg[0-9]+)$} $x1_req_name]} {
+        error "unrecognized PCG data alias: $x1_req_name"
+    }
     if {[regexp {~porta_we_reg$} $x1_req_name]} {lappend x1_req_we_names $x1_req_name}
     if {[regexp {~(PORT_A_DATA_IN_[0-9]+|porta_datain_reg[0-9]+)$} $x1_req_name]} {
         lappend x1_req_data_names $x1_req_name

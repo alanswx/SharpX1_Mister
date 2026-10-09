@@ -61,13 +61,18 @@ foreach profile {fitted mapped} {
         }
     }
 foreach group [array names profile_valid] {
-    foreach mode {valid missing duplicate extra wrong_identity} {
+    set modes {valid missing duplicate extra wrong_identity}
+    if {$group eq "data_dest"} {lappend modes unclassified_data_alias}
+    if {$group eq "control_dest"} {lappend modes unclassified_we_alias}
+    foreach mode $modes {
         array set groups [array get profile_valid]
         switch $mode {
             missing {set groups($group) [lrange $groups($group) 1 end]}
             duplicate {lset groups($group) 0 [lindex $groups($group) 1]}
             extra {lappend groups($group) [lindex $groups($group) 0]}
             wrong_identity {lset groups($group) 0 {wrong|unexpected[0]}}
+            unclassified_data_alias {lappend groups($group) {emu|x1_video_ram:pcg_b|extra~PORT_A_DATA_IN_0~DUPLICATE}}
+            unclassified_we_alias {lappend groups($group) {emu|x1_video_ram:pcg_b|extra~porta_we_reg~DUPLICATE}}
         }
         set applied {}
         set failed [catch {source $candidate} message]
@@ -81,4 +86,4 @@ foreach group [array names profile_valid] {
     }
 }
 }
-puts "PASS: mapped/fitted request bounds; 48 invalid inventories refuse all constraints"
+puts "PASS: mapped/fitted request bounds; 52 invalid inventories refuse all constraints, including unclassified aliases"
