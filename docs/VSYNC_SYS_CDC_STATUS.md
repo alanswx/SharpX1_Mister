@@ -215,3 +215,20 @@ The selected file changes the probe's header comment only; the executed probe
 hash above binds the actual experiment, not the newly selected file hash.
 Fresh selected-QSF fitting, all-corner audits and physical/native gates remain
 required; no new qualified RBF follows from the reporting probe.
+
+## Selected-scope fresh flow (in flight)
+
+Source `caf15d36be941aa2a75710d27f3321a24d9ce64a` is pushed to alanswx and
+starts a frozen full flow on the idle authorized host, folder
+`output_files/quartus-linux-NvYV9Nk3`, local observation log
+`/tmp/x1-quartus-caf15d3-vsync-selected-build.log`. Build completion, fresh
+native inventories and all-corner paths are not yet claimed.
+
+For the selected fit, `audit_vsync_sys_reports.py --input-excluded` explicitly
+requires sixteen valid excluded-input reports while retaining all 80 positive
+synchronous rows and exact consumer scope. Unflagged empty input reports or
+flagged still-active input reports fail; its two mode-mismatch controls pass.
+This flag reports an exclusion, not physical input acceptance or proof of
+the source/pin inventory. The actual native inventory and source-bound SDC
+must be audited independently. Do not rerun the optional before/after probe
+on an already-selected fit and call its baseline unexcluded.

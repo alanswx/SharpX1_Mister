@@ -42,6 +42,11 @@ Emitter SHA-256 `1e03a9ecd39af3f049ef924db059c5bd5827c10879e479a593181da51700911
 matrix wrapper at launch `5b6f1b1c222beac6758f107ee60048cea9810851513e657be6f3edecc6775fc2`.
 No private ROM/font/game or native Z software is used. Full completion,
 native ASIC/firmware and FPGA/physical gates remain separate and open.
+The live journal now records ten completed cases (both full-graphics banks
+across identity/custom cold/warm, followed by dual64 bank-zero identity cold/
+warm). The eleventh, dual64 custom cold, is in flight. This is partial
+execution, not 120-case acceptance; `completed.json` and case logs are the
+authoritative incremental record.
 
 Example (new output directory only):
 

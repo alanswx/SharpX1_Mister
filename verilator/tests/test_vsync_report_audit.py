@@ -36,6 +36,20 @@ with tempfile.TemporaryDirectory(prefix="x1-vsync-audit-") as temporary:
                 write(valid / f"{prefix}_input_{check}.rpt", [row(RAW, FIRST, c, slack="-40.000") for c in ("x1_hdmi_mux", "x1_video_mux")])
     with contextlib.redirect_stdout(io.StringIO()):
         assert audit(valid, RAW) == (80, .25, 32, -40)
+    selected = root / "selected"
+    shutil.copytree(valid, selected)
+    for file in selected.glob("*_input_*.rpt"):
+        file.write_text("; Report Timing ;\nNothing to report.\n")
+    with contextlib.redirect_stdout(io.StringIO()):
+        assert audit(selected, RAW, input_excluded=True) == (80, .25, 0, None)
+    for directory, flag in ((selected, False), (valid, True)):
+        try:
+            with contextlib.redirect_stdout(io.StringIO()):
+                audit(directory, RAW, input_excluded=flag)
+        except AssertionError:
+            pass
+        else:
+            raise AssertionError("raw-input mode mismatch accepted")
     probe = root / "probe"
     probe.mkdir()
     for file in valid.iterdir():
@@ -120,3 +134,4 @@ with tempfile.TemporaryDirectory(prefix="x1-vsync-audit-") as temporary:
             raise AssertionError(f"negative control passed: {control}")
 print("PASS: VSYNC report parser/scope and 13 rejecting controls; mock only")
 print("PASS: paired-probe preservation/exclusion audit and five rejecting controls; mock only")
+print("PASS: selected raw-exclusion coverage and two mode-mismatch controls; mock only")

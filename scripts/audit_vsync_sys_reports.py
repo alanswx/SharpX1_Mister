@@ -33,7 +33,7 @@ def rows(path, allow_excluded=False):
     return result
 
 
-def audit(directory, raw_source, filename_prefix="sharpx1_turbo_z_video_vsync_sys"):
+def audit(directory, raw_source, filename_prefix="sharpx1_turbo_z_video_vsync_sys", input_excluded=False):
     synchronous = []
     asynchronous = []
     files = 0
@@ -41,7 +41,8 @@ def audit(directory, raw_source, filename_prefix="sharpx1_turbo_z_video_vsync_sy
         for temperature in (-40, 0, 85, 100):
             for check in ("setup", "hold"):
                 prefix = directory / f"{filename_prefix}_{model}_{temperature}"
-                reports = {kind: rows(pathlib.Path(str(prefix) + f"_{kind}_{check}.rpt"))
+                reports = {kind: rows(pathlib.Path(str(prefix) + f"_{kind}_{check}.rpt"),
+                                      allow_excluded=input_excluded and kind == "input")
                            for kind in ("input", "chain", "first_fanout", "consumer")}
                 files += 4
                 for kind in ("chain", "first_fanout"):
@@ -59,21 +60,28 @@ def audit(directory, raw_source, filename_prefix="sharpx1_turbo_z_video_vsync_sy
                         assert 0 <= float(r[7]) < 31.25, "physical synchronous data delay out of period"
                         synchronous.append(float(r[0]))
                 inputs = reports["input"]
+                if input_excluded:
+                    assert inputs == [], "selected raw-input exclusion did not bind"
+                    continue
                 assert len(inputs) == 2 and {r[3] for r in inputs} == {"x1_hdmi_mux", "x1_video_mux"}, "input alias coverage changed"
                 for r in inputs:
                     assert r[1:3] == [raw_source, FIRST] and r[4] == SYS, "wrong asynchronous endpoint"
                     asynchronous.append(float(r[0]))
     print(f"PASS: {files} VSYNC reports; 80 synchronous rows minimum {min(synchronous):+.3f} ns")
-    print(f"OPEN: 32 asynchronous input rows minimum {min(asynchronous):+.3f} ns; not timing acceptance or an exception")
-    return len(synchronous), min(synchronous), len(asynchronous), min(asynchronous)
+    if input_excluded:
+        print("EXCLUDED: 16 raw input reports, explicitly not physical/timing passes; source/pin scope requires independent native inventory")
+    else:
+        print(f"OPEN: 32 asynchronous input rows minimum {min(asynchronous):+.3f} ns; not timing acceptance or an exception")
+    return len(synchronous), min(synchronous), len(asynchronous), min(asynchronous) if asynchronous else None
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("directory", type=pathlib.Path)
     parser.add_argument("--raw-source", required=True, help="actual native fitted VSYNC source name")
+    parser.add_argument("--input-excluded", action="store_true", help="selected guarded input scope; requires 16 explicitly excluded reports, not passes")
     args = parser.parse_args()
-    audit(args.directory, args.raw_source)
+    audit(args.directory, args.raw_source, input_excluded=args.input_excluded)
 
 
 if __name__ == "__main__":
