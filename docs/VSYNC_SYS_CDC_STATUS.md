@@ -136,7 +136,10 @@ Its next reported path is +0.047 ns. Logs are
 `output_files/quartus-linux-1uPykZZ7/fast-hold-acceptance/`.
 The reporting tool now refuses changed native fanout before any timing
 reports; fourteen invalid stage/fanout inventories reject in its mock test.
-Native rerun of that strengthened guard and an exact input-pin-only before/
-after probe remain next; no exception is selected. No hardware is contacted/
+The strengthened guard's native rerun finishes zero/no warnings at 19:19:32
+UTC (`/tmp/x1-quartus-e32bd69-vsync-guard-acceptance.log`), with separate
+reports in `output_files/quartus-linux-1uPykZZ7/vsync-fanout-acceptance/`.
+An exact input-pin-only before/after probe remains next; no exception is
+selected. No hardware is contacted/
 loaded. Work groups 1–6,
 native/full Turbo Z and physical acceptance remain incomplete.
