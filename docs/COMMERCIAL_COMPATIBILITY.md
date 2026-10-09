@@ -1,5 +1,31 @@
 # Private commercial-game bring-up
 
+## Current v14 qualification: native boots running, not yet accepted
+
+October 9: source `c7c35b2` builds a fresh ordinary fast/savable runner with
+snapshot v14. Its SHA-256 is
+`c03a0de6b0fa08af4fe763cb0ca6a92b7590c9b5b4a10611ce78bc78656a5c86`.
+Fresh Druaga and Xevious native boots have started; Mappy, Galaga and Shanghai
+are queued in the same two-worker batch. No v14 title is counted yet.
+
+The isolated ignored qualification root is
+`verilator/obj_dir_v14_c7c35b2_requalify/frozen-4CLvS6/`. It contains frozen
+copies of the runner, collector, unchanged release-bound gameplay assertions,
+Shanghai cursor-feedback helper, boot/start key sequences and IPL. The
+`frozen-inputs.json` manifest records every support-file hash; the batch checks
+them again after each title. Per-title logs are at the root; native commands,
+states, actual RGB/dumps and gameplay provenance go under `verilator/<title>/`.
+The original authorized D88 files remain protected and release-hash checked.
+
+Each collector uses `--boot-chunk-ms 8000 --timeout 7200`: the host timeout
+does not alter the original simulation/control durations. States are generated
+from real IPL/disk boot, never converted from v13 or populated by game RAM
+injection. Required gates remain movement/repeatability for the four action
+games, Galaga firing, Shanghai cursor/pair removal and unchanged private inputs.
+Only terminal successful provenance will qualify this runner; the five-title
+v13 result below remains historical. Delay-aware gameplay, Turbo/Z native
+software, Arcus/Bastard and current-RBF hardware acceptance are still open.
+
 ## Five-title v13 bounded requalification passes
 
 Source `9748410` starts fresh native Galaga/Mappy boot chains after the
