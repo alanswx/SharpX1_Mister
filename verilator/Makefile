@@ -835,6 +835,16 @@ test-machine-fm-sd-metadata-reset: $(HEADLESS_DIR)/machine-fm-sd-reset/Vdma_mach
 	done; done
 .PHONY: test-machine-fm-sd-metadata-reset
 
+test-machine-cpu-partial-reset: $(HEADLESS_DIR)/cpu-partial-reset/Vdma_machine_sd_reset_tb
+	@for drive in 0 1; do for writing in 0 1; do for pulse in 0 1; do \
+		./$< +DRIVE_B=$$drive +WRITING=$$writing +SHORT_RESET=$$pulse || exit 1; \
+	done; done; done
+$(HEADLESS_DIR)/cpu-partial-reset/Vdma_machine_sd_reset_tb: $(V_SRC) tests/dma_machine_sd_reset_tb.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module dma_machine_sd_reset_tb --Mdir $(@D) \
+		-GCPU_PARTIAL=1 -GFM_ENABLED=1 -j 4 $(V_SRC) tests/dma_machine_sd_reset_tb.sv -Wno-fatal
+.PHONY: test-machine-cpu-partial-reset
+
 test-machine-dma-sd-short-reset: $(HEADLESS_DIR)/dma-machine-sd-reset/Vdma_machine_sd_reset_tb
 	@for drive in 0 1; do for writing in 0 1; do for phase in 0 1; do \
 		./$(HEADLESS_DIR)/dma-machine-sd-reset/Vdma_machine_sd_reset_tb +DRIVE_B=$$drive +WRITING=$$writing +PHASE=$$phase +SHORT_RESET=1 || exit 1; \

@@ -72,6 +72,14 @@ of safe eject/replacement or every scanner/host timing phase.
 
 ## Simulator media preflight
 
+The subsequent [partial CPU-sector reset qualification](CPU_PARTIAL_DISK_RESET_STATUS.md)
+passes eight A/B read/write held/short cases with live FM and the opt-in DMA
+reset guard, but zero DMA transfers. Both whole images remain unchanged before
+retry; the retained IPL completes 256 fresh CPU bytes. This is a 64-byte
+interruption point, not bare-base short-pulse, Ready-loss or physical acceptance.
+
+### Structural preflight
+
 The headless/SDL runner validates D88 before constructing the machine or opening
 an output disk. `d88_image.h` checks volume sizes, track offsets, sector headers,
 counts and payload bounds for every concatenated volume. It distinguishes

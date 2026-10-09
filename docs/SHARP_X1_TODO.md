@@ -49,6 +49,10 @@ payload cases with generated media, alongside sixteen FM-disabled controls.
 Its expanded 48-case metadata/split-header matrix also finishes zero, giving
 64 completed live-FM pending-host cases. Partial payload/Ready loss,
 mixed-service and native/physical gates remain open.
+The [partial CPU disk reset test](CPU_PARTIAL_DISK_RESET_STATUS.md) now passes
+eight A/B read/write held/short cases with live FM: 64 aborted bytes, unchanged
+pre-retry images and 256 fresh CPU bytes. Further byte boundaries, profiles
+without the DMA reset guard, Ready loss and physical/native gates stay open.
 The [Turbo Z in-flight control reset test](TURBO_Z_INFLIGHT_RESET_STATUS.md)
 passes at three independent video rates, including a deliberately failing
 asynchronous-reset-removal control. Exact reset frames, pending palette/

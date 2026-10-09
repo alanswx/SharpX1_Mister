@@ -2,7 +2,7 @@
 // Original CPU program and generated D88, through real loader/SD interfaces.
 // No private assets, forced ownership, register edits or injected Ready.
 `timescale 1ps/1ps
-module dma_machine_sd_reset_tb #(parameter DMA_IRQ = 0, FM_ENABLED = 0);
+module dma_machine_sd_reset_tb #(parameter DMA_IRQ = 0, FM_ENABLED = 0, CPU_PARTIAL = 0);
     reg clk_sys=0, clk_video=0, reset=1, mounted=0;
     always #15625 clk_sys=~clk_sys;
     always #17500 clk_video=~clk_video;
@@ -117,17 +117,32 @@ module dma_machine_sd_reset_tb #(parameter DMA_IRQ = 0, FM_ENABLED = 0);
         emit(8'hed); emit(8'h78); emit(8'he6); emit(mask); emit(8'hfe); emit(expected);
         emit(8'h28); emit(6); store(16'hf101,8'hee); emit(8'h76);
     endtask
+    task automatic cpu_transfer_program;
+        integer loop_address;
+        emit(8'h21);emit(0);emit(writing ? 8'h90 : 8'h91); // HL buffer
+        emit(8'h11);emit(0);emit(1); // DE=256
+        emit(8'h01);emit(8'hf8);emit(8'h0f);
+        loop_address=size;
+        emit(8'hed);emit(8'h78);emit(8'he6);emit(2);
+        emit(8'hca);emit(8'(loop_address));emit(8'(loop_address>>8));
+        emit(8'h0e);emit(8'hfb);
+        if(writing) begin emit(8'h7e);emit(8'hed);emit(8'h79);end
+        else begin emit(8'hed);emit(8'h78);emit(8'h77);end
+        emit(8'h23);emit(8'h1b);emit(8'h7a);emit(8'hb3);
+        emit(8'h0e);emit(8'hf8);
+        emit(8'hc2);emit(8'(loop_address));emit(8'(loop_address>>8));
+    endtask
     task automatic verify_media(input bit fresh_complete);
         reg [7:0] expected_a, expected_b;
         for(integer i=0;i<1536;i++) begin
             expected_a=original_a[i]; expected_b=original_b[i];
-            if(writing && i>=sector_offset+16 && i<sector_offset+272) begin
+            if(writing && (!CPU_PARTIAL || fresh_complete) && i>=sector_offset+16 && i<sector_offset+272) begin
                 if(drive_b) expected_b=expected_b^8'h5c;
                 else expected_a=expected_a^8'h5c;
             end
             // A published metadata write may commit despite reset. An aborted
             // header read must leave both old fields intact until fresh retry.
-            if(writing && ((i==sector_offset+7 && (fresh_complete || capture_stage>=2)) ||
+            if(writing && (!CPU_PARTIAL || fresh_complete) && ((i==sector_offset+7 && (fresh_complete || capture_stage>=2)) ||
                           (i==sector_offset+8 && (fresh_complete || capture_stage==4 ||
                                                   (capture_stage==2 && !split_header))))) begin
                 if(drive_b) expected_b=0;
@@ -141,6 +156,40 @@ module dma_machine_sd_reset_tb #(parameter DMA_IRQ = 0, FM_ENABLED = 0);
     function automatic [7:0] payload(input integer i);
         return 8'((drive_b ? 32'h93 : 32'h21)+i*7);
     endfunction
+    task automatic partial_cpu_reset;
+        wait((writing ? dut.cpu_fdc_data_writes : dut.cpu_fdc_data_reads)==64);
+        wait(dut.machine.iorq); // Complete the actual IN/OUT strobe, not just its observation.
+        assert(dut.machine.fdc.s_busy && !dut.machine.fdc.sd_busy && !sd_wr && !sd_rd &&
+               dut.dma_grants==0 && dut.dma_reads==0 && dut.dma_writes==0)
+            else $fatal(1,"partial CPU reset not in active unpublished sector transfer");
+        if(FM_ENABLED) assert(fm_seen && psg_seen && fm_ct==3 && !dut.machine.fm_irq_n)
+            else $fatal(1,"partial CPU reset lacks live sound/timer");
+        @(negedge clk_sys);reset=1;#2000;
+        if(FM_ENABLED) assert(audio_left==0 && audio_right==0 && audio_mono==0 &&
+            !audio_sample && fm_ct==0 && dut.machine.fm_irq_n)
+            else $fatal(1,"partial CPU reset failed to clear sound");
+        if(short_reset) begin reset=0;assert(dut.machine.core_reset);end
+        repeat(80) begin
+            @(negedge clk_sys);
+            if(!short_reset) assert(!dut.machine.cpu_ce && !dut.machine.fdc.ce);
+            assert((writing ? dut.cpu_fdc_data_writes : dut.cpu_fdc_data_reads)==64 &&
+                   dut.dma_reads==0 && dut.dma_writes==0 && !sd_wr)
+                else $fatal(1,"aborted partial CPU payload progressed/published");
+        end
+        verify_media(0); // Incomplete write must not become a host commit.
+        reset=0;wait(!dut.machine.halt_n);
+        assert(dut.machine.RAM.mem[16'hf100]==2 && dut.machine.RAM.mem[16'hf101]==8'ha5 &&
+               dut.dma_grants==0 && dut.dma_reads==0 && dut.dma_writes==0 &&
+               dut.cpu_fdc_data_reads==(writing ? 0 : 320) &&
+               dut.cpu_fdc_data_writes==(writing ? 320 : 0))
+            else $fatal(1,"partial CPU reboot/payload/count failure entry=%h result=%h reads=%0d writes=%0d",
+                dut.machine.RAM.mem[16'hf100],dut.machine.RAM.mem[16'hf101],
+                dut.cpu_fdc_data_reads,dut.cpu_fdc_data_writes);
+        verify_media(1);
+        if(FM_ENABLED) assert(fm_seen && psg_seen && fm_ct==3 && !dut.machine.fm_irq_n)
+            else $fatal(1,"partial CPU reboot failed to restore sound/timer");
+        $display("PASS partial CPU sector reset drive=%0d write=%0d short=%0d FM=%0d: 64 aborted bytes, unchanged pre-retry media, 256 fresh bytes, retained IPL",drive_b,writing,short_reset,FM_ENABLED);
+    endtask
 
     // Independent host. Reset freezes CPU/FDC enables, not the SD ACK clock.
     initial forever begin : host
@@ -150,7 +199,7 @@ module dma_machine_sd_reset_tb #(parameter DMA_IRQ = 0, FM_ENABLED = 0);
         @(negedge clk_sys);
         request_write=sd_wr; request_drive=host_drive; request_lba=int'(lba);
         assert(request_lba>=0 && request_lba*512<int'(image_size)) else $fatal(1,"out-of-image LBA");
-        this_capture=!captured && !dut.machine.fdc.prepare && dut.machine.fdc.s_busy &&
+        this_capture=!CPU_PARTIAL && !captured && !dut.machine.fdc.prepare && dut.machine.fdc.s_busy &&
             (capture_stage==0 ? (request_write==writing && !dut.machine.fdc.metadata_busy) :
              capture_stage==1 ? (!request_write && dut.machine.fdc.metadata_busy && !dut.machine.fdc.metadata_second) :
              capture_stage==2 ? (request_write && dut.machine.fdc.metadata_inflight && !dut.machine.fdc.metadata_second) :
@@ -226,6 +275,7 @@ module dma_machine_sd_reset_tb #(parameter DMA_IRQ = 0, FM_ENABLED = 0);
         emit(8'h1b); emit(8'h7a); emit(8'hb3); emit(8'hc2);
         emit(8'(poll_at)); emit(8'(poll_at>>8));
         out_port(16'h0ffc,8'h80|8'(drive_b)); poll_fdc(8'h80);
+        if(!CPU_PARTIAL) begin
         dma_byte(8'hc3); dma_byte(writing ? 8'h79 : 8'h7d);
         dma_byte(writing ? 0 : 8'hfb); dma_byte(writing ? 8'h90 : 8'h0f);
         dma_byte(8'hff); dma_byte(0);
@@ -233,15 +283,19 @@ module dma_machine_sd_reset_tb #(parameter DMA_IRQ = 0, FM_ENABLED = 0);
         dma_byte(8'h8d); dma_byte(writing ? 8'hfb : 0); dma_byte(writing ? 8'h0f : 8'h91);
         dma_byte(8'h92); dma_byte(8'hcf);
         if(writing) begin dma_byte(8'h05); dma_byte(8'hcf); end
+        end
         out_port(16'h0ffa,1); out_port(16'h0ff8,writing ? 8'ha0 : 8'h80);
-        dma_byte(8'h87); poll_fdc(1);
-        check_port(16'h0ff8,8'h9c,0); check_port(16'h1f80,8'h20,0);
+        if(CPU_PARTIAL) cpu_transfer_program();else dma_byte(8'h87);
+        poll_fdc(1);check_port(16'h0ff8,8'h9c,0);
+        if(!CPU_PARTIAL) begin
+        check_port(16'h1f80,8'h20,0);
         dma_byte(8'hbb); dma_byte(8'h7e); dma_byte(8'ha7);
         check_port(16'h1f80,8'hff,8'hff); check_port(16'h1f80,8'hff,0);
         check_port(16'h1f80,8'hff,writing ? 0 : 8'hfb);
         check_port(16'h1f80,8'hff,writing ? 8'h91 : 8'h0f);
         check_port(16'h1f80,8'hff,writing ? 8'hfb : 8'hff);
         check_port(16'h1f80,8'hff,writing ? 8'h0f : 8'h91);
+        end
         // Native read validation. Failure halts with EE, never patched away.
         if(!writing) for(integer i=0;i<256;i++) begin
             emit(8'h3a); emit(8'(i)); emit(8'h91); emit(8'hfe); emit(payload(i));
@@ -256,6 +310,7 @@ module dma_machine_sd_reset_tb #(parameter DMA_IRQ = 0, FM_ENABLED = 0);
         end
         download=0; load_write=0; mounted=1;
         repeat(8) @(negedge clk_sys); mounted=0; reset=0;
+        if(CPU_PARTIAL) begin partial_cpu_reset();$finish;end
         wait(captured);
         if(FM_ENABLED) assert(fm_seen && psg_seen && fm_ct==3 && !dut.machine.fm_irq_n)
             else $fatal(1,"pending SD reset did not start with live FM/PSG/timer");
