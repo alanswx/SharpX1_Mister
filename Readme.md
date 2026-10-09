@@ -90,6 +90,11 @@ fail; native/physical acceptance remains open. The
 [reset-input experiment](docs/VIDEO_RESET_TIMING_EXPERIMENT.md) preserves all
 reported stage/downstream paths and is selected only for experimental Z;
 its fresh-fit and physical gates remain open.
+The selected-constraint fresh fit now completes and passes reported PCG,
+snapshot and core release paths at eight corners. Overall setup and scaler
+recovery still fail; the [scaler audit](docs/SCALER_RESET_TIMING_AUDIT.md)
+also identifies excluded raw-input timing coverage. Native/physical gates
+remain open; this is not a timing-qualified Turbo Z RBF.
 The [summary table](docs/CHIP_IMPLEMENTATION_TABLE.md) and
 [chip reuse survey](docs/CHIP_REUSE.md) describe available replacement sources
 and the remaining integration work.

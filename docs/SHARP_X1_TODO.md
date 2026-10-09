@@ -112,6 +112,12 @@ Source inspection identifies three separate single-stage scaler reset releases;
 the [reporting-only scaler audit](SCALER_RESET_TIMING_AUDIT.md) prepares
 eight-corner input/downstream checks without new exceptions. Native execution
 and any framework correction remain open.
+The selected-input `89f8226` fresh flow now completes zero. PCG (nine captures),
+snapshot and reported core release paths pass eight-corner local audits;
+global setup/recovery remain −15.158/−4.881 ns, with hold now +0.059 ns.
+The native scaler audit exposes 32 empty raw-input reports from inherited
+clock groups, not passes. Full CDC/reset/HDMI and native/hardware acceptance
+remain open; see the latest [fresh-fit evidence](VIDEO_RESET_TIMING_EXPERIMENT.md#fresh-selected-constraint-fit).
 The [Turbo Z in-flight control reset test](TURBO_Z_INFLIGHT_RESET_STATUS.md)
 passes at three independent video rates, including a deliberately failing
 asynchronous-reset-removal control. Exact reset frames, pending palette/

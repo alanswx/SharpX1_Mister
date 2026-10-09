@@ -42,3 +42,27 @@ Any necessary inherited-framework change must preserve ordinary revisions
 and address all three scaler domains, not simply hide the reported failure.
 Fresh fit, all-corner checks, reset pulse/placement/MTBF review and physical
 video/memory/reset acceptance remain required.
+
+## Native fresh-fit observation
+
+The reporting tool finishes zero on the preserved `89f8226` fit under native
+Quartus 17.0.2 at 17:34:41 UTC, no new exceptions. All three expected register
+identities match. Local reports are in
+`output_files/quartus-linux-GUPIFiKT/acceptance/`; execution log
+`/tmp/x1-quartus-89f8226-all-acceptance.log`.
+
+All 96 files exist, but only **64 contain timing paths** (384 total rows).
+Input-video raw recovery/removal has one path each per corner; downstream
+input/output/Avalon recovery/removal has 2/14/7 paths respectively per
+corner. Input-video raw recovery minimum is **−4.881 ns** at Slow −40 C.
+The other 32 reports, HDMI/Avalon raw-input recovery/removal, say
+`Nothing to report.` These are not positive timing evidence.
+
+`sys/sys_top.sdc` puts `FPGA_CLK2_50`, HDMI PLL and HPS user clock in separate
+exclusive groups, explaining why those raw crossings are not reported;
+the experimental video PLL is absent from that inherited group pattern.
+Changing the reset RTL alone will not validate the already-excluded raw
+crossings. Next: inventory physical asynchronous reset pins and review those
+specific clock-group effects without pretending that the three single-stage
+releases have the core's two-stage contract. Physical reset qualification and
+any framework correction remain open.
