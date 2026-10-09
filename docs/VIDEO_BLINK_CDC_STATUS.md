@@ -62,7 +62,32 @@ combined-Z run is frozen to the older machine: its results remain historical,
 not current blink qualification. Rerun the combined pixel matrix on the new
 machine. A fresh frozen current-source 120-case run has now started under
 `verilator/obj_dir_headless/z-blink-combined/qualification-dzBGPN/all-120/`,
-log `/tmp/x1-blink-z-combined-all-120.log`; startup is not completion.
+log `/tmp/x1-blink-z-combined-all-120.log`. It terminates at the first profile
+assertion: inherited Verilator `VPATH += ..` links parent `sim_headless.o`,
+whose ordinary C++ flags contradict this generated combined RTL. No pixel case
+is qualified and the failed frozen root/log is preserved. This is a build
+isolation failure, not evidence that the new blink RTL has incorrect pixels.
+
+The experimental Z recipe now forces local object recompilation (`-B`),
+verified by actual compile/link commands and a short actual-runner JSON check.
+The new runner has all seven combined/delay-aware feature flags and
+32/42,954,540 MHz clocks. SHA-256:
+`1480640e5a556854cccb0339637e5dd822abde6782592d7db65a3bdea6f8a3a3`.
+The ordinary baseline binary remains hash-identical to its qualified build.
+The matrix scheduler now performs a short profile check before any long case;
+the actual wrongly linked frozen runner is rejected by that check, without
+launching a pixel case. Original pixel durations/assertions remain unchanged.
+A new disposable frozen run is required; do not resume or relabel the failed
+root as corrected qualification.
+
+`scripts/quartus_video_blink_paths.tcl` prepares a reporting-only eight-corner
+inventory/path audit. It requires two unreplicated paired stages and exclusive
+stage-zero-to-stage-one keeper fanout, logs native final consumers/pins/fanins,
+and reports input, chain, first-stage fanout and final-consumer setup/hold.
+Mock checks pass 64 unique scopes and sixteen rejected inventories; CI selects
+them. It adds no exceptions. Actual fitted names/coverage, path results and
+physical synchronizer placement still need native execution after the fit.
+
 The `6e334b4` full Quartus flow has also started in the new frozen folder
 `output_files/quartus-linux-4hQayhHF`, log
 `/tmp/x1-quartus-6e334b4-blink-build.log`. Fit completion, inventory and timing

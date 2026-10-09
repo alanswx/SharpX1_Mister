@@ -439,11 +439,13 @@ Z_INTERNAL8 ?= 0
 Z_TEXT_CPU ?= 0
 turbo-z-video: $(Z_VIDEO_DIR)/Vtop
 $(Z_VIDEO_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
+	# Force local objects: Verilator's inherited VPATH includes '..', which can
+	# otherwise link a parent profile's sim_headless.o in a nested build folder.
 	$(V) -cc --timing --assert --trace-fst --exe --build -j 4 --Mdir $(Z_VIDEO_DIR) --top-module top \
 	  -GTURBO=1 -GTURBO_VIDEO_MASTER=1 -GTURBO_Z_PALETTE_CPU=1 -GTURBO_Z_VIDEO=1 \
 	  -GTURBO_Z_MULTIMODE=$(Z_MULTIMODE) -GTURBO_Z_INTERNAL8=$(Z_INTERNAL8) -GTURBO_Z_TEXT_CPU=$(Z_TEXT_CPU) \
 	  -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_Z_PALETTE_CPU -DX1_Z_VIDEO $(if $(filter 1,$(Z_MULTIMODE)),-DX1_Z_MULTIMODE) $(if $(filter 1,$(Z_INTERNAL8)),-DX1_Z_INTERNAL8) $(if $(filter 1,$(Z_TEXT_CPU)),-DX1_Z_TEXT_CPU)" \
-	  -MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
+	  -MAKEFLAGS "OPT_FAST=-O3 -B" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 .PHONY: turbo-z-video
 turbo-z-paired:
 	$(MAKE) turbo-z-video Z_MULTIMODE=1 Z_TEXT_CPU=1 Z_VIDEO_DIR=obj_dir_v13_z_paired
@@ -1144,6 +1146,10 @@ test-video-blink: $(HEADLESS_DIR)/video-blink/Vvideo_blink_tb
 	  echo "PASS: blink $$control rejected"; \
 	done
 .PHONY: test-video-blink
+
+test-video-blink-paths:
+	tclsh tests/video_blink_paths_tb.tcl
+.PHONY: test-video-blink-paths
 
 test-reset-release: $(HEADLESS_DIR)/reset-release/Vreset_release_tb
 	@for half in 3 7 31; do ./$(HEADLESS_DIR)/reset-release/Vreset_release_tb +VIDEO_HALF=$$half || exit 1; done

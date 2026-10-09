@@ -63,6 +63,20 @@ def main():
     output.mkdir(parents=True, exist_ok=False)
     (output / "inputs.json").write_text(json.dumps(before, indent=2) + "\n")
     (output / "cases.json").write_text(json.dumps(selected, indent=2) + "\n")
+    # Fail before a four/five-second pixel case if an inherited build VPATH
+    # linked a different profile's C++ object. Do not weaken pixel assertions.
+    smoke = subprocess.run([str(root / "Vtop"), "--cycles", "10000"],
+                           capture_output=True, text=True, timeout=60)
+    (output / "profile.stdout.txt").write_text(smoke.stdout)
+    (output / "profile.stderr.txt").write_text(smoke.stderr)
+    assert smoke.returncode == 0, "combined runner profile preflight failed"
+    profile = json.loads(smoke.stdout.splitlines()[-1])
+    for feature in ("z_palette_cpu_experiment", "z_video_experiment", "z_multimode_experiment",
+                    "z_internal8_experiment", "z_text_cpu_experiment", "turbo_video_master",
+                    "intra_assignment_delays"):
+        assert profile[feature], f"not a combined delay-aware runner before matrix: {feature}"
+    assert profile["sys_hz"] == 32000000 and profile["video_hz"] == 42954540
+    assert hashes(root) == before, "frozen input changed during profile preflight"
     completed = []
     for case in selected:
         assert hashes(root) == before, "frozen input changed before case"
