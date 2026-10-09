@@ -702,6 +702,25 @@ test-machine-dma-video: turbo-dma
 	python3 tests/test_machine_dma_video.py ./$(DMA_DIR)/Vtop
 .PHONY: test-machine-dma-video
 
+test-sio-edge-clock: $(HEADLESS_DIR)/sio-edge-clock/Vsio_edge_clock_tb
+	@for hz in 32000000 28636364 28571428; do for rate in 1 4 7; do ./$(HEADLESS_DIR)/sio-edge-clock/Vsio_edge_clock_tb +CE_PERIOD=$$rate +MASTER_HZ=$$hz || exit 1; done; done
+$(HEADLESS_DIR)/sio-edge-clock/Vsio_edge_clock_tb: tests/sio_edge_clock_tb.sv ../rtl/x1_sio_edge_clock.sv
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --timescale 1ps/1ps --top-module sio_edge_clock_tb --Mdir $(HEADLESS_DIR)/sio-edge-clock \
+		-j 4 tests/sio_edge_clock_tb.sv ../rtl/x1_sio_edge_clock.sv
+.PHONY: test-sio-edge-clock
+
+test-sio-ctc-clock: $(HEADLESS_DIR)/sio-ctc-clock/Vsio_ctc_clock_tb
+	@for hz in 32000000 28636364 28571428; do for rate in 1 4 7; do for phase in $$(seq 0 $$((rate-1))); do ./$(HEADLESS_DIR)/sio-ctc-clock/Vsio_ctc_clock_tb +CE_PERIOD=$$rate +PHASE=$$phase +MASTER_HZ=$$hz || exit 1; done; done; done
+	@if ./$(HEADLESS_DIR)/sio-ctc-clock/Vsio_ctc_clock_tb +CE_PERIOD=4 +DIRECT=1 > $(HEADLESS_DIR)/sio-ctc-clock/direct-negative.log 2>&1; then echo 'FAIL: direct clock negative unexpectedly passed'; exit 1; fi
+	@rg -q 'CTC/SIO clock test missed RX events' $(HEADLESS_DIR)/sio-ctc-clock/direct-negative.log
+	@echo 'PASS: direct clock negative rejects lost CTC events'
+$(HEADLESS_DIR)/sio-ctc-clock/Vsio_ctc_clock_tb: tests/sio_ctc_clock_tb.sv ../rtl/x1_sio_edge_clock.sv ../rtl/x1_sio_async.sv ../rtl/x1_ctc.sv
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --timescale 1ps/1ps --top-module sio_ctc_clock_tb --Mdir $(HEADLESS_DIR)/sio-ctc-clock \
+		-j 4 tests/sio_ctc_clock_tb.sv ../rtl/x1_sio_edge_clock.sv ../rtl/x1_sio_async.sv ../rtl/x1_ctc.sv
+.PHONY: test-sio-ctc-clock
+
 test-sio-async: $(HEADLESS_DIR)/sio-async/Vsio_async_tb
 	@for rate in 1 4 7; do ./$(HEADLESS_DIR)/sio-async/Vsio_async_tb +CE_PERIOD=$$rate || exit 1; done
 $(HEADLESS_DIR)/sio-async/Vsio_async_tb: tests/sio_async_tb.sv ../rtl/x1_sio_async.sv

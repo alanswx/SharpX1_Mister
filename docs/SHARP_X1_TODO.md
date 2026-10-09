@@ -153,7 +153,8 @@ selected text in older full/paired graphics-on-top scenes; corrected CPU
 windows and all-seven-color full/paired warm gates now pass 64,000 pixels each.
 The strengthened twelve-case paired-text matrix now terminates zero,
 including seven distinct entries and selected text beneath graphics;
-strengthened single-text/graphics matrices remain open. Do not promote
+strengthened single-text matrix now terminates zero (16/16, with independent
+PPM byte comparisons); the strengthened graphics matrix remains open. Do not promote
 those earlier passes to beneath-graphics text acceptance or native Z completion.
 
 The expanded [hosted diagnostic run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37865161650)
@@ -236,9 +237,13 @@ The [October 9 SIO machine-wiring audit](SIO_MACHINE_WIRING_AUDIT.md) now
 records actual SIO/0 bus/clock pins, DTRB-controlled A clock selection,
 mouse-related B controls, model-specific carrier inputs and the absence of a
 traced SIO-to-DMA Ready connection. Finish internal clock/ASIC routes and
-event-preserving enable conversion, then real CPU decode/shared daisy service
+native event-adapter integration, then real CPU decode/shared daisy service
 and pin-driven mouse/serial acceptance. This research does not connect SIO
 or complete group 1/Z7.
+The [standalone event adapter](SIO_EDGE_CLOCK_STATUS.md) now passes nine
+queue-oracle and 36 real CTC/SIO clock/CE profiles, plus the required lost-event
+negative control. Native selector/pin CDC and shared-machine integration remain
+open; this does not alter default machine RTL or the current RBF.
 The new standalone [DMA service engine](DMA_SERVICE_STATUS.md) passes 4,096
 arbitration and 2,048 status-vector cases, plus twelve connected CPU/DMA
 completion/IM2/RETI profiles. Native

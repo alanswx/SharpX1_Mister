@@ -21,6 +21,10 @@ the remaining physical and unimplemented-feature gates.
 See the [chip-by-chip implementation survey](docs/CORE_STATUS.md) for the
 current wiring audit and [downloaded hardware manuals](references/manuals/README.md)
 for schematics and machine documentation.
+The standalone [SIO clock-event adapter](docs/SIO_EDGE_CLOCK_STATUS.md) now
+preserves serial edges and sampled RX data across enable gaps; independent
+queue tests and real CTC/SIO diagnostics pass. Native clock selection, pin CDC,
+machine integration and serial/mouse acceptance remain open.
 The [summary table](docs/CHIP_IMPLEMENTATION_TABLE.md) and
 [chip reuse survey](docs/CHIP_REUSE.md) describe available replacement sources
 and the remaining integration work.

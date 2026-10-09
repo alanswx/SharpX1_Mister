@@ -77,6 +77,10 @@ under `verilator/obj_dir_v13_z_paired/single-text-matrix-V9LH9y/`. It retains
 the current compositor runner, but freezes fixture
 `1e03a9ecd39af3f049ef924db059c5bd5827c10879e479a593181da517009117`,
 including transparent windows, seven distinct writable text RGB entries and
-all-color/runner/font/retained-reset checks. That matrix is still running;
-the original passes do not qualify the strengthened beneath-graphics or
-palette-index discrimination gate.
+all-color/runner/font/retained-reset checks. That matrix now terminates zero:
+16/16 cases pass all 64,000 pixels, periods, distinct selected text colors and
+the retained-reset/no-refill checks. Independent byte comparisons of all
+sixteen actual/expected PPM pairs also pass; the frozen executable hash is
+rechecked as `6420d299...`. This qualifies the strengthened experimental
+single-screen recipe, not physical DAC levels, native Z software or FPGA
+acceptance. The older passes remain historical evidence with narrower coverage.

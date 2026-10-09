@@ -67,13 +67,15 @@ must not accidentally address the onboard slice.
    contract using cross-sheet traces and original programming documentation.
    Preserve unsupported x1/synchronous/break behavior; optional diagnostics
    cannot enable a fake complete-Turbo signature.
-2. Add an original clock-level-to-enable adapter. The channel currently
+2. The original [clock-level-to-enable adapter](SIO_EDGE_CLOCK_STATUS.md) now
+   passes standalone queue-oracle and real CTC/SIO diagnostics. The channel
    consumes serial events only on its accepted `ce`; CTC pulses generated
    just after that edge can disappear before the next accepted edge. Preserve
    each RX/TX event, sample RX data with its event, and specify overflow/reset
    behavior under stopped enables. Do not clock RTL from CTC ZC outputs.
-   Test both actual master frequencies, all relative phases, CPU CE gaps,
-   external clock selection, reset with clock high/low and simultaneous A/B.
+   Three master labels, all tested relative CE phases, gaps, reset with clock
+   high/low and simultaneous A/B pass. Native external clock selection and
+   pin CDC/reset policy remain to be integrated and tested.
 3. Introduce a separate default-disabled machine profile with real serial
    input/output ports and deterministic idle levels. Add dependencies through
    `machine.qip`; prove actual Z80 decode/pointer/status/read-write, held
