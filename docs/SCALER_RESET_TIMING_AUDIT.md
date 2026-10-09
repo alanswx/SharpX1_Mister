@@ -27,6 +27,13 @@ empty reports must not be treated as positive timing evidence. Preserve
 original full-flow artifacts before supplemental STA, and do not run it
 alongside an active fitter.
 
+`make -C verilator test-scaler-reset-paths` passes the mocked orchestration:
+96 unique input/output recovery/removal reports across three domains and all
+eight operating conditions, plus seven rejected inventories/profiles.
+Mocked exception commands fail the test if the reporting tool adds a cut or
+delay bound. The target is selected in CI. These checks do not execute native
+Quartus or establish physical timing.
+
 Next acceptance: execute the reporting tool on an idle fitted database;
 inventory every input and downstream reset path, including clock selection;
 then qualify a destination-local multi-stage release proposal separately

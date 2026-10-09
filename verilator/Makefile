@@ -1756,6 +1756,10 @@ test-video-reset-sdc:
 	tclsh tests/video_reset_sdc_tb.tcl
 .PHONY: test-video-reset-sdc
 
+test-scaler-reset-paths:
+	tclsh tests/scaler_reset_paths_tb.tcl
+.PHONY: test-scaler-reset-paths
+
 test-pcg-report-audit:
 	python3 tests/test_pcg_report_audit.py
 .PHONY: test-pcg-report-audit
