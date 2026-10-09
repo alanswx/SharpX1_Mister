@@ -6,10 +6,22 @@ set revision [lindex $quartus(args) 0]
 if {$revision ne "sharpx1_turbo_z_video"} {error "expected experimental Z"}
 project_open sharpx1 -revision $revision
 create_timing_netlist -model slow -temperature 100 -voltage 1100
-foreach field {response cpu_q stage frozen_addr font_cpu_addr} {
+foreach field {response cpu_q stage frozen_addr font_cpu_addr access_addr} {
     set regs [get_registers "*x1_pcg_access:cg_bus|${field}*"]
     puts "FITTED $field: [get_collection_size $regs]"
-    foreach_in_collection reg $regs {puts "  [get_register_info -name $reg]"}
+    foreach_in_collection reg $regs {
+        set name [get_register_info -name $reg]
+        puts "  $name"
+        if {$field eq "access_addr"} {
+            foreach {direction command} {fanin get_fanins fanout get_fanouts} {
+                set nodes {}
+                foreach_in_collection node [$command [list $name]] {
+                    lappend nodes [list [get_node_info -name $node] [get_node_info -type $node]]
+                }
+                puts "FITTED access_addr $direction $name $nodes"
+            }
+        }
+    }
 }
 foreach candidate [lrange $quartus(args) 1 end] {
     # Inventory and exception syntax only: no clock/physical timing claim.

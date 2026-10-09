@@ -90,6 +90,17 @@ foreach_in_collection reg $mpu {
 if {[lsort -integer $nadj] ne {0 1 2 3 4} || [lsort -integer $nr] ne {0 1 2 3 4}} {
     error "missing/replicated CRTC R5/R9 consumer bits"
 }
+foreach source [concat $capture_names $mpu_names] {
+    set nodes {}
+    foreach_in_collection node [get_fanouts [list $source]] {
+        if {[get_node_info -type $node] ne "reg"} {error "CRTC packet/MPU fanout contains a non-register endpoint"}
+        lappend nodes [get_node_info -name $node]
+    }
+    if {![llength $nodes] || [llength $nodes] != [llength [lsort -unique $nodes]]} {
+        error "CRTC packet/MPU fanout empty/duplicated"
+    }
+    post_message "CRTC endpoint native fanout $source $nodes"
+}
 # Native pin/fanin observations do not authorize exceptions or prove MTBF.
 set data_pins [dict create request_meta 0 acknowledgement_meta 0]
 foreach_in_collection pin [get_pins -compatibility_mode {*x3_crtc.writes*|*}] {

@@ -2,18 +2,19 @@
 # Read-only audit of the native request/response probe reports. Capture count
 # must come from the fitted inventory, not be inferred from passing reports.
 set -euo pipefail
-[[ ( $# == 2 || $# == 3 ) && -d "$1" && "$2" =~ ^(8|9|1[0-6])$ && "${3:-1}" =~ ^[01]$ ]] || {
-  echo 'usage: audit_pcg_timing_reports.sh REPORT_DIR FITTED_CPU_CAPTURE_COUNT(8..16) [FITTED_STAGE01_REPLICAS(0|1), default 1]' >&2
+[[ ( $# == 2 || $# == 3 || $# == 4 ) && -d "$1" && "$2" =~ ^(8|9|1[0-6])$ && "${3:-1}" =~ ^[01]$ && "${4:-0}" =~ ^[01]$ ]] || {
+  echo 'usage: audit_pcg_timing_reports.sh REPORT_DIR CPU_CAPTURE_COUNT(8..16) [STAGE01_REPLICAS(0|1), default 1] [ADDRESS4_REPLICAS(0|1), default 0]' >&2
   exit 2
 }
 report_dir="$1"
 capture_count="$2"
 # Like capture_count, this must come from independent fitted inventory.
 stage_replicas="${3:-1}"
+address_replicas="${4:-0}"
 audit() {
   local report="$1" group="$2" expected="$3" bound="$4"
   [[ -f "$report" ]] || { echo "Missing report: $report" >&2; return 1; }
-  LC_ALL=C awk -F';' -v group="$group" -v expected="$expected" -v bound="$bound" -v stage_replicas="$stage_replicas" '
+  LC_ALL=C awk -F';' -v group="$group" -v expected="$expected" -v bound="$bound" -v stage_replicas="$stage_replicas" -v address_replicas="$address_replicas" '
     NF==10 && $3~/x1_pcg_access:cg_bus/ {
       for(i=2;i<=9;i++)gsub(/^ +| +$/,"",$i)
       n++; s=$2; delay=$9
@@ -30,7 +31,8 @@ audit() {
         if($5 !~ /\|pll\|pll_inst\|/ || $6 !~ /turbo_video_pll/)bad=1
         if(group=="address") {
           if(src !~ /\|frozen_addr\[[0-3]\]$/ && src !~ /\|font_cpu_addr\[([0-9]|1[01])\]$/)bad=1
-          if(dst !~ /\|access_addr\[([0-9]|10)\]$/)bad=1
+          if(dst !~ /\|access_addr\[([0-9]|10)\]$/ && dst !~ /\|access_addr\[4\]~DUPLICATE$/)bad=1
+          if(dst~/~DUPLICATE$/)address_clones++
           bit=dst;sub(/^.*\|access_addr\[/,"",bit);sub(/\].*$/,"",bit);address_bits[bit]=1
           if(seen[dst]++)bad=1
         } else if(group=="payload") {
@@ -40,7 +42,11 @@ audit() {
           color=dst;sub(/^.*x1_video_ram:pcg_/,"",color);sub(/\|.*$/,"",color);planes[color]++
         } else if(group=="control") {
           if(src !~ /\|(plane\[[01]\]|write_request|high_speed_request|unsupported_request)$/)bad=1
-          if(dst !~ /\|(access_addr\[([0-9]|10)\]|response\[[0-7]\]|seen|stage\.(00|01|10)|stage\.01~DUPLICATE)$/ && dst !~ /x1_video_ram:pcg_[brg]\|.*~porta_we_reg$/)bad=1
+          if(dst !~ /\|(access_addr\[([0-9]|10)\]|access_addr\[4\]~DUPLICATE|response\[[0-7]\]|seen|stage\.(00|01|10)|stage\.01~DUPLICATE)$/ && dst !~ /x1_video_ram:pcg_[brg]\|.*~porta_we_reg$/)bad=1
+          if(dst~/\|access_addr\[4\]~DUPLICATE$/) {
+            replica_rows++;if(replica_sources[src]++)bad=1
+          }
+          if(dst~/\|access_addr\[4\]$/)primary_four_sources[src]=1
           control_sources[src]=1
           if(!(dst in control_destinations)) {
             control_destinations[dst]=1;control_dest_count++
@@ -53,10 +59,20 @@ audit() {
     }
     END {
       if(group=="response")for(i=0;i<8;i++)if(!(i in primary))bad=1
-      if(group=="address")for(i=0;i<11;i++)if(!(i in address_bits))bad=1
+      if(group=="address") {
+        for(i=0;i<11;i++)if(!(i in address_bits))bad=1
+        if(address_clones!=address_replicas)bad=1
+      }
       if(group=="control") {
         for(src in control_sources)source_count++
-        if(source_count!=5 || control_dest_count!=34+stage_replicas || we_planes["b"]!=4 || we_planes["r"]!=4 || we_planes["g"]!=4)bad=1
+        if(source_count!=5 || control_dest_count!=34+stage_replicas+address_replicas || we_planes["b"]!=4 || we_planes["r"]!=4 || we_planes["g"]!=4)bad=1
+        if(("access_addr[4]~DUPLICATE" in control_leaves)!=address_replicas)bad=1
+        if(address_replicas) {
+          if(replica_rows<1)bad=1
+          for(src in primary_four_sources)if(!(src in replica_sources))bad=1
+          for(src in replica_sources)if(!(src in primary_four_sources))bad=1
+          expected+=replica_rows
+        }
         for(i=0;i<11;i++)if(!(("access_addr["i"]") in control_leaves))bad=1
         for(i=0;i<8;i++)if(!(("response["i"]") in control_leaves))bad=1
         if(!("seen" in control_leaves) || !("stage.00" in control_leaves) || !("stage.01" in control_leaves))bad=1
@@ -71,11 +87,11 @@ for model in slow fast; do
   for temperature in -40 0 85 100; do
     for check in setup hold; do
       corner="${model}_${temperature}"
-      audit "$report_dir/sharpx1_turbo_z_video_pcg_request_probe_${corner}_address_${check}.rpt" address 11 23.28
+      audit "$report_dir/sharpx1_turbo_z_video_pcg_request_probe_${corner}_address_${check}.rpt" address "$((11+address_replicas))" 23.28
       audit "$report_dir/sharpx1_turbo_z_video_pcg_request_probe_${corner}_control_${check}.rpt" control "$((89 + stage_replicas))" 23.28
       audit "$report_dir/sharpx1_turbo_z_video_pcg_request_probe_${corner}_payload_${check}.rpt" payload 192 23.28
       audit "$report_dir/sharpx1_turbo_z_video_pcg_response_probe_${corner}_response_${check}.rpt" response "$capture_count" 31.25
     done
   done
 done
-echo "PASS: 48 request and 16 response corner reports; all $capture_count CPU captures, eight primary bits, stage01 replicas=$stage_replicas timed"
+echo "PASS: 48 request and 16 response corner reports; all $capture_count CPU captures, eight primary bits, stage01 replicas=$stage_replicas address4 replicas=$address_replicas timed"

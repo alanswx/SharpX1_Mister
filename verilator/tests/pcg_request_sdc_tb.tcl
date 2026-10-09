@@ -18,6 +18,15 @@ proc get_registers {pattern} {
 }
 proc get_collection_size {collection} {return [llength $collection]}
 proc get_register_info {option reg} {return $reg}
+proc get_node_info {option node} {
+    if {$option eq "-name"} {return $node}
+    return reg
+}
+proc get_fanins query {
+    if {$::mode eq "replica_fanin_empty"} {return {}}
+    if {$::mode eq "replica_fanin_wrong" && [string match {*~DUPLICATE} [lindex $query 0]]} {return wrong_source}
+    return {frozen_input video_clock}
+}
 proc foreach_in_collection {var collection body} {uplevel 1 [list foreach $var $collection $body]}
 proc set_max_delay {args} {lappend ::applied [list max {*}$args]}
 proc set_min_delay {args} {lappend ::applied [list min {*}$args]}
@@ -43,7 +52,8 @@ foreach color {b r g} {
         if {$i < 4} {lappend valid(control_dest) "emu|x1_video_ram:pcg_${color}|mock${i}~porta_we_reg"}
     }
 }
-foreach profile {fitted fitted_no_replica mapped} {
+set rejected 0
+foreach profile {fitted fitted_no_replica fitted_addr_replica mapped} {
     array set profile_valid [array get valid]
     if {$profile eq "fitted_no_replica"} {
         set profile_valid(control_dest) {}
@@ -66,10 +76,15 @@ foreach profile {fitted fitted_no_replica mapped} {
             }
         }
     }
+    if {$profile eq "fitted_addr_replica"} {
+        lappend profile_valid(address_dest) ${base}access_addr\[4\]~DUPLICATE
+        lappend profile_valid(control_dest) ${base}access_addr\[4\]~DUPLICATE
+    }
 foreach group [array names profile_valid] {
     set modes {valid missing duplicate extra wrong_identity}
     if {$group eq "data_dest"} {lappend modes unclassified_data_alias}
     if {$group eq "control_dest"} {lappend modes unclassified_we_alias unknown_stage_replica duplicate_stage_replica}
+    if {$profile eq "fitted_addr_replica" && $group eq "address_dest"} {lappend modes replica_fanin_empty replica_fanin_wrong unknown_address_replica}
     foreach mode $modes {
         array set groups [array get profile_valid]
         switch $mode {
@@ -81,6 +96,7 @@ foreach group [array names profile_valid] {
             unclassified_we_alias {lappend groups($group) {emu|x1_video_ram:pcg_b|extra~porta_we_reg~DUPLICATE}}
             unknown_stage_replica {lappend groups($group) ${base}stage.00~DUPLICATE}
             duplicate_stage_replica {lappend groups($group) ${base}stage.01~DUPLICATE ${base}stage.01~DUPLICATE}
+            unknown_address_replica {lset groups($group) end ${base}access_addr\[5\]~DUPLICATE}
         }
         set applied {}
         set failed [catch {source $candidate} message]
@@ -90,8 +106,8 @@ foreach group [array names profile_valid] {
                 if {[lindex $max end] != 23.28 || [lindex $min end] != 0 ||
                     [lrange $max 1 end-1] ne [lrange $min 1 end-1]} {error "wrong request bounds"}
             }
-        } elseif {!$failed || [llength $applied]} {error "$group/$mode did not refuse every bound"}
+        } elseif {!$failed || [llength $applied]} {error "$group/$mode did not refuse every bound"} else {incr rejected}
     }
 }
 }
-puts "PASS: mapped/fitted with and without stage replica; 84 invalid inventories refuse all constraints, including unclassified aliases"
+puts "PASS: mapped/fitted stage/address replica profiles; $rejected invalid inventories refuse all constraints, including aliases/fanins"

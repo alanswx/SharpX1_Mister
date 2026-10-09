@@ -102,7 +102,13 @@ commercial/native Turbo software, physical reset/input/audio and current-source
 Quartus fitting/timing remain required. Commit `72b77c4` has started a frozen
 `sharpx1_turbo_z_video` build on idle `misterubuntu`, under
 `output_files/quartus-linux-4005kWb5/`; log
-`/tmp/x1-quartus-72b77c4-build.log`. No completed fit/timing result is claimed.
+`/tmp/x1-quartus-72b77c4-build.log`. It is now terminal: manifest exit status
+3 at 21:02:46 UTC. The fitter and assembler complete, but final STA rejects
+the PCG address-destination inventory. Reported setup is -12.532 ns under
+incomplete constraints; this is neither closure nor a valid complete audit.
+RBF SHA-256 `5ffbe347971be075e4d080a99f9ef1cae170b8d79316d8aa27505d6639e916ac`
+is unqualified. Original output reports are preserved as `completed-flow/`
+before supplemental tools run. No native CRTC report pass is claimed.
 The earlier `6e334b4` blink RBF does
 not include this change and fails overall setup timing.
 
@@ -124,7 +130,7 @@ does not add timing exceptions or modify project settings. Raw input and
 bundle edge timing must not be called synchronous acceptance.
 
 `make -C verilator test-crtc-write-paths` passes exact mock scope/bit coverage
-and 26 malformed-inventory negatives. The fixture rejects any exception
+and 28 malformed-inventory negatives. The fixture rejects any exception
 command. This qualifies reporter logic only; the current fit must finish,
 its original reports must be preserved, and the host must be idle before
 native execution. Physical inventory, clock domains, bounded payload delays
@@ -138,3 +144,33 @@ structure are not physical acceptance either. Review the actual fitted
 inventory first; the Intel-specific identification hint already used in
 `x1_video_blink.sv` is a candidate for a separately source-bound follow-up,
 not something silently attributed to this active frozen build.
+
+`audit_crtc_write_reports.py` independently compares both chain consumer sets
+and every capture/MPU source-to-consumer pair against native fanout observations.
+It requires all nine logical packet mappings, actual domains, nonnegative
+same-clock slack and a strict one-VID-period physical packet bound. Raw
+request/ACK edge slack stays OPEN, and no exception is issued. Its 192-report
+synthetic fixture and 28 scope/domain/data/inventory negative controls pass
+through `test-crtc-write-report-audit`. This is parser coverage, not fitted
+timing, global closure or metastability qualification.
+
+## PCG fitted-inventory rejection diagnosed
+
+The new fit retains eleven primary `access_addr` bits plus exactly
+`access_addr[4]~DUPLICATE`. No new logical bit is implemented. Reporting-only
+native inspection without reading SDC records all twelve endpoints and their
+fanins/fanouts in `/tmp/x1-crtc-pcg-address-inventory.log`. Primary and clone
+have identical native input keepers; both drive actual PCG RAM address pins.
+The strict previous eleven-endpoint gate correctly refused this new layout.
+
+The follow-up candidate recognizes only that exact fitted alias, includes
+both destinations in address/control bounds, checks their native fanins match,
+and still rejects unknown/duplicate/mapped aliases before issuing any bounds.
+Native candidate inventory validation passes all six groups (16/5/8 source
+registers, 12/36/192 destination registers) without loading project SDC or
+claiming timing: `/tmp/x1-crtc-pcg-candidate-native.log`. The independently
+reported stage-01 replica count is zero. Mock inventory tests now reject
+115 bad profiles, including missing/different clone inputs; generated report
+tests separately require independently supplied stage/address replica counts
+and matching primary/clone control-source sets. Fresh source-bound full flow,
+mapped inventory, physical delay and all-corner timing remain required.

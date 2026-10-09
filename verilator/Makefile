@@ -1171,6 +1171,10 @@ test-crtc-write-paths:
 	tclsh tests/crtc_write_paths_tb.tcl
 .PHONY: test-crtc-write-paths
 
+test-crtc-write-report-audit:
+	python3 tests/test_crtc_write_report_audit.py
+.PHONY: test-crtc-write-report-audit
+
 $(HEADLESS_DIR)/crtc-machine/Vcrtc_machine_tb: tests/crtc_machine_tb.sv $(V_SRC)
 	$(V) --binary --timing --assert --top-module crtc_machine_tb --Mdir $(HEADLESS_DIR)/crtc-machine -j 4 tests/crtc_machine_tb.sv $(V_SRC) -Wno-fatal
 test-machine-crtc-write: $(HEADLESS_DIR)/crtc-machine/Vcrtc_machine_tb

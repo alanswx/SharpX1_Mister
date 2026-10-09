@@ -62,6 +62,11 @@ proc get_fanouts query {
             return [list ${::prefix}busy ${::prefix}seen]
         }
     }
+    if {$name eq "${::prefix}video_rs" || [regexp {\|video_data\[[0-7]\]$} $name] || [lsearch -exact $::mpu_names $name]>=0} {
+        if {$::mode eq "endpoint_fanout_missing"} {return {}}
+        if {$::mode eq "endpoint_fanout_duplicate"} {return {consumer consumer}}
+        return [list ${::mpu_prefix}R_Nr\[0\]]
+    }
     error "unexpected fanout source $query"
 }
 proc get_node_info {option node} {
@@ -91,7 +96,7 @@ proc report_timing args {
 }
 foreach name {set_false_path set_clock_groups set_max_delay set_min_delay set_multicycle_path} {proc $name args {error "no exceptions allowed"}}
 proc run_tool {} {global quartus tool fields; source $tool}
-foreach mode {valid wrong_revision extra_arg missing_request missing_pending duplicate extra_packet missing_packet missing_data wrong_hierarchy replica lookup_missing lookup_duplicate fanout_missing fanout_extra fanout_wrong consumer_missing consumer_duplicate fanout_nonreg mpu_missing r5_missing r9_missing mpu_duplicate pin_missing pin_duplicate data_source_wrong data_source_missing} {
+foreach mode {valid wrong_revision extra_arg missing_request missing_pending duplicate extra_packet missing_packet missing_data wrong_hierarchy replica lookup_missing lookup_duplicate fanout_missing fanout_extra fanout_wrong consumer_missing consumer_duplicate fanout_nonreg mpu_missing r5_missing r9_missing mpu_duplicate endpoint_fanout_missing endpoint_fanout_duplicate pin_missing pin_duplicate data_source_wrong data_source_missing} {
     set quartus(args) sharpx1_turbo_z_video
     if {$mode eq "wrong_revision"} {set quartus(args) sharpx1}
     if {$mode eq "extra_arg"} {lappend quartus(args) candidate.sdc}
@@ -146,4 +151,4 @@ foreach mode {valid wrong_revision extra_arg missing_request missing_pending dup
         }
     }
 }
-puts "PASS: CRTC reporter 192 scopes/eight corners, 26 rejected inventories; no exceptions (mock only)"
+puts "PASS: CRTC reporter 192 scopes/eight corners, 28 rejected inventories; no exceptions (mock only)"
