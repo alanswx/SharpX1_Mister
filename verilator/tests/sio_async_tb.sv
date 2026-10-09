@@ -164,7 +164,7 @@ module sio_async_tb;
         // Independent pins, unsupported modes, and channel-reset isolation.
         cts_n=2'b10; dcd_n=2'b01;
         check_byte(1,8'h24); check_byte(3,8'h0c);
-        put(1,4); put(1,8'h04); if(!unsupported) $fatal(1,"x1 synchronization falsely supported");
+        put(1,4); put(1,8'h08); if(!unsupported) $fatal(1,"x1 half-bit synchronization falsely supported");
         put(1,8'h18); if(unsupported) $fatal(1,"channel reset retained unsupported");
         if(rts_n!==2'b01 || dtr_n!==2'b01) $fatal(1,"A reset disturbed B modem outputs");
         check_byte(1,8'h24); check_byte(3,8'h0c);

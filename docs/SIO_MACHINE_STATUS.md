@@ -1,5 +1,9 @@
 # Opt-in shared-machine functional SIO
 
+Follow-up: [asynchronous ×1](SIO_X1_STATUS.md) extends the functional serial
+engine and adds an externally synchronized shared-machine test profile.
+Existing C++/board profiles still disable SIO; native pin phases remain open.
+
 October 9, 2026. `rtl/sharpx1.v` now has a default-zero `TURBO_SIO`
 parameter, active only with `TURBO=1`. It instantiates the original decoder,
 asynchronous serial/interrupt subset, clock-event queue and CZ-851 functional

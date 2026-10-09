@@ -39,6 +39,8 @@ decode, event-clock routing and SIO → DMA → CTC → keyboard arbitration;
 generated IPL-driven CPU/RX/WAIT/retained-reset checks pass with DMA present
 and absent. Native clock/pin CDC, mouse/software, snapshots of an enabled SIO
 profile and FPGA integration remain open. Existing board/C++ profiles stay off.
+An [asynchronous ×1 extension](docs/SIO_X1_STATUS.md) adds externally
+bit-synchronized RX/TX diagnostics; fractional-stop/native timing remains open.
 The [CZ-851 selector audit](docs/SIO_MACHINE_WIRING_AUDIT.md) now adds verified
 DTRB polarity/source switching and documents the differing CZ-880 drawing;
 CZ-851 CTC1-to-A-alternate and CTC2-to-B routes are now traced and tested with

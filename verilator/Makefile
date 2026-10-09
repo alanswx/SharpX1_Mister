@@ -14,9 +14,18 @@ FM_MASTER_HZ ?= 32000000
 
 all: headless
 
-test-machine-sio: $(HEADLESS_DIR)/machine-sio/Vmachine_sio_tb $(HEADLESS_DIR)/machine-sio-no-dma/Vmachine_sio_tb $(HEADLESS_DIR)/machine-sio-disabled/Vmachine_sio_tb
+test-sio-x1: $(HEADLESS_DIR)/sio-x1/Vsio_x1_tb
+	@for rate in 1 4 7; do ./$(HEADLESS_DIR)/sio-x1/Vsio_x1_tb +CE_PERIOD=$$rate || exit 1; done
+$(HEADLESS_DIR)/sio-x1/Vsio_x1_tb: tests/sio_x1_tb.sv ../rtl/x1_sio_async.sv
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module sio_x1_tb --Mdir $(@D) -j 4 tests/sio_x1_tb.sv ../rtl/x1_sio_async.sv -Wno-fatal
+.PHONY: test-sio-x1
+
+test-machine-sio: $(HEADLESS_DIR)/machine-sio/Vmachine_sio_tb $(HEADLESS_DIR)/machine-sio-no-dma/Vmachine_sio_tb $(HEADLESS_DIR)/machine-sio-disabled/Vmachine_sio_tb $(HEADLESS_DIR)/machine-sio-x1/Vmachine_sio_tb $(HEADLESS_DIR)/machine-sio-x1-no-dma/Vmachine_sio_tb
 	./$(HEADLESS_DIR)/machine-sio/Vmachine_sio_tb
 	./$(HEADLESS_DIR)/machine-sio-no-dma/Vmachine_sio_tb
+	./$(HEADLESS_DIR)/machine-sio-x1/Vmachine_sio_tb
+	./$(HEADLESS_DIR)/machine-sio-x1-no-dma/Vmachine_sio_tb
 	@ulimit -c 0; if ./$(HEADLESS_DIR)/machine-sio-disabled/Vmachine_sio_tb >$(HEADLESS_DIR)/machine-sio-disabled/negative.log 2>&1; then \
 		echo 'ERROR: disabled SIO machine unexpectedly passed'; exit 1; \
 	fi; rg -q 'machine SIO programmed status/read failed' $(HEADLESS_DIR)/machine-sio-disabled/negative.log || \
@@ -31,6 +40,12 @@ $(HEADLESS_DIR)/machine-sio-no-dma/Vmachine_sio_tb: tests/machine_sio_tb.sv $(MA
 $(HEADLESS_DIR)/machine-sio-disabled/Vmachine_sio_tb: tests/machine_sio_tb.sv $(MACHINE_SRC) Makefile
 	mkdir -p $(@D)
 	$(V) --binary --timing --assert --top-module machine_sio_tb -GSIO_ENABLED=0 --Mdir $(@D) -j 4 tests/machine_sio_tb.sv $(MACHINE_SRC) -Wno-fatal
+$(HEADLESS_DIR)/machine-sio-x1/Vmachine_sio_tb: tests/machine_sio_tb.sv $(MACHINE_SRC) Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module machine_sio_tb -GSERIAL_X1=1 --Mdir $(@D) -j 4 tests/machine_sio_tb.sv $(MACHINE_SRC) -Wno-fatal
+$(HEADLESS_DIR)/machine-sio-x1-no-dma/Vmachine_sio_tb: tests/machine_sio_tb.sv $(MACHINE_SRC) Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module machine_sio_tb -GSERIAL_X1=1 -GDMA_ENABLED=0 --Mdir $(@D) -j 4 tests/machine_sio_tb.sv $(MACHINE_SRC) -Wno-fatal
 .PHONY: test-machine-sio
 
 test-z-text-visibility:

@@ -26,6 +26,9 @@ timing corners; deployment/physical gates remain open. The latest `0009dd1`
 Turbo single-clock refit also completes and passes all eight constrained
 corners, producing the identical RBF; SIO and Turbo Z remain disabled in it.
 Unconstrained I/O remains. See [the refit audit](SIO_MACHINE_STATUS.md#completed-source-bound-refit).
+The [SIO asynchronous ×1 increment](SIO_X1_STATUS.md) adds external
+bit-synchronization behavior; ×1 fractional-stop and native timing are still
+required before full serial acceptance.
 
 The [DMA-build hardware feature matrix](HARDWARE_DMA_FEATURE_MATRIX_STATUS.md)
 records six exact 40/80-column graphics/text/PCG cases before and after warm

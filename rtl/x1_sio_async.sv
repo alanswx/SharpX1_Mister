@@ -3,10 +3,12 @@
 // Zilog UM008101-0601. Not translated from an emulator or wired to the X1.
 // Supported: polled asynchronous RX 5..8 bits, TX 1..8 bits (table-28
 // encoded 1..5), N/E/O, 1/1.5/2 TX stops,
-// x16/x32/x64 RX/TX event clocks and idle-transmitter Send Break.
+// x1/x16/x32/x64 RX/TX event clocks and idle-transmitter Send Break.
+// x1 requires caller-provided bit synchronization; only integral stop lengths
+// are supported (no half-bit clock event is present on this interface).
 // WR5 Transmit Enable may change during a frame: drain the current character,
 // then retain queued data until enabled again (UM0081 printed 288).
-// Interrupts, x1, WAIT/Ready, receive/busy-transmit break,
+// Interrupts, WAIT/Ready, receive/busy-transmit break,
 // synchronous modes and live frame reconfiguration are unsupported.
 // WR3 Auto Enables gates RX by DCD and new TX characters by CTS, in addition
 // to the software enables. Inputs must be synchronized by the caller.
@@ -99,7 +101,8 @@ module x1_sio_async_channel #(parameter IRQ_ENABLE=0, parameter CHANNEL_B=0, par
     endfunction
     wire supported_interrupts = IRQ_ENABLE ?
         (FLOW_ENABLE || wr1[7:5]==0) : wr1==0;
-    wire polled_frame = supported_interrupts && wr4[7:6]!=0 && wr4[5:4]==0 && wr4[3:2]!=0;
+    wire polled_frame = supported_interrupts && wr4[5:4]==0 && wr4[3:2]!=0 &&
+        !(wr4[7:6]==0 && wr4[3:2]==2);
     wire rx_enabled = polled_frame && wr3[0] && (wr3 & 8'h1e)==0 && (!wr3[5] || !dcd_n);
     wire tx_configured = polled_frame && (wr5 & 8'h15)==0;
     wire tx_enabled = tx_configured && wr5[3] && (!wr3[5] || !cts_n);
@@ -242,7 +245,8 @@ module x1_sio_async_channel #(parameter IRQ_ENABLE=0, parameter CHANNEL_B=0, par
                         end
                         4: begin
                             wr4<=cpu_din;
-                            if(cpu_din[7:6]==0 || cpu_din[5:4]!=0 || cpu_din[3:2]==0 ||
+                            if((cpu_din[7:6]==0 && cpu_din[3:2]==2) ||
+                               cpu_din[5:4]!=0 || cpu_din[3:2]==0 ||
                                rx_busy || tx_busy) unsupported<=1;
                         end
                         5: begin
@@ -323,7 +327,12 @@ module x1_sio_async_channel #(parameter IRQ_ENABLE=0, parameter CHANNEL_B=0, par
                 if(framing_recovery!=0) framing_recovery<=framing_recovery-1'b1;
                 else if(!rx_busy) begin
                     if(!rxd) begin
-                        rx_busy<=1; rx_bit<=0; rx_phase<=0; rx_shift<=8'hff;
+                        rx_busy<=1;
+                        // In externally synchronized x1 mode this edge
+                        // samples start; the next edge samples data bit 0.
+                        // Oversampled modes retain their half-start validation.
+                        rx_bit<=wr4[7:6]==0 ? 1 : 0;
+                        rx_phase<=0; rx_shift<=8'hff;
                         rx_bits<=character_bits(wr3[7:6]); rx_divisor<=clock_divisor(wr4[7:6]);
                         rx_has_parity<=wr4[0]; rx_even<=wr4[1]; rx_parity<=0; rx_bad_parity<=0;
                     end

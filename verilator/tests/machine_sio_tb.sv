@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Original IPL-driven shared-machine diagnostic. No private media/state.
 `timescale 1ps/1ps
-module machine_sio_tb #(parameter SIO_ENABLED=1, DMA_ENABLED=1);
+module machine_sio_tb #(parameter SIO_ENABLED=1, DMA_ENABLED=1, SERIAL_X1=0);
     reg clk=0,video_clk=0,reset=1,external_clock=0;
     always #15625 clk=~clk; // 32 MHz SYS
     always #17500 video_clk=~video_clk; // checked-in nominal board PLL
-    always #500000 external_clock=~external_clock; // synchronous fixture A clock
+    // x1 uses 500 kHz: the 4 MHz device CE exceeds 4.5x its data rate.
+    always #(SERIAL_X1 ? 1000000 : 500000) external_clock=~external_clock;
     reg download=0,upload_wr=0;
     reg [24:0] upload_address=0;
     reg [7:0] upload_data=0;
@@ -34,12 +35,15 @@ module machine_sio_tb #(parameter SIO_ENABLED=1, DMA_ENABLED=1);
     wire dma_read=dut.dma_owner && !dut.mreq && !dut.rd;
     wire dma_write=dut.dma_owner && !dut.mreq && !dut.wr;
     wire [1:0] observed_rx_tick;
+    wire [1:0] observed_rx_clock;
     wire observed_rx_busy;
     generate if(SIO_ENABLED) begin : serial_observation
         assign observed_rx_tick=dut.turbo_sio.rx_tick;
+        assign observed_rx_clock=dut.turbo_sio.rx_clock;
         assign observed_rx_busy=dut.turbo_sio.device.channels[0].unit.rx_busy;
     end else begin : absent_serial_observation
         assign observed_rx_tick=0;
+        assign observed_rx_clock=0;
         assign observed_rx_busy=0;
     end endgenerate
     always @(posedge clk) begin
@@ -103,9 +107,14 @@ module machine_sio_tb #(parameter SIO_ENABLED=1, DMA_ENABLED=1);
         end
     endtask
     task automatic receive(input bit ch,input [7:0] value);
-        @(negedge clk);#1;rxd[ch]=0;serial_events(ch,16);
-        for(integer i=0;i<8;i++) begin rxd[ch]=value[i];serial_events(ch,16);end
-        rxd[ch]=1;serial_events(ch,32);
+        // Externally synchronize the x1 start to a fresh pin-clock cycle;
+        // don't count an already queued idle edge as a start-bit sample.
+        if(SERIAL_X1) begin
+            @(negedge observed_rx_clock[ch]);repeat(16) tick();
+        end
+        @(negedge clk);#1;rxd[ch]=0;serial_events(ch,SERIAL_X1 ? 1 : 16);
+        for(integer i=0;i<8;i++) begin rxd[ch]=value[i];serial_events(ch,SERIAL_X1 ? 1 : 16);end
+        rxd[ch]=1;serial_events(ch,SERIAL_X1 ? 2 : 32);
     endtask
     task automatic reset_and_reboot;
         assert(!dut.dma_owner && dut.dma_busrq_n)
@@ -132,7 +141,7 @@ module machine_sio_tb #(parameter SIO_ENABLED=1, DMA_ENABLED=1);
         receive(0,8'ha5);wait(dut.RAM.mem[16'h4000]==8'h40 && returns==1);
         assert(dut.sio_in_service && dut.ctc.in_service[0] &&
             dut.RAM.mem[16'h4100]==8'hb6 && dut.RAM.mem[16'h4101]==8'ha5)
-            else $fatal(1,"machine actual serial reads/nesting");
+            else $fatal(1,"machine actual serial reads/nesting B=%h A=%h",dut.RAM.mem[16'h4100],dut.RAM.mem[16'h4101]);
         if(reset_nested) begin
             reset_and_reboot();
             $display("PASS shared machine serial nested warm reset; unchanged IPL reboot follows DMA=%0d",DMA_ENABLED);
@@ -167,7 +176,7 @@ module machine_sio_tb #(parameter SIO_ENABLED=1, DMA_ENABLED=1);
             assert(dtr_n[1]==0 && txd==3) else $fatal(1,"machine DTR selector/TX idle");
             assert(dut.RAM.mem[16'h4103]==8'h53 && dut.sio_wait_n)
                 else $fatal(1,"shared serial WAIT release/read byte");
-            $display("PASS IPL-driven shared SIO/CTC/DMA=%0d: real RX reads/WAIT, clock queues, nested IM2/RETI, absent-DMA IEI pass-through and retained warm reset",DMA_ENABLED);
+            $display("PASS IPL-driven shared SIO/CTC/DMA=%0d x1=%0d: real RX reads/WAIT, clock queues, nested IM2/RETI, absent-DMA IEI pass-through and retained warm reset",DMA_ENABLED,SERIAL_X1);
         end
     endtask
     initial begin
@@ -180,7 +189,7 @@ module machine_sio_tb #(parameter SIO_ENABLED=1, DMA_ENABLED=1);
         for(integer i=0;i<4;i++) begin load(8'h31+8'(i));store(16'h8000+16'(i));end
         for(integer ch=0;ch<2;ch++) begin
             port(ch==0 ? 16'h1f91 : 16'h1f93);out_byte(8'h18);
-            serial_reg(4,8'h44);serial_reg(3,8'hc1);serial_reg(5,8'hea);
+            serial_reg(4,SERIAL_X1 ? 8'h04 : 8'h44);serial_reg(3,8'hc1);serial_reg(5,8'hea);
             serial_reg(1,ch==0 ? 8'h10 : 8'h14);
         end
         serial_reg(2,8'he0);

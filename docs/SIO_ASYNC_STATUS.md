@@ -1,5 +1,10 @@
 # Standalone SIO asynchronous slice
 
+Current follow-ups: [default-off shared-machine integration](SIO_MACHINE_STATUS.md)
+and [externally synchronized asynchronous ×1](SIO_X1_STATUS.md) now have
+dedicated diagnostics. The October 5 observations below are historical;
+native clocks/pins, full serial modes and physical acceptance remain open.
+
 October 5, 2026. `rtl/x1_sio_async.sv` is original local RTL, **not yet in
 `machine.qip` or connected to the X1**. It is a bounded polled asynchronous
 **5/6/7/8-bit, no/even/odd-parity, x16/x32/x64**
