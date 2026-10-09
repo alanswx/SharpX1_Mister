@@ -11,6 +11,14 @@ from z80_fixture import Program
 
 
 SEEDS = (0x53, 0xA7, 0xD9)
+# Distinct writable entries exercise all four levels in every channel. Keep
+# nonzero raw code 7 black for opacity; the old modulo-four pattern aliased
+# entries 1/5 and 2/6 and could not expose lost upper index bits.
+TEXT_CPU_WORDS = (0, 0x1B, 0x2C, 0x31, 0x06, 0x19, 0x2E, 0)
+# Independent conventional R:G:B oracle literals, not a decode of CPU words.
+TEXT_RGB = tuple(bytes(rgb) for rgb in (
+    (0, 0, 0), (170, 85, 255), (255, 170, 0), (0, 255, 85),
+    (85, 0, 170), (170, 85, 85), (255, 170, 170), (0, 0, 0)))
 
 
 def table_byte(row, k):
@@ -165,8 +173,7 @@ def fixture(custom=False, mode="full", screen=0, priority=0x10, text=False, reve
         out(0x1FB0, 0x90)
         for color in range(1, 8):
             # All four channel levels; nonzero text color 7 programmed black.
-            bits = 0 if color == 7 else ((color & 3) << 4) | (((color + 1) & 3) << 2) | ((color + 2) & 3)
-            out(0x1FB8 + color, bits)
+            out(0x1FB8 + color, TEXT_CPU_WORDS[color])
     p.store(0xF040, 0xA5)
     p.label("retained")
     columns = 80 if mode in ("wide64", "internal8") else 40
@@ -240,7 +247,7 @@ def expected_pixel(x, y, custom=False, mode="full", screen=0, priority=0x10, tex
         color = glyph_color(x, y, reverse)
         for layer in (("graphics", "text") if priority & 1 else ("text", "graphics")):
             if layer == "text" and color:
-                return bytes(3) if color == 7 else bytes((((color + 1) & 3) * 85, (color & 3) * 85, ((color + 2) & 3) * 85))
+                return TEXT_RGB[color]
             if layer == "graphics" and raw != bytes(3):
                 return bytes(3) if custom and raw == bytes((85, 170, 255)) else expected_pixel(x, y, custom, mode, screen, windows=True)
         return bytes(3) if priority & 1 else expected_pixel(x, y, custom, mode, screen, windows=True)
@@ -254,7 +261,7 @@ def expected_pixel(x, y, custom=False, mode="full", screen=0, priority=0x10, tex
         for bank in order:
             if bank == "text":
                 if color:
-                    return bytes(3) if color == 7 else bytes((((color + 1) & 3) * 85, (color & 3) * 85, ((color + 2) & 3) * 85))
+                    return TEXT_RGB[color]
                 continue
             raw = expected_pixel(x, y, False, "dual64", bank, windows=text)
             if raw != bytes(3):
