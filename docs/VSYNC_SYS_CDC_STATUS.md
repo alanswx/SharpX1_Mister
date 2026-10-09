@@ -238,7 +238,11 @@ rows with minimum +0.365 ns and sixteen valid excluded-input reports.
 
 Independent native PCG inventory has eight primary CPU captures and no capture
 or stage01 replicas. All 48 request/16 response corner reports pass with that
-inventory, not a count inferred from passing reports. Reported scaler release
+inventory, not a count inferred from passing reports.
+The separate snapshot payload audit passes all 1,152 rows, exactly bits 2–73
+in sixteen reports, minimum +0.558 ns and maximum physical data delay 13.141 ns.
+This is held-payload timing, not whole-protocol or physical CDC acceptance.
+Reported scaler release
 chains have 48 positive rows (minimum +0.224 ns); downstream release checks
 have 384 positive rows (minimum +0.504 ns). This is reset-release timing, not
 acceptance of the scaler's data crossings.

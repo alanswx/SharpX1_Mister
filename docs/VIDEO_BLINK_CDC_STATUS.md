@@ -56,10 +56,17 @@ Ordinary delay-aware runner:
 
 ## Remaining acceptance
 
-The full ordinary delay-aware suite is still running. The existing 120-case
+The full ordinary delay-aware suite plus blink helper finishes zero (149 PASS
+reports), log `/tmp/x1-blink-full-baseline.log`. The existing older 120-case
 combined-Z run is frozen to the older machine: its results remain historical,
 not current blink qualification. Rerun the combined pixel matrix on the new
-machine. Fit the new source, inspect actual synchronizer fanout/placement,
+machine. A fresh frozen current-source 120-case run has now started under
+`verilator/obj_dir_headless/z-blink-combined/qualification-dzBGPN/all-120/`,
+log `/tmp/x1-blink-z-combined-all-120.log`; startup is not completion.
+The `6e334b4` full Quartus flow has also started in the new frozen folder
+`output_files/quartus-linux-4hQayhHF`, log
+`/tmp/x1-quartus-6e334b4-blink-build.log`. Fit completion, inventory and timing
+are not yet established. Inspect actual synchronizer fanout/placement,
 first-stage input and active stage/consumer/reset timing, and qualify physical
 blink/native firmware. The completed `caf15d3` RBF predates this correction.
 No new timing-qualified or hardware-qualified RBF is claimed here. Native

@@ -18,8 +18,9 @@ The experimental X3 [blink crossing](VIDEO_BLINK_CDC_STATUS.md) now samples
 the real sub-CPU held level in the video domain. Four delay-aware blink pixel
 cases, helper reset/latency controls, snapshot rejection/continuation and
 connected combined-Z reset checks pass. All five ordinary commercial titles
-finish fresh bounded gameplay checks. Full baseline regression is still
-running; the older combined matrix is historical for this new RTL. Fresh
+finish fresh bounded gameplay checks. Full delay-aware baseline plus blink
+helper finishes zero (149 PASS reports); the older combined matrix is
+historical for this new RTL. Fresh
 FPGA fitting/timing, current combined pixels and native/physical gates remain
 required. This does not complete any broad work group.
 
