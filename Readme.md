@@ -297,6 +297,11 @@ checks plus the complete layer-order truth table. Stored priority now crosses
 with the held video controls; actual-CPU cold/warm sweeps and stopped-clock
 recovery pass at three clock ratios. The decoder is not yet connected to
 rendered composition; opacity/native/hardware remain open.
+The subsequent [paired-screen graphics connection](docs/TURBO_Z_PAIRED_VIDEO_STATUS.md)
+now builds with captured priority and bank selection before palette lookup.
+The first 64,000-pixel paired case passes; the wider actual-CPU RGB matrices
+are in progress. Opaque/analog text, native opacity
+and physical acceptance remain incomplete. Existing board revisions are unchanged.
 
 The headless simulator has been compiled with Verilator 5.044 on macOS.
 The timing/reset regression passes. A 200,000-system-cycle run reports:

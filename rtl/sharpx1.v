@@ -152,6 +152,9 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     wire [7:0] z_palette_data;
     wire z_video_enabled, z_display_allowed, z_palette_valid;
     wire [11:0] z_graphics_index, z_palette_rgb12;
+    wire [11:0] z_second_graphics_index;
+    wire z_paired_screens;
+    wire [7:0] z_priority_video;
     wire z_graphics_valid, z_graphics_start, z_graphics_load, z_cg_transparent, z_graphics_disp;
     wire z_gram_read;
     wire [14:0] z_gram_address;
@@ -215,6 +218,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
                     .source_data({priority_control,mode,turbo_scrn,turbo_black,mode_c[6]}),
                     .destination_data(controls),.destination_valid(controls_valid));
                 wire [7:0] analog_mode=controls[23:16], scrn=controls[15:8];
+                assign z_priority_video=controls[31:24];
                 wire width40=controls[0];
                 wire supported=(analog_mode==8'h80 && (!scrn[0] || (!scrn[1] && (width40 || TURBO_Z_INTERNAL8)))) ||
                                (analog_mode==8'h90 && width40 && !scrn[0]);
@@ -225,14 +229,16 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
                     width40==width_video && scrn==turbo_scrn_video &&
                     !scrn[2] && !scrn[7] && controls[7:1]==0 && turbo_black_video==0;
                 assign z_graphics_mode=scrn[0] ? (width40 ? 3'd3 : 3'd4) : !width40 ? 3'd2 :
-                                       analog_mode[4] ? 3'd1 : 3'd0;
+                                       analog_mode[4] ? (TURBO_Z_TEXT_CPU && controls[28] ? 3'd5 : 3'd1) : 3'd0;
                 assign z_graphics_screen=scrn[3];
             end else begin : full_only
+                assign z_priority_video=0;
                 assign z_video_enabled=enabled_video && width_video && !turbo_scrn_video[0]
                     && !turbo_scrn_video[2] && !turbo_scrn_video[7] && turbo_black_video==0;
                 assign z_graphics_mode=0;assign z_graphics_screen=0;
             end
         end else begin : no_video_controls
+            assign z_priority_video=0;
             assign z_video_enabled=0;
             assign z_graphics_mode=0;assign z_graphics_screen=0;
         end
@@ -299,7 +305,40 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         wire [3:0] external_data,internal_data;
         wire external_valid,internal_valid,external_display_valid,internal_display_valid;
         wire [11:0] external_rgb,internal_rgb;
-        wire display_read=TURBO_Z_VIDEO && z_video_enabled && z_graphics_valid &&
+        wire [11:0] display_index;
+        wire graphics_present;
+        if(TURBO_Z_TEXT_CPU && TURBO_Z_VIDEO && TURBO_Z_MULTIMODE) begin : paired_composition
+            // Capture priority alongside the requested/loaded GRAM character.
+            // Live CPU controls must not reorder a half-fetched character.
+            reg [7:0] requested_priority=0,pixel_priority=0;
+            always @(posedge clk_28636 or posedge video_reset)
+                if(video_reset) begin requested_priority<=0;pixel_priority<=0;end
+                else if(!z_video_enabled) begin requested_priority<=0;pixel_priority<=0;end
+                else begin
+                    if(z_graphics_start) requested_priority<=z_priority_video;
+                    if(z_graphics_load) pixel_priority<=requested_priority;
+                end
+            wire defined_order;
+            wire [1:0] selected_source;
+            x1_z_layer_order order(
+                .enabled(z_paired_screens),.two_screen_mode(1'b1),.selected_screen(1'b0),
+                .priority_control(pixel_priority),.text_visible(1'b0),
+                .screen0_visible(z_graphics_index!=0),.screen1_visible(z_second_graphics_index!=0),
+                .defined(defined_order),.source(selected_source));
+            wire [11:0] back_index=pixel_priority[3] ? z_graphics_index : z_second_graphics_index;
+            // Explicit experimental raw-code opacity, not palette RGB. When
+            // all graphics codes are zero, text-on-top/between falls through
+            // to graphics entry zero; graphics-on-top ends at fixed text zero.
+            // Only transparent text enters this graphics-only increment.
+            assign display_index=!z_paired_screens ? z_graphics_index :
+                selected_source==2 ? z_graphics_index : selected_source==3 ? z_second_graphics_index : back_index;
+            assign graphics_present=!z_paired_screens ||
+                (defined_order && (selected_source!=0 || !pixel_priority[0]));
+        end else begin : no_paired_composition
+            assign display_index=z_graphics_index;
+            assign graphics_present=1;
+        end
+        wire display_read=TURBO_Z_VIDEO && z_video_enabled && z_graphics_valid && graphics_present &&
                           z_cg_transparent && z_graphics_disp && palette_display_allowed;
         assign ram_data=internal_owned ? internal_data : external_data;
         assign ram_valid=internal_owned ? internal_valid : external_valid;
@@ -311,7 +350,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
             .cpu_component(ram_component),.cpu_nibble(ram_nibble),
             .cpu_data(external_data),.cpu_valid(external_valid),
             .display_read(display_read && !z_graphics_internal),
-            .display_address(z_graphics_index),.display_rgb12(external_rgb),.display_valid(external_display_valid)
+            .display_address(display_index),.display_rgb12(external_rgb),.display_valid(external_display_valid)
         );
         if(TURBO_Z_INTERNAL8) begin : internal_store
             x1_z_palette_ram #(.INTERNAL8(1)) store(
@@ -337,6 +376,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         assign z_palette_data=8'hff;
         assign z_palette_read_tail=0;
         assign z_video_enabled=0;
+        assign z_priority_video=0;
         assign z_graphics_mode=0;assign z_graphics_screen=0;
         assign z_display_allowed=0;
         assign z_palette_valid=0;
@@ -698,12 +738,13 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
             .mode(z_graphics_mode),.screen(z_graphics_screen),.raster_odd(graphics_ra[0]),
             .blue_q(grb_vid),.red_q(grr_vid),.green_q(grg_vid),.internal_palette(z_graphics_internal),
             .palette_index(z_graphics_index),.index_valid(z_graphics_valid),
-            .paired_screens(),.second_palette_index()
+            .paired_screens(z_paired_screens),.second_palette_index(z_second_graphics_index)
         );
     end else begin : no_z_graphics
         assign z_gram_read=0;assign z_gram_address=0;
         assign z_graphics_index=0;assign z_graphics_valid=0;
         assign z_graphics_internal=0;
+        assign z_paired_screens=0;assign z_second_graphics_index=0;
     end endgenerate
     x1_video_ram #(GRAM_AW) gram_b(clk_sys,gram_cpu_addr,data_out,io_write && ((a[15:14] == 1) ^ dam),grb_cpu,clk_28636,gram_video_addr,grb_vid);
     x1_video_ram #(GRAM_AW) gram_r(clk_sys,gram_cpu_addr,data_out,io_write && ((a[15:14] == 2) ^ dam),grr_cpu,clk_28636,gram_video_addr,grr_vid);

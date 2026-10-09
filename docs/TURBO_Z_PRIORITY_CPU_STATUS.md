@@ -22,7 +22,8 @@ does not prevent CPU storage/readback of the corresponding byte.
 
 The control output now occupies bits 31:24 of the existing held multi-mode
 video-control snapshot; mode/SCRN/blackclip/width retain bits 23:0. The
-renderer does not yet consume priority. This is real CPU register acceptance, not an enabled
+subsequent [paired graphics experiment](TURBO_Z_PAIRED_VIDEO_STATUS.md) consumes
+captured priority for graphics bank selection, not analog text. This is real CPU register acceptance, not a complete
 priority display, a native Z identity or an RBF capability.
 
 ## Ordering decoder
@@ -36,7 +37,8 @@ cannot leak into output. Unused bits do not alter order.
 
 The decoder selects backdrop/text/bank0/bank1 from **caller-supplied
 visibility**, not from palette RGB or a chosen zero-index transparency rule.
-It is separately tested and not yet instantiated in the machine. It rejects
+It is separately tested and now instantiated in the opt-in transparent-text
+paired graphics path. It rejects
 undefined paired ordering instead of inventing a fallback. Native opacity,
 blackclip, analog text significance and the reduced palette-bank policy
 must be resolved and connected separately.

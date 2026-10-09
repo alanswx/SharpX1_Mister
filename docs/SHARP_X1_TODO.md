@@ -129,6 +129,11 @@ The existing text CPU controls still pass. Priority now crosses in the held
 mode/bank/blackclip/width payload; actual-CPU all-byte cold/warm tests and
 physically stopped SYS/VID recovery pass at three video clocks. Rendered
 composition/opacity, native reset/readback and hardware remain open.
+The subsequent [paired graphics connection](TURBO_Z_PAIRED_VIDEO_STATUS.md)
+admits both banks and selects a captured-priority index before palette lookup,
+behind the combined opt-in profile. Its first 64,000-pixel case passes;
+the remaining pixel matrices are in progress, not a completed acceptance gate.
+Opaque/analog text, native reduced banks/opacity and hardware remain open.
 
 The expanded [hosted diagnostic run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37865161650)
 now completes successfully on `95c3e4a`. The newer `99eb141` palette-RAM/

@@ -33,6 +33,28 @@ module z_priority_machine_cdc_tb #(parameter PRIORITY_CPU=1);
     wire [31:0] controls=dut.machine.z_palette_cpu.controls_crossing.multimode.controls;
     wire valid=dut.machine.z_palette_cpu.controls_crossing.multimode.controls_valid;
     bit [255:0] seen=0;
+    integer live_priority_differences=0;
+    generate if(PRIORITY_CPU) begin : captured_control_checks
+        // Observe real character phases and CPU changes, never force a bus
+        // or manufacture a shifter result. A new live control cannot bypass
+        // the request/load boundary and reorder the current character.
+        always @(posedge video_clk) begin
+            logic [7:0] previous_pixel,previous_request;
+            logic load_character,active;
+            previous_pixel=dut.machine.z_palette_cpu.paired_composition.pixel_priority;
+            previous_request=dut.machine.z_palette_cpu.paired_composition.requested_priority;
+            load_character=dut.machine.z_graphics_load;
+            active=!dut.machine.video_reset && dut.machine.z_video_enabled;
+            #1;
+            if(active) begin
+                assert(dut.machine.z_palette_cpu.paired_composition.pixel_priority==
+                       (load_character ? previous_request : previous_pixel))
+                    else $fatal(1,"live priority bypassed character load");
+                if(dut.machine.z_palette_cpu.paired_composition.pixel_priority!=dut.machine.z_priority_video)
+                    live_priority_differences++;
+            end
+        end
+    end endgenerate
     always @(negedge video_clk) if(valid && !reset && controls[23:16]==8'h90) begin
         assert(controls[15:0]==16'h0001)
             else $fatal(1,"mode/bank/width payload corrupted %h",controls);
@@ -100,6 +122,8 @@ module z_priority_machine_cdc_tb #(parameter PRIORITY_CPU=1);
         assert(valid && controls==32'h00000001) else $fatal(1,"reset controls failed to cross %h",controls);
         seen=0;tick();reset=0;
         await_cpu();
+        if(PRIORITY_CPU) assert(live_priority_differences>0)
+            else $fatal(1,"no live-vs-captured priority changes exercised");
         $display("PASS real CPU priority CDC: 256 cold/warm values, held payload, both stopped clocks, retained IPL; video half=%0d ps",video_half);
         $finish;
     end

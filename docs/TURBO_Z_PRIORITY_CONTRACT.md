@@ -94,6 +94,10 @@ opacity and the priority renderer remain unconnected. The subsequent
 its follow-up connects stored priority to the coherent video-control payload,
 not rendered composition. Ordinary board profiles remain
 unchanged. This is infrastructure for step 2 above, not completed Z3/Z4.
+The later [paired graphics experiment](TURBO_Z_PAIRED_VIDEO_STATUS.md) now
+admits layout 5 in its combined opt-in profile and connects captured priority
+to a selected palette lookup. Its actual-pixel acceptance is running; opaque
+analog text, native opacity and reduced-bank policy remain open.
 
 ```sh
 make -C verilator test-z-gram-fetch test-z-graphics test-z-palette-pins

@@ -18,7 +18,7 @@ def table_byte(row, k):
             ((v << shift) | (v >> (8 - shift)))) & 255
 
 
-def fixture(custom=False, mode="full", screen=0):
+def fixture(custom=False, mode="full", screen=0, priority=0x10):
     p = Program(0x8000)
     p.emit(0xF3)
     p.word(0x31, 0xFFFF)
@@ -77,6 +77,11 @@ def fixture(custom=False, mode="full", screen=0):
             p.emit(0x2C, 0x7D, 0x0F, 0x0F, 0x0F, 0x0F, 0xE6, 0xF0,
                    0x5F, 0x25)
             p.jump(0xC2, outer)
+        if mode == "paired64":
+            # Nonzero raw G:R:B=A:5:F is deliberately programmed black.
+            # A renderer using RGB zero as transparency would expose the back.
+            for base in (0x1000, 0x1100, 0x1200):
+                out(base | 0xA5, 0xF0)
     if mode == "internal8":
         # Write different external sentinels first, then prove internal writes
         # and retained CPU selection cannot alias that separate palette.
@@ -126,8 +131,10 @@ def fixture(custom=False, mode="full", screen=0):
     # Reduced CPU access/bank controls are deliberately not inferred here.
     if columns == 80:
         out(0x1A02, 0)
-    out(0x1FD0, 1 if mode in ("tall64", "internal8") else screen << 3 if mode == "dual64" else 0)
-    out(0x1FB0, 0x90 if mode == "dual64" else 0x80)
+    out(0x1FD0, 1 if mode in ("tall64", "internal8") else screen << 3 if mode in ("dual64", "paired64") else 0)
+    out(0x1FB0, 0x90 if mode in ("dual64", "paired64") else 0x80)
+    if mode == "paired64":
+        out(0x1FC0, priority)
     registers = [55 if columns == 40 else 111, columns,
                  46 if columns == 40 else 92, 0x28, 31, 2, 25, 28, 0, 7,
                  0, 0, 0, 0, 0, 0]
@@ -148,7 +155,18 @@ def fixture(custom=False, mode="full", screen=0):
         table_byte(row, k) for row in range(8) for k in range(256))
 
 
-def expected_pixel(x, y, custom=False, mode="full", screen=0):
+def expected_pixel(x, y, custom=False, mode="full", screen=0, priority=0x10):
+    if mode == "paired64":
+        # Independent per-screen address/color oracle. Presence is raw source
+        # code, not final RGB: custom palette black must not reveal the back.
+        front = (priority >> 3) & 1
+        for bank in (front, 1 - front):
+            raw = expected_pixel(x, y, False, "dual64", bank)
+            if raw != bytes(3):
+                if custom and raw == bytes((85, 170, 255)):
+                    return bytes(3)
+                return expected_pixel(x, y, custom, "dual64", bank)
+        return bytes(3) if priority & 1 else expected_pixel(x, y, custom, "dual64", 1 - front)
     columns = 80 if mode in ("wide64", "internal8") else 40
     high = mode in ("tall64", "internal8")
     q = ((y // 2) % 8 if high else y % 8) * 2048 + \
@@ -186,7 +204,8 @@ def main():
     parser.add_argument("--output", type=pathlib.Path, required=True)
     parser.add_argument("--warm", action="store_true")
     parser.add_argument("--custom", action="store_true")
-    parser.add_argument("--mode", choices=("full", "dual64", "wide64", "tall64", "internal8"), default="full")
+    parser.add_argument("--mode", choices=("full", "dual64", "paired64", "wide64", "tall64", "internal8"), default="full")
+    parser.add_argument("--priority", type=lambda value: int(value, 0), default=0x10)
     parser.add_argument("--screen", type=int, choices=(0, 1), default=0)
     parser.add_argument("--timeout", type=float, default=900)
     args = parser.parse_args()
@@ -194,7 +213,8 @@ def main():
     executable = args.executable.resolve()
     digest = hashlib.sha256(executable.read_bytes()).hexdigest()
     code = args.output / "original.bin"
-    code.write_bytes(fixture(args.custom, args.mode, args.screen))
+    assert args.mode != "paired64" or args.priority in (0x10, 0x11, 0x12, 0x18, 0x19, 0x1A)
+    code.write_bytes(fixture(args.custom, args.mode, args.screen, args.priority))
     frame = args.output / "actual.ppm"
     # Full palette programming adds actual CPU/ownership cycles. Leave enough
     # time to finish cold initialization BEFORE a retained warm reset.
@@ -221,6 +241,8 @@ def main():
     assert report["z_video_experiment"] and report["z_palette_cpu_experiment"], report
     if args.mode != "full":
         assert report["z_multimode_experiment"], report
+    if args.mode == "paired64":
+        assert report["z_text_cpu_experiment"], report
     if args.mode == "internal8":
         assert report["z_internal8_experiment"], report
     assert report["intra_assignment_delays"] and report["turbo_video_master"], report
@@ -236,6 +258,8 @@ def main():
         assert addresses.count(0x1800) == 16 and addresses.count(0x1801) == 16, addresses
         assert addresses.count(0x1A03) == 1 and addresses.count(0x1A02) == (2 if args.mode in ("wide64", "internal8") else 1), addresses
         assert not any(a >= 0x2000 or 0x1000 <= a < 0x1300 for a in addresses), addresses[:60]
+        if args.mode == "paired64":
+            assert addresses.count(0x1FC0) == 1, addresses
     tolerance = 31251
     high = args.mode in ("tall64", "internal8")
     line_edges = 1792 if high else 2688
@@ -244,7 +268,18 @@ def main():
     header, dimensions, maximum, actual = frame.read_bytes().split(b"\n", 3)
     width, height = (640 if args.mode in ("wide64", "internal8") else 320), (400 if high else 200)
     assert (header, dimensions, maximum) == (b"P6", f"{width} {height}".encode(), b"255"), report
-    expected = b"".join(expected_pixel(x, y, args.custom, args.mode, args.screen) for y in range(height) for x in range(width))
+    expected = b"".join(expected_pixel(x, y, args.custom, args.mode, args.screen, args.priority) for y in range(height) for x in range(width))
+    if args.mode == "paired64":
+        coverage = dict(front_only=0, back_only=0, overlap=0, both_zero=0, black_front_over_back=0)
+        for y in range(height):
+            for x in range(width):
+                front = expected_pixel(x, y, False, "dual64", (args.priority >> 3) & 1)
+                back = expected_pixel(x, y, False, "dual64", 1 - ((args.priority >> 3) & 1))
+                coverage[("overlap" if back != bytes(3) else "front_only") if front != bytes(3)
+                         else ("back_only" if back != bytes(3) else "both_zero")] += 1
+                coverage["black_front_over_back"] += front == bytes((85, 170, 255)) and back != bytes(3)
+        assert all(coverage.values()), coverage
+        print(json.dumps({"paired_raw_code_coverage": coverage}), flush=True)
     (args.output / "expected.ppm").write_bytes(f"P6\n{width} {height}\n255\n".encode() + expected)
     mismatches = [(i // 3 % width, i // (width * 3), tuple(actual[i:i+3]), tuple(expected[i:i+3]))
                   for i in range(0, len(expected), 3) if actual[i:i+3] != expected[i:i+3]]
