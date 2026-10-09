@@ -1,9 +1,18 @@
 # Private commercial-game bring-up
 
-Current audio-interface snapshot format is v17. Fresh v17 game qualification
-is [running from frozen source/inputs](BASELINE_V17_STATUS.md); all five have
-completed their 16-second native boot; Xevious now passes its complete bounded
-movement/repeatability/input-preservation gate. The other four remain live.
+## Current v17 qualification: all five bounded gameplay gates pass
+
+Fresh [v17 native qualifications](BASELINE_V17_STATUS.md) all terminate zero
+from frozen runner `73181a8f87e1194a8899bb2801263548ecb5c926ef7d8f78a87cb5983648c06f`.
+Xevious right `(30,40)` → `(36,40)`, Druaga left `(68,32)` → `(67,32)`,
+Mappy left `(129,84)` → `(126,84)`, Galaga right `(32,24)` → `(40,24)`
+plus native firing/projectile travel, and Shanghai cursor/matching removal
+`0` → `2` pass unchanged release-bound assertions. Original/frozen inputs,
+every native-prefix state, collector/control/firing codes and all six runner
+copies are independently audited; the initial manifest still matches.
+Both ordinary full suites pass too (fast 137/delay-aware 140 PASS reports).
+This is bounded ordinary fast-model gameplay, **not** full-game completion,
+delay-aware gameplay, FM/SIO/Z software, Arcus/Bastard or physical acceptance.
 The source-bound v16 results below are historical, not relabelled.
 
 ## Historical v16 qualification: all five bounded gameplay gates pass

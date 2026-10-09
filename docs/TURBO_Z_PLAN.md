@@ -167,14 +167,18 @@ extra GRAM. The digital RGB output reduces analog multi-mode colors to eight
   JT51 bus/timer/stereo notes and original signed mixer tests at all three
   master frequencies. Actual CPU busy/timer/status, stopped-enable WAIT and
   HALT/timer-flag reset tests pass nine clock combinations separately.
-  Shared-machine decode/IRQ, signed PSG conversion,
-  native/hardware fidelity remain open; Z5 is not completed.
+  The subsequent [shared signed audio](FM_MACHINE_AUDIO_STATUS.md) integrates
+  decode and centered PSG conversion, with actual CPU-programmed mixed notes
+  and retained reset at three clocks plus C++ stereo WAV acceptance.
+  Native IRQ/software/analog/hardware fidelity remains open; Z5 is not completed.
   A subsequent [conservative FM decoder](FM_DECODE_STATUS.md) qualifies exact
   ports and CPU neighboring-port isolation through genuine JT51; native ASIC
   aliases, IRQ routing and actual shared-machine ownership remain required.
   The [shared CPU-bus increment](FM_MACHINE_STATUS.md) now passes genuine
   generated-IPL JT51 status/WAIT and PPI DAM/real-DMA isolation at three clocks.
-  Native IRQ/audio delivery, DMA-owned FM access and hardware remain open.
+  Native IRQ, DMA-owned FM access and hardware remain open. The [new Neetan/
+  full-sheet audit](FM_REFERENCE_IRQ_AUDIT.md) agrees on provisional 4 MHz but
+  preserves optional-board detection/CTC differences and unresolved pin-2 routing.
   Reuse audited JT51 sources, preserve licenses, verify busy/status/timers,
   stereo panning, clipping and deterministic note WAVs. Manual page 3 routes
   PSG equally to L/R and combines FM channels for the internal mono speaker;

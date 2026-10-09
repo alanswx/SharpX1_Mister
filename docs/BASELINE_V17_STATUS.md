@@ -12,14 +12,14 @@ Direct continuation/old-v16 rejection/clock/joystick checks also pass:
 `/tmp/x1-v17-snapshot-final.log`. The negative modifies only a generated
 incompatible header, never a real private state.
 
-`make -C verilator test HEADLESS_DIR=obj_dir_v17_baseline` remains running
-in `/tmp/x1-v17-baseline.log`; do not mark complete from individual passes.
+`make -C verilator test HEADLESS_DIR=obj_dir_v17_baseline` terminates zero,
+**140 PASS reports** in `/tmp/x1-v17-baseline.log`.
 Its delay-aware runner SHA-256:
 `166bf9129b272ce03b8d6c2d2d72ebf157627705fab59f569060a4c79cbd14e1`.
 Both ordinary profiles run SYS=32 MHz/VID=28.571428 MHz; fast ignores
 inherited intra-assignment delays and is not the timing reference.
 
-## Fresh commercial qualification in progress
+## Fresh commercial qualification: all five terminal passes
 
 All five original release-bound helpers run from ignored frozen root
 `verilator/obj_dir_v17_games/games-nxk8dE/`, source
@@ -36,14 +36,22 @@ Xevious now terminates zero with gameplay verified: right moves `(30,40)`
 to `(36,40)`, exact RGB/RAM/report repeatability and unchanged assets pass.
 Independent checks verify collector flags, native return codes/profile/zero
 disk writes, all original/frozen inputs, every saved prefix state and runner
-hashes. Druaga, Mappy, Galaga and Shanghai remain live, not yet gameplay passes.
-all later control durations, Galaga firing and Shanghai native feedback/pair
+hashes. Druaga, Mappy and Shanghai now also terminate zero and pass the same
+independent input/prefix/runner audit. Druaga left moves `(68,32)` to `(67,32)`;
+Mappy left `(129,84)` to `(126,84)`; Shanghai cursor `(488,167)` to `(544,160)`
+and matching removal `0` to `2`, with unchanged release-bound repeatability
+assertions. Galaga now also terminates zero: right `(32,24)` to `(40,24)` plus
+active enemy wave, native firing and projectile travel `(33,12)` to `(33,8)`.
+Its separate firing return code is zero, and collector/input/prefix-state/
+runner audit passes. All later control durations and Shanghai feedback/pair
 assertions stay unchanged. The 7200-second host timeout per stage does not
 change simulated duration. No old state is restored or converted.
 Logs `/tmp/x1-v17-{xevious,druaga,mappy,galaga,shanghai}.log`.
-Only Xevious is a terminal gameplay pass so far. Audit final collector return codes,
-input/prefix-state hashes, control reports and all copied runners after
-terminal completion before promoting the historical v16 qualification.
+All five terminal collector/control results, original/frozen inputs, every
+native-prefix state and all six root/per-title executable hashes are checked.
+The complete initial input manifest still matches after all runs
+(`/tmp/x1-v17-games-inputs-final.log`). This is bounded ordinary fast-model
+gameplay, not full-game completion, delay-aware gameplay or native FM/SIO/Z.
 
 Full work groups 1–6 and Turbo Z remain open, including native/physical
 device gates, Arcus/Bastard Special and analog/IRQ FM acceptance.

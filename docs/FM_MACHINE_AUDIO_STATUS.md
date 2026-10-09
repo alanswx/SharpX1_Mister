@@ -76,11 +76,11 @@ The runner was hashed before this final capture, not replaced during it.
 All snapshots now require **v17**, rejecting old v16 before deserialization;
 never convert private states. Direct ordinary v17 snapshot continuation/
 old-version rejection passes. The full ordinary fast suite finishes zero
-with 137 PASS reports; the delay-aware suite remains running. All five fresh
-game qualifications are now live on frozen inputs, not yet terminal gameplay
-passes. See [v17 acceptance](BASELINE_V17_STATUS.md). V16 games remain
+with 137 PASS reports; the delay-aware suite finishes zero with 140. All five
+fresh game qualifications pass on frozen inputs, including firing/pair removal.
+See [v17 acceptance](BASELINE_V17_STATUS.md). V16 games remain
 historical. Native Turbo FM software/IRQ, mixed-service/owned-SD resets,
 FM DMA access, exact pins, analog calibration and physical acceptance remain
 open. This is not full Turbo Z or completed work groups 1–6.
-The separate [FM FPGA profile/build](FM_BOARD_BUILD_STATUS.md) is in progress,
-not fitted or hardware accepted.
+The separate [FM FPGA profile/build](FM_BOARD_BUILD_STATUS.md) fits and passes
+eight constrained corners, but is not deployed or hardware accepted.

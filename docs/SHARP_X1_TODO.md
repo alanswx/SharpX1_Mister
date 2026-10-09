@@ -42,10 +42,12 @@ path](FM_MACHINE_AUDIO_STATUS.md) now passes actual CPU-programmed cold/warm
 captures and C++ stereo WAV checks; native IRQ/analog/hardware remain open.
 Current ordinary snapshots require v17; direct continuation/old-v16 rejection
 passes and its full fast suite finishes zero with 137 PASS reports.
-The delay-aware suite and all five fresh game qualifications remain running
-on frozen source/inputs; see [v17 acceptance](BASELINE_V17_STATUS.md).
-The separate [FM-enabled FPGA revision](FM_BOARD_BUILD_STATUS.md) is now
-building on the available Quartus host, without any MiSTer load or fit claim.
+The delay-aware suite finishes zero with 140 PASS reports, and all five fresh
+native game qualifications pass on frozen source/inputs, including Galaga
+firing; see [v17 acceptance](BASELINE_V17_STATUS.md).
+The separate [FM-enabled FPGA revision](FM_BOARD_BUILD_STATUS.md) fits and
+passes all eight constrained corners; unconstrained I/O and physical/native
+FM gates stay open. No MiSTer is loaded.
 Historical v16 full fast suite, direct snapshots
 and fresh five-game native qualification pass. The delay-aware baseline also
 passes (140 PASS reports). The `832766f` refit completes with positive reported

@@ -382,9 +382,11 @@ the [shared signed audio path](docs/FM_MACHINE_AUDIO_STATUS.md) now passes
 actual CPU-programmed cold/warm captures and C++ stereo WAV checks.
 Default unsigned audio is unchanged; native FM IRQ/analog/hardware gates remain.
 Current snapshots require v17; its [full ordinary fast suite passes](docs/BASELINE_V17_STATUS.md),
-with delay-aware/game qualifications still running separately from historical v16.
-The [separate FM-enabled FPGA build](docs/FM_BOARD_BUILD_STATUS.md) is in
-progress; existing board revisions remain unchanged and no MiSTer is loaded.
+as do its delay-aware suite and all five fresh native-game qualifications.
+The [separate FM-enabled FPGA build](docs/FM_BOARD_BUILD_STATUS.md) fits and
+passes all eight constrained timing corners. Its [experimental FM RBF](output_files/quartus-linux-Iypv1tpH/source/output_files/sharpx1_turbo_fm.rbf)
+is retrieved locally; unconstrained I/O/native/physical gates remain open.
+Existing board revisions stay unchanged and no MiSTer is loaded.
 The [latest fitted Turbo single-clock RBF](output_files/quartus-linux-c70iRYNK/source/output_files/sharpx1_turbo_single.rbf)
 builds on Quartus 17.0.2, binding `832766f`. Its reported Slow 1100 mV
 100 C corner passes; supplemental eight-corner acceptance remains pending.

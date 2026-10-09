@@ -26,7 +26,16 @@ blackclip, mode decoding and clock estimates. It agrees on SCRN bits 3/4 but
 differs from MAME on SCRN readback/mirroring, and uses approximate high-resolution
 timing. Those disagreements remain documentation/hardware review gates, not
 permission to advertise full compatibility. It has not been built or run;
-its source/asset licensing was not reconciled. Neetan has not been cloned.
+its source/asset licensing was not reconciled. At that checkpoint Neetan had
+not been cloned; see the subsequent retrieval below.
+
+October 9: Neetan is now shallow-cloned into ignored `references/emulators/neetan`,
+revision `605452881bc725de6cffc7bf70ea5c9a7d783c5d`. Its X1 bus/interrupt,
+FM decode/clock wrapper and sound tests were statically inspected, not built or
+executed. The root BSD three-clause license was read; no code/assets are copied
+into RTL. [FM IRQ/reference audit](../docs/FM_REFERENCE_IRQ_AUDIT.md) records
+agreement on 4 MHz and differences in detection/optional CTC behavior, without
+claiming native built-in IRQ wiring is resolved.
 
 ROMs, BIOS images, fonts, disks, and tapes are not redistributed here.
 
