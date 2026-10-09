@@ -115,6 +115,10 @@ not a completed second drive.
 ## Remaining limits
 
 Exact CTC pin/setup timing, inverted CPU-clock phase and physical ZC width are
+now further constrained by the [primary timing audit](CTC_PIN_TIMING_AUDIT.md):
+the ZC rise follows a rising clock, but its fall follows a falling clock.
+A next-rising-CE pulse prototype was withdrawn; no native pin-level model
+is added or qualified by that research. Those pin/setup functions remain
 not reproduced: ZC is currently a one-master-edge event. Bus writes supersede
 counting on their selected channel, so coincident write/tick timing needs
 silicon-level review. Triggered-start delay is deterministic, not the exact

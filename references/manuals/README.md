@@ -1,5 +1,17 @@
 # Downloaded Sharp X1 documentation
 
+## CTC terminal-output timing follow-up
+
+Retrieved [official Zilog PS018101-0602](https://www.zilog.com/docs/z80/ps0181.pdf)
+to ignored `Zilog_CTC_PS018101_0602.pdf`, SHA-256
+`9bbcaf795f54a4dc0d1ce9e51e9b6c83ed735eb5d56427454bf3b261a7160b11`.
+PDF page 12 / printed 94 AC parameters 28/29 were visually read, along with
+existing Data Book PDF pages 98/101/102 / printed 87/90/91. They establish
+opposite clock polarities for output assertion/release, not exact pin pulse
+duration. The [timing audit](../../docs/CTC_PIN_TIMING_AUDIT.md) records a
+withdrawn prototype and remaining two-phase/native gates. The newer CMOS
+datasheet is not a blanket electrical replacement for the original NMOS chip.
+
 ## SIO clock-selector manufacturer's datasheet
 
 `TI_SN74LS157_SDLS058.pdf` is retained locally/ignored from

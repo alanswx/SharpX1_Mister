@@ -142,6 +142,11 @@ inspected UM0081 CTC description confirms active-high terminal pulses and
 timer periods, but that prose alone does not establish physical pulse width.
 Counter input synchronization/clock phase also remains a separate native gate.
 Resolve CZ-880's differing drawing before adopting these nets for Turbo Z.
+The subsequent [CTC pin-timing audit](CTC_PIN_TIMING_AUDIT.md) establishes
+distinct rising-clock/ZC-rise and falling-clock/ZC-fall phases. A locally
+passing next-rising-CE pulse prototype was withdrawn because it does not
+match that phase contract. Native pulse duration and two-phase implementation
+remain required; the event-only routing evidence above is unchanged.
 
 ## Next implementation sequence and concrete tests
 

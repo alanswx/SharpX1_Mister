@@ -256,6 +256,11 @@ CTC2-to-B. The original route module passes 128 exhaustive net truth cases
 and 36 real distinct-rate CTC/SIO profiles, including stopped-CTC1 A isolation
 with B continuing. This resolves earlier-board routing, not native pulse width,
 CZ-880 routing, shared CPU/daisy integration or full work group 1/Z7.
+The [CTC phase audit](CTC_PIN_TIMING_AUDIT.md) now confirms separate clock
+polarities for ZC rise/fall. Implement/qualify explicit two-phase enables,
+counter trigger sampling and native duration; a next-rising-CE prototype was
+withdrawn despite passing its own tests. No waveform or integration gate is
+marked complete from that prototype.
 The new standalone [DMA service engine](DMA_SERVICE_STATUS.md) passes 4,096
 arbitration and 2,048 status-vector cases, plus twelve connected CPU/DMA
 completion/IM2/RETI profiles. Native
