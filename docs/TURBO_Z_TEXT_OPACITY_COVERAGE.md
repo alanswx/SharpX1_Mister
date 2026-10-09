@@ -88,7 +88,7 @@ channel-level coverage, CPU-word/RGB agreement and glyph-ink samples that
 distinguish each writable entry from every other. This is oracle evidence,
 not a terminal machine result.
 
-A new actual-CPU paired `1Ah` text-between/reverse/warm case is running in
+A new actual-CPU paired `1Ah` text-between/reverse/warm case exits zero in
 `/tmp/x1-z-distinct-text-warm.log`, frozen under
 `verilator/obj_dir_v13_z_paired/distinct-text-1Zu1ji/`. Its runner remains
 `6420d29945b4958ee8509334fb8e774f7191ab490babd2172f00b65e0ed634e0`;
@@ -98,9 +98,23 @@ No older running fixture is replaced. Fresh complete matrices still need
 these stronger distinct-entry fixtures; no native intensity/opacity rule or
 RTL behavior was changed by this test correction.
 
+This strengthened warm case checks all 64,000 actual pixels and periods,
+real CPU completion and retained reset without palette/VRAM refill. Selected
+text counts for raw colors 1–7 are `85/86/87/87/85/86/1481`; alternate ordering
+and missing reverse differ from the capture at 36,434 and 1,804 pixels.
+Runner/font integrity checks pass. The paired raw-code count diagnostic in
+this frozen fixture does not apply the transparent window; those auxiliary
+counts must not be quoted as the corrected scene's raw-source distribution.
+The exact-frame and selected-text checks do apply the window.
+
 The original paired-text matrix subsequently terminates with exit zero,
 12/12 cases, retaining its original visibility/alias limitations. Only after
 that terminal handle was observed, a new independent twelve-case strengthened
 matrix was launched in `/tmp/x1-z-strengthened-paired-text-matrix.log` with
 the current fixture. It remains pending; the other old matrices and the
 independently frozen reverse/warm case continue unchanged.
+Future fixtures now include the CPU-cleared window in the auxiliary paired
+raw-source coverage calculation too; non-text coverage is unchanged. The
+asset-free visibility regression adds an exhaustive 128x8/both-bank window
+check and an outside-window nonzero guard. This changes coverage metadata,
+not the already-correct exact-frame oracle or any older frozen job.

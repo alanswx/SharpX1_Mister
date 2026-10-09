@@ -41,6 +41,16 @@ source SHA-256 and reject changes during a test; that metadata extension was
 added after the completed probe was frozen, so do not attribute that new
 assertion to its historical execution.
 
+The subsequent distinct-entry/window fixture also terminates with exit zero
+in `/tmp/x1-z-distinct-text-warm.log`, under
+`verilator/obj_dir_v13_z_paired/distinct-text-1Zu1ji/`. See the
+[coverage follow-up](TURBO_Z_TEXT_OPACITY_COVERAGE.md#distinct-text-entry-follow-up)
+for identities and scope. It checks all 64,000 pixels through retained reset,
+with seven distinct writable text RGB entries, font/runner hash checks and
+selected counts `85/86/87/87/85/86/1481`. Alternate order differs at 36,434
+pixels and missing reverse at 1,804. This is a stronger bounded fixture,
+not full attributes, native opacity/intensity or hardware acceptance.
+
 The primary text-palette page (Techknow printed 162 / PDF page 58) was visually
 rechecked at `/tmp/x1-text-level-primary.png`: CPU field pairing and replication
 are visible, but the output diagram still does not identify the DAC pin

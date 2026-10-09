@@ -5,6 +5,16 @@ from test_machine_z_video import (TEXT_CPU_WORDS, TEXT_RGB, expected_pixel,
 
 
 class VisibilityTests(unittest.TestCase):
+    def test_raw_graphics_coverage_includes_cpu_cleared_window(self):
+        for bank in (0, 1):
+            for y in range(8):
+                for x in range(128):
+                    self.assertEqual(expected_pixel(x, y, False, "dual64", bank,
+                                                    windows=True), bytes(3))
+            self.assertTrue(any(expected_pixel(x, 8, False, "dual64", bank,
+                                              windows=True) != bytes(3)
+                                for x in range(128)))
+
     def test_distinct_text_entries_and_independent_rgb(self):
         self.assertEqual(len(set(TEXT_RGB[1:])), 7)
         self.assertEqual(TEXT_RGB[7], bytes(3))

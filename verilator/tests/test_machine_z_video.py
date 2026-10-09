@@ -386,8 +386,8 @@ def main():
         coverage = dict(front_only=0, back_only=0, overlap=0, both_zero=0, black_front_over_back=0)
         for y in range(height):
             for x in range(width):
-                front = expected_pixel(x, y, False, "dual64", (args.priority >> 3) & 1)
-                back = expected_pixel(x, y, False, "dual64", 1 - ((args.priority >> 3) & 1))
+                front = expected_pixel(x, y, False, "dual64", (args.priority >> 3) & 1, windows=args.text)
+                back = expected_pixel(x, y, False, "dual64", 1 - ((args.priority >> 3) & 1), windows=args.text)
                 coverage[("overlap" if back != bytes(3) else "front_only") if front != bytes(3)
                          else ("back_only" if back != bytes(3) else "both_zero")] += 1
                 coverage["black_front_over_back"] += front == bytes((85, 170, 255)) and back != bytes(3)
