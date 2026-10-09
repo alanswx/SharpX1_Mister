@@ -99,6 +99,9 @@ The experimental scaler now has opt-in independent two-edge reset releases
 for its three clock domains. GHDL helper tests pass and the modified scaler
 analyzes; ordinary revisions retain inherited releases. Fresh FPGA timing
 and physical acceptance remain open.
+The first scaler-reset fit succeeds, but final STA rejects a now-absent PCG
+state replica. Revised native inventory and strict mocked checks pass;
+the corrected guard still requires a fresh flow and all-corner audits.
 The [summary table](docs/CHIP_IMPLEMENTATION_TABLE.md) and
 [chip reuse survey](docs/CHIP_REUSE.md) describe available replacement sources
 and the remaining integration work.

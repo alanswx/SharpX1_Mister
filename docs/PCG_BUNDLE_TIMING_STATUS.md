@@ -384,3 +384,15 @@ Use the checked window and measured fitted data delays to choose bounded
 paths, then refit/all-corner/hardware qualify them. No PCG timing constraint
 has been added in this increment, and digital success does not establish
 native scanline-trap behavior, metastability, physical reset or native firmware.
+
+## Later scaler-reset fit: optional state replica
+
+The `8d94709` scaler-release flow fits/assembles but final STA rejects the
+mandatory `.01~DUPLICATE` assumption. Native no-SDC fitted inventory shows
+only primary `.00/.01/.10`; the revised guard includes the known `.01` clone
+when present rather than requiring it. Both fitted profiles validate every
+source/bit/RAM plane before any bound; mapped remains unreplicated. Native
+35-control-destination syntax passes and three-profile mocks reject 84
+invalid cases. This is not timing acceptance of the failed full flow.
+Fresh refit and report-auditor qualification of actual native paths remain
+required. See [fit/inventory evidence](SCALER_RESET_TIMING_AUDIT.md#first-destination-local-fit-fitted-final-sta-rejected).

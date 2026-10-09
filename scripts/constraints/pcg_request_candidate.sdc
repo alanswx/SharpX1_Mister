@@ -35,7 +35,7 @@ if {$x1_req_we_count == 48 && $x1_req_data_count == 48} {
     set x1_req_data_per_plane 16
 } elseif {$x1_req_we_count == 12 && $x1_req_data_count == 192} {
     set x1_req_profile fitted
-    set x1_req_ctrl_count 36
+    set x1_req_ctrl_count 35
     set x1_req_we_per_plane 4
     set x1_req_data_per_plane 64
 } else {
@@ -44,6 +44,18 @@ if {$x1_req_we_count == 48 && $x1_req_data_count == 48} {
 puts "PCG request endpoint profile: $x1_req_profile"
 set x1_req_ctrl_dest [get_registers [concat \
     {*x1_pcg_access:cg_bus|access_addr* *x1_pcg_access:cg_bus|response* *x1_pcg_access:cg_bus|seen *x1_pcg_access:cg_bus|stage*} $x1_req_we_names]]
+# The router may retain or omit its same-state stage.01 replica. Include it
+# if present; never require a clone or silently discard an unknown alias.
+set x1_req_stage_replicas 0
+foreach_in_collection x1_req_reg $x1_req_ctrl_dest {
+    if {[lindex [split [get_register_info -name $x1_req_reg] |] end] eq "stage.01~DUPLICATE"} {
+        incr x1_req_stage_replicas
+    }
+}
+if {$x1_req_stage_replicas > 1 || ($x1_req_profile eq "mapped" && $x1_req_stage_replicas != 0)} {
+    error "unexpected PCG stage replica inventory; refuse bounds"
+}
+if {$x1_req_profile eq "fitted"} {incr x1_req_ctrl_count $x1_req_stage_replicas}
 set x1_req_data_dest [get_registers $x1_req_data_names]
 # Map merges frozen_addr[4..10] into font_cpu_addr[5..11]. Inventory must be
 # reviewed anew after each fit; these counts do not support other revisions.
@@ -67,7 +79,7 @@ set x1_req_expected(payload) {}
 set x1_req_expected(address_dest) {}
 set x1_req_expected(control) {plane[0] plane[1] write_request high_speed_request unsupported_request}
 set x1_req_expected(control_dest) {seen stage.00 stage.01 stage.10}
-if {$x1_req_profile eq "fitted"} {lappend x1_req_expected(control_dest) stage.01~DUPLICATE}
+if {$x1_req_stage_replicas} {lappend x1_req_expected(control_dest) stage.01~DUPLICATE}
 for {set x1_req_i 0} {$x1_req_i < 12} {incr x1_req_i} {
     lappend x1_req_expected(address) [format {font_cpu_addr[%d]} $x1_req_i]
     if {$x1_req_i < 4} {lappend x1_req_expected(address) [format {frozen_addr[%d]} $x1_req_i]}

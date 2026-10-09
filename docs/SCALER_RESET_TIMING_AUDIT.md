@@ -116,3 +116,37 @@ cuts must be reviewed separately, not called passes from empty reports.
 `test-scaler-release-paths` passes mocked six-stage endpoint selection and all
 144 expected report scopes, with eight rejected inventories/profiles. It is
 selected in CI. These mocks do not prove native register matching or timing.
+
+## First destination-local fit: fitted, final STA rejected
+
+The `8d947090ffcec0a6397bc85b6fe83f274f613cc8` flow fits and assembles,
+then finishes **exit 3** at 17:51:02 UTC (8:29 elapsed): final STA rejects the
+PCG request control inventory, not the scaler's VHDL compilation. Frozen host
+folder `output_files/quartus-linux-eoHwZeyI`; original reports, manifest and
+generated RBF are preserved locally under `completed-fitter/` before probes.
+RBF SHA-256 `1014088699325fdf0037e0357c1a22209739094100398f63174fddd549ec6f50`
+is **unqualified**. Input audit finds 384 matching files, only rewritten QPF
+differs. Log `/tmp/x1-quartus-8d94709-scaler-reset-build.log`.
+
+Idle-fit reconnaissance without SDC loading confirms exactly **six scaler
+release registers and six asynchronous CLRN input pins**, two stages for
+input/output/Avalon. Native hierarchy uses escaped generated instance names,
+for example `x1_scaler_reset_release:\x1_domain_reset:input_release`.
+The reporting-only `quartus_scaler_release_inventory.tcl` finishes zero,
+no warnings; no clocks, timing or exceptions are evaluated.
+
+PCG retains the three primary `stage.00/.01/.10` registers without the optional
+`.01~DUPLICATE` present in prior fits. The revised request guard accepts either
+exact fitted inventory (35/36 control destinations), preserving all existing
+RAM plane/bit/source validations and rejecting unknown or repeated aliases.
+Mapped inventory still refuses replicas. Three-profile mocks pass 84 negative
+controls. Native syntax/inventory check on this fit passes the revised
+35-destination candidate, log
+`/tmp/x1-quartus-8d94709-stage-syntax-inventory.log`; it does not load clocks
+or establish physical timing. Original fitted inputs/RBF remain untouched.
+
+Next: fresh full flow with the corrected guard, all-corner PCG/scaler stage
+and downstream audits, plus explicit raw-input coverage review. The PCG
+report auditor's old replica-specific profile needs matching native reports
+before qualification of this new unreplicated representation. No work-group,
+native-software or hardware acceptance is claimed from the failed final STA.

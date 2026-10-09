@@ -124,6 +124,11 @@ Actual-helper GHDL tests at four clocks and one-edge failing control pass;
 the modified scaler analyzes. No added timing cut; fresh FPGA inventory,
 timing, raw-crossing review and physical acceptance remain open. See
 [scaler increment](SCALER_RESET_TIMING_AUDIT.md#experimental-destination-local-release-increment).
+The first local-release flow fits/assembles but final STA rejects the old
+mandatory PCG stage replica. Native inventory confirms six scaler stages/
+six raw input pins and an unreplicated PCG state profile. Revised strict
+35/36-endpoint guard passes native syntax and 84 negative controls; fresh
+flow, all-corner timing/report coverage and physical/native gates remain open.
 The [Turbo Z in-flight control reset test](TURBO_Z_INFLIGHT_RESET_STATUS.md)
 passes at three independent video rates, including a deliberately failing
 asynchronous-reset-removal control. Exact reset frames, pending palette/

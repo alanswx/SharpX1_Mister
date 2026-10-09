@@ -43,8 +43,14 @@ foreach color {b r g} {
         if {$i < 4} {lappend valid(control_dest) "emu|x1_video_ram:pcg_${color}|mock${i}~porta_we_reg"}
     }
 }
-foreach profile {fitted mapped} {
+foreach profile {fitted fitted_no_replica mapped} {
     array set profile_valid [array get valid]
+    if {$profile eq "fitted_no_replica"} {
+        set profile_valid(control_dest) {}
+        foreach reg $valid(control_dest) {
+            if {![string match {*~DUPLICATE} $reg]} {lappend profile_valid(control_dest) $reg}
+        }
+    }
     if {$profile eq "mapped"} {
         set profile_valid(control_dest) {}
         foreach reg $valid(control_dest) {
@@ -63,7 +69,7 @@ foreach profile {fitted mapped} {
 foreach group [array names profile_valid] {
     set modes {valid missing duplicate extra wrong_identity}
     if {$group eq "data_dest"} {lappend modes unclassified_data_alias}
-    if {$group eq "control_dest"} {lappend modes unclassified_we_alias}
+    if {$group eq "control_dest"} {lappend modes unclassified_we_alias unknown_stage_replica duplicate_stage_replica}
     foreach mode $modes {
         array set groups [array get profile_valid]
         switch $mode {
@@ -73,6 +79,8 @@ foreach group [array names profile_valid] {
             wrong_identity {lset groups($group) 0 {wrong|unexpected[0]}}
             unclassified_data_alias {lappend groups($group) {emu|x1_video_ram:pcg_b|extra~PORT_A_DATA_IN_0~DUPLICATE}}
             unclassified_we_alias {lappend groups($group) {emu|x1_video_ram:pcg_b|extra~porta_we_reg~DUPLICATE}}
+            unknown_stage_replica {lappend groups($group) ${base}stage.00~DUPLICATE}
+            duplicate_stage_replica {lappend groups($group) ${base}stage.01~DUPLICATE ${base}stage.01~DUPLICATE}
         }
         set applied {}
         set failed [catch {source $candidate} message]
@@ -86,4 +94,4 @@ foreach group [array names profile_valid] {
     }
 }
 }
-puts "PASS: mapped/fitted request bounds; 52 invalid inventories refuse all constraints, including unclassified aliases"
+puts "PASS: mapped/fitted with and without stage replica; 84 invalid inventories refuse all constraints, including unclassified aliases"
