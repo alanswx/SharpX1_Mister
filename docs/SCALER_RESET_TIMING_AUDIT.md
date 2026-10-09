@@ -181,3 +181,42 @@ Only the existing four core reset input pins are excepted; no new scaler
 raw-pin exceptions have been added. Next: separately probe precisely those
 six raw pins while retaining all chain/downstream checks and reviewing
 physical placement/pulse/MTBF, plus the remaining mux/HDMI/CDC/I/O gates.
+
+## Six raw-input pin probe and experimental selection
+
+`scaler_reset_input_candidate.sdc` matches exactly six named primary CLRN
+pins in the three two-stage scaler release instances. It never targets
+whole registers, D/CLK/Q or output fanout; legacy one-stage, unknown instance/
+bit/replica and missing/duplicate pins refuse all cuts. The mocked scope
+test rejects 11 invalid inventories. The optional release probe checks all
+320 expected before/after reports, applying the cut only after the baseline.
+Both targets are selected in CI. Four-rate/three-concurrent-domain helper
+checks and failing early/coupled controls also pass again.
+
+The exact probe finishes zero, no warnings, on the preserved `ed3c332` fit at
+18:16:26 UTC; log `/tmp/x1-quartus-ed3c332-scaler-raw-pin-probe.log`. Separate
+local reports: `output_files/quartus-linux-HMU7HdXp/scaler-raw-pin-probe/`.
+Independent normalized comparisons pass **96** before/after pairs: all 48
+stage setup/hold reports and 48 downstream recovery/removal reports are
+unchanged. The existing +0.249/+0.261 ns minima and stage/downstream endpoint
+coverage remain visible. All 48 after raw-input reports are empty by the
+explicit pin cut, not considered physical reset passes.
+
+Eight after global recovery reports retain 800 worst-path rows, minimum
+**+4.280 ns**; global removal minimum +0.261 ns. Before raw input reports
+retain 32 rows, minimum −4.835 ns. Global constrained recovery is positive in
+this experiment; excluded/unconstrained input and physical reset acceptance
+remain separate. No placement/pulse/MTBF or actual reset-mode-switching proof.
+Native post-map six-pin syntax also finishes zero (one inherited netlist
+warning), log `/tmp/x1-quartus-ed3c332-scaler-raw-mapped.log`; no clock timing
+is performed by that inventory check.
+
+Executed candidate SHA-256
+`997d7d32c8fbf78ee2315b14c7f302e46b726444a70258ae42c88abb5b485b2d`,
+probe `fc236f084d7cb9182ba25dd7cc36cf6864da98e037ab3aa5e12e31f3cc345197`.
+The candidate is now selected only by experimental Z, pending fresh fit;
+its selection-header change is comment-only. No RTL or RBF changed in this
+probe. The independently scoped mux alias candidate is also selected for
+that new fit; ordinary revisions keep their previous constraints. Repeat
+all-corner endpoint/chain/downstream/payload/crossing checks and I/O review.
+Setup/hold, other CDC and physical/native gates remain open.

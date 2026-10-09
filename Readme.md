@@ -106,6 +106,10 @@ The corrected flow now completes zero; PCG, snapshot and reported scaler
 stage/downstream timing pass eight-corner checks. Overall setup/hold/raw-reset
 recovery remain negative. An analysis-only mux candidate preserves real
 HDMI and SYS/VID failures; no timing-qualified Turbo Z RBF is claimed.
+The six-pin scaler input experiment preserves all reported stage/downstream
+timing and gives positive constrained recovery at eight corners. Experimental
+Z now selects that scope and the narrow mux aliases for a fresh fit;
+setup/hold, CDC/I/O and physical/native gates remain open.
 The [summary table](docs/CHIP_IMPLEMENTATION_TABLE.md) and
 [chip reuse survey](docs/CHIP_REUSE.md) describe available replacement sources
 and the remaining integration work.

@@ -166,6 +166,15 @@ exhaustive CDC acceptance). Across all eight HDMI same-clock setup reports,
 440 paths remain with minimum −2.401 ns. The candidate is still unselected;
 native syntax/scope success is not physical timing closure.
 
+After the six-pin scaler experiment preserves all stage/downstream checks,
+the mux candidate is now selected only for experimental Z, alongside the
+scaler raw-input candidate, pending fresh fit. Its header update is
+comment-only. `sys/sys_top.v` connects mux input 2 to HDMI and input 3 to VID,
+with select restricted to 2/3; only output-clock aliases are exclusive.
+Both masters remain concurrent, and no HDMI pipeline or I/O packing change
+is made. Refit all corners and audit retained real same-clock/CDC paths,
+output constraints and physical mode switching before any timing claim.
+
 ```sh
 QUARTUS_REVISION=sharpx1_turbo_z_video bash scripts/build_quartus_linux.sh --build
 ```

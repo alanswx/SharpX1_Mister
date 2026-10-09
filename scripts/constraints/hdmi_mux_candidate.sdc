@@ -1,4 +1,4 @@
-# Analysis-only candidate; not selected by any QSF until fresh-fit review.
+# Experimental Z only; native scope audited, fresh-fit/physical gates open.
 # PLL masters remain concurrent. Only the two choices at hdmi_tx_clk's mux
 # output are logically exclusive; no whole-master clock-domain cut.
 set x1_mux_hdmi [get_clocks {pll_hdmi|pll_hdmi_inst|altera_pll_i|*|divclk}]

@@ -3,6 +3,7 @@
 package require ::quartus::project
 package require ::quartus::sta
 set revision [lindex $quartus(args) 0]
+set candidate [lindex $quartus(args) 1]
 if {$revision ne "sharpx1_turbo_z_video"} {error "expected experimental Z"}
 project_open sharpx1 -revision $revision
 create_timing_netlist -model slow -temperature 100 -voltage 1100
@@ -28,11 +29,16 @@ foreach domain {input output avalon} {
     if {[lsort [dict keys $stages]] ne {0 1}} {error "missing scaler stage"}
     dict set domains $domain [list $regs [dict get $stages 0] [dict get $stages 1]]
 }
+set phases {baseline}
+if {$candidate ne ""} {set phases {before after}}
+foreach phase $phases {
+if {$phase eq "after"} {source $candidate; update_timing_netlist}
 foreach model {slow fast} {
     foreach temperature {-40 0 85 100} {
         set_operating_conditions -model $model -temperature $temperature -voltage 1100
         update_timing_netlist
         set prefix output_files/${revision}_scaler_release_${model}_${temperature}
+        if {$candidate ne ""} {set prefix output_files/${revision}_scaler_release_probe_${phase}_${model}_${temperature}}
         dict for {domain collections} $domains {
             lassign $collections regs first last
             foreach check {setup hold} {
@@ -43,7 +49,13 @@ foreach model {slow fast} {
                 report_timing -$check -from $last -npaths 10000 -detail full_path -file ${prefix}_${domain}_output_${check}.rpt
             }
         }
+        if {$candidate ne ""} {
+            foreach check {recovery removal} {
+                report_timing -$check -npaths 100 -detail full_path -file ${prefix}_global_${check}.rpt
+            }
+        }
     }
+}
 }
 delete_timing_netlist
 project_close

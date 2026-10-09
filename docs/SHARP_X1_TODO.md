@@ -135,6 +135,12 @@ and reported downstream releases pass. Global setup/hold/recovery still fail
 −15.064/−0.033/−4.835 ns; raw reset coverage, real HDMI routing, other CDC/I/O
 and native/hardware acceptance remain open. The unselected exact mux candidate
 executes successfully but preserves real failures, not a timing-pass claim.
+The six-pin scaler reset probe now preserves all 96 stage/downstream report
+pairs at eight corners, with constrained global recovery minimum +4.280 ns.
+Mapped scope also validates. Only experimental Z selects those exact raw
+pins and the independently scoped mux aliases for a fresh fit; no RTL change.
+Setup/hold, CDC/I/O, physical reset/mode switching and native/hardware gates
+remain open; do not treat the experiment as a qualified RBF.
 The [Turbo Z in-flight control reset test](TURBO_Z_INFLIGHT_RESET_STATUS.md)
 passes at three independent video rates, including a deliberately failing
 asynchronous-reset-removal control. Exact reset frames, pending palette/

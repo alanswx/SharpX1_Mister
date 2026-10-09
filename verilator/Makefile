@@ -1764,9 +1764,17 @@ test-scaler-reset-paths:
 	tclsh tests/scaler_reset_paths_tb.tcl
 .PHONY: test-scaler-reset-paths
 
+test-scaler-reset-sdc:
+	tclsh tests/scaler_reset_sdc_tb.tcl
+.PHONY: test-scaler-reset-sdc
+
 test-scaler-release-paths:
 	tclsh tests/scaler_release_paths_tb.tcl
 .PHONY: test-scaler-release-paths
+
+test-scaler-release-probe:
+	tclsh tests/scaler_release_probe_tb.tcl
+.PHONY: test-scaler-release-probe
 
 test-scaler-reset-release:
 	mkdir -p $(HEADLESS_DIR)/scaler-reset
