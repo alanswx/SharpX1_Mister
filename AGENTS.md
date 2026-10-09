@@ -93,6 +93,13 @@ snapshot identity uses bit 40; do not reuse it for other profiles or convert
 completion states. See `docs/DMA_RESTART_MACHINE_STATUS.md` for actual handler/
 FDC tests and the still-open Ready/mixed/native/board gates. Build separate
 directories for `DMA_RESTART=0/1`; no existing RBF enables this profile.
+`TURBO_Z_PALETTE_CPU=1` / `turbo-z-palette-cpu` is a separate CPU-only,
+non-savable experiment, not a Z machine or analog renderer. It rejects DMA
+combinations, disables palette display reads and qualifies only the explicit
+low-scan/40-column external palette sequence. Upper read bits and native ASIC
+reset controls remain provisional. Use `test-machine-z-palette-cpu` and
+`test-machine-z-palette-disabled`; see `docs/TURBO_Z_PALETTE_CPU_STATUS.md`.
+Never enable its constant ownership permission with a display consumer.
 During an owned reset drain, CPU CE stops while DMA/target CE and host SD ACK
 processing continue. Do not replace actual BUSACK ownership with BUSRQ or
 reset the CPU before the already-started pair completes. Uploads must honor

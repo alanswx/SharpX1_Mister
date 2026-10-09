@@ -1,7 +1,9 @@
 # Turbo Z palette storage foundation
 
-October 8, 2026. This is a standalone, original storage primitive, **not a
-connected Turbo Z palette device or a hardware-qualified feature**.
+October 8, 2026 storage checkpoint, with subsequent CPU-integration update.
+This original storage primitive now has an opt-in
+[shared-Z80 consumer](TURBO_Z_PALETTE_CPU_STATUS.md), but is **not a complete
+Turbo Z palette device or a hardware-qualified feature**.
 
 `rtl/x1_z_palette_ram.sv` provides three 4096 × 4-bit component memories.
 The physical capacity follows IC68/69/70 and PA0–PA11 on sheet 46 of the
@@ -30,8 +32,10 @@ eight-entry palette, text palette or cold-versus-warm machine reset dispatch.
 CPU access inputs represent already accepted local-clock operations, **not
 raw Z80 strobes**. Native register decode, AEN/APEN/APRD, selector lifetime,
 reduced-color banking, WAIT, DMA ownership and display arbitration remain
-outside this module. The separate `rtl/x1_z_palette.qip` is not included in
-`rtl/machine.qip`; ordinary machine profiles and fitted RBFs are unchanged.
+outside this module. Storage and adapter are now listed in `rtl/machine.qip`
+for the default-disabled CPU experiment. The separate `rtl/x1_z_palette.qip`
+remains available for isolated synthesis probes; ordinary profiles and fitted
+RBFs are unchanged. The probe results below do not qualify combined integration.
 
 ## Executed verification
 

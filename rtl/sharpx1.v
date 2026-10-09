@@ -1,6 +1,6 @@
 // Sharp X1 base-machine integration. Shared by MiSTer and simulation.
 // See docs/BASE_X1_CONTRACT.md for address-map sources and limitations.
-module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0, TURBO_DSW = 241, TURBO_DMA_RESTART_IRQ = 0) (
+module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0, TURBO_DSW = 241, TURBO_DMA_RESTART_IRQ = 0, TURBO_Z_PALETTE_CPU = 0) (
     input clk_sys, clk_28636, reset,
     input pal, scandouble,
     input ioctl_download,
@@ -79,7 +79,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     wire mreq, iorq, rd, wr, m1, halt_n;
     cpu Cpu (
         .reset_n(~core_reset), .clock(clk_sys), .cep(cpu_ce), .cen(ne4M4),
-        .int_n(TURBO ? !machine_irq : sub_int_n), .wait_n(cg_wait_n), .halt_n(halt_n),
+        .int_n(TURBO ? !machine_irq : sub_int_n), .wait_n(machine_wait_n), .halt_n(halt_n),
         .busrq_n(dma_busrq_n), .busak_n(cpu_busak_n), .rfsh_n(),
         .mreq(cpu_mreq), .iorq(cpu_iorq), .rd(cpu_rd), .wr(cpu_wr), .m1(cpu_m1),
         .di(di), .data_out(cpu_data_out), .a(cpu_a), .dir(16'd0), .dirset(1'b0)
@@ -95,6 +95,8 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     wire dma_ack, dma_iei, dma_reti;
     wire [7:0] dma_vector;
     initial begin
+        if(TURBO_Z_PALETTE_CPU && (!TURBO || TURBO_DMA))
+            $error("CPU-only Z palette experiment requires TURBO and excludes unqualified DMA ownership");
         if (TURBO_DMA_IRQ && !(TURBO && TURBO_DMA))
             $error("TURBO_DMA_IRQ requires TURBO and TURBO_DMA");
         if (TURBO_DMA_RESTART_IRQ && !TURBO_DMA_IRQ)
@@ -137,6 +139,57 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     wire io_read = !core_reset && !iorq && !rd && m1;
     wire io_write = !core_reset && !iorq && !wr && m1;
     wire io_cycle = io_read || io_write;
+    wire z_palette_selected, z_palette_wait_n;
+    wire [7:0] z_palette_data;
+    wire machine_wait_n=cg_wait_n && z_palette_wait_n;
+    generate if(TURBO_Z_PALETTE_CPU) begin : z_palette_cpu
+        // Explicit CPU-only full external-palette experiment. No Z signature,
+        // native register readback, reduced/internal/text palettes or renderer.
+        reg [7:0] mode=0, control=0;
+        reg control_write_old=0;
+        wire control_write=io_write && !dam && (a==16'h1fb0 || a==16'h1fc5);
+        always @(posedge clk_sys or posedge core_reset)
+            if(core_reset) begin mode<=0;control<=0;control_write_old<=0;end
+            else begin
+                control_write_old<=control_write;
+                if(control_write && !control_write_old) begin
+                    if(a==16'h1fb0) mode<=data_out;
+                    else control<=data_out;
+                end
+            end
+        wire enabled=mode==8'h80 && (control==8'h80 || control==8'h88)
+                     && !turbo_scrn[0] && !mode_c[6];
+        wire ram_access,ram_write,ram_valid,read_valid;
+        wire [11:0] ram_address;
+        wire [1:0] ram_component;
+        wire [3:0] ram_nibble,ram_data,read_nibble;
+        x1_z_palette_access access(
+            .clk(clk_sys),.reset(core_reset),.external_enabled(enabled),
+            .read_mode(control[3]),.permit(1'b1),
+            .io_read(io_read && !dam),.io_write(io_write && !dam),
+            .address(a),.data(data_out),.selected(z_palette_selected),
+            .wait_n(z_palette_wait_n),.read_valid(read_valid),.read_nibble(read_nibble),
+            .ram_access(ram_access),.ram_write(ram_write),.ram_address(ram_address),
+            .ram_component(ram_component),.ram_nibble(ram_nibble),
+            .ram_valid(ram_valid),.ram_data(ram_data)
+        );
+        // No display consumer yet, hence no beam-side collision/grant. This
+        // constant permission must be replaced before enabling analog output.
+        x1_z_palette_ram store(
+            .cpu_clk(clk_sys),.video_clk(clk_28636),.cpu_reset(core_reset),.video_reset(video_reset),
+            .cpu_access(ram_access),.cpu_write(ram_write),.cpu_address(ram_address),
+            .cpu_component(ram_component),.cpu_nibble(ram_nibble),
+            .cpu_data(ram_data),.cpu_valid(ram_valid),
+            .display_read(1'b0),.display_address(12'd0),.display_rgb12(),.display_valid()
+        );
+        // Upper nibble is a provisional experimental value, NOT qualified
+        // native pin behavior. CPU acceptance must mask to the lower nibble.
+        assign z_palette_data=read_valid ? {4'd0,read_nibble} : 8'hff;
+    end else begin : no_z_palette_cpu
+        assign z_palette_selected=0;
+        assign z_palette_wait_n=1;
+        assign z_palette_data=8'hff;
+    end endgenerate
     wire dsw_selected;
     wire [7:0] dsw_data;
     x1_turbo_dsw #(.ENABLED(TURBO)) dip_switches (
@@ -298,6 +351,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
               : ctc_cs && io_read ? ctc_data
               : dma_cs && io_read ? dma_data
               : dsw_selected ? dsw_data
+              : z_palette_selected && io_read ? z_palette_data
               : io_read && !dam && a[15:2] == 14'h03fe ? fdc_data
               : io_read && !dam && a[15:8] == 8'h1b ? psg_data
               : (cg_access && io_read) || cg_read_tail ? cg_cpu_data
@@ -520,7 +574,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         .I_RESET(core_reset), .I_CCLK(clk_sys), .I_A(a), .I_D(data_out), .O_D(), .O_DE(),
         .I_WR(io_write && !dam), .I_RD(io_read), .O_VWAIT(),
         .I_CRTC_CS(io_cycle && a[15:8] == 8'h18), .I_CG_CS(cg_access),
-        .I_PAL_CS(io_cycle && a[15:10] == 6'b000100),
+        .I_PAL_CS(io_cycle && a[15:10] == 6'b000100 && !z_palette_selected),
         .I_TXT_CS(1'b0), .I_ATT_CS(1'b0), .I_KAN_CS(1'b0),
         .I_GRB_CS(1'b0), .I_GRR_CS(1'b0), .I_GRG_CS(1'b0),
         .I_VCLK(clk_28636), .I_CLK1(clk1), .O_VQ(), .I_W40(TURBO_VIDEO_MASTER ? width_video : mode_c[6]),

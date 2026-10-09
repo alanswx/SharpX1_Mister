@@ -44,7 +44,12 @@ Turbo Z work group are not done.
 The separate [external-palette bus adapter](TURBO_Z_PALETTE_ACCESS_STATUS.md)
 now connects frozen selector/write/read transactions to the real RAM in
 diagnostics. Native control decode, upper input bits, actual CPU/DMA/beam
-ownership and rendering still need integration; no machine profile is enabled.
+ownership and rendering still need integration. An opt-in
+[CPU-only palette profile](TURBO_Z_PALETTE_CPU_STATUS.md) now passes actual Z80
+cold/read/write/dummy-selector and retained warm-reset tests at 19 boundary
+indices across all components. The unchanged diagnostic fails as expected
+with the feature disabled. Full native decode, DMA/beam arbitration and
+rendering remain open; ordinary profiles and RBFs are not enabled.
 
 The expanded [hosted diagnostic run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37865161650)
 now completes successfully on `95c3e4a`. The newer `99eb141` palette-RAM/
@@ -653,7 +658,7 @@ Preserve each frozen runner; do not rebuild historical v05.
 - [ ] Record known deviations from MAME/X Millennium and gate regressions on
   stable screenshots, bus traces, and audio hashes.
 
-## Phase 5 — Turbo Z (researched roadmap, not implemented)
+## Phase 5 — Turbo Z (partial foundations; native acceptance open)
 
 See [Turbo Z specification, sources and acceptance plan](TURBO_Z_PLAN.md).
 Finish base Turbo first; keep Z-specific detection/ports behind a separate

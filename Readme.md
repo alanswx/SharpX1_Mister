@@ -222,9 +222,10 @@ Turbo Z is a separate capability target with a
 [manual-based roadmap](docs/TURBO_Z_PLAN.md), including analog multi-color
 video, stereo FM, HD disks and capture effects. Its first
 [RGB12 output foundation](docs/TURBO_Z_RGB_STATUS.md) connects full-color
-capture and wrapper interfaces while preserving digital colors. Palette,
-multi-mode rendering and the other Z devices are not implemented in the
-shared machine. A separate [FM foundation](docs/TURBO_Z_FM_STATUS.md) passes
+capture and wrapper interfaces while preserving digital colors. Analog palette
+rendering, multi-mode graphics and the other Z devices are not implemented in
+the shared machine; the CPU-only palette subset is described below.
+A separate [FM foundation](docs/TURBO_Z_FM_STATUS.md) passes
 JT51 busy/timers, stereo notes, fractional enables and signed mixing at three
 master frequencies; CPU decode/IRQ, native sound and hardware remain open.
 The standalone [Z palette storage](docs/TURBO_Z_PALETTE_STORAGE_STATUS.md)
@@ -237,9 +238,12 @@ and adds cold-initialization, retained-reset and fixed-black text requirements;
 the standalone RAM now implements the external cold identity image and tests
 retained reset, but native register/internal/text palette behavior remains open.
 A separate [external-palette transaction adapter](docs/TURBO_Z_PALETTE_ACCESS_STATUS.md)
-connects selector/write/read operations to that RAM in diagnostics, not the
-shared machine. Native decode, upper read bits, beam ownership and rendering
-remain integration gates; ordinary machine profiles are unchanged.
+connects selector/write/read operations to that RAM. The opt-in
+[CPU-only palette experiment](docs/TURBO_Z_PALETTE_CPU_STATUS.md) now executes
+those transactions through the shared Z80, including retained warm reset and
+a disabled-profile negative control. Upper read bits, general native decode,
+DMA/beam ownership and rendering remain gates; ordinary profiles and RBFs
+are unchanged. This is not full Turbo Z support.
 
 The headless simulator has been compiled with Verilator 5.044 on macOS.
 The timing/reset regression passes. A 200,000-system-cycle run reports:

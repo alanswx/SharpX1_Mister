@@ -160,6 +160,19 @@ single-fast: obj_dir_single_fast/Vtop
 
 # Partial Turbo peripherals behind an explicit experimental model parameter.
 turbo: obj_dir_turbo/Vtop
+Z_PALETTE_DIR ?= obj_dir_v12_z_palette_cpu
+Z_PALETTE_CPU ?= 1
+turbo-z-palette-cpu: $(Z_PALETTE_DIR)/Vtop
+$(Z_PALETTE_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
+	$(V) -cc --timing --assert --trace-fst --exe --build -j 4 --Mdir $(Z_PALETTE_DIR) --top-module top \
+	  -GTURBO=1 -GTURBO_Z_PALETTE_CPU=$(Z_PALETTE_CPU) -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION $(if $(filter 1,$(Z_PALETTE_CPU)),-DX1_Z_PALETTE_CPU)" \
+	  -MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
+test-machine-z-palette-cpu: turbo-z-palette-cpu
+	python3 tests/test_machine_z_palette.py ./$(Z_PALETTE_DIR)/Vtop
+test-machine-z-palette-disabled:
+	$(MAKE) turbo-z-palette-cpu Z_PALETTE_CPU=0 Z_PALETTE_DIR=obj_dir_v12_z_palette_disabled
+	python3 tests/test_machine_z_palette.py ./obj_dir_v12_z_palette_disabled/Vtop --expect-disabled
+.PHONY: turbo-z-palette-cpu test-machine-z-palette-cpu test-machine-z-palette-disabled
 turbo-single: obj_dir_turbo_single/Vtop
 # Match the actual fitted single-master board clock, not the nominal crystal.
 # Isolated, non-savable diagnostic runners; existing profiles stay unchanged.

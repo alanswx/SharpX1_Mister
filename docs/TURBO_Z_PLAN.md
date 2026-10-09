@@ -84,7 +84,7 @@ extra GRAM. The digital RGB output reduces analog multi-mode colors to eight
   The [October 6 palette contract audit](TURBO_Z_PALETTE_CONTRACT.md) records
   the visible 12-address-bit/three-component RAM wiring, precise emulator
   disagreements and the original diagnostic matrix. ASIC index/read/WAIT
-  behavior remains unresolved; no palette registers are implemented yet.
+  behavior remains unresolved beyond the explicit CPU-only subset below.
   The standalone storage probe now fits in six M10Ks/39 ALMs, and the new
   technical-book I/O-map audit corroborates full index packing while exposing
   a conflicting `1FC5` access-mode label. The screen-display chapter now
@@ -98,7 +98,11 @@ extra GRAM. The digital RGB output reduces analog multi-mode colors to eight
   remain required; do not treat the resource probe as completion of Z2.
   The [external transaction adapter](TURBO_Z_PALETTE_ACCESS_STATUS.md) now
   connects selector/write/read requests to storage in a separate diagnostic;
-  upper input bits, native decode and real CPU/DMA/beam ownership remain open.
+  An opt-in [shared-Z80 CPU experiment](TURBO_Z_PALETTE_CPU_STATUS.md) now
+  latches `1FB0/1FC5` and tests the explicit low-scan/40-column `80h/88h`
+  sequence, real CPU WAIT and retained palette reset. Upper input bits,
+  general native decode and DMA/beam ownership remain open. No analog display
+  consumer is connected, so Z2/Z3 are still incomplete.
   Exhaust palette entries/components and read-selector transactions; verify
   address/data latch and held-strobe behavior, WAIT/bus ownership, live changes
   during blanking/active display and mode switches without reset.

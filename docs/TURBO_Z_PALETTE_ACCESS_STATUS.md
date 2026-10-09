@@ -1,8 +1,10 @@
 # External palette transaction adapter
 
 October 9, 2026. Original `rtl/x1_z_palette_access.sv` connects to the real
-`x1_z_palette_ram.sv` in an asset-free diagnostic. It is **not connected to
-the shared machine** and does not establish Turbo Z support.
+`x1_z_palette_ram.sv` in an asset-free diagnostic. The later opt-in
+[CPU-only experiment](TURBO_Z_PALETTE_CPU_STATUS.md) also connects it to the
+shared Z80; neither establishes full Turbo Z support. The exhaustive adapter
+results below remain standalone evidence, not CPU/display acceptance.
 
 The normal explicit selector/write/read sequence follows the primary
 [programming audit](TURBO_Z_PALETTE_CONTRACT.md). No emulator implementation,
@@ -28,7 +30,8 @@ published assembly listing, ROM, font or commercial bytes were copied.
 
 Upstream supplies `external_enabled`, `read_mode` and actual ownership
 `permit`. These are **not invented native AEN/APEN/bank or blanking policies**.
-No real CPU/DMA/beam arbiter supplies them yet. The selector's reset value,
+The CPU-only experiment supplies CPU bus strobes but disables display reads
+and excludes DMA; no CPU/DMA/beam arbiter supplies permission yet. The selector's reset value,
 ignored-access side effects and lifetime across ASIC control changes remain
 native qualification gates. CPU input high bits are deliberately not supplied:
 the primary read examples do not independently qualify their value. The
@@ -83,6 +86,7 @@ ownership; video-domain arbitration and synchronous fetch/render integration;
 mode-exit/reset/drain and profile-bound snapshot tests; unchanged base/Turbo
 acceptance, combined source-bound Quartus fit/CDC and physical Z software/output.
 
-`rtl/x1_z_palette.qip` now lists storage and adapter, but is still outside
-`rtl/machine.qip`. No ordinary machine state, runner profile, snapshot version,
-board revision or RBF has changed. Z2/Z3 and work groups 1–6 remain open.
+Storage and adapter are now also listed in `rtl/machine.qip`, behind a
+default-disabled generate. The CPU-only runner is non-savable and rejects
+DMA combinations. Ordinary profiles, snapshot version, board revisions and
+RBFs are unchanged. Z2/Z3 and work groups 1–6 remain open.
