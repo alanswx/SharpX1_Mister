@@ -6,12 +6,18 @@ on:
       - 'rtl/**'
       - 'verilator/**'
       - 'scripts/prepare_kanji.py'
+      - 'scripts/mister_matrix.py'
+      - 'scripts/compare_video_png.py'
+      - 'scripts/test_mister_matrix.py'
       - '.github/workflows/diagnostics.yml'
   pull_request:
     paths:
       - 'rtl/**'
       - 'verilator/**'
       - 'scripts/prepare_kanji.py'
+      - 'scripts/mister_matrix.py'
+      - 'scripts/compare_video_png.py'
+      - 'scripts/test_mister_matrix.py'
       - '.github/workflows/diagnostics.yml'
   workflow_dispatch:
 
@@ -77,7 +83,7 @@ jobs:
             test-machine-dma-x3-fast test-machine-dma-x3-timing test-machine-dma-x3-snapshot \
             test-dual-snapshot test-dual-write-snapshot test-video-dump test-continue-native-dual \
             test-dma-reset test-cpu-busreq test-d88-scanner test-d88-crc \
-            test-d88-metadata test-fdc-abort test-fdc-sd-abort test-joystick test-rgb12 test-fm test-fm-cpu test-probe-timeout; do
+            test-d88-metadata test-fdc-abort test-fdc-sd-abort test-joystick test-rgb12 test-z-palette-ram test-mister-matrix-safety test-fm test-fm-cpu test-probe-timeout; do
             # Bound each original fixture without changing its assertions or
             # simulated duration. A stall must fail with an identifiable target.
             limit_s=180

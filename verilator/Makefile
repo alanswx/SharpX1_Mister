@@ -14,6 +14,19 @@ FM_MASTER_HZ ?= 32000000
 
 all: headless
 
+test-mister-matrix-safety:
+	python3 ../scripts/test_mister_matrix.py
+.PHONY: test-mister-matrix-safety
+
+test-z-palette-ram: $(HEADLESS_DIR)/z-palette-ram/Vz_palette_ram_tb
+	@for half in 17500 11640 25000; do for rate in 1 4 7; do \
+	  ./$(HEADLESS_DIR)/z-palette-ram/Vz_palette_ram_tb +VIDEO_HALF_PS=$$half +CE_PERIOD=$$rate || exit 1; done; done
+$(HEADLESS_DIR)/z-palette-ram/Vz_palette_ram_tb: tests/z_palette_ram_tb.sv ../rtl/x1_z_palette_ram.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module z_palette_ram_tb --Mdir $(HEADLESS_DIR)/z-palette-ram \
+	  -j 4 tests/z_palette_ram_tb.sv ../rtl/x1_z_palette_ram.sv
+.PHONY: test-z-palette-ram
+
 test-turbo-dsw: $(HEADLESS_DIR)/turbo-dsw/Vturbo_dsw_tb
 	./$(HEADLESS_DIR)/turbo-dsw/Vturbo_dsw_tb
 $(HEADLESS_DIR)/turbo-dsw/Vturbo_dsw_tb: tests/turbo_dsw_tb.sv ../rtl/x1_turbo_dsw.sv Makefile

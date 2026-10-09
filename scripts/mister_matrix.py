@@ -15,6 +15,7 @@ import shlex
 import subprocess
 import time
 import xml.etree.ElementTree as ET
+from compare_video_png import rgb_png
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 RBF_SHA = "a0a03761ef9db2bf2a9a14ec5c281175cb02a33d7eaa07978551fe1f393260d3"
@@ -28,6 +29,8 @@ def main():
     parser.add_argument("--host", choices=("mister126", "mister14"), required=True)
     parser.add_argument("--bridge", default="misterubuntu")
     parser.add_argument("--execute", action="store_true", help="load MGLs and send keyboard input")
+    parser.add_argument("--warm-reset", action="store_true",
+                        help="send Main's Ctrl+LeftAlt+RightAlt reset chord without reloading assets")
     parser.add_argument("--rbf-path", default=RBF, help="explicit already-staged RBF; requires matching --rbf-sha256")
     parser.add_argument("--rbf-sha256", default=RBF_SHA)
     parser.add_argument("--title", choices=("01_CROSS_Chase", "02_Galaga", "03_Druaga", "04_Mappy", "05_Xevious", "06_Shanghai"),
@@ -35,6 +38,8 @@ def main():
     parser.add_argument("--video-ipl", type=pathlib.Path,
                         help="instead test six generated graphics/text/PCG IPLs")
     args = parser.parse_args()
+    if args.warm_reset and not args.execute:
+        parser.error("--warm-reset requires --execute")
     if not args.rbf_path.startswith("/media/fat/_Computer/") or not args.rbf_path.endswith(".rbf"):
         parser.error("RBF must be an explicit file beneath /media/fat/_Computer/")
     if len(args.rbf_sha256) != 64 or any(c not in "0123456789abcdef" for c in args.rbf_sha256):
@@ -75,7 +80,8 @@ def main():
     ssh("mkdir " + shlex.quote(remote_folder) + " " + shlex.quote(media))
     manifest = {"host": args.host, "bridge": args.bridge, "pre_load": before,
                 "rbf_sha256": args.rbf_sha256, "remote_rbf": args.rbf_path, "remote_mgl_directory": remote_folder,
-                "executed": args.execute, "tests": []}
+                "executed": args.execute, "warm_reset": args.warm_reset,
+                "script_sha256": hashlib.sha256(pathlib.Path(__file__).read_bytes()).hexdigest(), "tests": []}
 
     def save():
         (folder / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
@@ -93,6 +99,20 @@ def main():
         test.setdefault("screenshots", []).append({"label": label, "file": filename,
                                                     "sha256": hashlib.sha256(data).hexdigest()})
         save()
+        if args.video_ipl:
+            reference = args.video_ipl / (test["title"] + "-ipl.ppm")
+            header, size, maximum, expected = reference.read_bytes().split(b"\n", 3)
+            assert header == b"P6" and maximum == b"255"
+            dimensions, actual = rgb_png(folder / filename)
+            assert dimensions == tuple(map(int, size.split()))
+            assert len(actual) == len(expected)
+            mismatches = sum(actual[i:i+3] != expected[i:i+3] for i in range(0, len(actual), 3))
+            test["screenshots"][-1]["comparison"] = {
+                "reference_sha256": hashlib.sha256(reference.read_bytes()).hexdigest(),
+                "dimensions": dimensions, "checked_pixels": len(actual)//3,
+                "mismatching_pixels": mismatches}
+            save()  # Preserve failed captures before asserting success.
+            assert mismatches == 0, "Hardware video differs from qualified CPU IPL reference"
 
     titles = ("01_CROSS_Chase", "02_Galaga", "03_Druaga", "04_Mappy", "05_Xevious", "06_Shanghai")
     if args.title:
@@ -101,6 +121,7 @@ def main():
         titles = tuple(f"{kind}-{columns}" for columns in (40, 80) for kind in ("graphics", "text", "pcg"))
         for title in titles:
             assert (args.video_ipl / (title + ".rom")).stat().st_size == 4096
+            assert (args.video_ipl / (title + "-ipl.ppm")).is_file()
     for index, title in enumerate(titles, 1):
         # Keep below Main's name limit; independent configs must not truncate.
         setname = "X1M_" + stamp + f"_{index:02d}"
@@ -150,6 +171,16 @@ def main():
             capture(test, "start-input")
             ssh(shlex.join(["python3", HELPER, "105", "106", "103", "108", "57", "--hold", "0.4"]))
             capture(test, "direction-fire-input")
+        if args.warm_reset:
+            before_reset = status()
+            ssh(shlex.join(["python3", HELPER, "29", "56", "100", "--chord", "--hold", "0.3"]))
+            time.sleep(10 if args.video_ipl else 30)
+            assert status() == before_reset, "Core/setname changed across reset"
+            capture(test, "retained-assets-warm-reset")
+            if not args.video_ipl:
+                ssh(shlex.join(["python3", HELPER, "57", "28", "2", "--gap", "0.5"]))
+                time.sleep(3)
+                capture(test, "post-reset-start-input")
         test["final_hashes"] = ssh("sha256sum " + " ".join(map(shlex.quote, files)))
         assert test["final_hashes"] == hashes, "Protected test media changed"
         save()

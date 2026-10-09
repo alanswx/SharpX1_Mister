@@ -14,6 +14,18 @@ support before optional Turbo extensions.
 
 ## Active goal: items 1–6 and Turbo Z (October 6)
 
+The [DMA-build hardware feature matrix](HARDWARE_DMA_FEATURE_MATRIX_STATUS.md)
+records six exact 40/80-column graphics/text/PCG cases before and after warm
+reset on the separately fitted DMA revision, six native reset/input observations
+and both bounded actual OSD reset entries. Full-device, native-gameplay,
+writable/owned-SD reset, audio/physical-input and Turbo Z gates remain open.
+
+The [Turbo Z palette storage foundation](TURBO_Z_PALETTE_STORAGE_STATUS.md)
+now passes nine independent-clock/accepted-enable profiles, each exhausting
+4096 addresses, three components and sixteen nibble values. It is standalone:
+native ASIC registers, arbitration, renderer integration and fitted/hardware
+palette qualification remain open; Z2 and the Turbo Z work group are not done.
+
 The [Turbo DIP increment](TURBO_DIP_STATUS.md) now supplies configurable
 `1FFx` readback. Exhaustive decoder checks and fast real-CPU cold/warm F1
 checks pass; a repeated native two-second probe confirms F1 reads but no FDC

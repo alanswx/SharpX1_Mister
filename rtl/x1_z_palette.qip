@@ -1,0 +1,3 @@
+# Standalone Turbo Z physical palette storage. Not an enabled machine device.
+# Keep ASIC/native register and renderer integration gates explicit.
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_z_palette_ram.sv

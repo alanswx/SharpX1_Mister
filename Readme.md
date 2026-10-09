@@ -9,7 +9,12 @@ the game on MiSTer and responds to remote start/directional input; see
 [hardware bring-up evidence](docs/HARDWARE_BRINGUP.md) for the limited scope.
 The [current hardware matrix](docs/HARDWARE_VIDEO_MATRIX_STATUS.md) includes
 six native-title tests and exact captured RGB checks for base 40/80-column
-text, graphics and PCG; optional Turbo devices remain unqualified on hardware.
+text, graphics and PCG. A separate [DMA candidate](docs/DMA_BOARD_BUILD_STATUS.md)
+passes eighteen bounded CPU-driven hardware diagnostics; other optional
+devices and full Turbo Z remain unqualified on hardware.
+The [DMA-build feature matrix](docs/HARDWARE_DMA_FEATURE_MATRIX_STATUS.md)
+adds exact base-video pixels before/after retained-asset warm reset and tracks
+the remaining physical and unimplemented-feature gates.
 
 ## Current status
 

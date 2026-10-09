@@ -2,6 +2,10 @@
 
 October 6, 2026. Research gate for Z2/Z3, **not implemented registers**.
 
+The later [standalone physical storage foundation](TURBO_Z_PALETTE_STORAGE_STATUS.md)
+passes exhaustive component/address/nibble and retained-reset checks. It does
+not resolve this audit's ASIC/register gates or connect a Z palette device.
+
 ## Primary circuit evidence
 
 The existing hashed CZ-880 service manual was rendered again at PDF/printed
