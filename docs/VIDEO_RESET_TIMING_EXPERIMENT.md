@@ -43,6 +43,8 @@ Global recovery still fails at **−5.379 ns**, from `reset_req` to the inherite
 scaler's `ascal|i_reset_na`; global removal minimum is +0.409 ns. This experiment
 does not excuse that separate framework reset contract, other crossings,
 HDMI routing or full core timing. The source-bound RBF is unchanged.
+The [scaler reset audit](SCALER_RESET_TIMING_AUDIT.md) identifies its separate
+single-stage release contract and prepares reporting-only three-domain checks.
 
 Remaining acceptance: a fresh fit after experimental project selection,
 repeat endpoint/chain/downstream/all-corner audits, and placement/reset

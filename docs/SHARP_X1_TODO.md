@@ -108,6 +108,10 @@ stage-transfer paths and all 341 reported downstream release paths per corner.
 Only four validated core asynchronous input pins are selected by experimental
 Z; fresh-fit/physical qualification remains open. Scaler recovery and HDMI
 routing still fail and are not masked by this scope.
+Source inspection identifies three separate single-stage scaler reset releases;
+the [reporting-only scaler audit](SCALER_RESET_TIMING_AUDIT.md) prepares
+eight-corner input/downstream checks without new exceptions. Native execution
+and any framework correction remain open.
 The [Turbo Z in-flight control reset test](TURBO_Z_INFLIGHT_RESET_STATUS.md)
 passes at three independent video rates, including a deliberately failing
 asynchronous-reset-removal control. Exact reset frames, pending palette/
