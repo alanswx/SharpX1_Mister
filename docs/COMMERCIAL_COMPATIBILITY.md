@@ -1,5 +1,25 @@
 # Private commercial-game bring-up
 
+## CRTC-source ordinary requalification in progress
+
+Fresh collectors run sequentially from frozen ordinary fast runner
+`328b3b6b0ab12371838a7f610e012714398460ec5ed6b750b2dd2bd37d86f3e7`
+under ignored `verilator/obj_dir_headless/crtc-baseline-games-SWAKsH/`.
+Runner, machine, support scripts/keys and IPL are copied before launch;
+`/tmp/x1-crtc-games-inputs.sha256` records their initial hashes. No old
+snapshots are reused or converted; native prefix remains sixteen seconds
+in unchanged eight-second chunks, with original controls/assertions.
+
+Xevious and Druaga collectors have completed with all native stage codes
+and control codes zero, `gameplay_verified=true`, original inputs unchanged,
+repeatable RGB/RAM/reports, and movement `(30,40) -> (36,40)` and
+`(68,32) -> (67,32)` respectively. Mappy is running; Galaga/Shanghai remain
+queued. Logs are `/tmp/x1-crtc-native-TITLE.log`. The final full frozen-input
+audit is scheduled after all five finish, not yet complete.
+This runner predates the subsequent read-only X3 JSON/short-restore C++
+increment; ordinary machine RTL/layout is unchanged by that increment.
+These are bounded ordinary gameplay results, not X3/Z software or hardware.
+
 ## Post-blink ordinary v17 requalification
 
 All five fresh collectors terminate zero on ordinary fast runner

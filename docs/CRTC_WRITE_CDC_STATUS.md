@@ -241,6 +241,9 @@ The final target also includes cold/clock negative controls; log
 Existing X3 profile/continuation and ordinary snapshot regressions pass in
 `/tmp/x1-crtc-short-restore-profile-regression.log` and
 `/tmp/x1-crtc-short-restore-base-snapshot.log`.
+Actual old pre-CRTC/pre-blink v17 runners also generate unmodified states
+that the new runner rejects before deserialization, log
+`/tmp/x1-crtc-short-restore-old-profile-regression.log`.
 This is non-delay-aware snapshot qualification of generated diagnostics, not
 native game boot or a physical reset/timing claim. The invocation-local
 rolling `video_hash` is not serialized and cannot be compared between a zero
