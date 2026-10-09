@@ -1,7 +1,7 @@
 # Isolated fitted probe inventory and unwaived diagnostics; NOT board closure.
 package require ::quartus::project
 package require ::quartus::sta
-if {$quartus(args) ni {{} mux-clocks}} {error "expected no arguments or mux-clocks probe"}
+if {$quartus(args) ni {{} mux-clocks mux-all-corners}} {error "expected no arguments, mux-clocks or mux-all-corners probe"}
 project_open x1_hdmi_handoff_probe
 create_timing_netlist -model slow -temperature 100 -voltage 1100
 # Explicit probe reference only. Real board clocks/constraints remain separate.
@@ -9,7 +9,7 @@ create_clock -name probe_ref -period 20.0 [get_ports refclk]
 derive_pll_clocks
 derive_clock_uncertainty
 set prefix output_files/handoff_probe
-if {$quartus(args) eq "mux-clocks"} {
+if {$quartus(args) ne ""} {
     # Two choices AFTER this mux only; concurrent PLL masters stay uncut.
     set hdmi [get_clocks {hdmi_pll|general[0].gpll~PLL_OUTPUT_COUNTER|divclk}]
     set video [get_clocks {video_pll|general[0].gpll~PLL_OUTPUT_COUNTER|divclk}]
@@ -58,7 +58,23 @@ foreach block {mux gate} {
         puts "HANDOFF FITTED CLOCK PIN [get_pin_info -name $pin]"
     }
 }
-# Keep every CDC and unrelated violation visible. No clock groups/false paths.
+# Keep raw CDC and unrelated violations visible; only mux choices exclusive.
+set corners {{slow 100}}
+if {$quartus(args) eq "mux-all-corners"} {
+    set corners {}
+    foreach model {slow fast} {
+        foreach temperature {-40 0 85 100} {lappend corners [list $model $temperature]}
+    }
+}
+set base_prefix $prefix
+foreach corner $corners {
+    lassign $corner model temperature
+    set_operating_conditions -model $model -temperature $temperature -voltage 1100
+    update_timing_netlist
+    if {$quartus(args) eq "mux-all-corners"} {
+        set prefix ${base_prefix}_${model}_${temperature}
+        puts "HANDOFF PROBE CORNER $model $temperature 1100"
+    }
 foreach check {setup hold} {
     report_timing -$check -npaths 50 -detail full_path -file ${prefix}_global_${check}.rpt
     report_timing -$check -from [get_registers {*handoff|gate_request_meta}] \
@@ -73,6 +89,7 @@ foreach check {setup hold} {
     report_timing -$check -from [get_registers {*handoff|gate_request *handoff|gate_request~DUPLICATE}] \
         -to [get_registers {*handoff|gate_request_meta}] -npaths 10 -detail full_path \
         -file ${prefix}_raw_enable_${check}.rpt
+}
 }
 delete_timing_netlist
 project_close

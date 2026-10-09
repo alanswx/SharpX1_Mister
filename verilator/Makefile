@@ -1215,6 +1215,12 @@ test-hdmi-handoff-probe-audit:
 	python3 tests/test_hdmi_handoff_probe_audit.py
 .PHONY: test-hdmi-handoff-probe-audit
 
+test-hdmi-handoff-board-profile:
+	python3 tests/test_hdmi_handoff_board_profile.py
+	tclsh tests/hdmi_mux_sdc_tb.tcl
+	tclsh tests/hdmi_mux_sdc_tb.tcl handoff
+.PHONY: test-hdmi-handoff-board-profile
+
 $(HEADLESS_DIR)/crtc-machine/Vcrtc_machine_tb: tests/crtc_machine_tb.sv $(V_SRC)
 	$(V) --binary --timing --assert --top-module crtc_machine_tb --Mdir $(HEADLESS_DIR)/crtc-machine -j 4 tests/crtc_machine_tb.sv $(V_SRC) -Wno-fatal
 test-machine-crtc-write: $(HEADLESS_DIR)/crtc-machine/Vcrtc_machine_tb

@@ -72,6 +72,17 @@ stop-HIGH-before-closure test. Narrow mux-output clock choices pass twelve
 bounded timing rows at one corner; raw/global setup and hold remain open.
 Full fitted gate semantics, eight corners, startup/placement and board/DDR/I/O
 qualification are still required. No handoff-enabled QSF/RBF exists yet.
+The frozen isolated fit now passes all 96 bounded enable/witness/native-gate
+rows at eight corners; stage-chain hold minimum is +0.121 ns. Raw/global
+timing still fails. The emitted functional-only netlist preserves falling-edge/
+low-power-up gate parameters and inverted-clock witness; it is not a routed
+timing simulation or physical acknowledgement proof. Full-board default
+148.5 MHz HDMI, resource/initialization/CDC/DDR/I/O and hardware gates remain
+required; isolated 74.25 MHz probe fitting does not qualify them.
+The separate `sharpx1_turbo_z_handoff` full-board qualification revision now
+enables the handoff while existing revisions stay disabled. Static feature/
+constraint isolation and eighteen new invalid mux-scope controls pass;
+native scope acceptance, full flow/timing and physical results remain open.
 Nine actual pending-transaction snapshots pass ninety byte-identical
 continuations; cold-start/clock guards remain tested. Fresh combined-Z
 pixels, current-source Quartus bundle/consumer timing and native/hardware

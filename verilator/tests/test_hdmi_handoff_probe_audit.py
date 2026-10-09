@@ -2,9 +2,11 @@
 import pathlib
 import sys
 import tempfile
+import contextlib
+import io
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2] / "scripts"))
-from audit_hdmi_handoff_probe import audit, PREFIX, CLOCKS, PAIRS
+from audit_hdmi_handoff_probe import audit, audit_all_corners, PREFIX, CLOCKS, PAIRS
 
 
 def row(source, target, launch, latch, slack=1):
@@ -17,6 +19,8 @@ with tempfile.TemporaryDirectory(prefix="hdmi-handoff-probe-controls-") as tempo
     originals = {log: (
         "HANDOFF PROBE two generated mux choices only; PLL masters remain concurrent\n"
         f"HANDOFF ENABLE FANOUT gate_request_meta {PREFIX}gate_request_sample (reg)\n"
+        f"HANDOFF ENABLE FANOUT gate_request_sample {PREFIX}gate~FF_0 (reg)\n"
+        f"HANDOFF ENABLE FANOUT gate_request_sample {PREFIX}gate_observed_enable (reg)\n"
         "HANDOFF STATUS FANIN refclk (port)\n"
         f"HANDOFF STATUS FANIN {PREFIX}gate_observed_enable (reg)\n"
         "TimeQuest Timing Analyzer was successful. 0 errors, 0 warnings\n")}
@@ -40,6 +44,7 @@ with tempfile.TemporaryDirectory(prefix="hdmi-handoff-probe-controls-") as tempo
         (log, originals[log] + "Warning: Ignored filter\n"),
         (log, originals[log].replace("two generated mux choices only", "whole PLL exclusion")),
         (log, originals[log] + f"HANDOFF ENABLE FANOUT gate_request_meta {PREFIX}consumer (reg)\n"),
+        (log, originals[log] + f"HANDOFF ENABLE FANOUT gate_request_sample {PREFIX}consumer (reg)\n"),
         (log, originals[log].replace("STATUS FANIN " + PREFIX + "gate_observed_enable", "STATUS FANIN " + PREFIX + "gate_request_sample")),
         (enable, originals[enable].splitlines(keepends=True)[0]),
         (enable, originals[enable] + originals[enable]),
@@ -60,4 +65,36 @@ with tempfile.TemporaryDirectory(prefix="hdmi-handoff-probe-controls-") as tempo
         else:
             raise AssertionError(f"invalid probe accepted: {path.name}")
         path.write_text(originals[path])
-print("PASS: isolated handoff probe positive and fourteen invalid report/scope controls")
+    corners = [(model, temperature) for model in ("slow", "fast") for temperature in (-40, 0, 85, 100)]
+    markers = [f"HANDOFF PROBE CORNER {model} {temperature} 1100\n" for model, temperature in corners]
+    all_log = originals[log] + "".join(markers)
+    for model, temperature in corners:
+        for path, content in originals.items():
+            if path != log:
+                target = root / path.name.replace("handoff_probe_mux_", f"handoff_probe_mux_{model}_{temperature}_")
+                target.write_text(content)
+    log.write_text(all_log)
+    with contextlib.redirect_stdout(io.StringIO()):
+        assert len(audit_all_corners(root, log)) == 8
+    for invalid in (originals[log], all_log.replace(markers[0], ""),
+                    all_log + markers[0], all_log.replace("1100", "1000"),
+                    originals[log] + "".join(reversed(markers))):
+        log.write_text(invalid)
+        try:
+            with contextlib.redirect_stdout(io.StringIO()):
+                audit_all_corners(root, log)
+        except AssertionError:
+            pass
+        else:
+            raise AssertionError("invalid corner enumeration accepted")
+    log.write_text(all_log)
+    final = root / "handoff_probe_mux_fast_100_native_gate_hold.rpt"
+    final.write_text("Nothing to report.\n")
+    try:
+        with contextlib.redirect_stdout(io.StringIO()):
+            audit_all_corners(root, log)
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError("missing final-corner native gate report accepted")
+print("PASS: one/eight-corner probe positives, fifteen invalid scope controls and six invalid corner controls")

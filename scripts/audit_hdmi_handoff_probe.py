@@ -14,7 +14,7 @@ PAIRS = {
 }
 
 
-def audit(directory, native_log):
+def audit(directory, native_log, prefix="handoff_probe_mux"):
     text = native_log.read_text()
     assert text.count("TimeQuest Timing Analyzer was successful. 0 errors, 0 warnings") == 1, "native probe incomplete/warned"
     assert not re.search(r"^\s*(?:Error|Warning|Critical Warning)\b", text, re.MULTILINE), "native diagnostics not clean"
@@ -22,26 +22,28 @@ def audit(directory, native_log):
     assert text.count(marker) == 1, "wrong/absent mux scope"
     fanouts = re.findall(r"HANDOFF ENABLE FANOUT gate_request_meta (.+) \(reg\)", text)
     assert fanouts == [PREFIX + "gate_request_sample"], "first stage has unreviewed fanout"
+    second = re.findall(r"HANDOFF ENABLE FANOUT gate_request_sample (.+) \(reg\)", text)
+    assert set(second) == {PREFIX + "gate~FF_0", PREFIX + "gate_observed_enable"} and len(second) == 2, "second stage has unreviewed fanout"
     status = re.findall(r"HANDOFF STATUS FANIN (.+) \((.+)\)", text)
     assert set(status) == {("refclk", "port"), (PREFIX + "gate_observed_enable", "reg")} and len(status) == 2, "status bypassed falling-edge witness"
     minima = {}
     for kind, (source, target) in PAIRS.items():
         minima[kind] = {}
         for check in ("setup", "hold"):
-            report = rows(directory / f"handoff_probe_mux_{kind}_{check}.rpt")
+            report = rows(directory / f"{prefix}_{kind}_{check}.rpt")
             assert len(report) == 2, "missing/duplicate active clock choice"
             assert {r[3] for r in report} == CLOCKS and all(r[3] == r[4] for r in report), "wrong/cross clock choices"
             assert all(r[1:3] == [PREFIX + source, PREFIX + target] for r in report), "wrong physical pair"
             assert all(float(r[0]) >= 0 for r in report), "negative bounded path"
             minima[kind][check] = min(float(r[0]) for r in report)
-    raw = rows(directory / "handoff_probe_mux_raw_enable_setup.rpt")
+    raw = rows(directory / f"{prefix}_raw_enable_setup.rpt")
     assert len(raw) == 2 and {r[4] for r in raw} == CLOCKS, "raw input report excluded/incomplete"
     assert all(r[1] in {PREFIX + "gate_request", PREFIX + "gate_request~DUPLICATE"}
                and r[2:4] == [PREFIX + "gate_request_meta", "probe_ref"] for r in raw), "wrong raw scope"
     assert min(float(r[0]) for r in raw) < 0, "raw input violation hidden"
     global_min = {}
     for check in ("setup", "hold"):
-        report = rows(directory / f"handoff_probe_mux_global_{check}.rpt")
+        report = rows(directory / f"{prefix}_global_{check}.rpt")
         assert len(report) == 50, "global diagnostic truncated/excluded"
         global_min[check] = min(float(r[0]) for r in report)
         assert global_min[check] < 0, "unexpected global waiver/qualification"
@@ -50,9 +52,22 @@ def audit(directory, native_log):
     return minima, global_min
 
 
+def audit_all_corners(directory, native_log):
+    text = native_log.read_text()
+    observed = re.findall(r"^HANDOFF PROBE CORNER (slow|fast) (-?\d+) 1100$", text, re.MULTILINE)
+    expected = [(model, str(temperature)) for model in ("slow", "fast") for temperature in (-40, 0, 85, 100)]
+    assert observed == expected, "incomplete/repeated/out-of-order native corners"
+    results = []
+    for model, temperature in expected:
+        results.append(audit(directory, native_log, f"handoff_probe_mux_{model}_{temperature}"))
+    print("PASS: 96 bounded rows at eight isolated probe corners; raw/global/board gates remain open")
+    return results
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("directory", type=pathlib.Path)
     parser.add_argument("--native-log", required=True, type=pathlib.Path)
+    parser.add_argument("--all-corners", action="store_true")
     args = parser.parse_args()
-    audit(args.directory, args.native_log)
+    (audit_all_corners if args.all_corners else audit)(args.directory, args.native_log)

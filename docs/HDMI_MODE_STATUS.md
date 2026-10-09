@@ -367,6 +367,76 @@ corners and initialization, then qualify a separate full-board profile with
 new-hierarchy constraints and all data/DDR paths. No existing QSF enables the
 handoff and no new RBF is produced. Unit fitting is not MiSTer acceptance.
 
+## Eight-corner probe and emitted gate-parameter follow-up
+
+The frozen isolated v4 fit now has all eight slow/fast, -40/0/85/100 C,
+1100 mV probe corners. Reporting finishes zero without warnings at 22:50:29
+UTC, `/tmp/x1-hdmi-handoff-native-eight-corners-v4.log`. New files include the
+corner in their names; the preceding one-corner reports remain intact. The
+same two generated mux choices are exclusive; no PLL-master groups or raw
+input exceptions are added.
+
+Independent `audit_hdmi_handoff_probe.py --all-corners` passes **96 bounded
+rows** and requires the ordered eight-corner markers, both active choices,
+exact physical source/destination pairs, first/second-stage fanout and the
+falling-witness status input. Log:
+`/tmp/x1-hdmi-handoff-eight-corners-independent.log`.
+
+| Isolated fitted path | Eight-corner minimum setup | Eight-corner minimum hold |
+|---|---:|---:|
+| Enable stage 0 → stage 1 | +12.129 ns | +0.121 ns |
+| Enable stage 1 → falling witness | +4.954 ns | +6.527 ns |
+| Enable stage 1 → native gate register | +10.593 ns | +0.564 ns |
+
+Raw enable setup remains **-5.860 ns**; global probe setup/hold remain
+**-5.860/-3.742 ns**. These raw/control/bundle failures are not renamed passes.
+The current auditor tests include fifteen invalid scope/report controls and
+six invalid corner-enumeration/final-report controls, alongside one/eight-
+corner synthetic positives. Test success is auditor coverage, not fitting.
+
+Installed `quartus_eda` also emits an ignored netlist, terminal zero at
+22:51:07 UTC, `/tmp/x1-hdmi-handoff-native-netlist-v4.log`. **Warning 10905 says
+this device supports only a functional simulation netlist.** This is not
+a routed-delay simulation, and no fitted simulation run is claimed.
+Read-only inspection confirms the emitted `handoff|gate` public primitive
+parameters remain falling-edge enable registration, low power-up and low
+disable, with unused `enaout`. The emitted witness is a separate low-power-up
+register clocked by inverted selected clock; status data comes from that
+witness. These configuration checks corroborate the intended mapping but
+do not reinterpret TimeQuest's full-period gate setup abstraction as a
+measured hardware edge or latency. Actual switching, startup/PLL loss and
+physical acknowledgement still need qualification.
+
+Generated netlist SHA-256:
+`1f336980632c40481542261c677ee66ee230bf074163f9011dbb8f3f23d4f7ea`.
+It remains only on the build host under the isolated fit's
+`gate-netlist-probe/`; no generated/vendor netlist bytes are committed.
+The isolated probe uses a 50 MHz reference/control and requested 74.25 MHz
+HDMI PLL, not the full board's controller wiring or default requested
+148.5 MHz HDMI PLL. All-corner probe success therefore does not qualify the
+board's faster HDMI choice, resource occupancy, I/O or native video paths.
+A separate full-board handoff revision with guarded new-hierarchy clocks,
+full source-bound fit and all-corner data/clock checks remains next.
+
+## Separate full-board qualification revision prepared
+
+`sharpx1_turbo_z_handoff.qsf` now opts into the connected controller without
+changing existing QSFs. Static profile checks preserve the Z/X3 feature set
+and all prior constraints except the old raw-mux clock candidate. The new
+guarded `hdmi_handoff_mux_candidate.sdc` targets only the new mux's exact
+source/output pins and two generated choices. It does not waive raw inputs,
+held mode, data-bank, output-DDR or unrelated master-clock crossings.
+The revision disables power-up don't-care optimization for qualification.
+
+`make -C verilator test-hdmi-handoff-board-profile` passes profile isolation and
+both old/new mocked scope matrices (eighteen invalid inventories each reject
+before creating constraints). These are not native board scope acceptance.
+Linux/Apple build helpers accept the separate revision; existing defaults and
+the project baseline remain unchanged. A source-bound full Quartus flow,
+actual fitted inventory, all-corner setup/hold/recovery/removal/pulse-width/I/O
+and physical/native video acceptance are still required. No qualified RBF is
+claimed from the profile's existence.
+
 ## Next gates
 
 1. Establish an actually supported mode-sensitive STA method or a narrow
