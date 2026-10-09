@@ -90,7 +90,9 @@ extra GRAM. The digital RGB output reduces analog multi-mode colors to eight
   a conflicting `1FC5` access-mode label. The screen-display chapter now
   corroborates normal `80h` write / `88h` selector/read programming, requires
   cold initialization distinct from retained IPL reset, and fixes text entry
-  zero as inaccessible black. Use those concrete integration requirements;
+  zero as inaccessible black. External RAM now has a tested configuration-time
+  identity image with retained warm reset; this does not implement internal/text
+  palette defaults or machine reset dispatch. Use those integration requirements;
   inactive-mode side effects and exact reduced bank mapping remain open.
   Combined integration and arbitration
   remain required; do not treat the resource probe as completion of Z2.

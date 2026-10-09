@@ -67,8 +67,23 @@ module z_palette_ram_tb;
         assert(!cpu_valid && !display_valid && cpu_data==0 && display_rgb12==0)
             else $fatal(1,"reset response mask");
         @(negedge cpu_clk);cpu_reset=0;video_reset=0;
-        // Program every physical entry before reading it; no test assumes
-        // FPGA/simulator power-up palette contents are authentic hardware.
+        // Independent arithmetic oracle for published cold identity colors.
+        // Inspect every entry through BOTH ports before the first CPU write;
+        // runtime programming cannot hide a missing/wrong configuration image.
+        for(integer address=0;address<4096;address++) begin
+            expected[address][0]=4'(address%16);
+            expected[address][1]=4'((address/16)%16);
+            expected[address][2]=4'(address/256);
+        end
+        read_all();
+        assert(writes==0) else $fatal(1,"cold palette initialized by CPU fixture");
+        // A reset before any user write must retain the same cold image.
+        @(negedge cpu_clk);cpu_reset=1;video_reset=1;
+        repeat(4) ctick();repeat(4) vtick();
+        @(negedge cpu_clk);cpu_reset=0;video_reset=0;
+        read_all();
+        // Then exhaust normal accepted writes. Later warm/short resets must
+        // retain these non-default values, never reload the cold image.
         for(integer seed=0;seed<16;seed++) begin
             for(integer address=0;address<4096;address++)
                 for(integer component=0;component<3;component++)
@@ -121,7 +136,7 @@ module z_palette_ram_tb;
         for(integer address=0;address<64;address++) read_video(address*61);
         cpu_reset=0;#1;assert(!cpu_valid) else $fatal(1,"stopped CPU stale valid");
         cpu_run=1;read(1234,1);
-        $display("PASS palette RAM: all 4096 addresses/3 components/16 values, RGB12 isolation, accepted CE=%0d, video_half=%0d, concurrent reads and retained reset",ce_period,video_half_ps);
+        $display("PASS palette RAM: cold identity before writes, all 4096 addresses/3 components/16 values, RGB12 isolation, accepted CE=%0d, video_half=%0d, concurrent reads and retained reset",ce_period,video_half_ps);
         $finish;
     end
     initial begin #2000000000000;$fatal(1,"palette RAM fixture timeout");end

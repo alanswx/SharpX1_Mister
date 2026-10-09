@@ -13,15 +13,19 @@ CPU component order is B=0, R=1, G=2; display packing is RGB12 R:G:B.
 Both ports have one local-clock edge of read latency. CPU writes forward the
 new selected nibble. Registered response metadata does not follow subsequent
 live address/component changes. Component 3 rejects access without aliasing.
-Independent resets flush/mask responses but do not clear RAM. Unwritten data
-and cross-clock same-address read/write collisions are deliberately unspecified.
+Independent resets flush/mask responses but do not clear RAM. Configuration
+now initializes logical index G:R:B to the corresponding component nibbles,
+using constant RAM initialization rather than a reset clearing loop. This is
+the external palette's documented power-on identity image, not ASIC-register
+defaults or a claim about power-on initialization time. Cross-clock same-address
+read/write collisions are deliberately unspecified.
 The future palette arbiter must prevent or qualify those collisions.
 
 The later screen-display chapter now specifies native power-on palette
 initialization, separately from retained IPL reset; see the contract audit.
-This primitive intentionally does not implement that sequencer or initial
-image. Its unspecified unwritten entries are a storage-layer limitation,
-not a proposed native Turbo Z cold-start policy.
+This primitive now implements the external RAM image at FPGA configuration;
+ordinary CPU/video resets never rerun it. It does not implement the internal
+eight-entry palette, text palette or cold-versus-warm machine reset dispatch.
 
 CPU access inputs represent already accepted local-clock operations, **not
 raw Z80 strobes**. Native register decode, AEN/APEN/APRD, selector lifetime,
@@ -30,6 +34,21 @@ outside this module. The separate `rtl/x1_z_palette.qip` is not included in
 `rtl/machine.qip`; ordinary machine profiles and fitted RBFs are unchanged.
 
 ## Executed verification
+
+The cold-image extension checks every address/component through CPU reads and
+every RGB12 entry through the independent video port **before any CPU write**.
+An independent division/modulo oracle checks the image and a second full read
+checks retention after a pre-write warm reset. All nine original clock/enable
+profiles then execute the unchanged exhaustive write, independent readback,
+concurrent-other-address and programmed-data reset checks, exit zero.
+Log: `/tmp/x1-z-palette-cold.log`. The generated model is Verilator 5.044.
+
+An isolated mutation using the red-index nibble for the initial green bank
+fails the unchanged cold test at logical index `010h`, component G, before
+normal writes begin. Production RTL remains unchanged by the control. Logs:
+`/tmp/x1-z-palette-cold-negative-build.log` and
+`/tmp/x1-z-palette-cold-negative-run.log`. This specifically detects missing
+or incorrect cold initialization rather than relying on later writes to hide it.
 
 ```sh
 make -C verilator test-z-palette-ram
@@ -53,6 +72,44 @@ asset-free hardware-runner safety checks are added to hosted diagnostics;
 hosted execution is a separate gate, not inferred from local success.
 
 ## Executed standalone Quartus inference/fit
+
+The counts and manifests below bind the **earlier uninitialized** storage RTL.
+They must not be attributed to the new configuration image without a fresh
+source-hashed inference/fit and initialization-image audit.
+
+### October 9 cold-image refit
+
+The fresh Apple Quartus **17.0.0 Build 595** probe completes synthesis and
+fitting, exit zero, retaining **three dual-clock 4096×4 banks, six M10Ks,
+39 ALMs, four registers and 49,152 logical memory bits**. All four staged
+inputs hash-match after fitting. The inherited collision/virtual-pin/clock-pin
+warnings remain; no suppressions, board assembly or timing acceptance were added.
+
+Quartus binds each bank to its generated `db/*.hdl.mif`. An independent
+division/modulo audit reads every explicit address/value in all three MIFs,
+rejects missing/duplicate entries and verifies all **12,288 initialization
+nibbles** against the logical identity image. This checks actual inferred RAM
+initialization files, not just behavioral Verilator initial statements.
+It does not verify an assembled board bitstream or physical configuration.
+
+Evidence: ignored `output_files/z-palette-apple-JzvX2pUK/`, log
+`/tmp/x1-z-palette-cold-quartus.log`, image audit
+`/tmp/x1-z-palette-cold-mif-audit.log`. Snapshot parent is `7c66efb` with the
+separately hashed then-uncommitted cold-image RTL; RTL SHA-256 is
+`23f43871a644b7770d6b180f7c03842802190fb96e97d3a4b12da8adc466e557`,
+input-manifest SHA-256
+`2e7edaf3eed012ac221576ab421eb98485bdad7888fe2b31cdd4a5cb90c02f8a`.
+Generated blue/red/green MIF SHA-256 respectively:
+
+- `385af4b595863d11cc8c0e30286514de815eedde0a105be18695f3d3181883d1`
+- `81f667ba8d87524eaf36dfeb21e34a28db433600e3826602fa3555c2b088e8d4`
+- `91d8f557d6a2102250736dad2a4811256372e6eeba8e35004e58d8c215c15935`
+
+The earlier native Linux 17.0.2 probe below does **not** bind this extension.
+Native refit, combined-machine integration, internal/text palettes, accepted
+register/ownership behavior, native cold boot and hardware acceptance remain open.
+
+### Earlier uninitialized-storage probes
 
 Quartus **17.0.0 Build 595**, the existing Apple amd64 runtime, completes
 Analysis & Synthesis and Fitter on the original storage RTL from `99eb141`.

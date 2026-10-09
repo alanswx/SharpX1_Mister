@@ -121,11 +121,12 @@ by primary programming evidence, rather than chosen by emulator agreement alone.
   IPL reset. Printed 159–160 give default external colors and a software
   initialization loop; logically, each index starts with its corresponding
   B/R/G nibble values. Internal eight-color defaults and text defaults are
-  separately tabulated. The current storage primitive's unspecified unwritten
-  power-up values therefore cannot establish native cold-start acceptance.
-  Preserve warm-reset retention, but add a qualified cold initialization path
-  before exposing native Z output. Whether FPGA configuration initialization
-  or an explicit sequencer models the hardware remains an implementation gate.
+  separately tabulated. The original storage primitive's unspecified unwritten
+  power-up values therefore could not establish native cold-start acceptance.
+  The subsequent storage extension now supplies a tested configuration-time
+  external identity image, preserving warm-reset retention; see its status
+  report for the fresh synthesis gate. Internal/text palette initialization,
+  real power-on timing and machine cold/warm dispatch remain open.
 - Printed 162 states text entry zero at `1FB8` cannot be accessed and is fixed
   zero; entries 1–7 use two bits/component, replicated to four-bit output.
   This is stronger evidence than treating `1FB8` as an ordinary programmable

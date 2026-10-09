@@ -6,8 +6,9 @@
 // formation belong upstream and are not implemented by this physical store.
 // One local edge of read latency. CPU writes forward the new selected nibble;
 // cross-clock same-address read/write collision values are unspecified.
-// Reset masks/flushes responses, never clears palette RAM. Unwritten entries
-// have unspecified power-up contents and must be programmed before use.
+// Indices are logical G:R:B nibbles, not the ASIC's permuted physical PA pins.
+// FPGA configuration initializes identity colors (Techknow printed 159-160).
+// Reset masks/flushes responses, never reinitializes palette RAM.
 `timescale 1ps/1ps
 module x1_z_palette_ram (
     input wire cpu_clk, video_clk, cpu_reset, video_reset,
@@ -23,6 +24,16 @@ module x1_z_palette_ram (
     output wire display_valid
 );
     reg [3:0] blue [0:4095], red [0:4095], green [0:4095];
+    // Constant configuration image, not a reset-time 4096-word clearing loop.
+    // This must retain block-RAM inference and must not rerun on IPL reset.
+    integer initial_address;
+    initial begin
+        for(initial_address=0;initial_address<4096;initial_address=initial_address+1) begin
+            blue[initial_address]=4'(initial_address);
+            red[initial_address]=4'(initial_address>>4);
+            green[initial_address]=4'(initial_address>>8);
+        end
+    end
     reg [3:0] blue_cpu, red_cpu, green_cpu, blue_video, red_video, green_video;
     wire accepted_write=cpu_access && cpu_write && !cpu_reset && cpu_component!=3;
     // Exactly one physical address per local port; no RAM reset or duplicate

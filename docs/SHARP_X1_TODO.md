@@ -31,7 +31,13 @@ The subsequently retrieved screen-display chapter supplies repeated normal
 `80h` write / `88h` selector/read setup examples, so that sequence now has
 primary programming support. It also requires power-on palette defaults,
 retention across IPL reset and fixed-black text entry zero. These are new
-integration requirements, not implemented behavior; inactive modes, precise
+integration requirements; external RAM cold identity is now implemented and
+passes all-address pre-write CPU/video checks at nine clock/enable profiles,
+with retained reset and an intentionally failing wrong-green-image control.
+Its fresh Apple Quartus fit retains six M10Ks/39 ALMs; all 12,288 generated
+initialization nibbles are audited against the cold-image oracle. Earlier native
+17.0.2 evidence binds the prior uninitialized storage, not this extension.
+Native registers/internal/text palettes remain unimplemented; inactive modes, precise
 index/bank/WAIT policy and some inconsistent listing literals remain open.
 See the [updated contract audit](TURBO_Z_PALETTE_CONTRACT.md). Z2 and the
 Turbo Z work group are not done.
