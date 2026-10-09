@@ -68,6 +68,7 @@ verilator/obj_dir_v09_*/
 verilator/obj_dir_v10_*/
 verilator/obj_dir_v11_*/
 verilator/obj_dir_v12_*/
+verilator/obj_dir_v13_*/
 verilator/obj_dir_ready_irq/
 verilator/obj_dir_restart_irq/
 verilator/obj_dir_restart_irq_negative/
