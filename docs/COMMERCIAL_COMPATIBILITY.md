@@ -1,7 +1,10 @@
 # Private commercial-game bring-up
 
 Current audio-interface snapshot format is v17. Fresh v17 game qualification
-is pending; the source-bound v16 results below are historical, not relabelled.
+is [running from frozen source/inputs](BASELINE_V17_STATUS.md); all five have
+completed their 16-second native boot; Xevious now passes its complete bounded
+movement/repeatability/input-preservation gate. The other four remain live.
+The source-bound v16 results below are historical, not relabelled.
 
 ## Historical v16 qualification: all five bounded gameplay gates pass
 
