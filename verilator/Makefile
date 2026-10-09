@@ -852,6 +852,20 @@ test-machine-cpu-partial-boundaries: $(HEADLESS_DIR)/cpu-partial-reset/Vdma_mach
 	done; done; done; done
 .PHONY: test-machine-cpu-partial-boundaries
 
+test-machine-cpu-partial-no-dma: $(HEADLESS_DIR)/cpu-partial-no-dma/Vdma_machine_sd_reset_tb
+	@for drive in 0 1; do for writing in 0 1; do \
+		./$< +DRIVE_B=$$drive +WRITING=$$writing +PARTIAL_BYTES=$(CPU_PARTIAL_BYTES) || exit 1; \
+	done; done
+$(HEADLESS_DIR)/cpu-partial-no-dma/Vdma_machine_sd_reset_tb: $(V_SRC) tests/dma_machine_sd_reset_tb.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module dma_machine_sd_reset_tb --Mdir $(@D) \
+		-GCPU_PARTIAL=1 -GFM_ENABLED=1 -GDMA_ENABLED=0 -j 4 $(V_SRC) tests/dma_machine_sd_reset_tb.sv -Wno-fatal
+test-machine-cpu-partial-no-dma-boundaries: $(HEADLESS_DIR)/cpu-partial-no-dma/Vdma_machine_sd_reset_tb
+	@for bytes in 1 64 255; do for drive in 0 1; do for writing in 0 1; do \
+		./$< +DRIVE_B=$$drive +WRITING=$$writing +PARTIAL_BYTES=$$bytes || exit 1; \
+	done; done; done
+.PHONY: test-machine-cpu-partial-no-dma test-machine-cpu-partial-no-dma-boundaries
+
 test-machine-dma-sd-short-reset: $(HEADLESS_DIR)/dma-machine-sd-reset/Vdma_machine_sd_reset_tb
 	@for drive in 0 1; do for writing in 0 1; do for phase in 0 1; do \
 		./$(HEADLESS_DIR)/dma-machine-sd-reset/Vdma_machine_sd_reset_tb +DRIVE_B=$$drive +WRITING=$$writing +PHASE=$$phase +SHORT_RESET=1 || exit 1; \
@@ -1786,6 +1800,11 @@ lint-wrapper-turbo-video:
 		$(MACHINE_SRC) -Wno-fatal
 
 .PHONY: lint-wrapper-turbo-video
+
+lint-wrapper-turbo-z-video:
+	$(V) --lint-only --timing --top-module emu -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_TURBO_Z_VIDEO_EXPERIMENT -Itests \
+		../sharpx1.sv ../sys/hps_io.sv tests/board_pll_lint.v ../rtl/x1_joystick_map.v $(MACHINE_SRC) -Wno-fatal
+.PHONY: lint-wrapper-turbo-z-video
 
 lint-wrapper-turbo-fm:
 	$(V) --lint-only --timing --top-module emu -DX1_TURBO_FOUNDATION -DX1_TURBO_FM_CPU -Itests \

@@ -51,8 +51,13 @@ Its expanded 48-case metadata/split-header matrix also finishes zero, giving
 mixed-service and native/physical gates remain open.
 The [partial CPU disk reset test](CPU_PARTIAL_DISK_RESET_STATUS.md) now passes
 24 A/B read/write held/short cases with live FM at 1/64/255 bytes, unchanged
-pre-retry images and 256 fresh CPU bytes. Other byte boundaries, profiles
-without the DMA reset guard, Ready loss and physical/native gates stay open.
+pre-retry images and 256 fresh CPU bytes. Profiles
+without the DMA reset guard now also pass twelve held-reset A/B/read/write
+cases at those three boundaries. Other byte boundaries, bare-base/sub-cycle reset, Ready loss and
+physical/native gates stay open.
+The [experimental combined Z FPGA profile](TURBO_Z_BOARD_BUILD_STATUS.md)
+now exposes the existing palette/multi-mode/text paths for separate fitting;
+wrapper lint passes, not Quartus or native/physical acceptance.
 The [Turbo Z in-flight control reset test](TURBO_Z_INFLIGHT_RESET_STATUS.md)
 passes at three independent video rates, including a deliberately failing
 asynchronous-reset-removal control. Exact reset frames, pending palette/

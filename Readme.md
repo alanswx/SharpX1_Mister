@@ -62,6 +62,10 @@ cases respectively; see the [graphics](docs/TURBO_Z_PAIRED_VIDEO_STATUS.md),
 [paired text](docs/TURBO_Z_TEXT_COMPOSITION_STATUS.md) and
 [single text](docs/TURBO_Z_SINGLE_TEXT_STATUS.md) evidence. These exact
 simulation frames do not establish native Z or physical FPGA acceptance.
+A separate [experimental Z video board profile](docs/TURBO_Z_BOARD_BUILD_STATUS.md)
+now enables the combined palette/multi-mode/text paths for FPGA qualification;
+existing revisions remain off. Wrapper lint passes; fit and hardware gates
+are tracked separately.
 The [summary table](docs/CHIP_IMPLEMENTATION_TABLE.md) and
 [chip reuse survey](docs/CHIP_REUSE.md) describe available replacement sources
 and the remaining integration work.

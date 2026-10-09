@@ -42,7 +42,36 @@ unchanged by the boundary extension. The serial composite Make target is a
 reproducible interface; its three component recipes, not the composite launch,
 provide the executed full-matrix evidence above.
 
-## Earlier 64-byte checkpoint
+## No-DMA held-reset extension
+
+`DMA_ENABLED=0` now selects the actual compatible machine reset path, with
+no instantiated DMA engine or request-retention guard. Turbo foundation and
+FM remain enabled; SYS=32 MHz / VID=28.571428 MHz, not the FM board's single
+master. Twelve held-reset cases pass at 1/64/255 bytes across A/B and read/write.
+All original pre-retry whole-image, zero DMA, exact CPU-count, retained IPL
+and live-sound/timer checks remain required. The held pulse lasts 80 SYS edges
+(approximately 2.5 microseconds), long enough to exercise ordinary reset.
+No claim is made for bare base-X1 or sub-cycle pulses without a guard.
+
+Equivalent executed commands use `test-machine-cpu-partial-no-dma` with
+`CPU_PARTIAL_BYTES=1/64/255`; all three finish zero, four distinct cases each.
+The serial composite target is `test-machine-cpu-partial-no-dma-boundaries`.
+Logs `/tmp/x1-cpu-no-dma-{BYTES}-final.log`. The unchanged guarded eight-case
+64-byte recipe also finishes zero (`/tmp/x1-cpu-no-dma-guard-regression.log`).
+A no-DMA `SHORT_RESET=1` invocation fails specifically at profile validation,
+rather than falsely claiming a retained 2 ns reset. Pre/post hashes match:
+
+| Artifact | SHA-256 |
+|---|---|
+| Extended fixture | `5a16ae794e7e183face4c9ab60f5d9be944a40f222d90146baaf756965b2b99b` |
+| No-DMA executable | `d1fb4f3364ac010652da9f385974515da9bd534f656017b47561fcd854830201` |
+| Guarded executable | `a542f3865615a886716edfccf0354c002dd3e044cc3b58c0b181b8691390e95f` |
+
+Production machine RTL and snapshot v17 remain unchanged. No new fixture
+warning/suppression is added. Earlier 24-case guard evidence stays historical;
+this extension rechecks eight guarded cases, not all 24 on the new executable.
+
+## Historical checkpoint details
 
 October 9, 2026. An explicit `CPU_PARTIAL=1` extension of the original
 generated-media SD reset fixture exercises actual CPU IN/OUT payload cycles,

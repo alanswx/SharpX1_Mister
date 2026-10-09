@@ -358,6 +358,16 @@ initial if (!TURBO_FOUNDATION) $error("FM board experiment requires Turbo founda
 `else
 localparam TURBO_FM_PROFILE = 0;
 `endif
+// Default-off combined analog-video qualification, not a native Z identity.
+`ifdef X1_TURBO_Z_VIDEO_EXPERIMENT
+localparam TURBO_Z_VIDEO_PROFILE = 1;
+initial begin
+	if (!TURBO_FOUNDATION || !TURBO_VIDEO_MASTER || SINGLE_CLOCK)
+		$error("Z video board experiment requires independent X3 Turbo video");
+end
+`else
+localparam TURBO_Z_VIDEO_PROFILE = 0;
+`endif
 // Separate hardware qualification profile; inherited board revisions stay off.
 `ifdef X1_TURBO_DMA_RESTART
 localparam TURBO_DMA_PROFILE = 1;
@@ -370,7 +380,10 @@ localparam TURBO_DMA_PROFILE = 0;
 `endif
 
 sharpx1 #(.SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ), .TURBO(TURBO_FOUNDATION), .TURBO_VIDEO_MASTER(TURBO_VIDEO_MASTER),
-	.TURBO_DMA(TURBO_DMA_PROFILE), .TURBO_DMA_IRQ(TURBO_DMA_PROFILE), .TURBO_DMA_RESTART_IRQ(TURBO_DMA_PROFILE), .TURBO_FM_CPU(TURBO_FM_PROFILE)) sharpx1
+	.TURBO_DMA(TURBO_DMA_PROFILE), .TURBO_DMA_IRQ(TURBO_DMA_PROFILE), .TURBO_DMA_RESTART_IRQ(TURBO_DMA_PROFILE), .TURBO_FM_CPU(TURBO_FM_PROFILE),
+	.TURBO_Z_PALETTE_CPU(TURBO_Z_VIDEO_PROFILE), .TURBO_Z_VIDEO(TURBO_Z_VIDEO_PROFILE),
+	.TURBO_Z_MULTIMODE(TURBO_Z_VIDEO_PROFILE), .TURBO_Z_INTERNAL8(TURBO_Z_VIDEO_PROFILE),
+	.TURBO_Z_TEXT_CPU(TURBO_Z_VIDEO_PROFILE)) sharpx1
 (
 	.clk_sys(clk_sys),
 	.clk_28636(clk_28636),

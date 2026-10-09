@@ -1,0 +1,5 @@
+# Experimental combined palette/multimode/text composition FPGA qualification.
+# Not native Turbo Z firmware, ASIC timing, physical DAC or release acceptance.
+# Inherits independent 32 MHz SYS and requested X3 VID; DMA/SIO/FM/Kanji off.
+source sharpx1_turbo_video.qsf
+set_global_assignment -name VERILOG_MACRO "X1_TURBO_Z_VIDEO_EXPERIMENT=1"

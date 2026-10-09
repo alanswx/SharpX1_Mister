@@ -2,7 +2,7 @@
 // Original CPU program and generated D88, through real loader/SD interfaces.
 // No private assets, forced ownership, register edits or injected Ready.
 `timescale 1ps/1ps
-module dma_machine_sd_reset_tb #(parameter DMA_IRQ = 0, FM_ENABLED = 0, CPU_PARTIAL = 0);
+module dma_machine_sd_reset_tb #(parameter DMA_IRQ = 0, FM_ENABLED = 0, CPU_PARTIAL = 0, DMA_ENABLED = 1);
     reg clk_sys=0, clk_video=0, reset=1, mounted=0;
     always #15625 clk_sys=~clk_sys;
     always #17500 clk_video=~clk_video;
@@ -54,7 +54,7 @@ module dma_machine_sd_reset_tb #(parameter DMA_IRQ = 0, FM_ENABLED = 0, CPU_PART
             assert(!dut.machine.fdc.sd_busy) else $fatal(1,"old ACK failed to release SD busy");
             captured_ack_drained=1;
         end
-    top #(.TURBO(1), .TURBO_DMA(1), .TURBO_DMA_IRQ(DMA_IRQ), .TURBO_FM_CPU(FM_ENABLED)) dut (
+    top #(.TURBO(1), .TURBO_DMA(DMA_ENABLED), .TURBO_DMA_IRQ(DMA_IRQ), .TURBO_FM_CPU(FM_ENABLED)) dut (
         .clk_sys(clk_sys), .clk_28636(clk_video), .reset(reset),
         .ioctl_download(download), .ioctl_index(8'd0), .ioctl_wr(load_write),
         .ioctl_addr(load_address), .ioctl_dout(load_data), .ioctl_wait(),
@@ -189,7 +189,7 @@ module dma_machine_sd_reset_tb #(parameter DMA_IRQ = 0, FM_ENABLED = 0, CPU_PART
         verify_media(1);
         if(FM_ENABLED) assert(fm_seen && psg_seen && fm_ct==3 && !dut.machine.fm_irq_n)
             else $fatal(1,"partial CPU reboot failed to restore sound/timer");
-        $display("PASS partial CPU sector reset drive=%0d write=%0d short=%0d FM=%0d bytes=%0d: unchanged pre-retry media, 256 fresh bytes, retained IPL",drive_b,writing,short_reset,FM_ENABLED,partial_bytes);
+        $display("PASS partial CPU sector reset drive=%0d write=%0d short=%0d FM=%0d bytes=%0d DMA=%0d: unchanged pre-retry media, 256 fresh bytes, retained IPL",drive_b,writing,short_reset,FM_ENABLED,partial_bytes,DMA_ENABLED);
     endtask
 
     // Independent host. Reset freezes CPU/FDC enables, not the SD ACK clock.
@@ -244,8 +244,9 @@ module dma_machine_sd_reset_tb #(parameter DMA_IRQ = 0, FM_ENABLED = 0, CPU_PART
         if(!$value$plusargs("SPLIT_HEADER=%d",split_arg)) split_arg=0;
         if(!$value$plusargs("PARTIAL_BYTES=%d",partial_bytes)) partial_bytes=64;
         if(CPU_PARTIAL) assert(partial_bytes>0 && partial_bytes<256 &&
-            phase_arg==0 && stage_arg==0 && split_arg==0)
+            phase_arg==0 && stage_arg==0 && split_arg==0 && (DMA_ENABLED || pulse_arg==0))
             else $fatal(1,"invalid partial CPU reset profile");
+        assert(DMA_ENABLED || CPU_PARTIAL) else $fatal(1,"DMA transfer profile requires DMA");
         assert((writing_arg==0 || writing_arg==1) && (phase_arg==0 || phase_arg==1) &&
                (drive_arg==0 || drive_arg==1) && (pulse_arg==0 || pulse_arg==1) &&
                (split_arg==0 || split_arg==1) && stage_arg>=0 && stage_arg<=4 &&
