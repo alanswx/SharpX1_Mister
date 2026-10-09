@@ -1167,6 +1167,10 @@ test-crtc-write: $(HEADLESS_DIR)/crtc-write/Vcrtc_write_tb
 	@rg -q 'CRTC register changed away from destination edge|CRTC Nadj packet corruption|CRTC Nr packet corruption' $(HEADLESS_DIR)/crtc-write/raw-control.log && echo 'PASS: raw CRTC bus control rejected'
 .PHONY: test-crtc-write
 
+test-crtc-write-paths:
+	tclsh tests/crtc_write_paths_tb.tcl
+.PHONY: test-crtc-write-paths
+
 $(HEADLESS_DIR)/crtc-machine/Vcrtc_machine_tb: tests/crtc_machine_tb.sv $(V_SRC)
 	$(V) --binary --timing --assert --top-module crtc_machine_tb --Mdir $(HEADLESS_DIR)/crtc-machine -j 4 tests/crtc_machine_tb.sv $(V_SRC) -Wno-fatal
 test-machine-crtc-write: $(HEADLESS_DIR)/crtc-machine/Vcrtc_machine_tb

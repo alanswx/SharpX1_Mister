@@ -79,8 +79,15 @@ Logs: `/tmp/x1-crtc-write-phases.log`,
 
 ## Still open
 
-Full ordinary regression is running in `/tmp/x1-crtc-full-baseline.log`;
-partial PASS reports are not completion. The two older frozen 120-case Z
+The full ordinary regression process is now terminal. Its transcript reaches
+the last prescribed disk-control/index fixture with 143 PASS reports and no
+failure marker, and the delay-aware runner hash remains
+`e249710de0653c60424dd3f8c6d2b3e423fe4ff285de2c8d174e5d256c04336d`.
+Log `/tmp/x1-crtc-full-baseline.log`; the original outer execution handle was
+lost during a tool reset, so an observed outer exit status is not claimed.
+The final command sequence and actual fixture results, not a missing handle
+alone, establish that the test execution reached its end.
+The two older frozen 120-case Z
 matrices are historical for this changed machine. A fresh current-source
 120-case combined matrix now runs under
 `verilator/obj_dir_headless/z-crtc-combined/qualified-inputs-bJ8Ldf/all-120/`,
@@ -104,3 +111,21 @@ held nine-bit packet bounds, actual VID MPU/consumer endpoints, reset-release
 checks and complete global timing. Do not waive whole clock domains or treat
 per-bit synchronizers as coherent register writes. No new timing exception
 or physical hardware acceptance is established by these simulation tests.
+
+## Supplemental reporter prepared, not executed natively
+
+`scripts/quartus_crtc_write_paths.tcl` inventories the unique transport,
+all nine held/captured bits, both exact two-stage chains and native first-data
+pin fanins. It requires actual R5/R9 MPU bits and reports all MPU register
+inputs/consumers. Its twelve scopes cover request/ACK input, chain, first-stage
+fanout and final-stage consumers, held packet, captured packet fanout, and
+MPU input/output. Eight corners and setup/hold produce 192 reports. The script
+does not add timing exceptions or modify project settings. Raw input and
+bundle edge timing must not be called synchronous acceptance.
+
+`make -C verilator test-crtc-write-paths` passes exact mock scope/bit coverage
+and 26 malformed-inventory negatives. The fixture rejects any exception
+command. This qualifies reporter logic only; the current fit must finish,
+its original reports must be preserved, and the host must be idle before
+native execution. Physical inventory, clock domains, bounded payload delays
+and global timing are still unqualified.

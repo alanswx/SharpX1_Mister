@@ -19,7 +19,10 @@ passes four helper clock ratios, three real-CPU clock ratios, five owned-DMA
 reset scenarios and all sixteen delay-aware X3 pixel cases. CPU/DMA WAIT
 acknowledges actual MPU consumption, not merely packet capture. A missing
 fixed-destination two-LOAD sequence in the new diagnostic was corrected;
-DMA RTL was not changed. Full baseline is still running. Fresh combined-Z
+DMA RTL was not changed. The baseline transcript reaches its final fixture
+with 143 PASS reports; its outer exit status was lost during a tool reset and
+is not invented. A reporting-only CRTC FPGA probe passes 26 malformed-scope
+controls, but native execution awaits the active fit. Fresh combined-Z
 pixels, current-source Quartus bundle/consumer timing and native/hardware
 qualification remain open; no broad goal work group is complete.
 
