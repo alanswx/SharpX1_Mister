@@ -87,8 +87,11 @@ uses the existing provisional effective-pair policy; it does not resolve
 native reduced palette addressing or introduce a new brightness policy.
 
 The machine still admits only existing layouts 0–4 and leaves the second
-index/tag unconnected. No CPU `1FC0`, simultaneous-screen lookup/composition,
-opacity or priority renderer is advertised. Ordinary board profiles remain
+index/tag unconnected. Simultaneous-screen lookup/composition,
+opacity and the priority renderer remain unconnected. The subsequent
+[CPU register/ordering increment](TURBO_Z_PRIORITY_CPU_STATUS.md) adds opt-in
+`1FC0` reads/writes and separately qualifies the full layer-order truth table;
+it does not connect that stored control to video. Ordinary board profiles remain
 unchanged. This is infrastructure for step 2 above, not completed Z3/Z4.
 
 ```sh
@@ -115,13 +118,17 @@ native-game qualification):
 
 Ordinary/X3/DMA wrapper lint also exits zero in
 `/tmp/x1-z-dual-fetch-current-suite.log`, with inherited warnings and a PLL
-stand-in, not fitted timing. The current actual-CPU full-color matrix is
-running separately in `/tmp/x1-z-dual-fetch-machine-regression.log`; do not
-count it as passed until its terminal evidence is recorded.
-That already-started run uses the hash-checked original executable
+stand-in, not fitted timing. The paired-fetch checkpoint's actual-CPU
+full-color matrix finishes with exit zero in
+`/tmp/x1-z-dual-fetch-machine-regression.log`: four identity/custom cold/warm
+cases, each checking all 64,000 active pixels and measured periods. Warm
+traces require CRTC/PPI reinitialization without palette/GRAM/text refill.
+It uses the hash-checked original executable
 `c6f5e379baa27278b46dd8f25a8952981ef935a124dffd4146b4a0bfbf3a8ceb`
-and copied oracle/emitter under `pixel-matrix-F0CIRT`; do not rebuild its
-runner until it finishes. The Make target subsequently also copies the
+and copied oracle/emitter under `pixel-matrix-F0CIRT`. The runner stays
+unchanged throughout all four cases. This profile disables the subsequent
+text/priority CPU capability; its result does not qualify priority rendering.
+The Make target subsequently also copies the
 executable for future invocations, like the reduced/internal/text matrices.
 Its updated recipe has been dry-run inspected, not yet executed as a new run.
 

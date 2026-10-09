@@ -159,6 +159,8 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     wire z_graphics_screen, z_graphics_internal;
     wire z_text_selected,z_text_tail;
     wire [7:0] z_text_data;
+    wire z_priority_selected,z_priority_tail;
+    wire [7:0] z_priority_data;
     wire machine_wait_n=cg_wait_n && z_palette_wait_n;
     generate if(TURBO_Z_PALETTE_CPU) begin : z_palette_cpu
         // Explicit palette experiments; subordinate options add video/internal
@@ -178,8 +180,19 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
             assign z_text_tail=read_hold && !core_reset && mreq && iorq && m1 &&
                                a[15:3]==13'h3f7 && a[2:0]!=0;
             assign z_text_data=z_text_tail ? held_data : live_data;
+            wire [7:0] priority_live,priority_held;
+            wire priority_read_hold;
+            x1_z_priority_register priority_register(
+                .clk(clk_sys),.reset(core_reset),.enabled(mode==8'h80 || mode==8'h90),
+                .io_read(io_read && !dam),.io_write(io_write && !dam),
+                .clear_read(!mreq || !m1 || (io_cycle && !(z_priority_selected && io_read))),
+                .address(a),.data(data_out),.selected(z_priority_selected),.read_data(priority_live),
+                .read_hold(priority_read_hold),.held_data(priority_held),.control());
+            assign z_priority_tail=priority_read_hold && !core_reset && mreq && iorq && m1 && a==16'h1fc0;
+            assign z_priority_data=z_priority_tail ? priority_held : priority_live;
         end else begin : no_text_cpu
             assign z_text_selected=0;assign z_text_tail=0;assign z_text_data=8'hff;
+            assign z_priority_selected=0;assign z_priority_tail=0;assign z_priority_data=8'hff;
         end
         if(TURBO_Z_VIDEO) begin : controls_crossing
             // Cross one supported-mode predicate, not independently sampled
@@ -313,6 +326,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
                               z_palette_read_tail ? {4'd0,held_nibble} : 8'hff;
     end else begin : no_z_palette_cpu
         assign z_text_selected=0;assign z_text_tail=0;assign z_text_data=8'hff;
+        assign z_priority_selected=0;assign z_priority_tail=0;assign z_priority_data=8'hff;
         assign z_palette_selected=0;
         assign z_palette_wait_n=1;
         assign z_palette_data=8'hff;
@@ -485,6 +499,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
               : dma_cs && io_read ? dma_data
               : dsw_selected ? dsw_data
               : (z_text_selected && io_read) || z_text_tail ? z_text_data
+              : (z_priority_selected && io_read) || z_priority_tail ? z_priority_data
               : (z_palette_selected && io_read) || z_palette_read_tail ? z_palette_data
               : io_read && !dam && a[15:2] == 14'h03fe ? fdc_data
               : io_read && !dam && a[15:8] == 8'h1b ? psg_data

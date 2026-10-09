@@ -60,6 +60,26 @@ $(HEADLESS_DIR)/z-text-palette/Vz_text_palette_tb: tests/z_text_palette_tb.sv ..
 	$(V) --binary --timing --assert --top-module z_text_palette_tb --Mdir $(@D) \
 	  -j 4 tests/z_text_palette_tb.sv ../rtl/x1_z_text_palette.sv ../rtl/x1_cdc_snapshot.sv
 .PHONY: test-z-text-palette
+test-z-layer-order: $(HEADLESS_DIR)/z-layer-order/Vz_layer_order_tb
+	./$(HEADLESS_DIR)/z-layer-order/Vz_layer_order_tb
+	@negative_log=$$(mktemp $(HEADLESS_DIR)/z-layer-order/negative-XXXXXX); \
+	  if (ulimit -c 0; ./$(HEADLESS_DIR)/z-layer-order/Vz_layer_order_tb +NEGATIVE_MIDDLE) >$$negative_log 2>&1; then \
+	    echo "FAIL: wrong between-screen order was accepted"; exit 1; \
+	  fi; \
+	  rg -q 'order raw=.*12 two=1 .*expected 1/2' $$negative_log && \
+	  echo "PASS: unchanged ordering oracle rejects text-on-top substitution for field 10"
+$(HEADLESS_DIR)/z-layer-order/Vz_layer_order_tb: tests/z_layer_order_tb.sv ../rtl/x1_z_layer_order.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module z_layer_order_tb --Mdir $(@D) \
+	  -j 4 tests/z_layer_order_tb.sv ../rtl/x1_z_layer_order.sv
+.PHONY: test-z-layer-order
+test-z-priority-register: $(HEADLESS_DIR)/z-priority-register/Vz_priority_register_tb
+	@for hold in 1 4 7; do ./$(HEADLESS_DIR)/z-priority-register/Vz_priority_register_tb +HOLD_EDGES=$$hold || exit 1; done
+$(HEADLESS_DIR)/z-priority-register/Vz_priority_register_tb: tests/z_priority_register_tb.sv ../rtl/x1_z_priority_register.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module z_priority_register_tb --Mdir $(@D) \
+	  -j 4 tests/z_priority_register_tb.sv ../rtl/x1_z_priority_register.sv
+.PHONY: test-z-priority-register
 
 test-z-palette-access: $(HEADLESS_DIR)/z-palette-access/Vz_palette_access_tb
 	@for half in 17500 11640 25000; do for rate in 1 4 7; do \
@@ -269,6 +289,16 @@ test-machine-z-text-cpu: turbo-z-text-cpu headless
 	  python3 $$run_root/test_machine_z_text.py $$run_root/Vtop --mode 0x90 --warm --output $$run_root/c64-warm && \
 	  python3 $$run_root/test_machine_z_text.py $$run_root/Vdisabled --expect-disabled --output $$run_root/disabled
 .PHONY: test-machine-z-text-cpu
+test-machine-z-priority-cpu: turbo-z-text-cpu headless
+	@run_root=$$(mktemp -d $(Z_TEXT_DIR)/priority-matrix-XXXXXX); \
+	  cp tests/test_machine_z_priority.py tests/z80_fixture.py $(Z_TEXT_DIR)/Vtop $$run_root/ && \
+	  cp $(HEADLESS_EXE) $$run_root/Vdisabled && \
+	  python3 $$run_root/test_machine_z_priority.py $$run_root/Vtop --output $$run_root/cold && \
+	  python3 $$run_root/test_machine_z_priority.py $$run_root/Vtop --warm --output $$run_root/warm && \
+	  python3 $$run_root/test_machine_z_priority.py $$run_root/Vtop --mode 0x90 --output $$run_root/c64-cold && \
+	  python3 $$run_root/test_machine_z_priority.py $$run_root/Vtop --mode 0x90 --warm --output $$run_root/c64-warm && \
+	  python3 $$run_root/test_machine_z_priority.py $$run_root/Vdisabled --expect-disabled --output $$run_root/disabled
+.PHONY: test-machine-z-priority-cpu
 test-machine-z-video: turbo-z-video
 	@run_root=$$(mktemp -d $(Z_VIDEO_DIR)/pixel-matrix-XXXXXX); \
 	  cp tests/test_machine_z_video.py tests/z80_fixture.py $(Z_VIDEO_DIR)/Vtop $$run_root/ && \

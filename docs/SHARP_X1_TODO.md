@@ -121,6 +121,12 @@ passes nine clock/profile gates, all base addresses and all 64x64 independent
 color pairs. It retains two distinct indices; the shared machine still leaves
 the second unconnected. CPU priority registers, dual-screen composition,
 opacity/text RGB and native/hardware acceptance remain unfinished.
+The subsequent [CPU priority/ordering increment](TURBO_Z_PRIORITY_CPU_STATUS.md)
+passes `1FC0` all-byte, exact-decode/text/DAM/inactive/reset tests through the
+shared Z80, three held-strobe unit profiles and 16,384 ordering cases. The
+original oracle rejects substituting text-on-top for between-screen text.
+The existing text CPU controls still pass. Coherent control crossing,
+rendered composition/opacity, native reset/readback and hardware remain open.
 
 The expanded [hosted diagnostic run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37865161650)
 now completes successfully on `95c3e4a`. The newer `99eb141` palette-RAM/

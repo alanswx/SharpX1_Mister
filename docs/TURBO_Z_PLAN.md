@@ -155,6 +155,11 @@ extra GRAM. The digital RGB output reduces analog multi-mode colors to eight
   and all 64x64 independent color-pair checks at three clocks. The machine
   does not yet admit that layout or connect the second index to composition;
   `1FC0`, native reduced indices, opacity and actual overlapping pixels remain.
+  The subsequent [priority CPU/ordering increment](TURBO_Z_PRIORITY_CPU_STATUS.md)
+  passes all 256 stored CPU values and five real-CPU cold/warm/disabled
+  controls, plus all 16,384 ordering combinations and a wrong-middle-order
+  negative. The stored register and decoder are not yet connected to video;
+  provisional reset/readback behavior is not native ASIC qualification.
 - [ ] Z5: standard stereo FM (YM2151), board CTC/interrupts and PSG mixing.
   The [standalone FM foundation](TURBO_Z_FM_STATUS.md) now executes genuine
   JT51 bus/timer/stereo notes and original signed mixer tests at all three

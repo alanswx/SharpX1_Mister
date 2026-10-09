@@ -94,6 +94,11 @@ Neither establishes native ASIC WAIT, text palette or priority behavior.
 priority. Do not infer text intensity significance from the external graphics
 palette pin map, or advertise the provisional inactive/upper-bit read policy
 as measured ASIC behavior. Existing board revisions leave it disabled.
+The same CPU-only profile now accepts `1FC0`; see
+`docs/TURBO_Z_PRIORITY_CPU_STATUS.md`. Its reset-to-zero/unused-bit/inactive
+policies are provisional. `x1_z_layer_order.sv` consumes caller visibility,
+not RGB-derived transparency, and is not yet in the renderer. Field 10 means
+text between screens; paired field 11 is undefined, not a guessed fallback.
 
 Snapshot format v13 rejects older states after transaction-bound DAM arming
 (v12 added the RGB12 output port; v11 added opt-in CPU/DMA bus and instrumentation;
