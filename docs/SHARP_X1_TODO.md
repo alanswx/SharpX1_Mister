@@ -92,6 +92,13 @@ All 96 native reset-phase/rate/readiness cases, twelve native clock-handoff
 profiles and six connected policy profiles (4,994 exact words) pass. Fresh
 corrected-source fitting/timing, full upstream and physical acceptance remain
 required. Hardware has not been touched.
+The corrected `d8f7024` full-board flow finishes zero; its eight-corner native
+inventory and independent audit pass 208 bounded handoff stage/witness/native-
+gate rows (setup/hold minima +1.015/+0.285 ns), exact first-stage fanout and
+unchanged source/original artifact hashes. Original-constraint global setup/
+hold still fail -47.082/-1.806 ns; the RBF remains unqualified. No new timing
+exceptions are applied. Raw first-stage inputs, held mode/data, MTBF/I/O and
+physical output remain next, alongside the still-running combined-Z matrix.
 Nine actual pending-transaction snapshots pass ninety byte-identical
 continuations; cold-start/clock guards remain tested. Fresh combined-Z
 pixels, current-source Quartus bundle/consumer timing and native/hardware

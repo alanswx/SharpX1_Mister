@@ -47,9 +47,11 @@ reset-abort/retry recovery. The controller fixes both reset waiting on stopped
 video readiness and stale completion after an aborted epoch. All 96 native
 reset-phase/rate/readiness cases and twelve clock-handoff cases pass.
 Existing revisions leave it disabled; the separate `sharpx1_turbo_z_handoff`
-revision completes a full Quartus flow, but fails setup (-46.374 ns) and
-predates these reset fixes. It is not a qualified RBF. Fresh corrected-source
-fitting/timing and full upstream/physical output acceptance remain open.
+revision completes its corrected-source full Quartus flow, but global
+eight-corner setup/hold still fail (-47.082/-1.806 ns). Independent full-board
+auditing passes 208 bounded stage/witness/native-gate rows and exact first-stage
+fanout, without new timing exceptions. Raw input, held output data, MTBF/I/O
+and physical acceptance remain open; the new RBF is also unqualified.
 Its isolated real-PLL controller maps/fits; a fitted-feedback audit led to an
 explicit falling-edge closure witness. Current native cases pass, while raw
 crossings, full-board timing and physical switching remain open. All 96 bounded

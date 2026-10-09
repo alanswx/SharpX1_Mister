@@ -549,9 +549,49 @@ assertion with verified exit 1, log
 
 The corrected `d8f7024` revision is pushed to alanswx. Its fresh full-board flow
 starts in `output_files/quartus-linux-t5zgQgO6/source`, log
-`/tmp/x1-quartus-d8f7024-z-handoff.log`, with live mapping confirmed. No terminal
-flow, new timing or hardware result is claimed yet; the preceding completed
-flow and additive reports remain preserved.
+`/tmp/x1-quartus-d8f7024-z-handoff.log`, at 23:12:27 UTC. The full flow finishes
+**zero at 23:21:21 UTC**, with 162 warnings. Its flow summary still fails setup
+**-47.082 ns**; hold/recovery/removal/pulse-width minima are
++0.250/+4.022/+0.853/+0.529 ns. The broader following eight-corner diagnostic
+also finds negative hold; the positive flow-summary hold is not an all-corner
+closure claim. RBF SHA-256:
+`1abec87fc986a7739646cb2667d5a5f59c84912b782213a12dc2f790cd474617`.
+It remains **unqualified** in that snapshot's `output_files/`; no hardware
+deployment. The preceding completed flow and additive reports are preserved.
+
+### Corrected-source full-board native stage inventory
+
+The queued supplemental inventory finishes zero without warnings at
+23:22:35 UTC, elapsed 1:11.
+Native log: `/tmp/x1-hdmi-handoff-board-inventory-d8f7024-v1.log`.
+Ignored local reports:
+`output_files/hdmi-handoff-board-d8f7024/handoff-board-inventory-v1/`.
+Independent audit log: `/tmp/x1-hdmi-handoff-board-d8f7024-independent.log`.
+All **128 bounded reports / 208 rows** pass across eight corners, including
+the actual board's default requested 148.5 MHz HDMI selection. Bounded setup/
+hold minima are **+1.015/+0.285 ns**. Every first-stage fanout is exactly its
+second stage; the enable's second stage feeds only the native gate and falling
+witness. Native controller/framework/reporter hashes match current source,
+and the original flow report/summary/RBF hashes are unchanged before/after.
+The updated auditor controls include nineteen invalid timing/scope/fanout
+cases and five invalid source/artifact-preservation cases.
+
+This is **not whole-board timing closure**. Original-constraint global setup/
+hold diagnostics remain **-47.082/-1.806 ns**. Worst setup is `blank_ack` to
+`ack_meta`, selected HDMI → SYS, with 45.755 ns data delay. Worst hold at
+fast/-40 C is `completed_generation` to `completed_meta`, selected HDMI → SYS.
+Held mode to output registers also fails (for example -18.252 ns to `hs`).
+No new input or data exceptions are applied. Physical metastability/MTBF,
+source-side synchronization scope, held mode/data, DDR/I/O and physical
+switching remain required.
+
+Next constraint work should isolate only verified asynchronous first-stage
+inputs, retain synchronous chain/consumer timing, and prove any held-bundle
+delay bound separately. Modern [Altera synchronizer timing guidance](https://docs.altera.com/r/docs/683082/25.1/quartus-prime-pro-edition-user-guide/how-timing-constraints-affect-synchronizer-identification-and-metastability-analysis?contentId=Sh6sCC5YZJtwXMs92gyCdw)
+explains why raw first-stage timing and interstage settling are distinct.
+It is a design rationale reference, not proof that a particular Quartus 17
+constraint/MTBF command binds this fitted design. Each candidate still needs
+native before/after reports, exact scope guards and fresh fitting.
 
 ## Next gates
 

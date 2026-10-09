@@ -1,12 +1,13 @@
 """Synthetic independent report controls. Not native timing evidence."""
 import contextlib
+import hashlib
 import io
 import pathlib
 import sys
 import tempfile
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2] / "scripts"))
-from audit_hdmi_handoff_board_reports import audit, PAIRS, PREFIX, MUX_CLOCKS, SYS
+from audit_hdmi_handoff_board_reports import audit, audit_sources, PAIRS, PREFIX, MUX_CLOCKS, SYS
 
 
 def row(source, target, clock, slack=1):
@@ -17,6 +18,11 @@ with tempfile.TemporaryDirectory(prefix="handoff-board-report-controls-") as tem
     root = pathlib.Path(temporary)
     log = root / "native.log"
     originals = {log: "".join(f"HANDOFF BOARD PAIR {kind} {source} {target}\n" for kind, (source, target) in PAIRS.items())}
+    originals[log] += "".join(f"HANDOFF BOARD FANOUT {source} {PREFIX + target} (reg)\n"
+                             for kind, (source, target) in PAIRS.items()
+                             if kind not in {"witness", "native_gate"})
+    originals[log] += "".join(f"HANDOFF BOARD FANOUT gate_request_sample {PREFIX + target} (reg)\n"
+                             for target in ("gate~FF_0", "gate_observed_enable") for _ in range(2))
     for model in ("slow", "fast"):
         for temperature in (-40, 0, 85, 100):
             originals[log] += f"HANDOFF BOARD CORNER {model} {temperature} 1100\n"
@@ -50,6 +56,9 @@ with tempfile.TemporaryDirectory(prefix="handoff-board-report-controls-") as tem
         (ack, originals[ack].replace(f"; {SYS} ; {SYS} ;", f"; {SYS} ; x1_hdmi_handoff_mux ;")),
         (global_report, "Nothing to report.\n"),
         (global_report, originals[global_report].splitlines(keepends=True)[0]),
+        (log, originals[log] + f"HANDOFF BOARD FANOUT ack_meta {PREFIX}consumer (reg)\n"),
+        (log, originals[log].replace(f"HANDOFF BOARD FANOUT ack_meta {PREFIX}ack_sample (reg)\n", "")),
+        (log, originals[log].replace(f"FANOUT gate_request_sample {PREFIX}gate~FF_0", f"FANOUT gate_request_sample {PREFIX}ack_meta", 1)),
     ]
     for path, text in mutations:
         path.write_text(text)
@@ -61,4 +70,30 @@ with tempfile.TemporaryDirectory(prefix="handoff-board-report-controls-") as tem
         else:
             raise AssertionError(f"invalid full-board evidence accepted: {path.name}")
         path.write_text(originals[path])
-print("PASS: full-board 208-row synthetic positive and sixteen invalid scope/corner/timing controls")
+    # Source-binding and preservation controls are independent of mock timing.
+    inputs = ["rtl/x1_hdmi_clock_handoff.sv", "sys/sys_top.v", "scripts/quartus_hdmi_handoff_board_inventory.tcl"]
+    sources = []
+    for name in inputs:
+        path = root / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(f"synthetic {name}\n")
+        sources.append(hashlib.sha256(path.read_bytes()).hexdigest())
+    native_names = inputs[:2] + ["handoff_board_inventory_diagnostic.tcl"] + [f"output_files/sharpx1_turbo_z_handoff.{extension}" for extension in ("sta.rpt", "sta.summary", "rbf")]
+    lines = [f"{value}  {name}\n" for value, name in zip(sources + ["a"*64, "b"*64, "c"*64], native_names)]
+    valid_sources = "".join(lines * 2)
+    log.write_text(valid_sources)
+    with contextlib.redirect_stdout(io.StringIO()):
+        audit_sources(log, root)
+    for invalid in ("".join(lines), valid_sources + lines[0],
+                    valid_sources.replace(lines[0], "0"*64+"  "+native_names[0]+"\n"),
+                    valid_sources.replace(lines[3], "0"*64+"  "+native_names[3]+"\n", 1),
+                    valid_sources.replace(lines[5], "0"*64+"  "+native_names[5]+"\n", 1)):
+        log.write_text(invalid)
+        try:
+            audit_sources(log, root)
+        except AssertionError:
+            pass
+        else:
+            raise AssertionError("invalid frozen source/artifact evidence accepted")
+print("PASS: full-board 208-row synthetic positive and nineteen invalid scope/corner/timing/fanout controls")
+print("PASS: source/artifact hash positive and five invalid preservation controls")
