@@ -593,6 +593,50 @@ It is a design rationale reference, not proof that a particular Quartus 17
 constraint/MTBF command binds this fitted design. Each candidate still needs
 native before/after reports, exact scope guards and fresh fitting.
 
+## First-stage-only input candidate (completed-fit probe)
+
+`hdmi_handoff_input_candidate.sdc` targets only six registered single-bit
+drivers to their exact first synchronizer stage: gate request, blank request,
+generation, blank ACK, completed generation and falling-edge gate witness.
+All sources/stages, data drivers, exclusive first-stage fanout and absence
+of unreviewed replicas must validate **before any exception is applied**.
+No master-clock groups, second stages, held modes, pixel data or DDR/I/O are cut.
+
+The first native attempt stops with exit 3 at the gate-request driver guard,
+log `/tmp/x1-hdmi-handoff-input-probe-d8f7024-v1.log`; it applies no exceptions.
+Native `get_fanins -long_help` and a read-only fitted discovery explain the
+cause: the default query also traverses clock edges, including the clock mux's
+`active_mode[0]` selector. Log:
+`/tmp/x1-hdmi-handoff-input-fanins-d8f7024-v1.log` (terminal zero). The driver
+guard now uses installed Quartus 17's `-synch` option to check data edges;
+it does not simply ignore unknown registered drivers.
+
+The corrected frozen v2 candidate actually finishes zero without warnings at
+23:32:02 UTC. Independent before/after auditing passes **416 unchanged positive
+stage/witness/native-gate rows**, **192 original raw-input rows**, all **96
+excluded input reports**, and **232 unchanged previously reported held-mode
+rows** across eight corners. Bounded setup/hold minima remain +1.015/+0.285 ns.
+Global diagnostics improve from **-47.082/-1.806 ns** to **-18.252/-0.062 ns**;
+they still fail. Controller/framework/probe/candidate and original flow
+report/summary/RBF hashes are unchanged. Log:
+`/tmp/x1-hdmi-handoff-input-probe-d8f7024-v2.log`; reports remain ignored under
+`output_files/hdmi-handoff-input-d8f7024/handoff-input-probe-v2/`.
+
+The final candidate comment identifies the separate experimental revision.
+Its fresh v3 probe finishes zero without warnings at 23:36:00 UTC and passes
+the same independent matrix/preservation checks; preceding evidence stays
+intact. Log `/tmp/x1-hdmi-handoff-input-probe-d8f7024-v3.log`, independent log
+`/tmp/x1-hdmi-handoff-input-v3-independent.log`, reports in the adjacent
+ignored `handoff-input-probe-v3/`. Final candidate SHA-256:
+`70cee679b7db1e530857e4cb3123f1e806cf913828b7790140a6e25ab03ab26c`.
+Only `sharpx1_turbo_z_handoff.qsf` selects this input
+candidate; all other QSFs remain unchanged/disabled. Static profile isolation,
+nine invalid exact-input inventories, twenty invalid before/after report
+controls and four invalid source/artifact controls pass. Fresh map/fit,
+all-corner native scope/MTBF/consumer timing and physical acceptance remain
+required. A completed-fit exception probe cannot retroactively qualify the
+original RBF or replace the remaining held-mode/data work.
+
 ## Next gates
 
 1. Establish an actually supported mode-sensitive STA method or a narrow

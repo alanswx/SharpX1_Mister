@@ -1230,6 +1230,11 @@ test-hdmi-handoff-board-inventory:
 	python3 tests/test_hdmi_handoff_board_reports.py
 .PHONY: test-hdmi-handoff-board-inventory
 
+test-hdmi-handoff-input-sdc:
+	tclsh tests/hdmi_handoff_input_sdc_tb.tcl
+	python3 tests/test_hdmi_handoff_input_probe.py
+.PHONY: test-hdmi-handoff-input-sdc
+
 $(HEADLESS_DIR)/crtc-machine/Vcrtc_machine_tb: tests/crtc_machine_tb.sv $(V_SRC)
 	$(V) --binary --timing --assert --top-module crtc_machine_tb --Mdir $(HEADLESS_DIR)/crtc-machine -j 4 tests/crtc_machine_tb.sv $(V_SRC) -Wno-fatal
 test-machine-crtc-write: $(HEADLESS_DIR)/crtc-machine/Vcrtc_machine_tb

@@ -12,3 +12,4 @@ set_global_assignment -name SDC_FILE scripts/constraints/video_reset_input_candi
 set_global_assignment -name SDC_FILE scripts/constraints/scaler_reset_input_candidate.sdc
 set_global_assignment -name SDC_FILE scripts/constraints/hdmi_handoff_mux_candidate.sdc
 set_global_assignment -name SDC_FILE scripts/constraints/vsync_sys_input_candidate.sdc
+set_global_assignment -name SDC_FILE scripts/constraints/hdmi_handoff_input_candidate.sdc

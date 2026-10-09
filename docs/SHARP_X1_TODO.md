@@ -99,6 +99,16 @@ unchanged source/original artifact hashes. Original-constraint global setup/
 hold still fail -47.082/-1.806 ns; the RBF remains unqualified. No new timing
 exceptions are applied. Raw first-stage inputs, held mode/data, MTBF/I/O and
 physical output remain next, alongside the still-running combined-Z matrix.
+A first-stage-only candidate passes a completed-fit eight-corner before/after
+probe: 416 unchanged positive chain/witness/gate rows, 192 original raw rows,
+96 excluded input reports and 232 unchanged held-mode rows. Global setup/hold
+still fail -18.252/-0.062 ns after the candidate. The original driver guard
+failed safely because default fan-in traversal included clock-select edges;
+the native documented synchronous-data query resolves that distinction.
+Only the separate handoff revision selects the guarded six-input candidate.
+Final comment-adjusted bytes pass the fresh v3 native probe and independent
+source/row audit; fresh native map/fit/MTBF,
+remaining output-data timing and physical acceptance are still required.
 Nine actual pending-transaction snapshots pass ninety byte-identical
 continuations; cold-start/clock guards remain tested. Fresh combined-Z
 pixels, current-source Quartus bundle/consumer timing and native/hardware

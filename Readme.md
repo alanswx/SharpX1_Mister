@@ -52,6 +52,11 @@ eight-corner setup/hold still fail (-47.082/-1.806 ns). Independent full-board
 auditing passes 208 bounded stage/witness/native-gate rows and exact first-stage
 fanout, without new timing exceptions. Raw input, held output data, MTBF/I/O
 and physical acceptance remain open; the new RBF is also unqualified.
+An exact first-stage-only candidate now preserves the bounded chains and
+previously reported held-mode paths in an eight-corner before/after probe.
+Global diagnostics still fail (-18.252/-0.062 ns after the candidate). Only the
+separate handoff revision selects it; fresh fitting/MTBF and held-mode/data
+qualification remain required. No ordinary board default is changed.
 Its isolated real-PLL controller maps/fits; a fitted-feedback audit led to an
 explicit falling-edge closure witness. Current native cases pass, while raw
 crossings, full-board timing and physical switching remain open. All 96 bounded

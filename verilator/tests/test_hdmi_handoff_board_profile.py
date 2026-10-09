@@ -22,13 +22,14 @@ for path in root.glob("*.qsf"):
     if path != new:
         assert not any(key == "VERILOG_MACRO" and "X1_HDMI_HANDOFF_EXPERIMENT" in value
                        for key, value in assignments(path)), "ordinary revision enabled handoff"
+        assert ("SDC_FILE", "scripts/constraints/hdmi_handoff_input_candidate.sdc") not in assignments(path), "other revision enabled handoff input cuts"
 baseline = assignments(root / "sharpx1_turbo_z_video.qsf")
 candidate = assignments(new)
 old_sdc = [value for key, value in baseline if key == "SDC_FILE"]
 new_sdc = [value for key, value in candidate if key == "SDC_FILE"]
-assert new_sdc == [value.replace("hdmi_mux_candidate.sdc", "hdmi_handoff_mux_candidate.sdc") for value in old_sdc]
+assert new_sdc == [value.replace("hdmi_mux_candidate.sdc", "hdmi_handoff_mux_candidate.sdc") for value in old_sdc] + ["scripts/constraints/hdmi_handoff_input_candidate.sdc"]
 old_macros = [value for key, value in baseline if key == "VERILOG_MACRO"]
 new_macros = [value for key, value in candidate if key == "VERILOG_MACRO"]
 assert new_macros == old_macros + ["X1_HDMI_HANDOFF_EXPERIMENT=1"]
 assert [value for key, value in candidate if key == "ALLOW_POWER_UP_DONT_CARE"][-1] == "OFF"
-print("PASS: separate handoff QSF preserves Z features/other constraints; ordinary revisions remain disabled")
+print("PASS: separate handoff QSF preserves Z features/other constraints, adds only six-input candidate; all other revisions remain disabled")
