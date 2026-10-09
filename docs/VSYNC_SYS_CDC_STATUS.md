@@ -40,3 +40,24 @@ different clock-domain contracts. They remain separate review items.
 Machine RTL, ordinary game runners and private assets are unchanged.
 Fresh Quartus fitting, eight-corner timing and physical/native tests remain
 open. This change does not make the Turbo Z RBF timing-qualified.
+
+## In-flight source-bound fit and reporting
+
+Checkpoint `e32bd6967577580ea9724e5d0bc3bf4f4129b45a` is pushed to alanswx.
+The authorized idle Linux host starts its frozen-source full flow in
+`output_files/quartus-linux-1uPykZZ7`; local observation log is
+`/tmp/x1-quartus-e32bd69-vsync-build.log`. This records a started build, not
+a completed fit or RBF qualification. Ordinary and experimental wrapper lint
+finish zero with inherited warnings; those checks do not elaborate `sys_top`
+or the VHDL scaler.
+
+`scripts/quartus_vsync_sys_paths.tcl` prepares reporting-only acceptance of
+exactly two actual, distinct `sample_pipe[0/1]` registers. Missing, duplicated,
+replicated, misnumbered and unresolved stage inventories reject before reports.
+Its 64 scopes cover input, stage transfer, all reported stage-zero fanout and
+stage-one consumers, setup/hold at eight corners. No exception is issued;
+raw input timing may fail, and empty reports are not acceptance. Native
+connectivity/physical fanout must still be inspected in addition to these
+bounded path reports. Mock coverage and eight rejecting inventories pass via
+`make -C verilator test-vsync-sys-paths`; CI selects it. Native execution waits
+for the build to become idle and original reports to be preserved.

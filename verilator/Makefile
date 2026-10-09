@@ -1783,6 +1783,10 @@ test-vsync-sys-controls: test-vsync-sys
 	done
 .PHONY: test-vsync-sys-controls
 
+test-vsync-sys-paths:
+	tclsh tests/vsync_sys_paths_tb.tcl
+.PHONY: test-vsync-sys-paths
+
 test-scaler-reset-paths:
 	tclsh tests/scaler_reset_paths_tb.tcl
 .PHONY: test-scaler-reset-paths
