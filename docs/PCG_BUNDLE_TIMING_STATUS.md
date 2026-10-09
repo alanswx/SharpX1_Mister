@@ -90,6 +90,38 @@ existing cross-clock edge relationship still reports violations. A scoped
 bounded response constraint must be tested separately and refitted before
 qualification; no PCG exception has been applied by this inventory.
 
+### Analysis-only response bound
+
+`scripts/constraints/pcg_response_candidate.sdc` is **not selected by any
+QSF**. It checks eight unique indexed registers on each side, then applies
+31.25 ns maximum/zero minimum only from `response` to `cpu_q`. This is
+stricter than the checked two-SYS-period (62.5 ns) consumption window.
+Neither request/ACK synchronizers nor font/other SYS-only paths are excepted.
+
+`scripts/quartus_pcg_response_probe.tcl` reads the completed fit's existing
+SDC, reports the original selected timing, sources this exact candidate,
+then reports selected and global setup/hold at all eight corners. Native
+Quartus finishes zero, no warnings (`/tmp/x1-quartus-32a3210-pcg-response-bound.log`).
+Independent table audit confirms 16 reports/eight paths each (128 total),
+minimum selected setup **+22.048 ns**, hold **+1.061 ns**, and maximum data
+delay **11.290 ns**. Reports are separately preserved under ignored
+`output_files/quartus-linux-EDi2XntO/pcg-response-probe/`. Global setup/hold
+still fail at **−15.053/−1.047 ns**. Original RBF and project constraints are
+unchanged. This proves a completed-fit experiment, not a newly fitted candidate.
+
+`make -C verilator test-pcg-response-sdc` also passes exact valid bounds and
+twelve negative inventories (missing/duplicate/extra/out-of-range/wrong-field/
+duplicate-suffixed endpoints on either side). Every negative refuses all
+constraints. This mocked Tcl test is selected in CI, not a substitute for STA.
+
+| Analysis-only artifact | SHA-256 |
+|---|---|
+| Response candidate | `9b0519981d3a2e2456527208521a102ec8172bf0a6fbeee094bbc154d1cd3cd9` |
+| Native probe | `4ae2a938ff90f3a42a0d710d22f87c913f54e1e1ebd1768f7f33b6386e75cc2d` |
+
+Project selection, source-bound refit, all-corner endpoint/physical-delay audit,
+request/RAM-control enumeration and hardware acceptance remain open.
+
 Audit source payload paths into RAM data/write controls, selected addresses
 and response selection separately; response-to-CPU is a distinct held bus.
 First-stage request/ACK synchronizers require their own treatment, with the
