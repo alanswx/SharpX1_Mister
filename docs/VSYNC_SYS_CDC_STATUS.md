@@ -62,3 +62,33 @@ connectivity/physical fanout must still be inspected in addition to these
 bounded path reports. Mock coverage and eight rejecting inventories pass via
 `make -C verilator test-vsync-sys-paths`; CI selects it. Native execution waits
 for the build to become idle and original reports to be preserved.
+
+## Completed full flow; native audit in progress
+
+The `e32bd69` full flow finishes zero at 19:08:07 UTC, elapsed 8:32.
+Original local artifacts are preserved in
+`output_files/quartus-linux-1uPykZZ7/completed-flow/` before supplemental STA.
+RBF SHA-256
+`d3a9b0250f196acf1fb8871b065a5b665dc78575fa272a70ec9004af2c424ad6`
+is **unqualified**. Input manifest SHA-256
+`c5c9cd98729f9e3a168983583d66bf45d1d4acf2234a948060e0dec5fd02f356`;
+387 inputs match, only Quartus-rewritten QPF differs.
+
+The initial Slow 100 C report still fails setup −46.112 ns. Its positive hold
+minimum +0.200 ns does not represent all-corner acceptance. Sequential native
+acceptance starts after preserving originals, log
+`/tmp/x1-quartus-e32bd69-native-acceptance.log`.
+The VSYNC reporter completes zero/no warnings and validates precisely stages
+zero/one. Early Slow −40 C reports show one stage-zero-to-one path, and three
+stage-one consumers `vs_d0`, `vs_d1`, `vsd`, all positive. Raw input reports
+remain negative and target only stage zero from the actual duplicated VSYNC
+source. Final eight-corner independent audit and physical connectivity/MTBF
+remain required; those early reports are not a complete CDC/timing pass.
+
+`scripts/audit_vsync_sys_reports.py` checks all 64 report scopes, exact SYS
+chain/consumer directions and nonnegative synchronous setup/hold. It requires
+both reported input clock aliases but never calls their asynchronous slack a
+pass. Physical data delay is parsed separately from skew. The independent
+native raw-source name is supplied explicitly. Synthetic valid coverage and
+13 rejecting controls pass via `make -C verilator test-vsync-report-audit`;
+CI selects the same parser test, not native timing execution.
