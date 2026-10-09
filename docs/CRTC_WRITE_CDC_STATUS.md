@@ -129,3 +129,12 @@ command. This qualifies reporter logic only; the current fit must finish,
 its original reports must be preserved, and the host must be idle before
 native execution. Physical inventory, clock domains, bounded payload delays
 and global timing are still unqualified.
+
+Current Quartus mapping accepts/elaborates the new transport but emits warning
+10335 for its generic `async_reg` attributes on both synchronizer pairs.
+Do not infer Intel synchronizer recognition or metastability placement from
+those attributes. The recognized preservation hint and logical two-stage
+structure are not physical acceptance either. Review the actual fitted
+inventory first; the Intel-specific identification hint already used in
+`x1_video_blink.sv` is a candidate for a separately source-bound follow-up,
+not something silently attributed to this active frozen build.
