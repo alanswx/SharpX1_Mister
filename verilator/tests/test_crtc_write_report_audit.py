@@ -26,6 +26,7 @@ with tempfile.TemporaryDirectory(prefix="crtc-report-controls-") as directory:
     log_lines += ["Info: CRTC MPU register " + name for name in mpu]
     log_lines += ["Info: CRTC endpoint native fanout " + source + " " + " ".join(targets) for source, targets in fanouts.items()]
     log_lines += ["Info: Evaluation of Tcl script crtc_reporter.tcl was successful"]
+    log_lines += ["Info: Quartus Prime TimeQuest Timing Analyzer was successful. 0 errors, 0 warnings"]
     valid_log = "\n".join(log_lines) + "\n"
     native.write_text(valid_log)
 
@@ -82,6 +83,8 @@ with tempfile.TemporaryDirectory(prefix="crtc-report-controls-") as directory:
         (mpu_output, "".join(originals[mpu_output].splitlines(keepends=True)[:-1])),
         (mpu_output, originals[mpu_output].replace("display_consumer", "other_clock_consumer", 1)),
         (native, valid_log.replace("was successful", "failed")),
+        (native, valid_log.replace("successful. 0 errors", "unsuccessful. 1 error")),
+        (native, valid_log + "Error (332000): failed SDC inventory\n"),
         (native, valid_log + log_lines[0] + "\n"),
         (native, valid_log.replace(f"request_meta {PREFIX}request_sync", f"request_meta {PREFIX}busy")),
         (native, valid_log.replace(f"request_meta|d {PREFIX}request", f"request_meta|d wrong_gpio")),
@@ -99,4 +102,4 @@ with tempfile.TemporaryDirectory(prefix="crtc-report-controls-") as directory:
         else:
             raise AssertionError(f"invalid CRTC report accepted: {p.name}")
         p.write_text(valid_log if p == native else originals[p])
-print("PASS: CRTC parser full synthetic coverage and 28 invalid scope/domain/payload/native-log controls; not fitted evidence")
+print("PASS: CRTC parser full synthetic coverage and 30 invalid scope/domain/payload/native-log controls; not fitted evidence")

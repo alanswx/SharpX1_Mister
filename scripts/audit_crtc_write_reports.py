@@ -25,6 +25,8 @@ def keeper_tokens(value):
 def inventory(log):
     content = log.read_text()
     assert "Evaluation of Tcl script" in content and "was successful" in content, "native reporter not successful"
+    assert "TimeQuest Timing Analyzer was successful. 0 errors" in content, "native STA did not finish without errors"
+    assert not re.search(r"^\s*Error\b", content, re.MULTILINE), "native log contains an error, including incomplete SDC"
 
     def matching(marker):
         return [line.split(marker + " ", 1)[1] for line in content.splitlines() if marker + " " in line]
@@ -104,7 +106,7 @@ def audit(directory, log):
                 for r in reports["mpu_input"]:
                     assert r[1] in mpu | set(PACKET.values()) | {PREFIX + "pending_write"}, "unexpected MPU launch source"
                 for kind in KINDS:
-                    if kind.endswith("_input") and kind != "mpu_input" or kind == "packet":
+                    if (kind.endswith("_input") and kind != "mpu_input") or kind == "packet":
                         continue
                     clock = SYS if kind.startswith("ack_") else VIDEO
                     for r in reports[kind]:

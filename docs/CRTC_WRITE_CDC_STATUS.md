@@ -150,7 +150,7 @@ and every capture/MPU source-to-consumer pair against native fanout observations
 It requires all nine logical packet mappings, actual domains, nonnegative
 same-clock slack and a strict one-VID-period physical packet bound. Raw
 request/ACK edge slack stays OPEN, and no exception is issued. Its 192-report
-synthetic fixture and 28 scope/domain/data/inventory negative controls pass
+synthetic fixture and 30 scope/domain/data/inventory/tool-error negative controls pass
 through `test-crtc-write-report-audit`. This is parser coverage, not fitted
 timing, global closure or metastability qualification.
 
@@ -174,3 +174,12 @@ reported stage-01 replica count is zero. Mock inventory tests now reject
 tests separately require independently supplied stage/address replica counts
 and matching primary/clone control-source sets. Fresh source-bound full flow,
 mapped inventory, physical delay and all-corner timing remain required.
+
+Commit `fcd1086` now starts the fresh full flow in
+`output_files/quartus-linux-6FBt6YWN/` on `misterubuntu`; log
+`/tmp/x1-quartus-fcd1086-build.log`. It is still running, not a completed fit
+or timing pass. The prior build's preserved reports and manifest have been
+retrieved locally under ignored `output_files/quartus-linux-4005kWb5/`.
+The independent CRTC auditor now rejects any native error line or missing
+zero-error STA completion, including an SDC failure alongside a successful
+Tcl evaluation. It cannot turn the rejected original flow into acceptance.
