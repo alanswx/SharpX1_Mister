@@ -158,7 +158,9 @@ extra GRAM. The digital RGB output reduces analog multi-mode colors to eight
   The subsequent [priority CPU/ordering increment](TURBO_Z_PRIORITY_CPU_STATUS.md)
   passes all 256 stored CPU values and five real-CPU cold/warm/disabled
   controls, plus all 16,384 ordering combinations and a wrong-middle-order
-  negative. The stored register and decoder are not yet connected to video;
+  negative. Stored priority now crosses with coherent video controls; three
+  actual-CPU clock profiles pass cold/warm sweeps and stopped-clock recovery.
+  The decoder is not yet connected to rendered composition;
   provisional reset/readback behavior is not native ASIC qualification.
 - [ ] Z5: standard stereo FM (YM2151), board CTC/interrupts and PSG mixing.
   The [standalone FM foundation](TURBO_Z_FM_STATUS.md) now executes genuine

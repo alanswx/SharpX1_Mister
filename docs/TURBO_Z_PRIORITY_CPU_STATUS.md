@@ -20,8 +20,9 @@ provisional**; reference emulators disagree about inactive access and the
 manual does not supply these electrical/reset values. Undefined ordering
 does not prevent CPU storage/readback of the corresponding byte.
 
-The control output is not yet connected to the coherent video-control
-snapshot or renderer. This is real CPU register acceptance, not an enabled
+The control output now occupies bits 31:24 of the existing held multi-mode
+video-control snapshot; mode/SCRN/blackclip/width retain bits 23:0. The
+renderer does not yet consume priority. This is real CPU register acceptance, not an enabled
 priority display, a native Z identity or an RBF capability.
 
 ## Ordering decoder
@@ -87,6 +88,47 @@ the separate [source-bound record](TURBO_Z_PRIORITY_CONTRACT.md#executed-paired-
 
 Hosted CI now includes these targets and explicitly installs ripgrep for
 negative-log validation. Its source-bound hosted result remains pending.
-Complete coherent controls, dual-screen palette lookup/composition, actual
+Complete dual-screen palette lookup/composition, actual
 glyph/opacity/blackclip, native Z software and Quartus/physical gates before
 checking off Z3/Z4 or the user's broader work groups.
+
+## Connected control crossing follow-up
+
+`make -C verilator test-machine-z-priority-cdc` executes an original synthetic
+IPL through the real shared CPU with X3, palette/video/multi-mode and text CPU
+options enabled. All 256 priority bytes must appear in the actual video-domain
+payload alongside mode `90h`, bank/blackclip zero and 40-column width. The same
+sweep must pass after warm reset without an asset reload. SYS is 32 MHz;
+video half-periods 17,500 / 11,640 / 25,000 ps cover ordinary, nominal X3 and
+slower independent clocks. These are half-period fixtures, not exact fitted
+PLL frequencies.
+
+The fixture physically stops SYS and VID separately, checks settled destination
+and held-source stability, then resets with VID stopped and verifies coherent
+reset controls after restart. The first expectation incorrectly assumed PPI
+width reset to zero; actual retained width is one. Only that oracle expectation
+was corrected; no PPI behavior was changed. The initial failure remains in
+`/tmp/x1-z-priority-machine-cdc.log`. The subsequent positive three-profile
+matrix and generic CDC/order/register gates exit zero in
+`/tmp/x1-z-priority-machine-cdc-final.log`.
+
+No new public ports or default-board capabilities were added. The existing
+text CPU experiment remains non-savable; ordinary snapshot v13 is unchanged.
+Unused priority bits can still optimize away in hardware until a renderer
+consumes them. This test does not verify physical CDC placement, live
+composition, native reset/readback or opacity.
+
+The final three-profile sweep and disabled-priority negative also pass in
+`/tmp/x1-z-priority-cdc-negative-wrapper.log`; its subsequent wrapper command
+used a nonexistent DMA target and exited two. The corrected ordinary/X3/DMA
+wrapper lint invocation exits zero in `/tmp/x1-z-priority-cdc-wrapper-final.log`,
+with inherited warnings and a PLL interface stand-in, not Quartus validation.
+The negative uses the unchanged CPU and crossing oracle with text/priority CPU
+disabled and must fail specifically at the incomplete-sweep assertion, not
+merely with any nonzero exit. Final positive executable SHA-256:
+`a79c7a7c9adefe6d8ee3912ae1aa26f427178e1769c2156c2bae995b92ba0d3a`.
+After declaring the fixture's intentionally unused output connections explicitly,
+the final positive/negative matrix exits zero again in
+`/tmp/x1-z-priority-cdc-final-clean.log`; the hash above binds that final build.
+Each positive invocation executes approximately 57 ms. CI now selects this
+connected crossing target; its hosted result is not yet verified.

@@ -91,7 +91,8 @@ index/tag unconnected. Simultaneous-screen lookup/composition,
 opacity and the priority renderer remain unconnected. The subsequent
 [CPU register/ordering increment](TURBO_Z_PRIORITY_CPU_STATUS.md) adds opt-in
 `1FC0` reads/writes and separately qualifies the full layer-order truth table;
-it does not connect that stored control to video. Ordinary board profiles remain
+its follow-up connects stored priority to the coherent video-control payload,
+not rendered composition. Ordinary board profiles remain
 unchanged. This is infrastructure for step 2 above, not completed Z3/Z4.
 
 ```sh
@@ -134,3 +135,30 @@ Its updated recipe has been dry-run inspected, not yet executed as a new run.
 
 This contract fleshes out Z4 and the missing portion of Z3. No native or
 hardware completion box is checked by this increment.
+
+## Additional local reference: eX1 composition
+
+The sparse Common Source Project checkout is now local at
+`references/emulators/common-source-x1`, pinned to
+`2f350e59869ad52293c768e08dd1e6137001486b`. Inspected `display.cpp`
+`get_zpriority`, `get_zpal_num`, control access and drawing branches; not built
+or executed, and no code/assets copied. Unlike the inspected X Millennium
+candidate composition branch behind `#if 0`, eX1 supplies active two-screen
+composition. This is implementation evidence, not independent pin measurement.
+
+Its ordering uses raw text/graphics code nonzero, not palette RGB brightness:
+a nonzero code programmed black remains present. Crucially, a zero-code
+backdrop is not uniformly fixed black: text-on-top can fall through to
+programmable graphics entry zero, whereas graphics-on-top can end at fixed
+text entry zero. The standalone ordering decoder currently returns an abstract
+backdrop, so it has not settled this RGB/opacity policy. Add these distinct
+all-zero and programmed-black cases to the actual-pixel acceptance oracle.
+
+eX1 gates both `1FC0` reads/writes by AEN; X Millennium's inspected write path
+does not. Its reduced-index masks `CCC/333` and text intensity mapping still do
+not resolve the primary pin-contract uncertainties. The service sheet's
+multi-mode transparent-only background/blackclip descriptions do not specify
+raw-code versus RGB-zero testing or the exact clip stage. The Techknow screen
+chapter (printed 122) also requires palette setup after a mode switch: existing
+CPU reduced-pixel fixtures that program in full-color before switching are
+experimental coverage, not that native programming-sequence acceptance.

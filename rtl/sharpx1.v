@@ -166,6 +166,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         // Explicit palette experiments; subordinate options add video/internal
         // and text CPU storage. No native Z signature or general decode claim.
         reg [7:0] mode=0, control=0;
+        wire [7:0] priority_control;
         if(TURBO_Z_TEXT_CPU) begin : text_cpu
             wire [7:0] live_data,held_data;
             wire read_hold;
@@ -187,10 +188,11 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
                 .io_read(io_read && !dam),.io_write(io_write && !dam),
                 .clear_read(!mreq || !m1 || (io_cycle && !(z_priority_selected && io_read))),
                 .address(a),.data(data_out),.selected(z_priority_selected),.read_data(priority_live),
-                .read_hold(priority_read_hold),.held_data(priority_held),.control());
+                .read_hold(priority_read_hold),.held_data(priority_held),.control(priority_control));
             assign z_priority_tail=priority_read_hold && !core_reset && mreq && iorq && m1 && a==16'h1fc0;
             assign z_priority_data=z_priority_tail ? priority_held : priority_live;
         end else begin : no_text_cpu
+            assign priority_control=0;
             assign z_text_selected=0;assign z_text_tail=0;assign z_text_data=8'hff;
             assign z_priority_selected=0;assign z_priority_tail=0;assign z_priority_data=8'hff;
         end
@@ -203,11 +205,14 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
                 if(video_reset) begin enabled_meta<=0;enabled_video<=0;end
                 else begin enabled_meta<=TURBO_Z_MULTIMODE ? (mode==8'h80 || mode==8'h90) : mode==8'h80;enabled_video<=enabled_meta;end
             if(TURBO_Z_MULTIMODE) begin : multimode
-                wire [23:0] controls;
+                // Priority travels with mode/bank/width in one held payload,
+                // not eight independently sampled control bits. No renderer
+                // consumes the new byte until composition is qualified.
+                wire [31:0] controls;
                 wire controls_valid;
-                x1_cdc_snapshot #(.WIDTH(24)) snapshot(
+                x1_cdc_snapshot #(.WIDTH(32)) snapshot(
                     .source_clk(clk_sys),.destination_clk(clk_28636),
-                    .source_data({mode,turbo_scrn,turbo_black,mode_c[6]}),
+                    .source_data({priority_control,mode,turbo_scrn,turbo_black,mode_c[6]}),
                     .destination_data(controls),.destination_valid(controls_valid));
                 wire [7:0] analog_mode=controls[23:16], scrn=controls[15:8];
                 wire width40=controls[0];

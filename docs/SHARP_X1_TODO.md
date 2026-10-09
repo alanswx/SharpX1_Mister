@@ -125,8 +125,10 @@ The subsequent [CPU priority/ordering increment](TURBO_Z_PRIORITY_CPU_STATUS.md)
 passes `1FC0` all-byte, exact-decode/text/DAM/inactive/reset tests through the
 shared Z80, three held-strobe unit profiles and 16,384 ordering cases. The
 original oracle rejects substituting text-on-top for between-screen text.
-The existing text CPU controls still pass. Coherent control crossing,
-rendered composition/opacity, native reset/readback and hardware remain open.
+The existing text CPU controls still pass. Priority now crosses in the held
+mode/bank/blackclip/width payload; actual-CPU all-byte cold/warm tests and
+physically stopped SYS/VID recovery pass at three video clocks. Rendered
+composition/opacity, native reset/readback and hardware remain open.
 
 The expanded [hosted diagnostic run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37865161650)
 now completes successfully on `95c3e4a`. The newer `99eb141` palette-RAM/

@@ -293,8 +293,10 @@ checks at three clocks. CPU priority controls and actual two-screen composition
 remain unconnected; these units do not establish native priority or a Z RBF.
 The subsequent [priority CPU/ordering increment](docs/TURBO_Z_PRIORITY_CPU_STATUS.md)
 connects opt-in `1FC0` reads/writes and passes real-Z80 all-byte/reset/isolation
-checks plus the complete layer-order truth table. Stored controls and the
-decoder are not yet connected to actual video; opacity/native/hardware remain open.
+checks plus the complete layer-order truth table. Stored priority now crosses
+with the held video controls; actual-CPU cold/warm sweeps and stopped-clock
+recovery pass at three clock ratios. The decoder is not yet connected to
+rendered composition; opacity/native/hardware remain open.
 
 The headless simulator has been compiled with Verilator 5.044 on macOS.
 The timing/reset regression passes. A 200,000-system-cycle run reports:

@@ -66,3 +66,15 @@ to garbled scenes, not gameplay. A separate original pending-retention adapter
 repeats the same black handler state twice, isolating the phase-coalescing
 policy's effect within that reference. No FPGA policy changed; see the interrupt
 status for build/run/counterfactual provenance and the unresolved chip contract.
+
+October 9: sparse-cloned [Common Source Project/eX1](https://github.com/Artanejp/common_source_project-fm7)
+into ignored `references/emulators/common-source-x1`, revision
+`2f350e59869ad52293c768e08dd1e6137001486b`, with X1 source and VM documentation.
+This supersedes the earlier online-only retrieval status, not an execution
+claim. Inspected X1 display control/palette-index/composition branches and the
+X1 VM notes; did not build/run it or audit the entire repository. Its display
+header credits Takeda.Toshiya and attributes Kanji/ANK origins to X1EMU and
+X Millennium; `source/LICENSE.txt` identifies GPLv2, not a cleared ROM/font
+redistribution license. No reference code or assets were copied into the core.
+The [priority contract](../docs/TURBO_Z_PRIORITY_CONTRACT.md#additional-local-reference-ex1-composition)
+records raw-code opacity, backdrop and reduced-index disagreements.

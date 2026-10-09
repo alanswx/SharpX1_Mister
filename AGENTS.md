@@ -99,6 +99,12 @@ The same CPU-only profile now accepts `1FC0`; see
 policies are provisional. `x1_z_layer_order.sv` consumes caller visibility,
 not RGB-derived transparency, and is not yet in the renderer. Field 10 means
 text between screens; paired field 11 is undefined, not a guessed fallback.
+With multi-mode video enabled, priority crosses as bits 31:24 of the held
+control payload; existing mode/SCRN/blackclip/width bits stay at 23:0.
+`test-machine-z-priority-cdc` requires all CPU-written bytes before/after
+retained-IPL reset, stopped SYS/VID recovery and a disabled-profile negative.
+The PPI width latch is retained during this reset; do not assume it clears.
+This diagnostic does not connect composition or qualify hardware CDC placement.
 
 Snapshot format v13 rejects older states after transaction-bound DAM arming
 (v12 added the RGB12 output port; v11 added opt-in CPU/DMA bus and instrumentation;
