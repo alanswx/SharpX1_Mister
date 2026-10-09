@@ -77,7 +77,7 @@ module sio_dma_cpu_tb;
         .cpu_din(dout),.cpu_dout(sio_dout),.rx_tick(rx_tick),.tx_tick(tx_tick),
         .rxd(rxd),.cts_n(2'b11),.dcd_n(2'b11),.txd(txd),.rts_n(rts_n),.dtr_n(dtr_n),
         .unsupported(sio_bad),.iei(1'b1),.acknowledge(acknowledge),.reti(reti),
-        .irq(irq),.ieo(ieo),.ack_vector(vector),.wait_n(flow_wait_n),.ready_n(ready_n));
+        .irq(irq),.ieo(ieo),.service_active(),.ack_vector(vector),.wait_n(flow_wait_n),.ready_n(ready_n));
     // Existing fetch decoder, with idle CTC/keyboard. RETI is qualified only
     // to this sole interrupt device; this is not shared daisy-chain wiring.
     x1_irq_bridge opcode_decoder(.clk(clk),.reset(core_reset),.m1_n(cpu_m1_n),

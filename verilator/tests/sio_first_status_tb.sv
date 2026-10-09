@@ -16,7 +16,7 @@ module sio_first_status_tb;
     reg iei=1,acknowledge=0,reti=0;
     wire irq,ieo;
     wire [7:0] ack_vector;
-    x1_sio_interrupt dut(.wait_n(),.ready_n(),.*);
+    x1_sio_interrupt dut(.service_active(),.wait_n(),.ready_n(),.*);
     task automatic step;
         do begin @(posedge clk); #1; end while(!ce);
     endtask

@@ -43,7 +43,7 @@ module sio_dma_tb;
         .rx_tick(rx_tick),.tx_tick(tx_tick),.rxd(rxd),.cts_n(2'b11),.dcd_n(2'b11),
         .txd(txd),.rts_n(rts_n),.dtr_n(dtr_n),.unsupported(sio_bad),
         .iei(1'b1),.acknowledge(1'b0),.reti(1'b0),.irq(irq),.ieo(ieo),
-        .ack_vector(ack_vector),.wait_n(flow_wait_n),.ready_n(ready_n));
+        .service_active(),.ack_vector(ack_vector),.wait_n(flow_wait_n),.ready_n(ready_n));
     reg old_rd_n=1,old_wr_n=1,old_io=0;
     reg [15:0] old_address=0;
     reg [7:0] old_data=0;

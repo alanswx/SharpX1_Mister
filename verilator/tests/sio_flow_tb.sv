@@ -15,7 +15,7 @@ module sio_flow_tb;
     wire unsupported,irq,ieo;
     wire [7:0] ack_vector;
     reg iei=1,acknowledge=0,reti=0;
-    x1_sio_interrupt #(.FLOW_ENABLE(1)) dut(.*);
+    x1_sio_interrupt #(.FLOW_ENABLE(1)) dut(.service_active(),.*);
     task automatic step;
         do begin @(posedge clk); #1; end while(!ce);
     endtask

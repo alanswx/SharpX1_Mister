@@ -12,7 +12,7 @@ module x1_sio_irq (
     input wire [1:0] special_rx,
     input wire [7:0] vector_base,
     input wire status_vector,
-    output wire irq, ieo, pending,
+    output wire irq, ieo, pending, service_active,
     output wire [7:0] rr2, ack_vector
 );
     reg [5:0] in_service;
@@ -43,6 +43,9 @@ module x1_sio_irq (
         end
     end
     assign pending=|request;
+    // Export actual IUS, not !IEO: pending requests and low upstream IEI
+    // also block IEO, but must not consume a downstream device's RETI.
+    assign service_active=|in_service;
     assign irq=iei && eligible;
     assign ieo=iei && !eligible && !servicing;
     assign rr2=pending_valid ? source_vector(pending_selected) :
@@ -76,7 +79,7 @@ module x1_sio_interrupt #(parameter FLOW_ENABLE=0) (
     output wire [1:0] txd, rts_n, dtr_n,
     output wire unsupported,
     input wire iei, acknowledge, reti,
-    output wire irq, ieo,
+    output wire irq, ieo, service_active,
     output wire [7:0] ack_vector,
     output wire [1:0] wait_n, ready_n
 );
@@ -92,7 +95,7 @@ module x1_sio_interrupt #(parameter FLOW_ENABLE=0) (
         .request({request_external[1],request_tx[1],request_rx[1],request_external[0],request_tx[0],request_rx[0]}),
         .special_rx(special_rx), .vector_base(vector_register[1]),
         .status_vector(status_vector[1]), .irq(irq), .ieo(ieo),
-        .pending(pending), .rr2(rr2), .ack_vector(ack_vector)
+        .pending(pending), .service_active(service_active), .rr2(rr2), .ack_vector(ack_vector)
     );
     for(genvar channel=0;channel<2;channel=channel+1) begin : channels
         x1_sio_async_channel #(.IRQ_ENABLE(1), .CHANNEL_B(channel), .FLOW_ENABLE(FLOW_ENABLE)) unit (

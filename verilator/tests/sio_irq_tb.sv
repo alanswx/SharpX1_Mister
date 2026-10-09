@@ -18,7 +18,7 @@ module sio_irq_tb;
     wire [7:0] ack_vector;
     reg hold_check=0;
     reg [7:0] hold_vector;
-    x1_sio_interrupt dut(.wait_n(),.ready_n(),.*);
+    x1_sio_interrupt dut(.service_active(),.wait_n(),.ready_n(),.*);
     always @(posedge clk) if(hold_check && ack_vector!==hold_vector)
         $fatal(1,"stretched ACK changed vector %h/%h",ack_vector,hold_vector);
     task automatic step;

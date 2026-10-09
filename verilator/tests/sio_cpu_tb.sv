@@ -53,7 +53,7 @@ module sio_cpu_tb;
         .cpu_din(cpu_data), .cpu_dout(sio_data), .rx_tick(rx_tick), .tx_tick(tx_tick),
         .rxd(rxd), .cts_n(cts_n), .dcd_n(dcd_n), .txd(txd), .rts_n(rts_n), .dtr_n(dtr_n),
         .unsupported(unsupported), .iei(1'b1), .acknowledge(acknowledge),
-        .reti(reti), .irq(irq), .ieo(ieo), .ack_vector(ack_vector), .wait_n(flow_wait_n), .ready_n()
+        .reti(reti), .irq(irq), .ieo(ieo), .service_active(), .ack_vector(ack_vector), .wait_n(flow_wait_n), .ready_n()
     );
     // Reuse the existing machine's stretched-fetch ED/4D decoder. Its CTC
     // and keyboard inputs are idle: no CTC exists in this standalone fixture.

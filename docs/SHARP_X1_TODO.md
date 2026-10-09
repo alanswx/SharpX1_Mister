@@ -234,6 +234,10 @@ builds and record synthesis, fit and timing separately.
 | 7. Turbo Z | RGB12 output/capture foundation passes exhaustive capture/wrapper and snapshot checks; implement/qualify Z0–Z9 model, palette/multi-mode, text, FM, HD, Kanji/devices, capture and native/hardware gates |
 
 No legacy notices or private assets may be removed/bundled to claim completion.
+The [standalone SIO chain bridge](SIO_CHAIN_STATUS.md) now exports actual SIO
+IUS and checks nested SIO/DMA/CTC returns, held-vector/channel-reset ownership
+and stale-ACK quarantine. Its downstream service models are synthetic;
+combined real-device/CPU, shared-machine and native timing gates remain open.
 The [October 9 SIO machine-wiring audit](SIO_MACHINE_WIRING_AUDIT.md) now
 records actual SIO/0 bus/clock pins, DTRB-controlled A clock selection,
 mouse-related B controls, model-specific carrier inputs and the absence of a

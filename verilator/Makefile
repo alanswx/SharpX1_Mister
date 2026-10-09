@@ -789,6 +789,19 @@ $(HEADLESS_DIR)/sio-irq/Vsio_irq_tb: tests/sio_irq_tb.sv ../rtl/x1_sio_async.sv 
 		-j 4 tests/sio_irq_tb.sv ../rtl/x1_sio_async.sv ../rtl/x1_sio_irq.sv -Wno-fatal
 .PHONY: test-sio-irq
 
+test-sio-irq-bridge: $(HEADLESS_DIR)/sio-irq-bridge/Vsio_irq_bridge_tb
+	./$(HEADLESS_DIR)/sio-irq-bridge/Vsio_irq_bridge_tb
+	@ulimit -c 0; if ./$(HEADLESS_DIR)/sio-irq-bridge/Vsio_irq_bridge_tb +BAD_SERVICE >$(HEADLESS_DIR)/sio-irq-bridge/bad-service.log 2>&1; then \
+		echo 'ERROR: IEO-as-service negative control unexpectedly passed'; exit 1; \
+	fi; rg -q 'second SIO RETI wrong owner|pending SIO stole DMA RETI' $(HEADLESS_DIR)/sio-irq-bridge/bad-service.log || \
+		{ echo 'ERROR: wrong negative-control failure'; exit 1; }; \
+	echo 'PASS: IEO-as-service negative control rejected'
+$(HEADLESS_DIR)/sio-irq-bridge/Vsio_irq_bridge_tb: tests/sio_irq_bridge_tb.sv ../rtl/x1_sio_irq.sv ../rtl/x1_sio_async.sv ../rtl/x1_sio_irq_bridge.sv ../rtl/x1_irq_bridge.sv
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module sio_irq_bridge_tb --Mdir $(HEADLESS_DIR)/sio-irq-bridge \
+		-j 4 $^ -Wno-fatal
+.PHONY: test-sio-irq-bridge
+
 test-sio-cpu-irq-reset: $(HEADLESS_DIR)/sio-cpu/Vsio_cpu_tb
 	@for rate in 1 4 7; do for phase in 0 1 2 3; do \
 		./$(HEADLESS_DIR)/sio-cpu/Vsio_cpu_tb +CE_PERIOD=$$rate +IRQ_RESET_PHASE=$$phase || exit 1; \
