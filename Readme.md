@@ -313,6 +313,9 @@ builds for both 320x200/4096 and selected-bank 320x200/64, with captured mode
 eligibility and documented single-screen ordering. Both initial 64,000-pixel
 probes pass; the complete cold/warm matrix is running.
 Native intensity/opacity and hardware remain open.
+The [reverse-text regression](docs/TURBO_Z_REVERSE_TEXT_STATUS.md) now passes
+all 64,000 pixels through bank-1-front/text-between warm reset without refill;
+full attribute and native/hardware acceptance remain open.
 
 The headless simulator has been compiled with Verilator 5.044 on macOS.
 The timing/reset regression passes. A 200,000-system-cycle run reports:

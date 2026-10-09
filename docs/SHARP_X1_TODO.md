@@ -144,6 +144,9 @@ and passes focused control/order/wrapper gates for captured 320x200 layouts;
 initial full/selected-screen probes each pass 64,000 pixels; the wider matrix
 and full v14 baseline are running. It does not extend the
 low-scan priority rule to 640/400-line formats or close native/hardware gates.
+The [reverse-text extension](TURBO_Z_REVERSE_TEXT_STATUS.md) passes a real CPU
+64,000-pixel custom/text-between warm case, including source opacity and
+retained palettes/VRAM. This is bounded attribute coverage, not full Z4.
 
 The expanded [hosted diagnostic run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37865161650)
 now completes successfully on `95c3e4a`. The newer `99eb141` palette-RAM/

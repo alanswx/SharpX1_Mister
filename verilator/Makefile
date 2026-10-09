@@ -315,6 +315,13 @@ test-machine-z-single-text: turbo-z-paired
 	    done; \
 	  done
 .PHONY: test-machine-z-single-text
+test-machine-z-text-reverse: turbo-z-paired
+	@run_root=$$(mktemp -d obj_dir_v13_z_paired/reverse-matrix-XXXXXX); \
+	  cp tests/test_machine_z_video.py tests/z80_fixture.py obj_dir_v13_z_paired/Vtop $$run_root/ && \
+	  cp ../rtl/legacy/x1_cg8.v $$run_root/cg8_reference.v && \
+	  python3 $$run_root/test_machine_z_video.py $$run_root/Vtop --mode paired64 \
+	    --priority 0x1a --screen 1 --custom --text --reverse --warm --output $$run_root/reverse-middle-warm
+.PHONY: test-machine-z-text-reverse
 turbo-z-multimode:
 	$(MAKE) turbo-z-video Z_MULTIMODE=1 Z_VIDEO_DIR=obj_dir_v13_z_multimode
 .PHONY: turbo-z-multimode

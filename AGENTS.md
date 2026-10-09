@@ -102,6 +102,10 @@ The single-screen follow-up captures composition eligibility for layouts
 0/1/5 at request/load; `1FC0` must not affect unrelated 640/400-line layouts.
 For a selected-screen 64-color diagnostic, clear priority bit 4 or it actually
 requests simultaneous display. See `docs/TURBO_Z_SINGLE_TEXT_STATUS.md`.
+`test-machine-z-text-reverse` exercises raw-color reversal before text palette
+lookup, including programmed-black opacity and retained-asset warm reset.
+Freeze the checked-in ANK source alongside text runner/oracle/emitter; the
+pixel runner records its hash and rejects changes during future text tests.
 The same CPU-only profile now accepts `1FC0`; see
 `docs/TURBO_Z_PRIORITY_CPU_STATUS.md`. Its reset-to-zero/unused-bit/inactive
 policies are provisional. `x1_z_layer_order.sv` consumes caller visibility,
