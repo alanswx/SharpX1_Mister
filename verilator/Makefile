@@ -1775,6 +1775,17 @@ test-scaler-reset-release:
 	@rg -q 'release before second local edge' $(HEADLESS_DIR)/scaler-reset/early-control.log
 .PHONY: test-scaler-reset-release
 
+test-scaler-reset-domains: test-scaler-reset-release
+	cd $(HEADLESS_DIR)/scaler-reset && ghdl -a --std=08 ../../tests/scaler_reset_domains_tb.vhd
+	cd $(HEADLESS_DIR)/scaler-reset && ghdl -e --std=08 scaler_reset_domains_tb
+	cd $(HEADLESS_DIR)/scaler-reset && ghdl -r --std=08 scaler_reset_domains_tb --assert-level=error --stop-time=20us >domains.log 2>&1
+	@rg -q 'PASS: three independent scaler reset domains' $(HEADLESS_DIR)/scaler-reset/domains.log
+	@if (cd $(HEADLESS_DIR)/scaler-reset && ghdl -r --std=08 scaler_reset_domains_tb -gCOUPLED_CONTROL=true --assert-level=error --stop-time=20us >coupled-control.log 2>&1); then \
+	  echo 'FAIL: cross-domain release negative control passed'; exit 1; \
+	fi
+	@rg -q 'domain-local release mismatch' $(HEADLESS_DIR)/scaler-reset/coupled-control.log
+.PHONY: test-scaler-reset-domains
+
 test-pcg-report-audit:
 	python3 tests/test_pcg_report_audit.py
 .PHONY: test-pcg-report-audit

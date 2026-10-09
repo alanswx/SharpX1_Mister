@@ -98,3 +98,18 @@ timing, excluded raw-input review and physical video/Avalon/reset acceptance
 remain required. The old reporting tool intentionally requires the inherited
 three-register profile and must not be used to claim coverage of these new
 pipelines. No corrected timing or hardware behavior is claimed yet.
+
+The subsequent `test-scaler-reset-domains` passes three concurrent clocks,
+rotating the stopped domain through input/HDMI/Avalon while the others keep
+running. It checks local edge counts and independent restarts using the actual
+helper. A deliberately coupled release negative control fails. This tests the
+three-helper topology, not the complete scaler datapath or physical CDC.
+Native Quartus source elaboration in the `8d94709` fresh flow also recognizes
+the VHDL helper inside `ascal`; fitting and timing remain pending.
+
+`scripts/quartus_scaler_release_paths.tcl` prepares reporting-only all-corner
+stage setup/hold, raw-input recovery/removal and downstream recovery/removal
+for the new topology. It requires two distinct stages per domain and refuses
+unknown replicas. Native named-stage collection lookup and actual endpoint
+coverage remain pending. No added exceptions; inherited raw-input clock-group
+cuts must be reviewed separately, not called passes from empty reports.
