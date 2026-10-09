@@ -1747,6 +1747,10 @@ test-pcg-response-sdc:
 	tclsh tests/pcg_response_sdc_tb.tcl
 .PHONY: test-pcg-response-sdc
 
+test-pcg-request-sdc:
+	tclsh tests/pcg_request_sdc_tb.tcl
+.PHONY: test-pcg-request-sdc
+
 test-turbo-pcg-access: test-font16 test-pcg-access $(HEADLESS_DIR)/pcg-selector/Vpcg_selector_tb $(HEADLESS_DIR)/turbo-pcg/Vturbo_pcg_access_tb
 	./$(HEADLESS_DIR)/pcg-selector/Vpcg_selector_tb
 	@for half in 3 7 31; do for width in 1 3; do \

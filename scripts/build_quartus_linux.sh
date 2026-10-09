@@ -37,7 +37,7 @@ main() {
   mkdir "$snapshot"
   cd "$root"
   git ls-files -co --exclude-standard | LC_ALL=C sort -u |
-    awk '/^(rtl\/|sys\/|bios\/|references\/chip-src\/)/ || /^[^\/]+\.(qpf|qsf|qip|sdc|sv|v|tcl)$/ || /^(LICENSE|AGENTS.md)$/' > "$build/input-files.txt"
+    awk '/^(rtl\/|sys\/|bios\/|references\/chip-src\/)/ || /^scripts\/constraints\/[^\/]+\.sdc$/ || /^[^\/]+\.(qpf|qsf|qip|sdc|sv|v|tcl)$/ || /^(LICENSE|AGENTS.md)$/' > "$build/input-files.txt"
   hash_inputs() {
     (cd "$1"; while IFS= read -r path; do sha256sum "$path"; done < "$build/input-files.txt")
   }

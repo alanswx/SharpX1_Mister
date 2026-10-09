@@ -4,3 +4,5 @@
 source sharpx1_turbo_video.qsf
 set_global_assignment -name VERILOG_MACRO "X1_TURBO_Z_VIDEO_EXPERIMENT=1"
 set_global_assignment -name SDC_FILE sharpx1_turbo_z_video.sdc
+set_global_assignment -name SDC_FILE scripts/constraints/pcg_response_candidate.sdc
+set_global_assignment -name SDC_FILE scripts/constraints/pcg_request_candidate.sdc

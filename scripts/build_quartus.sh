@@ -27,7 +27,7 @@ cd "$ROOT"
 # Preserve relative IP/firmware paths and notices; omit downloaded private games,
 # old simulator outputs, and unrelated sibling trees. Include dirty/untracked RTL.
 git ls-files -co --exclude-standard | LC_ALL=C sort -u |
-  awk '/^(rtl\/|sys\/|bios\/|references\/chip-src\/)/ || /^[^\/]+\.(qpf|qsf|qip|sdc|sv|v|tcl)$/ || /^(LICENSE|AGENTS.md)$/' > "$BUILD_DIR/input-files.txt"
+  awk '/^(rtl\/|sys\/|bios\/|references\/chip-src\/)/ || /^scripts\/constraints\/[^\/]+\.sdc$/ || /^[^\/]+\.(qpf|qsf|qip|sdc|sv|v|tcl)$/ || /^(LICENSE|AGENTS.md)$/' > "$BUILD_DIR/input-files.txt"
 hash_inputs() {
   local base="$1" path
   (cd "$base"; while IFS= read -r path; do shasum -a 256 "$path"; done < "$BUILD_DIR/input-files.txt")

@@ -92,8 +92,9 @@ qualification; no PCG exception has been applied by this inventory.
 
 ### Analysis-only response bound
 
-`scripts/constraints/pcg_response_candidate.sdc` is **not selected by any
-QSF**. It checks eight unique indexed registers on each side, then applies
+At the time of the completed-fit experiment,
+`scripts/constraints/pcg_response_candidate.sdc` was not selected by any
+QSF. It checks eight unique indexed registers on each side, then applies
 31.25 ns maximum/zero minimum only from `response` to `cpu_q`. This is
 stricter than the checked two-SYS-period (62.5 ns) consumption window.
 Neither request/ACK synchronizers nor font/other SYS-only paths are excepted.
@@ -156,6 +157,48 @@ source/destination groups must include these real RAM pins and state-enable
 paths, keep SYS-only font/control checks intact, and reject unexpected
 endpoint inventories before any production constraints. No request exception
 or new RBF is introduced by this enumeration.
+
+### Eight-corner request bounds and experimental project selection
+
+`scripts/constraints/pcg_request_candidate.sdc` validates all inventories
+before issuing any exception: 16 address sources (including merged aliases),
+five control sources, eight payload sources, eleven address destinations,
+36 control destinations and 192 RAM data destinations. Exact source/vector/
+stage identities are checked, with four write-enable and 64 data endpoints
+per RAM plane. One control destination (`stage.10`) has no direct request
+path; it is retained in the destination inventory rather than silently dropped.
+Only these explicit source/destination pairs receive 23.28 ns maximum/zero
+minimum bounds, stricter than the measured two-VID-period admission window.
+CPU-only font/control paths and request/ACK synchronizers are unchanged.
+
+The strict native probe finishes zero, no warnings at all eight corners
+(`/tmp/x1-quartus-32a3210-pcg-request-bound-final.log`). Independent audit
+confirms 48 reports and **4,688 paths**: exactly 11 address, 90 control and
+192 payload paths per setup/hold/corner. Selected minimum setup/hold are
+**+13.539/+1.092 ns**, maximum physical delay **4.046 ns**. Four normalized
+SYS-domain setup/hold tables compare exactly with the unconstrained request
+inventory. Global setup/hold still fail **−15.053/−1.047 ns**. Reports are
+preserved separately in ignored
+`output_files/quartus-linux-EDi2XntO/pcg-request-probe/`.
+
+`test-pcg-request-sdc` passes the three exact bound pairs and 24 negative
+inventory cases, all refusing every exception. It is selected in CI alongside
+the response inventory test. Both tests finish zero after project selection;
+they mock collections, not native timing or metastability.
+
+The experimental **Z QSF only** now selects both PCG SDC files. Both Linux
+and Apple snapshot builders now include/hash `scripts/constraints/*.sdc`;
+other revisions and machine RTL are unchanged. Shell syntax checks pass.
+A fresh source-bound full flow must validate fitting, endpoint retention and
+all corners before this selection is qualified. Earlier probes do not
+qualify new placement or the RBF. Native/physical acceptance remains open.
+
+| Artifact | SHA-256 |
+|---|---|
+| Request SDC executed in strict probe | `62799e806df5243935524db9b7548f4f9c5dc3a5f007cdcf3195d5e503c6b736` |
+| Request SDC after comment-only project-selection update | `14dbcb6181dbdc6d60a9ce04260ca61fea6bcfbf43ed946e48875882c53b0123` |
+| Response SDC after comment-only project-selection update | `9d12a546dd9cbf1c89a53942ff99fe353755fe98b4ee4ce7cbbc05c7c7a34b9b` |
+| Request probe | `3fe3b9c818afdb6399906945a68555635302f336ca7559b42bec1b67b5165be4` |
 
 Audit source payload paths into RAM data/write controls, selected addresses
 and response selection separately; response-to-CPU is a distinct held bus.

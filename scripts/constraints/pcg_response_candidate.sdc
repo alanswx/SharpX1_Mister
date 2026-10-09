@@ -1,4 +1,5 @@
-# Analysis-only candidate, NOT selected by any QSF. SYS=32 MHz/X3 only.
+# Experimental Z revision only. SYS=32 MHz/X3 endpoint scope.
+# Selected by its QSF; fresh-fit endpoint and all-corner gates remain mandatory.
 # response remains held until a subsequent request; cpu_q consumes it at
 # least two SYS periods after publication. Bound only this eight-bit bus.
 set x1_pcg_response [get_registers {*x1_pcg_access:cg_bus|response*}]
