@@ -23,6 +23,28 @@ proc get_registers {query} {
 }
 proc get_collection_size {regs} {llength $regs}
 proc get_register_info {option reg} {return $reg}
+proc get_fanouts {query} {
+    if {$query eq [list [lindex $::names 0]]} {
+        set result [list [lindex $::names 1]]
+        switch $::mode {
+            fanout_missing {return {}}
+            fanout_extra {lappend result vsd}
+            fanout_wrong {return {vs_d0}}
+        }
+        return $result
+    }
+    if {$query eq [list [lindex $::names 1]]} {
+        if {$::mode eq "consumer_missing"} {return {vs_d0 vsd}}
+        if {$::mode eq "consumer_duplicate"} {return {vs_d0 vs_d0 vsd}}
+        return {vs_d0 vs_d1 vsd}
+    }
+    error "unexpected fanout source"
+}
+proc get_node_info {option node} {
+    if {$option eq "-name"} {return $node}
+    if {$::mode eq "fanout_nonreg"} {return pin}
+    return reg
+}
 proc foreach_in_collection {var regs body} {uplevel 1 [list foreach $var $regs $body]}
 proc set_operating_conditions args {lappend ::corners $args}
 proc report_timing args {
@@ -32,7 +54,7 @@ proc report_timing args {
 }
 foreach name {set_false_path set_clock_groups set_max_delay set_min_delay set_multicycle_path} {proc $name args {error "no exceptions allowed"}}
 proc run_tool {} {global quartus tool; source $tool}
-foreach mode {valid missing extra duplicate wrong_bit replica lookup_missing lookup_duplicate wrong_revision} {
+foreach mode {valid missing extra duplicate wrong_bit replica lookup_missing lookup_duplicate wrong_revision fanout_missing fanout_extra fanout_wrong consumer_missing consumer_duplicate fanout_nonreg} {
     set quartus(args) sharpx1_turbo_z_video
     if {$mode eq "wrong_revision"} {set quartus(args) sharpx1}
     set corners {}; set reports {}
@@ -66,4 +88,4 @@ foreach mode {valid missing extra duplicate wrong_bit replica lookup_missing loo
         }
     }
 }
-puts "PASS: VSYNC reporter 64 scopes/eight corners; eight invalid inventories reject (mock only)"
+puts "PASS: VSYNC reporter 64 scopes/eight corners; fourteen invalid stage/fanout inventories reject (mock only)"

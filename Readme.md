@@ -22,6 +22,9 @@ An experimental-only [SYS VSYNC synchronizer](docs/VSYNC_SYS_CDC_STATUS.md)
 now passes nine local clock combinations and two failing-control checks.
 Ordinary revisions are unchanged. Fresh FPGA timing, separate HPS/measurement
 crossings and physical/native acceptance remain open.
+Its subsequent source-bound fit completes and the reported VSYNC stage/consumer
+paths pass all eight corners. Overall setup/hold still fail; raw input scope,
+separate crossings, I/O and hardware acceptance remain open.
 
 See the [chip-by-chip implementation survey](docs/CORE_STATUS.md) for the
 current wiring audit and [downloaded hardware manuals](references/manuals/README.md)

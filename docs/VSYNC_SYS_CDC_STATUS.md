@@ -92,3 +92,51 @@ pass. Physical data delay is parsed separately from skew. The independent
 native raw-source name is supplied explicitly. Synthetic valid coverage and
 13 rejecting controls pass via `make -C verilator test-vsync-report-audit`;
 CI selects the same parser test, not native timing execution.
+
+## Completed eight-corner reports
+
+Sequential acceptance finishes zero at 19:12:45 UTC; local reports are in
+`output_files/quartus-linux-1uPykZZ7/acceptance/`, separately from original
+full-flow reports. The independent VSYNC audit passes all 64 files:
+80 synchronous chain/fanout/consumer rows, minimum **+0.250 ns**. The 32 raw
+input rows have minimum **−46.112 ns** and remain explicitly open, not passes
+or an applied exception. Actual input source is `hdmi_out_vs~_Duplicate_1`.
+
+Native inventory without SDC reports two registers and eight associated pins:
+stage zero uses `|asdata`, not a presumed `|d`; stage one uses `|d`, and each
+has its own CLK/Q. A future input-only probe must bind the actual first-stage
+data pin and preserve CLK, Q, stage transfer and consumer paths. No such cut
+is selected. Log `/tmp/x1-quartus-e32bd69-vsync-pin-inventory.log`.
+
+All eight global minima from the full multicorner command's preserved log:
+setup **−46.112 ns**, hold **−1.800 ns**, recovery +3.418 ns, removal +0.256 ns,
+pulse width +0.529 ns. Design MTBF is not calculated by Quartus because timing
+requirements are not met. These reports do not establish physical CDC safety.
+
+Independent PCG audit passes 48 request/16 response files, 4,672 request and
+128 response paths; native inventory has eight CPU captures and zero state
+replicas. Snapshot checks pass 1,152 rows, minimum combined setup/hold
++0.584 ns and maximum physical data delay 13.036 ns. Six scaler stage-chain
+checks contribute 48 rows, minimum +0.233 ns; properly scoped stage-one
+downstream reports contribute 352 rows, minimum +0.256 ns. Per-domain paths
+per check are input/HDMI/Avalon **1/14/7**, not an assumed prior-fit count.
+
+The 320-scope clock reporter also finishes zero. Bounded internal HDMI-alias
+setup reports have 440 rows, minimum +1.024 ns; HDMI master-to-own-alias
+setup has 232 rows, minimum +0.056 ns; VID master-to-own-alias setup has
+192 rows, minimum +14.165 ns. Those are setup-only row totals; they do not
+qualify all hold paths, inactive mode branches, external I/O or switching.
+
+Native no-SDC `get_fanouts` now confirms exactly stage zero → stage one,
+and stage one → the three expected consumers, with no other keeper fanout.
+The Fast −40 C sidecar confirms the −1.800 ns hold failure is also the raw
+VSYNC source → stage-zero input, not a synchronous stage/consumer failure.
+Its next reported path is +0.047 ns. Logs are
+`/tmp/x1-quartus-e32bd69-vsync-fanout-fast-hold.log`, sidecar separately in
+`output_files/quartus-linux-1uPykZZ7/fast-hold-acceptance/`.
+The reporting tool now refuses changed native fanout before any timing
+reports; fourteen invalid stage/fanout inventories reject in its mock test.
+Native rerun of that strengthened guard and an exact input-pin-only before/
+after probe remain next; no exception is selected. No hardware is contacted/
+loaded. Work groups 1–6,
+native/full Turbo Z and physical acceptance remain incomplete.

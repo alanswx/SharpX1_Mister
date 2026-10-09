@@ -11,6 +11,7 @@ update_timing_netlist
 set regs [get_registers {*hdmi_vsync_to_sys*|sample_pipe*}]
 if {[get_collection_size $regs] != 2} {error "expected exactly two VSYNC stages"}
 set stages [dict create]
+set stage_names [dict create]
 foreach_in_collection reg $regs {
     set name [get_register_info -name $reg]
     if {![regexp {\|sample_pipe\[([01])\]$} $name -> bit] || [dict exists $stages $bit]} {
@@ -19,11 +20,22 @@ foreach_in_collection reg $regs {
     set stage [get_registers [list $name]]
     if {[get_collection_size $stage] != 1} {error "VSYNC stage identity did not resolve uniquely"}
     dict set stages $bit $stage
+    dict set stage_names $bit $name
     post_message "VSYNC SYS stage $bit $name"
 }
 if {[lsort [dict keys $stages]] ne {0 1}} {error "missing VSYNC stage"}
 set first [dict get $stages 0]
 set last [dict get $stages 1]
+foreach {bit expected} [list 0 [list [dict get $stage_names 1]] 1 {vs_d0 vs_d1 vsd}] {
+    set fanouts [get_fanouts [list [dict get $stage_names $bit]]]
+    set names {}
+    foreach_in_collection fanout $fanouts {
+        if {[get_node_info -type $fanout] ne "reg"} {error "unexpected VSYNC non-register fanout"}
+        lappend names [get_node_info -name $fanout]
+    }
+    if {[lsort $names] ne [lsort $expected]} {error "VSYNC stage $bit native fanout inventory changed: $names"}
+    post_message "VSYNC SYS stage $bit native fanout $names"
+}
 foreach model {slow fast} {
     foreach temperature {-40 0 85 100} {
         set_operating_conditions -model $model -temperature $temperature -voltage 1100
