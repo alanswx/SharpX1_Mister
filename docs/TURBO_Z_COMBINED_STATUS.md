@@ -9,6 +9,52 @@ The source qualified below predates the subsequent
 its fresh pixel/fit gates are separate. Simulator SYS=32 MHz and
 VID=nominal 42.954540 MHz; fitted/physical frequencies are separate evidence.
 
+## Expanded combined diagnostic matrix (started, not yet qualified)
+
+`verilator/tests/test_z_combined_matrix.py` schedules the unchanged CPU/pixel
+oracle with all combined runner features required in every returned JSON.
+The fast plan check enumerates 120 unique cases, not 120 executed passes:
+
+| Diagnostic group | Cases |
+|---|---:|
+| Full/reduced single-screen graphics, selected banks, identity/custom, cold/warm | 24 |
+| Paired graphics, both front banks and three orders, identity/custom, cold/warm | 24 |
+| Paired text with those same front/order/palette/reset combinations | 24 |
+| Single text in full/dual64, four priority values, identity/custom, cold/warm | 32 |
+| Internal eight-color, identity/custom, cold/warm | 4 |
+| Reverse attributes, paired/full/dual64, identity/custom, cold/warm | 12 |
+
+Each actual case retains the original full four/five-second simulation and
+exact RGB12/pixel/frame-timing/reset oracle. The wrapper checks actual versus
+expected PPM bytes independently, feature selection and pre/post frozen
+runner/emitter/helper/font hashes, and records completed cases incrementally.
+No stopped, failed or not-yet-run case is reported as complete.
+
+Execution is started under ignored
+`verilator/obj_dir_headless/z-owner-combined/complete-matrix-vmlITQ/all-120`
+with local log `/tmp/x1-z-combined-all-120.log`.
+It reuses the frozen ownership-corrected runner SHA-256
+`6c2d657da0821c25bdeeac5ab13ecc0d7817405010592a659d3b336c193e02df`.
+Shared machine, simulator top and C++ runner sources are unchanged since
+`c05edb0`; recent changes are board-only and reporting/tests. This is not a
+newly rebuilt runner or evidence that these tests elaborate the board framework.
+Emitter SHA-256 `1e03a9ecd39af3f049ef924db059c5bd5827c10879e479a593181da517009117`;
+matrix wrapper at launch `5b6f1b1c222beac6758f107ee60048cea9810851513e657be6f3edecc6775fc2`.
+No private ROM/font/game or native Z software is used. Full completion,
+native ASIC/firmware and FPGA/physical gates remain separate and open.
+
+Example (new output directory only):
+
+```sh
+python3 verilator/tests/test_z_combined_matrix.py \
+  --frozen-root PATH_WITH_FROZEN_RUNNER_EMITTER_HELPER_AND_CG8 \
+  --output NEW_IGNORED_OUTPUT
+```
+
+`--group` may select a named group without changing its cases or durations;
+`--list` and `make -C verilator test-z-combined-matrix-plan` check enumeration
+only. CI selects the plan test; it does not thereby execute all 120 pixel tests.
+
 ## Completed coherent-control checks
 
 `test-machine-z-combined-control-reset` selects `INTERNAL8=1` in the original

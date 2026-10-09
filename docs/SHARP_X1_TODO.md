@@ -19,6 +19,10 @@ sampling before frame-wait/configuration consumers. Nine local clock pairs
 pass; raw/one-stage controls fail. Ordinary revisions and other VSYNC domains
 remain unchanged. Fresh fitted inventory/timing, pulse/physical and native
 acceptance remain open; this is not completion of the Turbo Z work group.
+The [expanded combined diagnostic matrix](TURBO_Z_COMBINED_STATUS.md#expanded-combined-diagnostic-matrix-started-not-yet-qualified)
+now schedules 120 cold/warm, identity/custom, bank/priority/text/reverse cases
+on the frozen ownership-corrected runner. Enumeration passes; actual execution
+has started, not completed. Native Z and hardware gates remain separate.
 
 The shared-SIO increment now requalifies all five commercial titles from fresh v15
 native boot: Druaga, Xevious, Mappy and Galaga movement, Galaga firing, and

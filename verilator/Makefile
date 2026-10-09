@@ -1787,6 +1787,10 @@ test-vsync-sys-paths:
 	tclsh tests/vsync_sys_paths_tb.tcl
 .PHONY: test-vsync-sys-paths
 
+test-z-combined-matrix-plan:
+	python3 tests/test_z_combined_matrix_plan.py
+.PHONY: test-z-combined-matrix-plan
+
 test-scaler-reset-paths:
 	tclsh tests/scaler_reset_paths_tb.tcl
 .PHONY: test-scaler-reset-paths
