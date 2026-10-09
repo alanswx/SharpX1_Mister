@@ -25,9 +25,28 @@ lint does not qualify every combination of the jointly enabled features.
 
 Read-only inspection of `misterubuntu` finds the authorized checkout clean at
 `a7e100731cae6eb450737d1a7a0ebb78c487f57e` and no active Quartus flow. The next
-step is to fast-forward from alanswx and start the frozen-source native 17.0
-helper for this revision. Until its process terminates successfully and the
-reports/manifests are audited, no fitted resource/timing/RBF claim is made.
+step fast-forwards from the user's fork and starts the frozen-source native
+17.0 helper for this revision. The flow is now running, not terminal:
+
+- Source `c3906aeda8b5d3b560e772579a3ee3424d4d46de`.
+- Frozen host folder `/home/alans/mister/SharpX1_Mister/output_files/quartus-linux-yoGgHbzg`.
+- Observation log `/tmp/x1-quartus-c3906ae-turbo-z-build-retry.log`.
+
+The first fetch fails before Quartus because the host calls the fork remote
+`origin`, not `alanswx`; its log is preserved separately. The retry fetches
+the explicit alanswx URL, verifies a clean checkout and expected commit, and
+checks no competing Quartus process before launching. Until the flow terminates
+successfully and reports/manifests are audited, no fitted resource/timing/RBF
+claim is made. Do not start supplemental STA while the full flow is active.
+
+The exact jointly enabled video combination also builds a delay-aware C++
+runner successfully. Two original CPU-written custom/retained-reset pixel
+tests are running: 640x400 internal-eight and paired64 text-between-screens
+with priority 12h/screen 1. Frozen runner/emitter/oracle/ANK source are under
+`verilator/obj_dir_headless/z-board-combined/qualification-CBgbK8/`, hashed
+before either run. Logs `/tmp/x1-z-board-combined-internal8.log` and
+`/tmp/x1-z-board-combined-paired-text.log`. These bounded tests are not yet
+accepted and cannot establish the full mode matrix or fitted hardware.
 
 ```sh
 QUARTUS_REVISION=sharpx1_turbo_z_video bash scripts/build_quartus_linux.sh --build
