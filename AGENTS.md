@@ -106,6 +106,10 @@ requests simultaneous display. See `docs/TURBO_Z_SINGLE_TEXT_STATUS.md`.
 lookup, including programmed-black opacity and retained-asset warm reset.
 Freeze the checked-in ANK source alongside text runner/oracle/emitter; the
 pixel runner records its hash and rejects changes during future text tests.
+New text fixtures clear a real-CPU 128x8 GRAM window to decouple graphic
+transparency from glyph absence; require selected pixels for colors 1–7.
+See `docs/TURBO_Z_TEXT_OPACITY_COVERAGE.md`: older full/paired graphics-on-top
+frames selected no text and cannot qualify beneath-graphics text rendering.
 The same CPU-only profile now accepts `1FC0`; see
 `docs/TURBO_Z_PRIORITY_CPU_STATUS.md`. Its reset-to-zero/unused-bit/inactive
 policies are provisional. `x1_z_layer_order.sv` consumes caller visibility,

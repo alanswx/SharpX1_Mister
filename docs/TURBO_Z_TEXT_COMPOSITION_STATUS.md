@@ -57,6 +57,13 @@ CRTC/PPI/priority writes and no text/graphics palette or VRAM refill.
 Native intensity/opacity, complete attributes/live/reset seams, native software
 and current-source Quartus/physical output remain open.
 
+The [subsequent visibility audit](TURBO_Z_TEXT_OPACITY_COVERAGE.md) finds that
+the original graphics-on-top scenes never selected any text. Their exact-frame
+passes must not be described as beneath-graphics text acceptance. Between-screen
+cases do select text. Corrected CPU-written transparent windows and all-color
+visibility assertions are now being executed on independently frozen tests;
+the earlier running matrix retains its original fixture and limitation.
+
 ## Snapshot boundary
 
 Exposing raw glyph color changes elaborated observation/state layout; current

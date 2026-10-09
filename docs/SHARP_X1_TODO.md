@@ -147,6 +147,12 @@ low-scan priority rule to 640/400-line formats or close native/hardware gates.
 The [reverse-text extension](TURBO_Z_REVERSE_TEXT_STATUS.md) passes a real CPU
 64,000-pixel custom/text-between warm case, including source opacity and
 retained palettes/VRAM. This is bounded attribute coverage, not full Z4.
+The [full default v14 baseline](BASELINE_V14_STATUS.md) now exits zero.
+The [opacity coverage audit](TURBO_Z_TEXT_OPACITY_COVERAGE.md) finds missing
+selected text in older full/paired graphics-on-top scenes; corrected CPU
+windows and all-seven-color full/paired warm gates now pass 64,000 pixels each.
+The strengthened complete matrices remain open. Do not promote
+those earlier passes to beneath-graphics text acceptance or native Z completion.
 
 The expanded [hosted diagnostic run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37865161650)
 now completes successfully on `95c3e4a`. The newer `99eb141` palette-RAM/

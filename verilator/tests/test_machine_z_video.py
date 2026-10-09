@@ -77,6 +77,22 @@ def fixture(custom=False, mode="full", screen=0, priority=0x10, text=False, reve
                    0x78, 0xA9, 0xAA, 0x6F, 0x7E, 0xED, 0x79, 0x03,
                    0x78, 0xE6, 0x3F, 0xB1)
             p.jump(0xC2, label)
+    if text:
+        # Decouple graphics transparency from the ANK mask. The original
+        # random-looking planes never exposed text in some graphics-on-top
+        # profiles. Real CPU writes clear all source lanes in a 128x8 window,
+        # spanning all eight colors and both normal/reverse cell groups.
+        for page in range(2):
+            out(0x1FD0, page << 4)
+            for component, base in enumerate((0x4000, 0x8000, 0xC000)):
+                for row in range(8):
+                    for offset in (0, 0x400):
+                        label = f"transparent_{page}_{component}_{row}_{offset}"
+                        p.word(0x01, base + row * 2048 + offset)
+                        p.emit(0x16, 16, 0xAF)
+                        p.label(label)
+                        p.emit(0xED, 0x79, 0x03, 0x15)
+                        p.jump(0xC2, label)
     if custom and mode != "internal8":
         out(0x1FD0, 0)
         out(0x1FB0, 0x80)
@@ -189,16 +205,45 @@ def glyph_color(x, y, reverse=False):
     return ((cell & 7) if ink else 0) ^ (7 if reverse and cell & 8 else 0)
 
 
-def expected_pixel(x, y, custom=False, mode="full", screen=0, priority=0x10, text=False, reverse=False):
+def text_visibility_coverage(mode, screen, priority, reverse=False, windows=True):
+    counts = [0] * 8
+    masked = 0
+    for y in range(200):
+        for x in range(320):
+            color = glyph_color(x, y, reverse)
+            banks = [expected_pixel(x, y, False, "dual64", bank, windows=windows) for bank in (0, 1)] \
+                if mode == "paired64" else [expected_pixel(x, y, False, mode, screen, windows=windows)]
+            if mode == "paired64":
+                front = (priority >> 3) & 1
+                layers = ("text", front, 1-front) if priority & 3 == 0 else \
+                    (front, 1-front, "text") if priority & 3 == 1 else (front, "text", 1-front)
+            else:
+                layers = (0, "text") if priority & 1 else ("text", 0)
+            for layer in layers:
+                if layer == "text" and color:
+                    counts[color] += 1
+                    break
+                if layer != "text" and banks[layer] != bytes(3):
+                    masked += bool(color)
+                    break
+    return {"selected_text_colors": counts, "present_text_masked_by_graphics": masked}
+
+
+def require_text_visibility(coverage):
+    counts = coverage["selected_text_colors"]
+    assert len(counts) == 8 and all(value > 0 for value in counts[1:]), coverage
+
+
+def expected_pixel(x, y, custom=False, mode="full", screen=0, priority=0x10, text=False, reverse=False, windows=False):
     if text and mode in ("full", "dual64"):
-        raw = expected_pixel(x, y, False, mode, screen)
+        raw = expected_pixel(x, y, False, mode, screen, windows=True)
         color = glyph_color(x, y, reverse)
         for layer in (("graphics", "text") if priority & 1 else ("text", "graphics")):
             if layer == "text" and color:
                 return bytes(3) if color == 7 else bytes((((color + 1) & 3) * 85, (color & 3) * 85, ((color + 2) & 3) * 85))
             if layer == "graphics" and raw != bytes(3):
-                return bytes(3) if custom and raw == bytes((85, 170, 255)) else expected_pixel(x, y, custom, mode, screen)
-        return bytes(3) if priority & 1 else expected_pixel(x, y, custom, mode, screen)
+                return bytes(3) if custom and raw == bytes((85, 170, 255)) else expected_pixel(x, y, custom, mode, screen, windows=True)
+        return bytes(3) if priority & 1 else expected_pixel(x, y, custom, mode, screen, windows=True)
     if mode == "paired64":
         # Independent per-screen address/color oracle. Presence is raw source
         # code, not final RGB: custom palette black must not reveal the back.
@@ -211,12 +256,12 @@ def expected_pixel(x, y, custom=False, mode="full", screen=0, priority=0x10, tex
                 if color:
                     return bytes(3) if color == 7 else bytes((((color + 1) & 3) * 85, (color & 3) * 85, ((color + 2) & 3) * 85))
                 continue
-            raw = expected_pixel(x, y, False, "dual64", bank)
+            raw = expected_pixel(x, y, False, "dual64", bank, windows=text)
             if raw != bytes(3):
                 if custom and raw == bytes((85, 170, 255)):
                     return bytes(3)
-                return expected_pixel(x, y, custom, "dual64", bank)
-        return bytes(3) if priority & 1 else expected_pixel(x, y, custom, "dual64", 1 - front)
+                return expected_pixel(x, y, custom, "dual64", bank, windows=text)
+        return bytes(3) if priority & 1 else expected_pixel(x, y, custom, "dual64", 1 - front, windows=text)
     columns = 80 if mode in ("wide64", "internal8") else 40
     high = mode in ("tall64", "internal8")
     q = ((y // 2) % 8 if high else y % 8) * 2048 + \
@@ -238,6 +283,8 @@ def expected_pixel(x, y, custom=False, mode="full", screen=0, priority=0x10, tex
             # not DB4. All three component nibbles reverse the PA ordering.
             nibble |= (bool(value & (128 >> (x % 8))) *
                        ((1 << (3 - lane)) if mode == "full" else 15 if mode == "internal8" else (10, 5)[lane]))
+        if windows and y < 8 and x < 128:
+            nibble = 0
         components.append(nibble)
     blue, red, green = components
     if custom and mode == "internal8":
@@ -340,6 +387,9 @@ def main():
         assert all(coverage.values()), coverage
         print(json.dumps({"paired_raw_code_coverage": coverage}), flush=True)
     if args.text:
+        visibility = text_visibility_coverage(args.mode, args.screen, args.priority, args.reverse)
+        require_text_visibility(visibility)
+        print(json.dumps({"text_visibility_coverage": visibility}), flush=True)
         colored = sum(bool(expected_pixel(x, y, False, args.mode, args.screen, 0x10, True, args.reverse) != bytes(3))
                       for y in range(height) for x in range(width))
         assert colored > 1000, colored

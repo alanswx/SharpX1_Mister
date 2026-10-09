@@ -316,6 +316,12 @@ Native intensity/opacity and hardware remain open.
 The [reverse-text regression](docs/TURBO_Z_REVERSE_TEXT_STATUS.md) now passes
 all 64,000 pixels through bank-1-front/text-between warm reset without refill;
 full attribute and native/hardware acceptance remain open.
+The [complete default v14 delay-aware baseline](docs/BASELINE_V14_STATUS.md)
+now exits zero. It does not enable the optional Turbo Z experiments or establish
+new native-game/Quartus/hardware acceptance. A subsequent
+[text-opacity coverage audit](docs/TURBO_Z_TEXT_OPACITY_COVERAGE.md) narrows older
+graphics-on-top evidence; corrected full/paired text-visible warm windows now
+pass all 64,000 pixels and require every nonzero text color.
 
 The headless simulator has been compiled with Verilator 5.044 on macOS.
 The timing/reset regression passes. A 200,000-system-cycle run reports:

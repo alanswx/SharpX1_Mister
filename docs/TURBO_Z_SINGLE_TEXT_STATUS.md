@@ -64,3 +64,7 @@ default-disabled composition registers.
 
 The old graphics-only and paired-text matrices still use their own frozen
 executables. Their passes remain source-bound and cannot qualify this extension.
+The subsequent [visibility audit](TURBO_Z_TEXT_OPACITY_COVERAGE.md) also finds
+the original full-color graphics-on-top scene selected no text: its 64,000-pixel
+pass is graphics/order acceptance, not proof of beneath-graphics text output.
+Corrected real-CPU window/warm tests are running; do not erase the older record.

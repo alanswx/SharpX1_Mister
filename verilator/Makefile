@@ -14,6 +14,10 @@ FM_MASTER_HZ ?= 32000000
 
 all: headless
 
+test-z-text-visibility:
+	python3 tests/test_z_text_visibility.py
+.PHONY: test-z-text-visibility
+
 test-machine-z-priority-cdc: $(HEADLESS_DIR)/z-priority-machine-cdc/Vz_priority_machine_cdc_tb $(HEADLESS_DIR)/z-priority-machine-cdc-negative/Vz_priority_machine_cdc_tb
 	@for half in 17500 11640 25000; do ./$< +VIDEO_HALF_PS=$$half || exit 1; done
 	@ulimit -c 0; log=$$(mktemp /tmp/x1-z-priority-cdc-negative-XXXXXX); \
