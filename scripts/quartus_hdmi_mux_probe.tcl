@@ -25,7 +25,9 @@ foreach {label collection} [list hdmi $hdmi video $video system $system mux $mux
         error "expected exactly one $label object; refuse empty/ambiguous constraint"
     }
 }
+set candidate [lindex $quartus(args) 1]
 set prefix output_files/${revision}_mux_probe
+if {$candidate ne ""} {set prefix output_files/${revision}_mux_candidate_probe}
 report_timing -setup -from_clock $hdmi -to_clock $hdmi -npaths 30 -detail full_path -file ${prefix}_before_hdmi_same.rpt
 report_timing -setup -from_clock $hdmi -to_clock $video -npaths 30 -detail full_path -file ${prefix}_before_cross.rpt
 report_timing -setup -from_clock $system -to_clock $video -npaths 30 -detail full_path -file ${prefix}_before_system_video.rpt
@@ -36,18 +38,40 @@ report_timing -setup -from_clock $video -to_clock $system -npaths 30 -detail ful
 # master clocks design-wide. Preserve all ordinary same-clock setup checks.
 foreach_in_collection clock $hdmi { set hdmi_name [get_clock_info -name $clock] }
 foreach_in_collection clock $video { set video_name [get_clock_info -name $clock] }
-create_generated_clock -name x1_probe_hdmi_mux -master_clock $hdmi_name -source $hdmi_input -divide_by 1 $mux
-create_generated_clock -name x1_probe_video_mux -master_clock $video_name -source $video_input -divide_by 1 -add $mux
-set_clock_groups -logically_exclusive -group {x1_probe_hdmi_mux} -group {x1_probe_video_mux}
+set hdmi_alias x1_probe_hdmi_mux
+set video_alias x1_probe_video_mux
+if {$candidate eq ""} {
+    create_generated_clock -name $hdmi_alias -master_clock $hdmi_name -source $hdmi_input -divide_by 1 $mux
+    create_generated_clock -name $video_alias -master_clock $video_name -source $video_input -divide_by 1 -add $mux
+    set_clock_groups -logically_exclusive -group [list $hdmi_alias] -group [list $video_alias]
+} else {
+    source $candidate
+    set hdmi_alias x1_hdmi_mux
+    set video_alias x1_video_mux
+}
 update_timing_netlist
 report_clocks -file ${prefix}_clocks.rpt
-report_timing -setup -from_clock [get_clocks x1_probe_hdmi_mux] -to_clock [get_clocks x1_probe_hdmi_mux] -npaths 30 -detail full_path -file ${prefix}_after_hdmi_same.rpt
-report_timing -setup -from_clock [get_clocks x1_probe_video_mux] -to_clock [get_clocks x1_probe_video_mux] -npaths 30 -detail full_path -file ${prefix}_after_video_same.rpt
+report_timing -setup -from_clock [get_clocks $hdmi_alias] -to_clock [get_clocks $hdmi_alias] -npaths 30 -detail full_path -file ${prefix}_after_hdmi_same.rpt
+report_timing -setup -from_clock [get_clocks $video_alias] -to_clock [get_clocks $video_alias] -npaths 30 -detail full_path -file ${prefix}_after_video_same.rpt
 # Master-clock crossings outside the mux must remain visible, not become
 # accidentally excluded by the alias groups.
 report_timing -setup -from_clock $hdmi -to_clock $video -npaths 30 -detail full_path -file ${prefix}_after_master_cross.rpt
 report_timing -setup -from_clock $system -to_clock $video -npaths 30 -detail full_path -file ${prefix}_after_system_video.rpt
 report_timing -setup -from_clock $video -to_clock $system -npaths 30 -detail full_path -file ${prefix}_after_video_system.rpt
 report_timing -setup -npaths 30 -detail full_path -file ${prefix}_after_global.rpt
+if {$candidate ne ""} {
+    foreach model {slow fast} {
+        foreach temperature {-40 0 85 100} {
+            set_operating_conditions -model $model -temperature $temperature -voltage 1100
+            update_timing_netlist
+            set corner ${prefix}_${model}_${temperature}
+            foreach check {setup hold} {
+                foreach {label from to} [list hdmi_same [get_clocks $hdmi_alias] [get_clocks $hdmi_alias] video_same [get_clocks $video_alias] [get_clocks $video_alias] system_video $system $video video_system $video $system master_cross $hdmi $video] {
+                    report_timing -$check -from_clock $from -to_clock $to -npaths 100 -detail full_path -file ${corner}_${label}_${check}.rpt
+                }
+            }
+        }
+    }
+}
 delete_timing_netlist
 project_close

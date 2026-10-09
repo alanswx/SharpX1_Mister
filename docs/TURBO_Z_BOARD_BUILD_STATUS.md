@@ -136,6 +136,23 @@ not a claim based on unconstrained pins. No packing or pipeline-latency
 change is selected. Intel's [Cyclone V output-register description](https://docs.altera.com/r/docs/683375/current/cyclone-v-device-handbook-volume-1-device-interfaces-and-integration/output-registers)
 is a physical architecture reference, not proof of this fit's timing.
 
+Prepared `scripts/constraints/hdmi_mux_candidate.sdc` extracts the prior
+native mux-probe idea into an **unselected, analysis-only** candidate. It
+requires three distinct masters and exactly three identified mux pins;
+only divide-one generated clocks at `hdmi_clk_sw|outclk` are mutually
+exclusive. No master-clock groups or pipeline RTL changes are added.
+`test-hdmi-mux-sdc` checks the exact alias source/master/target/group scope
+and rejects 18 missing/duplicate/wrong-pin/merged-master cases. CI selects
+the mocked test; native pin matching/clock propagation remain pending.
+
+The mux probe now accepts an optional explicit candidate argument. Candidate
+reports have a distinct prefix and include both selectable same-clock modes
+and both SYS/VID master directions at every corner, setup and hold. Existing
+no-argument behavior and report naming remain available. Before any QSF
+selection, confirm native scope and retained real same-clock/master crossings;
+then refit and repeat coverage, I/O and physical HDMI acceptance. Suppressing
+impossible alternative-clock pairings is not a remedy for real routing or CDC.
+
 ```sh
 QUARTUS_REVISION=sharpx1_turbo_z_video bash scripts/build_quartus_linux.sh --build
 ```

@@ -1756,6 +1756,10 @@ test-video-reset-sdc:
 	tclsh tests/video_reset_sdc_tb.tcl
 .PHONY: test-video-reset-sdc
 
+test-hdmi-mux-sdc:
+	tclsh tests/hdmi_mux_sdc_tb.tcl
+.PHONY: test-hdmi-mux-sdc
+
 test-scaler-reset-paths:
 	tclsh tests/scaler_reset_paths_tb.tcl
 .PHONY: test-scaler-reset-paths
