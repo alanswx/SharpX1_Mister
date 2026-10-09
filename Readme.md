@@ -22,7 +22,9 @@ The experimental X3 [coherent CRTC write transport](docs/CRTC_WRITE_CDC_STATUS.m
 now commits held CPU/DMA RS/data packets in the video domain. Real-CPU,
 owned-DMA reset and sixteen delay-aware video cases pass. Ordinary paths stay
 unchanged; fresh combined-Z pixels, Quartus timing and native/hardware
-acceptance remain open.
+acceptance remain open. Native CRTC reporting now runs, but the independent
+audit rejects incomplete MPU consumer coverage caused by replica/name
+inventory differences; this is not a timing-qualified RBF.
 
 The experimental X3 [text-blink crossing](docs/VIDEO_BLINK_CDC_STATUS.md)
 now uses two video-domain samples. Delay-aware 40/80-column blink pixels and

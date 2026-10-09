@@ -23,6 +23,8 @@ with tempfile.TemporaryDirectory(prefix="crtc-report-controls-") as directory:
     log_lines += [f"Info: CRTC native fanout {field} " + " ".join(targets) for field, targets in stages.items()]
     log_lines += [f"Info: CRTC first-data fanin {PREFIX}{meta}|d {PREFIX}{source} (reg)"
                   for source, meta in (("request", "request_meta"), ("acknowledgement", "acknowledgement_meta"))]
+    log_lines += [f"Info: CRTC actual input source {meta} {PREFIX}{source}"
+                  for source, meta in (("request", "request_meta"), ("acknowledgement", "acknowledgement_meta"))]
     log_lines += ["Info: CRTC MPU register " + name for name in mpu]
     log_lines += ["Info: CRTC endpoint native fanout " + source + " " + " ".join(targets) for source, targets in fanouts.items()]
     log_lines += ["Info: Evaluation of Tcl script crtc_reporter.tcl was successful"]
@@ -102,4 +104,43 @@ with tempfile.TemporaryDirectory(prefix="crtc-report-controls-") as directory:
         else:
             raise AssertionError(f"invalid CRTC report accepted: {p.name}")
         p.write_text(valid_log if p == native else originals[p])
-print("PASS: CRTC parser full synthetic coverage and 30 invalid scope/domain/payload/native-log controls; not fitted evidence")
+
+    alias = PREFIX + "acknowledgement~DUPLICATE"
+    keeper_list = f"{{video_clock port}} {{{PREFIX}seen reg}} {{{PREFIX}acknowledgement reg}}"
+    primary_input = "Info: CRTC acknowledgement native inputs acknowledgement " + keeper_list + "\n"
+    alias_input = "Info: CRTC acknowledgement native inputs acknowledgement~DUPLICATE " + keeper_list + "\n"
+    clone_log = valid_log + f"Info: CRTC transport register acknowledgement~DUPLICATE {alias}\n"
+    clone_log += primary_input + alias_input
+    clone_log += f"Info: CRTC acknowledgement replica native fanins match {PREFIX}acknowledgement {alias}\n"
+    clone_log = clone_log.replace(f"acknowledgement_meta|d {PREFIX}acknowledgement (reg)", f"acknowledgement_meta|d {alias} (reg)")
+    clone_log = clone_log.replace(f"CRTC actual input source acknowledgement_meta {PREFIX}acknowledgement\n", f"CRTC actual input source acknowledgement_meta {alias}\n")
+    for field in ("request_meta", "acknowledgement_meta"):
+        clone_log = clone_log.replace(f"CRTC first-data fanin {PREFIX}{field}|d", f"CRTC first-data fanin emu|sharpx1|x3_crtc.writes|{field}|asdata")
+    clone_originals = {}
+    for p, content in originals.items():
+        if "_ack_input_" in p.name:
+            clone_originals[p] = content.replace(f"{PREFIX}acknowledgement ;", f"{alias} ;")
+            p.write_text(clone_originals[p])
+    native.write_text(clone_log)
+    assert audit(root, native) == (192, 0.5, 2.5, -7)
+    clone_raw = path("ack_input")
+    clone_changes = [
+        (native, clone_log.replace(alias_input, "")),
+        (native, clone_log.replace(alias_input, alias_input.replace("seen reg", "busy reg"))),
+        (native, clone_log + alias_input),
+        (native, clone_log.replace(f"acknowledgement_meta|asdata {alias} (reg)", f"acknowledgement_meta|asdata {PREFIX}acknowledgement (reg)")),
+        (native, clone_log.replace("CRTC actual input source acknowledgement_meta " + alias, "CRTC actual input source acknowledgement_meta wrong_gpio")),
+        (native, clone_log.replace("emu|sharpx1|x3_crtc.writes|", "unrelated_module|")),
+        (native, clone_log.replace("CRTC acknowledgement replica native fanins match", "unvalidated clone")),
+        (clone_raw, clone_originals[clone_raw].replace(alias, PREFIX + "acknowledgement")),
+    ]
+    for p, content in clone_changes:
+        p.write_text(content)
+        try:
+            audit(root, native)
+        except (AssertionError, ValueError):
+            pass
+        else:
+            raise AssertionError(f"invalid CRTC alias report accepted: {p.name}")
+        p.write_text(clone_log if p == native else clone_originals[p])
+print("PASS: CRTC parser primary/native-alias coverage and 38 invalid scope/domain/payload/native-log controls; not fitted evidence")

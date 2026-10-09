@@ -211,6 +211,46 @@ The [Standard Edition synchronizer-identification guidance](https://docs.altera.
 describes the Forced If Asynchronous setting. This is a newer documentation
 reference, not proof of Quartus 17 placement or a changed CRTC source hint.
 
+### Reviewed ACK replica and failed independent coverage audit
+
+The reporter now permits only the exact fitted `acknowledgement~DUPLICATE`
+source, requires its nonempty native input-keeper set (names and types) to
+equal the primary's, and selects the source observed at the first-stage
+data pin. Synchronizer-stage aliases remain rejected. The independent auditor
+checks both observations rather than trusting a replica acceptance marker.
+Mock reporter/parser checks pass with 31/38 rejected inventories respectively;
+these are synthetic controls, not native timing evidence.
+
+The reporting-only native run ends at 21:27:33 UTC with zero errors/warnings,
+producing 192 reports from the existing `fcd1086` fit and unchanged constraints.
+Log `/tmp/x1-crtc-native-alias-timing.log`; reports retrieved into ignored
+`output_files/quartus-linux-6FBt6YWN/crtc-alias-acceptance/`.
+This run predates the reporter's additional explicit first-data register-type
+check, although its actual observed sources are registers. No new fit or RBF
+was generated.
+
+**Independent acceptance fails:** the first slow/-40/setup MPU consumer
+inventory expects 1,341 unique source/target pairs, but reports contain
+1,269; all 72 missing pairs are attributed to original `R_ADR[0]`.
+Hold shows the same discrepancy. A name lookup of that register resolves
+both primary and `R_ADR[0]~DUPLICATE`; a replica lookup resolves only the
+replica. Therefore name-expanded fanout observations must not be mistaken
+for exact physical keeper coverage. `scripts/quartus_crtc_replica_probe.tcl`
+is a reporting-only alias-group diagnostic, not an acceptance gate. Its
+collection-based run finishes zero errors/warnings at 21:34:49 UTC, log
+`/tmp/x1-crtc-replica-probe-alias-group.log`; original-name and replica-only
+groups report separately without substituting node IDs as collection strings.
+Exploratory register-ID-as-string attempts generated ignored-filter warnings
+and are not accepted evidence. Additionally, actual MPU input reports include
+the video-domain reset-release register, which the current launch-source
+allowlist does not cover. Its native route needs explicit qualification, not
+a general unknown-source exemption.
+
+Next: resolve physical versus alias-group inventory, qualify the local reset
+source, rerun the final reporter and independent all-corner audit. Until then
+there is no native CRTC synchronous/bundle pass. Raw input/MTBF, global timing,
+native software and physical acceptance remain open.
+
 ## Actual pending-transaction snapshot follow-up
 
 Read-only X3 runner JSON now exposes held packet, handshake phase and actual

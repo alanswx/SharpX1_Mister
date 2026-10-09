@@ -40,19 +40,47 @@ def inventory(log):
                 "acknowledgement_sync", "video_rs", "pending_write"}
     required |= {f"held_packet[{i}]" for i in range(9)} | {f"video_data[{i}]" for i in range(8)}
     assert required <= fields.keys(), "missing transport bits/stages"
-    assert fields.keys() <= required | {"busy", "done", "seen"}, "unexpected transport keeper"
+    assert fields.keys() <= required | {"busy", "done", "seen", "acknowledgement~DUPLICATE"}, "unexpected transport keeper"
+    if "acknowledgement~DUPLICATE" in fields:
+        inputs = {}
+        for value in matching("CRTC acknowledgement native inputs"):
+            field, keepers = value.split(" ", 1)
+            assert field not in inputs, "duplicate acknowledgement input observation"
+            pattern = r"([A-Za-z0-9_:|.\[\]~/-]+)\}?\s+(reg|port)"
+            records = re.findall(pattern, keepers)
+            assert records and len(records) == len(set(records)), "missing/duplicate acknowledgement inputs"
+            assert not re.sub(pattern, "", keepers).strip(" {}\t"), "malformed native input observation"
+            inputs[field] = set(records)
+        assert set(inputs) == {"acknowledgement", "acknowledgement~DUPLICATE"}, "missing native replica input coverage"
+        assert inputs["acknowledgement"] == inputs["acknowledgement~DUPLICATE"], "replica has different native inputs"
+        assert matching("CRTC acknowledgement replica native fanins match") == [
+            PREFIX + "acknowledgement " + PREFIX + "acknowledgement~DUPLICATE"], "native replica identity not validated"
+    else:
+        assert not matching("CRTC acknowledgement native inputs") and not matching("CRTC acknowledgement replica native fanins match"), "unexpected replica observations"
+    input_sources = {}
+    for value in matching("CRTC actual input source"):
+        field, source = value.split(" ", 1)
+        assert field not in input_sources, "duplicate first-stage source observation"
+        input_sources[field] = source
+    assert set(input_sources) == {"request_meta", "acknowledgement_meta"}, "missing actual first-data source inventory"
+    assert input_sources["request_meta"] == PREFIX + "request"
+    ack_sources = {PREFIX + "acknowledgement"}
+    if "acknowledgement~DUPLICATE" in fields:
+        ack_sources.add(PREFIX + "acknowledgement~DUPLICATE")
+    assert input_sources["acknowledgement_meta"] in ack_sources, "unknown ACK first-stage source"
     stages = {}
     for value in matching("CRTC native fanout"):
         field, targets = value.split(" ", 1)
         assert field not in stages, "duplicate stage fanout inventory"
         stages[field] = set(keeper_tokens(targets))
     assert set(stages) == {"request_meta", "request_sync", "acknowledgement_meta", "acknowledgement_sync"}
-    for source, meta, sync in (("request", "request_meta", "request_sync"),
-                              ("acknowledgement", "acknowledgement_meta", "acknowledgement_sync")):
+    for meta, sync in (("request_meta", "request_sync"),
+                       ("acknowledgement_meta", "acknowledgement_sync")):
         assert stages[meta] == {PREFIX + sync}, "first stage escaped synchronizer"
         fanins = matching("CRTC first-data fanin")
-        sources = [line for line in fanins if re.match(re.escape(PREFIX + meta) + r"\|(d|asdata) ", line)]
-        assert len(sources) == 1 and sources[0].endswith(" " + PREFIX + source + " (reg)"), "wrong native first-data source"
+        pin_prefixes = (PREFIX, "emu|sharpx1|x3_crtc.writes|")
+        sources = [line for line in fanins if any(re.match(re.escape(p + meta) + r"\|(d|asdata) ", line) for p in pin_prefixes)]
+        assert len(sources) == 1 and sources[0].endswith(" " + input_sources[meta] + " (reg)"), "wrong native first-data source/pin"
     mpu = matching("CRTC MPU register")
     assert mpu and len(mpu) == len(set(mpu)) and all(n.startswith(MPU_PREFIX) for n in mpu), "wrong MPU inventory"
     mpu = set(mpu)
@@ -65,11 +93,11 @@ def inventory(log):
         assert source not in fanouts, "duplicate native endpoint observation"
         fanouts[source] = set(keeper_tokens(targets))
     assert set(fanouts) == set(PACKET.values()) | mpu, "incomplete native packet/MPU fanout inventory"
-    return stages, mpu, fanouts
+    return stages, mpu, fanouts, input_sources
 
 
 def audit(directory, log):
-    stages, mpu, fanouts = inventory(log)
+    stages, mpu, fanouts, input_sources = inventory(log)
     synchronous, raw, bundle = [], [], []
     files = 0
     for model in ("slow", "fast"):
@@ -82,7 +110,7 @@ def audit(directory, log):
                     ("request", "request", "request_meta", "request_sync", VIDEO, SYS),
                     ("ack", "acknowledgement", "acknowledgement_meta", "acknowledgement_sync", SYS, VIDEO)):
                     inputs = reports[label + "_input"]
-                    assert len(inputs) == 1 and inputs[0][1:5] == [PREFIX + source, PREFIX + meta, other, clock], "wrong raw input scope/domain"
+                    assert len(inputs) == 1 and inputs[0][1:5] == [input_sources[meta], PREFIX + meta, other, clock], "wrong raw input scope/domain"
                     assert 0 <= float(inputs[0][7]) < 31.25, "invalid raw physical delay"
                     raw.append(float(inputs[0][0]))
                     chain = reports[label + "_chain"]

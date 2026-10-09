@@ -16,6 +16,7 @@ foreach field {R_Nadj R_Nr} {
 proc get_registers query {
     if {$query eq "*x3_crtc.writes*|*"} {
         set result $::names
+        if {$::ack_replica} {lappend result ${::prefix}acknowledgement~DUPLICATE}
         switch $::mode {
             missing_request {set result [lreplace $result 0 0]}
             missing_pending {set result [lreplace $result 7 7]}
@@ -41,7 +42,7 @@ proc get_registers query {
     if {$::mode eq "lookup_missing"} {return {}}
     if {$::mode eq "lookup_duplicate"} {return [concat $query $query]}
     foreach name $query {
-        if {[lsearch -exact $::names $name]<0} {error "unexpected exact query $query"}
+        if {[lsearch -exact $::names $name]<0 && !($::ack_replica && $name eq "${::prefix}acknowledgement~DUPLICATE")} {error "unexpected exact query $query"}
     }
     return $query
 }
@@ -72,19 +73,28 @@ proc get_fanouts query {
 proc get_node_info {option node} {
     if {$option eq "-name"} {return $node}
     if {$::mode eq "fanout_nonreg"} {return pin}
+    if {$::mode eq "firstdata_nonreg" && $node eq "${::prefix}request"} {return pin}
     return reg
 }
 proc get_pins args {
     set result [list ${::prefix}request_meta|d ${::prefix}acknowledgement_meta|asdata]
+    if {$::ack_replica} {set result {emu|sharpx1|x3_crtc.writes|request_meta|asdata emu|sharpx1|x3_crtc.writes|acknowledgement_meta|asdata}}
     if {$::mode eq "pin_missing"} {return [lrange $result 0 0]}
     if {$::mode eq "pin_duplicate"} {lappend result [lindex $result 0]}
     return $result
 }
 proc get_pin_info {option pin} {return $pin}
 proc get_fanins query {
+    set name [lindex $query 0]
+    if {$name eq "${::prefix}acknowledgement" || $name eq "${::prefix}acknowledgement~DUPLICATE"} {
+        if {$::mode eq "alias_inputs_missing"} {return {}}
+        if {$::mode eq "alias_inputs_differ" && $name eq "${::prefix}acknowledgement~DUPLICATE"} {return wrong_feedback}
+        return [list ${::prefix}seen ${::prefix}acknowledgement video_clock]
+    }
     if {$::mode eq "data_source_wrong"} {return unrelated}
     if {$::mode eq "data_source_missing"} {return {}}
     if {[string first request_meta [lindex $query 0]]>=0} {return [list ${::prefix}request]}
+    if {$::ack_replica && $::mode ne "valid_ack_primary"} {return [list ${::prefix}acknowledgement~DUPLICATE]}
     return [list ${::prefix}acknowledgement]
 }
 proc foreach_in_collection {var regs body} {uplevel 1 [list foreach $var $regs $body]}
@@ -96,13 +106,14 @@ proc report_timing args {
 }
 foreach name {set_false_path set_clock_groups set_max_delay set_min_delay set_multicycle_path} {proc $name args {error "no exceptions allowed"}}
 proc run_tool {} {global quartus tool fields; source $tool}
-foreach mode {valid wrong_revision extra_arg missing_request missing_pending duplicate extra_packet missing_packet missing_data wrong_hierarchy replica lookup_missing lookup_duplicate fanout_missing fanout_extra fanout_wrong consumer_missing consumer_duplicate fanout_nonreg mpu_missing r5_missing r9_missing mpu_duplicate endpoint_fanout_missing endpoint_fanout_duplicate pin_missing pin_duplicate data_source_wrong data_source_missing} {
+foreach mode {valid valid_ack_replica valid_ack_primary alias_inputs_missing alias_inputs_differ wrong_revision extra_arg missing_request missing_pending duplicate extra_packet missing_packet missing_data wrong_hierarchy replica lookup_missing lookup_duplicate fanout_missing fanout_extra fanout_wrong consumer_missing consumer_duplicate fanout_nonreg firstdata_nonreg mpu_missing r5_missing r9_missing mpu_duplicate endpoint_fanout_missing endpoint_fanout_duplicate pin_missing pin_duplicate data_source_wrong data_source_missing} {
+    set ack_replica [expr {$mode in {valid_ack_replica valid_ack_primary alias_inputs_missing alias_inputs_differ}}]
     set quartus(args) sharpx1_turbo_z_video
     if {$mode eq "wrong_revision"} {set quartus(args) sharpx1}
     if {$mode eq "extra_arg"} {lappend quartus(args) candidate.sdc}
     set reports {}; set corners {}
     set failed [catch {run_tool} message]
-    if {$mode ne "valid"} {
+    if {$mode ni {valid valid_ack_replica valid_ack_primary}} {
         if {!$failed || [dict size $reports] || [llength $corners]} {error "$mode accepted invalid inventory: $message"}
         continue
     }
@@ -121,7 +132,11 @@ foreach mode {valid wrong_revision extra_arg missing_request missing_pending dup
                     switch $kind {
                         request_input {if {$from ne [list ${prefix}request] || $to ne [list ${prefix}request_meta]} {error "wrong request source"}}
                         request_chain {if {$from ne [list ${prefix}request_meta] || $to ne [list ${prefix}request_sync]} {error "wrong request chain"}}
-                        ack_input {if {$from ne [list ${prefix}acknowledgement] || $to ne [list ${prefix}acknowledgement_meta]} {error "wrong ACK source"}}
+                        ack_input {
+                            set expected acknowledgement
+                            if {$mode eq "valid_ack_replica"} {set expected acknowledgement~DUPLICATE}
+                            if {$from ne [list ${prefix}$expected] || $to ne [list ${prefix}acknowledgement_meta]} {error "wrong ACK source"}
+                        }
                         ack_chain {if {$from ne [list ${prefix}acknowledgement_meta] || $to ne [list ${prefix}acknowledgement_sync]} {error "wrong ACK chain"}}
                         packet {
                             if {[llength $from]!=9 || [llength $to]!=9} {error "wrong packet width"}
@@ -151,4 +166,4 @@ foreach mode {valid wrong_revision extra_arg missing_request missing_pending dup
         }
     }
 }
-puts "PASS: CRTC reporter 192 scopes/eight corners, 28 rejected inventories; no exceptions (mock only)"
+puts "PASS: CRTC reporter 192 scopes/eight corners, primary/actual-replica source profiles, 31 rejected inventories; no exceptions (mock only)"

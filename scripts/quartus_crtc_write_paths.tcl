@@ -18,7 +18,7 @@ foreach_in_collection reg [get_registers {*x3_crtc.writes*|*}] {
     if {![regexp {^(.*x1_crtc_write:x3_crtc\.writes\|)([^|]+)$} $name -> prefix field]} {
         error "unexpected CRTC transport hierarchy/replica: $name"
     }
-    if {$field ni {request request_meta request_sync acknowledgement acknowledgement_meta acknowledgement_sync video_rs pending_write busy done seen} &&
+    if {$field ni {request request_meta request_sync acknowledgement acknowledgement~DUPLICATE acknowledgement_meta acknowledgement_sync video_rs pending_write busy done seen} &&
         ![regexp {^(held_packet|video_data)\[[0-9]+\]$} $field]} {
         error "unexpected/replicated CRTC transport field: $field"
     }
@@ -36,6 +36,23 @@ if {[llength [lsort -unique $prefixes]] != 1 ||
 }
 foreach field {request request_meta request_sync acknowledgement acknowledgement_meta acknowledgement_sync video_rs pending_write} {
     if {![dict exists $fields $field]} {error "missing CRTC field $field"}
+}
+# Exactly one reviewed source replica is allowed, never stage replicas or
+# arbitrary aliases. Check native data/control/clock input keepers before
+# selecting the source that actually feeds the first-stage data pin.
+if {[dict exists $fields acknowledgement~DUPLICATE]} {
+    set keeper_sets {}
+    foreach field {acknowledgement acknowledgement~DUPLICATE} {
+        set keepers {}
+        foreach_in_collection node [get_fanins [list [dict get $fields $field]]] {
+            lappend keepers [list [get_node_info -name $node] [get_node_info -type $node]]
+        }
+        if {![llength $keepers]} {error "missing CRTC acknowledgement replica inputs"}
+        lappend keeper_sets [lsort $keepers]
+        post_message "CRTC acknowledgement native inputs $field [lsort $keepers]"
+    }
+    if {[lindex $keeper_sets 0] ne [lindex $keeper_sets 1]} {error "CRTC acknowledgement replica input keepers differ"}
+    post_message "CRTC acknowledgement replica native fanins match [dict get $fields acknowledgement] [dict get $fields acknowledgement~DUPLICATE]"
 }
 proc crtc_reg {field} {
     set name [dict get $::fields $field]
@@ -103,6 +120,7 @@ foreach source [concat $capture_names $mpu_names] {
 }
 # Native pin/fanin observations do not authorize exceptions or prove MTBF.
 set data_pins [dict create request_meta 0 acknowledgement_meta 0]
+set ack_field acknowledgement
 foreach_in_collection pin [get_pins -compatibility_mode {*x3_crtc.writes*|*}] {
     set name [get_pin_info -name $pin]
     post_message "CRTC native pin $name"
@@ -110,11 +128,17 @@ foreach_in_collection pin [get_pins -compatibility_mode {*x3_crtc.writes*|*}] {
         dict incr data_pins $field
         set fanin_names {}
         foreach_in_collection node [get_fanins [list $name]] {
+            if {[get_node_info -type $node] ne "reg"} {error "CRTC first-data source is not a register"}
             lappend fanin_names [get_node_info -name $node]
             post_message "CRTC first-data fanin $name [get_node_info -name $node] ([get_node_info -type $node])"
         }
-        set source [expr {$field eq "request_meta" ? "request" : "acknowledgement"}]
+        if {$field eq "acknowledgement_meta" && [dict exists $fields acknowledgement~DUPLICATE] &&
+            $fanin_names eq [list [dict get $fields acknowledgement~DUPLICATE]]} {
+            set ack_field acknowledgement~DUPLICATE
+        }
+        set source [expr {$field eq "request_meta" ? "request" : $ack_field}]
         if {$fanin_names ne [list [dict get $fields $source]]} {error "unexpected CRTC first-stage data source"}
+        post_message "CRTC actual input source $field [dict get $fields $source]"
     }
 }
 if {[dict get $data_pins request_meta] != 1 || [dict get $data_pins acknowledgement_meta] != 1} {
@@ -125,7 +149,7 @@ set paths [dict create \
     request_chain [list -from [crtc_reg request_meta] -to [crtc_reg request_sync]] \
     request_first_fanout [list -from [crtc_reg request_meta]] \
     request_consumer [list -from [crtc_reg request_sync]] \
-    ack_input [list -from [crtc_reg acknowledgement] -to [crtc_reg acknowledgement_meta]] \
+    ack_input [list -from [crtc_reg $ack_field] -to [crtc_reg acknowledgement_meta]] \
     ack_chain [list -from [crtc_reg acknowledgement_meta] -to [crtc_reg acknowledgement_sync]] \
     ack_first_fanout [list -from [crtc_reg acknowledgement_meta]] \
     ack_consumer [list -from [crtc_reg acknowledgement_sync]] \
