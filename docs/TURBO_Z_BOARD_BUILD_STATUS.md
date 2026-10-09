@@ -124,6 +124,18 @@ smallest necessary board-specific change. Same-clock positive reports above
 cover one corner, not eight-corner closure. Native firmware/palette traffic,
 exact reset frames and physical acceptance remain outstanding.
 
+Later `89f8226` placement reconnaissance finds the existing final HDMI outputs
+already packed into I/O registers: `sys/sys.tcl` selects FAST_OUTPUT_REGISTER
+for data/DE/HS/VS, and the fitted report maps `hdmi_out_d[22]` into
+`HDMI_TX_D[22]~output`. The same-HDMI-clock path at Slow 100 C is −2.485 ns,
+with 9.898 ns data delay/9.119 ns interconnect (92%) and zero logic levels,
+from `FF_X31_Y1_N32` to `DDIOOUTCELL_X30_Y0_N61`. Adding the existing packing
+assignment again cannot repair it. Disabling I/O packing to improve an
+internal path would also require external HDMI output-delay qualification,
+not a claim based on unconstrained pins. No packing or pipeline-latency
+change is selected. Intel's [Cyclone V output-register description](https://docs.altera.com/r/docs/683375/current/cyclone-v-device-handbook-volume-1-device-interfaces-and-integration/output-registers)
+is a physical architecture reference, not proof of this fit's timing.
+
 ```sh
 QUARTUS_REVISION=sharpx1_turbo_z_video bash scripts/build_quartus_linux.sh --build
 ```

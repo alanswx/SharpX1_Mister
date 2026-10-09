@@ -2,16 +2,18 @@
 # Read-only audit of the native request/response probe reports. Capture count
 # must come from the fitted inventory, not be inferred from passing reports.
 set -euo pipefail
-[[ $# == 2 && -d "$1" && "$2" =~ ^(8|9|1[0-6])$ ]] || {
-  echo 'usage: audit_pcg_timing_reports.sh REPORT_DIR FITTED_CPU_CAPTURE_COUNT(8..16)' >&2
+[[ ( $# == 2 || $# == 3 ) && -d "$1" && "$2" =~ ^(8|9|1[0-6])$ && "${3:-1}" =~ ^[01]$ ]] || {
+  echo 'usage: audit_pcg_timing_reports.sh REPORT_DIR FITTED_CPU_CAPTURE_COUNT(8..16) [FITTED_STAGE01_REPLICAS(0|1), default 1]' >&2
   exit 2
 }
 report_dir="$1"
 capture_count="$2"
+# Like capture_count, this must come from independent fitted inventory.
+stage_replicas="${3:-1}"
 audit() {
   local report="$1" group="$2" expected="$3" bound="$4"
   [[ -f "$report" ]] || { echo "Missing report: $report" >&2; return 1; }
-  LC_ALL=C awk -F';' -v group="$group" -v expected="$expected" -v bound="$bound" '
+  LC_ALL=C awk -F';' -v group="$group" -v expected="$expected" -v bound="$bound" -v stage_replicas="$stage_replicas" '
     NF==10 && $3~/x1_pcg_access:cg_bus/ {
       for(i=2;i<=9;i++)gsub(/^ +| +$/,"",$i)
       n++; s=$2; delay=$9
@@ -54,10 +56,11 @@ audit() {
       if(group=="address")for(i=0;i<11;i++)if(!(i in address_bits))bad=1
       if(group=="control") {
         for(src in control_sources)source_count++
-        if(source_count!=5 || control_dest_count!=35 || we_planes["b"]!=4 || we_planes["r"]!=4 || we_planes["g"]!=4)bad=1
+        if(source_count!=5 || control_dest_count!=34+stage_replicas || we_planes["b"]!=4 || we_planes["r"]!=4 || we_planes["g"]!=4)bad=1
         for(i=0;i<11;i++)if(!(("access_addr["i"]") in control_leaves))bad=1
         for(i=0;i<8;i++)if(!(("response["i"]") in control_leaves))bad=1
-        if(!("seen" in control_leaves) || !("stage.00" in control_leaves) || !("stage.01" in control_leaves) || !("stage.01~DUPLICATE" in control_leaves))bad=1
+        if(!("seen" in control_leaves) || !("stage.00" in control_leaves) || !("stage.01" in control_leaves))bad=1
+        if(("stage.01~DUPLICATE" in control_leaves)!=stage_replicas || ("stage.10" in control_leaves))bad=1
       }
       if(group=="payload" && (planes["b"]!=64 || planes["r"]!=64 || planes["g"]!=64))bad=1
       if(group=="payload") {for(src in payload_sources)payload_source_count++;if(payload_source_count!=8)bad=1}
@@ -69,10 +72,10 @@ for model in slow fast; do
     for check in setup hold; do
       corner="${model}_${temperature}"
       audit "$report_dir/sharpx1_turbo_z_video_pcg_request_probe_${corner}_address_${check}.rpt" address 11 23.28
-      audit "$report_dir/sharpx1_turbo_z_video_pcg_request_probe_${corner}_control_${check}.rpt" control 90 23.28
+      audit "$report_dir/sharpx1_turbo_z_video_pcg_request_probe_${corner}_control_${check}.rpt" control "$((89 + stage_replicas))" 23.28
       audit "$report_dir/sharpx1_turbo_z_video_pcg_request_probe_${corner}_payload_${check}.rpt" payload 192 23.28
       audit "$report_dir/sharpx1_turbo_z_video_pcg_response_probe_${corner}_response_${check}.rpt" response "$capture_count" 31.25
     done
   done
 done
-echo "PASS: 48 request and 16 response corner reports; all $capture_count CPU captures and eight primary bits timed"
+echo "PASS: 48 request and 16 response corner reports; all $capture_count CPU captures, eight primary bits, stage01 replicas=$stage_replicas timed"

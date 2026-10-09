@@ -14,7 +14,7 @@ def row(src, dst, launch=SYS, latch=VID, slack=1.0, delay=3.0):
     return f"; {slack:.3f} ; {src} ; {dst} ; {launch} ; {latch} ; 0.000 ; 0.001 ; {delay:.3f} ;\n"
 
 
-def fixture(folder, captures):
+def fixture(folder, captures, stage_replicas=1):
     addresses = [row(CG + (f"frozen_addr[{i}]" if i < 4 else f"font_cpu_addr[{i+1}]"),
                      CG + f"access_addr[{i}]") for i in range(11)]
     controls = [CG + leaf for leaf in ("plane[0]", "plane[1]", "write_request", "high_speed_request", "unsupported_request")]
@@ -22,7 +22,9 @@ def fixture(folder, captures):
                [CG + f"response[{i}]" for i in range(8)] +
                [CG + leaf for leaf in ("seen", "stage.00", "stage.01", "stage.01~DUPLICATE")] +
                [f"emu|x1_video_ram:pcg_{color}|bank{i}~porta_we_reg" for color in "brg" for i in range(4)])
-    control_rows = [row(controls[i % 5], targets[i % 35]) for i in range(90)]
+    if not stage_replicas:
+        targets.remove(CG + "stage.01~DUPLICATE")
+    control_rows = [row(controls[i % 5], targets[i % len(targets)]) for i in range(89 + stage_replicas)]
     payload = [row(CG + f"payload[{i%8}]", f"emu|x1_video_ram:pcg_{color}|bank{i}~porta_datain_reg0")
                for color in "brg" for i in range(64)]
     bits = list(range(8)) + [0, 3, 1, 2, 4, 5, 6, 7][:captures-8]
@@ -37,17 +39,19 @@ def fixture(folder, captures):
                     path.write_text("Generated fixture, not native evidence\n" + "".join(rows))
 
 
-def audit(folder, captures):
-    return subprocess.run(["bash", str(ROOT / "scripts/audit_pcg_timing_reports.sh"), str(folder), str(captures)],
+def audit(folder, captures, stage_replicas=1):
+    return subprocess.run(["bash", str(ROOT / "scripts/audit_pcg_timing_reports.sh"), str(folder), str(captures), str(stage_replicas)],
                           capture_output=True, text=True)
 
 
 with tempfile.TemporaryDirectory(prefix="x1-pcg-report-audit-") as tmp:
     folder = pathlib.Path(tmp)
-    for captures in (8, 10, 16):
-        fixture(folder, captures)
-        result = audit(folder, captures)
-        assert result.returncode == 0, result.stderr
+    for captures in (8, 9, 10, 16):
+        for replicas in (0, 1):
+            fixture(folder, captures, replicas)
+            result = audit(folder, captures, replicas)
+            assert result.returncode == 0, result.stderr
+            assert audit(folder, captures, 1-replicas).returncode != 0, "wrong independently fitted replica count accepted"
     fixture(folder, 10)
     response = folder / "sharpx1_turbo_z_video_pcg_response_probe_slow_-40_response_setup.rpt"
     address = folder / "sharpx1_turbo_z_video_pcg_request_probe_slow_-40_address_setup.rpt"
@@ -79,4 +83,4 @@ with tempfile.TemporaryDirectory(prefix="x1-pcg-report-audit-") as tmp:
     assert audit(folder, 10).returncode != 0, "missing corner accepted"
     response.write_text(original)
     assert audit(folder, 9).returncode != 0, "wrong fitted capture count accepted"
-print("PASS: generated report audit at 8/10/16 captures; 15 invalid report/count cases rejected")
+print("PASS: generated report audit at 8/9/10/16 captures and 0/1 stage replicas; 23 invalid report/count controls rejected")

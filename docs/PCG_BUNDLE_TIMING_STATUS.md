@@ -396,3 +396,16 @@ source/bit/RAM plane before any bound; mapped remains unreplicated. Native
 invalid cases. This is not timing acceptance of the failed full flow.
 Fresh refit and report-auditor qualification of actual native paths remain
 required. See [fit/inventory evidence](SCALER_RESET_TIMING_AUDIT.md#first-destination-local-fit-fitted-final-sta-rejected).
+
+The report auditor now takes optional explicit fitted `stage.01` replica
+count 0/1 (default 1 preserves historical calls), alongside the independently
+observed CPU capture count. The prepared unreplicated profile requires 34
+distinct control destinations/89 rows, versus 35/90 for the prior replicated
+fit. The prior native report has exactly one path to the optional stage clone;
+new unreplicated native reports must still validate this profile before any
+acceptance claim. Every primary destination/plane/source remains mandatory;
+the auditor never infers the supplied replica count from passing reports.
+Generated controls pass captures 8/9/10/16 at both stage profiles and reject
+the wrong profile, in addition to the prior corrupt/missing reports (23
+negative controls total). The prior `89f8226` native replicated fit still
+passes with nine CPU captures. No new-fit timing qualification is claimed.
