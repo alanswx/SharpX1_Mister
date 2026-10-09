@@ -96,6 +96,9 @@ extra GRAM. The digital RGB output reduces analog multi-mode colors to eight
   inactive-mode side effects and exact reduced bank mapping remain open.
   Combined integration and arbitration
   remain required; do not treat the resource probe as completion of Z2.
+  The [external transaction adapter](TURBO_Z_PALETTE_ACCESS_STATUS.md) now
+  connects selector/write/read requests to storage in a separate diagnostic;
+  upper input bits, native decode and real CPU/DMA/beam ownership remain open.
   Exhaust palette entries/components and read-selector transactions; verify
   address/data latch and held-strobe behavior, WAIT/bus ownership, live changes
   during blanking/active display and mode switches without reset.

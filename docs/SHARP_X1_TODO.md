@@ -41,6 +41,10 @@ Native registers/internal/text palettes remain unimplemented; inactive modes, pr
 index/bank/WAIT policy and some inconsistent listing literals remain open.
 See the [updated contract audit](TURBO_Z_PALETTE_CONTRACT.md). Z2 and the
 Turbo Z work group are not done.
+The separate [external-palette bus adapter](TURBO_Z_PALETTE_ACCESS_STATUS.md)
+now connects frozen selector/write/read transactions to the real RAM in
+diagnostics. Native control decode, upper input bits, actual CPU/DMA/beam
+ownership and rendering still need integration; no machine profile is enabled.
 
 The expanded [hosted diagnostic run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37865161650)
 now completes successfully on `95c3e4a`. The newer `99eb141` palette-RAM/

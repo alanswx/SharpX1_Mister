@@ -236,6 +236,10 @@ screen-programming chapter corroborates normal explicit write/read sequences
 and adds cold-initialization, retained-reset and fixed-black text requirements;
 the standalone RAM now implements the external cold identity image and tests
 retained reset, but native register/internal/text palette behavior remains open.
+A separate [external-palette transaction adapter](docs/TURBO_Z_PALETTE_ACCESS_STATUS.md)
+connects selector/write/read operations to that RAM in diagnostics, not the
+shared machine. Native decode, upper read bits, beam ownership and rendering
+remain integration gates; ordinary machine profiles are unchanged.
 
 The headless simulator has been compiled with Verilator 5.044 on macOS.
 The timing/reset regression passes. A 200,000-system-cycle run reports:

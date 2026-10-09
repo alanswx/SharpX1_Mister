@@ -34,6 +34,15 @@ $(HEADLESS_DIR)/z-palette-ram/Vz_palette_ram_tb: tests/z_palette_ram_tb.sv ../rt
 	  -j 4 tests/z_palette_ram_tb.sv ../rtl/x1_z_palette_ram.sv
 .PHONY: test-z-palette-ram
 
+test-z-palette-access: $(HEADLESS_DIR)/z-palette-access/Vz_palette_access_tb
+	@for half in 17500 11640 25000; do for rate in 1 4 7; do \
+	  ./$(HEADLESS_DIR)/z-palette-access/Vz_palette_access_tb +VIDEO_HALF_PS=$$half +CE_PERIOD=$$rate || exit 1; done; done
+$(HEADLESS_DIR)/z-palette-access/Vz_palette_access_tb: tests/z_palette_access_tb.sv ../rtl/x1_z_palette_access.sv ../rtl/x1_z_palette_ram.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module z_palette_access_tb --Mdir $(HEADLESS_DIR)/z-palette-access \
+	  -j 4 tests/z_palette_access_tb.sv ../rtl/x1_z_palette_access.sv ../rtl/x1_z_palette_ram.sv
+.PHONY: test-z-palette-access
+
 test-turbo-dsw: $(HEADLESS_DIR)/turbo-dsw/Vturbo_dsw_tb
 	./$(HEADLESS_DIR)/turbo-dsw/Vturbo_dsw_tb
 $(HEADLESS_DIR)/turbo-dsw/Vturbo_dsw_tb: tests/turbo_dsw_tb.sv ../rtl/x1_turbo_dsw.sv Makefile
