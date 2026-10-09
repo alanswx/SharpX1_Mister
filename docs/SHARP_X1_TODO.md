@@ -232,6 +232,13 @@ builds and record synthesis, fit and timing separately.
 | 7. Turbo Z | RGB12 output/capture foundation passes exhaustive capture/wrapper and snapshot checks; implement/qualify Z0–Z9 model, palette/multi-mode, text, FM, HD, Kanji/devices, capture and native/hardware gates |
 
 No legacy notices or private assets may be removed/bundled to claim completion.
+The [October 9 SIO machine-wiring audit](SIO_MACHINE_WIRING_AUDIT.md) now
+records actual SIO/0 bus/clock pins, DTRB-controlled A clock selection,
+mouse-related B controls, model-specific carrier inputs and the absence of a
+traced SIO-to-DMA Ready connection. Finish internal clock/ASIC routes and
+event-preserving enable conversion, then real CPU decode/shared daisy service
+and pin-driven mouse/serial acceptance. This research does not connect SIO
+or complete group 1/Z7.
 The new standalone [DMA service engine](DMA_SERVICE_STATUS.md) passes 4,096
 arbitration and 2,048 status-vector cases, plus twelve connected CPU/DMA
 completion/IM2/RETI profiles. Native

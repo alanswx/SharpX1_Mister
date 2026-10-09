@@ -419,6 +419,9 @@ A [five-or-less transmit correction](docs/SIO_SHORT_TX_STATUS.md) now decodes
 documented one- through five-bit payloads per byte. Its 7,908 encoding/format/
 control cases and all fourteen related SIO targets pass; machine wiring and
 native/physical acceptance remain open.
+The [machine-wiring audit](docs/SIO_MACHINE_WIRING_AUDIT.md) records the
+native SIO/0 clock selector, mouse/modem controls, model differences and
+event-preserving clock/decode/daisy-chain integration gates.
 The SIO wrappers are not connected to the machine; native reset arming,
 remaining external sources, x1/full break/exact WAIT/Ready and full
 multi-device arbitration remain open.

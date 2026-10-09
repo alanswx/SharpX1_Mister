@@ -188,6 +188,12 @@ extra GRAM. The digital RGB output reduces analog multi-mode colors to eight
 - [ ] Z7: second-level Kanji/ANK ROM authenticity and addressing, mouse/serial
   behavior, calendar/RTC persistence and control-processor commands. Verify
   CPU-level device transactions, not static capability signatures.
+  The [SIO wiring audit](SIO_MACHINE_WIRING_AUDIT.md) now identifies native
+  mouse-related B controls and A clock selection through DTRB; complete
+  event-preserving clocks, pin/protocol input, machine decode and shared
+  daisy arbitration before native mouse/serial acceptance. Do not copy the
+  emulator's direct three-byte mouse FIFO insertion as physical behavior or
+  invent a SIO-to-DMA Ready net not shown on the inspected board sheet.
   Resolve storage budget before adding the ROM: the font-BRAM X3 fit uses
   389 of 553 M10Ks, leaving 164. Extrapolating its four-block/4-KiB byte-wide
   font layout, a further 256-KiB Kanji ROM would need about 256 blocks, beyond

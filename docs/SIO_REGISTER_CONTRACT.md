@@ -14,6 +14,10 @@ October 6: [functional WAIT/Ready](SIO_FLOW_STATUS.md) is separately opt-in and
 passes pin/real-CPU stalls; exact timing and opposite-channel effects remain open.
 Subsequent [standalone SIO/DMA checks](SIO_DMA_STATUS.md) pass bounded Ready-paced
 transfers and error-lock recovery, not machine/native or physical pin acceptance.
+The [October 9 machine-wiring audit](SIO_MACHINE_WIRING_AUDIT.md) now records
+actual SIO/0 pins, A clock selection through B DTR, B mouse/modem controls,
+model-specific input differences and unresolved internal-clock/ASIC/Ready
+gates. Use its ordered tests before connecting the shared machine.
 
 ## Primary evidence and local comparison
 
