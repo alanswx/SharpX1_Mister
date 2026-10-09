@@ -16,14 +16,33 @@ module hdmi_handoff_policy_tb;
     wire hs,vs,de;
     wire [23:0] data_out;
     logic [26:0] history[0:2];
+    time mode_changed_at=0,minimum_mode_hold=0;
+    bit mode_pending_edge=0;
+    int held_mode_checks=0;
     hdmi_policy_fixture dut(.*,.HDMI_TX_HS(hs),.HDMI_TX_VS(vs),.HDMI_TX_DE(de),.HDMI_TX_D(data_out));
     always #15625 clk_control=~clk_control;
     initial begin #1; forever #(video_half) clk_vid=~clk_vid; end
     initial begin #2; forever #(hdmi_half) clk_hdmi=~clk_hdmi; end
     always @(negedge clk_vid) dv_data<=dv_data+1'b1;
     always @(negedge clk_hdmi) hdmi_data_osd<=hdmi_data_osd+1'b1;
+    // Fixed 32 MHz CTRL in this fixture: five complete SETTLE cycles precede
+    // gate reopening. Verify the held bundle BEFORE its first output sample,
+    // not just after the ten-edge blank flush. This is a functional contract,
+    // not a routed delay or an SDC waiver for unrelated data sources.
+    always @(fixture_mode) if($time) begin
+        mode_changed_at=$time;
+        mode_pending_edge=1;
+    end
     always @(posedge fixture_clk) begin
         logic [26:0] sample,expected;
+        if(mode_pending_edge) begin
+            time held;
+            held=$time-mode_changed_at;
+            assert(held>=156250) else $fatal(1,"held mode reached output before five CTRL settle periods");
+            if(!held_mode_checks || held<minimum_mode_hold) minimum_mode_hold=held;
+            held_mode_checks++;
+            mode_pending_edge=0;
+        end
         if(fixture_mode[0]) sample={dv_hs,dv_vs,dv_de,dv_data};
         else sample={(fixture_mode[2] && fixture_mode[1] ? hdmi_cs_osd : hdmi_hs_osd),hdmi_vs_osd,hdmi_de_osd,hdmi_data_osd};
         history[2]=history[1]; history[1]=history[0]; history[0]=sample;
@@ -71,8 +90,10 @@ module hdmi_handoff_policy_tb;
             wait(!fixture_busy && !fixture_blank);
         end
         assert(checked>=480) else $fatal(1,"missing actual-policy coverage");
+        assert(held_mode_checks>=20) else $fatal(1,"missing held-mode first-edge coverage");
         qualification_complete=1;
         $display("PASS: actual HDMI handoff policy video_half=%0d hdmi_half=%0d checks=%0d",video_half,hdmi_half,checked);
+        $display("MODE_HOLD_CHECKS=%0d MINIMUM_MODE_HOLD_PS=%0d",held_mode_checks,minimum_mode_hold);
         $finish;
     end
     initial begin #100000000; $fatal(1,"actual-policy timeout"); end

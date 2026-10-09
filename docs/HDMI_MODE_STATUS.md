@@ -517,6 +517,35 @@ bash scripts/run_hdmi_handoff_reset_native.sh /path/to/modelsim_ase/linuxaloem /
 The runner freezes its three inputs in a unique ignored output directory,
 requires every native process to succeed, and applies the independent matrix/
 source/warning auditor. This remains helper qualification, not board acceptance.
+The committed runner is actually executed on `misterubuntu`: terminal zero,
+all 96 native cases and its final source/warning audit pass. Frozen evidence:
+`output_files/hdmi-native-reset-K4EdoOQt`, log
+`/tmp/x1-hdmi-handoff-reproducible-reset-050364f.log`.
+
+The new `quartus_hdmi_handoff_board_inventory.tcl` adds exact full-board
+enable, ACK, generation-completion, gate-status, blank and generation stage
+pairs, plus falling witness/native gate, across eight corners. It adds no
+exceptions and refuses missing/ambiguous scalar registers or existing outputs.
+Its local mock passes 144 ordered bounded/global reports and four invalid
+inventory/overwrite controls. The independent `audit_hdmi_handoff_board_reports.py`
+requires exact physical pairs, active clock choices, ordered corners, nonnegative
+bounded rows and retained 50-path global diagnostics. Its synthetic 208-row
+positive and sixteen invalid-evidence controls pass; this is not a native
+board timing pass. Native execution awaits the running corrected-source fit.
+
+The actual extracted-policy test now also checks held-mode stability before
+the **first** selected output edge, not merely after the blank flush. Six
+native profiles finish zero at 23:18:38 UTC with unchanged frozen inputs:
+`/tmp/x1-hdmi-handoff-policy-settle-v6.log`. They retain all 4,994 exact words
+and stopped-CE reset-abort/retry checks, and add **198 first-edge hold checks**
+(33 per profile). Minimum observed hold is **169,791 ps**, above the asserted
+five 32 MHz CTRL periods (156,250 ps). This is a functional held-bundle
+contract, not a routed physical bound or a waiver for continuously changing
+OSD/DV sources. Strengthened testbench SHA-256:
+`50ef52215eb375076f09ce6b78cbb09518636f2d17fafd1f38bb60579eadbb2f`.
+The matching unsafe raw-policy negative again fails the intended pipeline
+assertion with verified exit 1, log
+`/tmp/x1-hdmi-handoff-policy-settle-raw-negative-v6.log`.
 
 The corrected `d8f7024` revision is pushed to alanswx. Its fresh full-board flow
 starts in `output_files/quartus-linux-t5zgQgO6/source`, log
