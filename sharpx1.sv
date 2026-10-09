@@ -203,6 +203,8 @@ assign VIDEO_ARX = (!ar) ? 13'd4 : ({11'd0, ar} - 13'd1);
 assign VIDEO_ARY = (!ar) ? 13'd3 : 13'd0;
 
 `include "build_id.v" 
+// Keep any J/j joystick entries LAST in CONF_STR (after V); earlier entries
+// can break MiSTer's OSD parsing. Checked by test-osd-config.
 localparam CONF_STR = {
 	"SharpX1;;",
 	"-;",

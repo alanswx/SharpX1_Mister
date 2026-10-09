@@ -2016,6 +2016,10 @@ $(HEADLESS_DIR)/rgb12-wrapper/Vrgb12_wrapper_tb: tests/rgb12_wrapper_tb.sv ../sh
 		$(MACHINE_SRC) tests/rgb12_wrapper_tb.sv -Wno-fatal
 .PHONY: test-rgb12-wrapper
 
+.PHONY: test-osd-config
+test-osd-config:
+	python3 ../scripts/test_osd_config.py
+
 test-joystick: $(HEADLESS_DIR)/joystick/Vjoystick_tb
 	./$(HEADLESS_DIR)/joystick/Vjoystick_tb
 
