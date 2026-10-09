@@ -44,14 +44,25 @@ and its oracle requires front-only/back-only/overlap/all-zero coverage plus
 black-front-over-back samples. Palette programming still uses the prior full
 mode sequence; native reduced-mode programming after switching remains open.
 
-Current pixel runs are **in progress, not a completed matrix**:
+Original graphics-only matrix is terminal; strengthened current-source gates
+remain **in progress**:
 
 - Initial 24-case matrix: `/tmp/x1-z-paired-machine-matrix.log`, frozen
   `verilator/obj_dir_v13_z_paired/paired-matrix-MxicKs/`. This copy predates the
   additional programmed-black sentinel/coverage assertions; do not claim it
   qualifies those strengthened checks.
-  The first bank-0-front identity/cold case passes all 64,000 pixels and
-  measured periods, despite SCRN selecting bank 1. Remaining cases are running.
+  The complete original matrix now exits zero: 24/24 cases, each checking all
+  64,000 pixels and measured periods, including bank-0-front despite SCRN
+  selecting bank 1. Its frozen runner/fixture identities are rechecked.
+  It does not qualify the later text implementation or black sentinel.
+- After observing that terminal handle, a fresh 24-case recipe starts in
+  `/tmp/x1-z-strengthened-paired-graphics-matrix.log`, frozen under
+  `verilator/obj_dir_v13_z_paired/paired-matrix-g6Vncl/`. It uses the current
+  compositor runner `6420d29945b4958ee8509334fb8e774f7191ab490babd2172f00b65e0ed634e0`
+  and fixture `1e03a9ecd39af3f049ef924db059c5bd5827c10879e479a593181da517009117`,
+  including programmed-black/raw-source coverage. This is a new independently
+  frozen matrix, not a replacement or reinterpretation of the original.
+  No complete strengthened matrix acceptance is claimed yet.
 - Separate strengthened custom/front-bank-1 cold probe:
   `/tmp/x1-z-paired-black-front.log`, independently frozen under
   `verilator/obj_dir_v13_z_paired/black-front-2uq5yt/`. It exits zero: all 64,000

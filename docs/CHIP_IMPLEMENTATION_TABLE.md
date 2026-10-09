@@ -1,11 +1,15 @@
 # Sharp X1 chip implementation summary
 
-Updated: 2026-10-08. Native IPL/D88 boot and playable CROSS Chase are verified
+Updated: 2026-10-09. Native IPL/D88 boot and playable CROSS Chase are verified
 in simulation, together with focused CPU, memory, graphics, keyboard/IRQ and
 PSG tests. MiSTer and simulation both use `rtl/sharpx1.v`; the board wrapper
 wires the exposed interfaces and passes lint with warnings. Bounded base video/
 native input checks and a separate eighteen-case DMA restart hardware matrix
 now pass on mister126; this is not full hardware validation.
+The [fresh ordinary v14 baseline](BASELINE_V14_STATUS.md) passes the complete
+delay-aware suite, and [five commercial games](COMMERCIAL_COMPATIBILITY.md)
+pass fresh native fast-model gameplay/control tests. Neither qualification
+enables or certifies the optional Z/serial/FM/Kanji profiles below.
 The legacy column describes reference RTL only.
 See [bring-up progress](BRINGUP_PROGRESS.md) for the timing/reset and shared-source
 changes and runtime evidence.
@@ -31,9 +35,11 @@ changes and runtime evidence.
 | Cassette/APSS | Missing | Command-state stub |
 | Kanji | Default-disabled first-level ROM/address/CG WAIT backend, loader and CPU INI pass; [opt-in renderer/mixed-source pixels and snapshots](KANJI_RENDER_STATUS.md) pass synthetic and bounded private-candidate tests. Full ASIC attributes/native glyph/CPU protocol, Z level-2 and FPGA acceptance remain open | Partial conditional legacy path, unqualified |
 | Turbo display modes | SCRN pages/blackclip/raster, nominal X3/ANK, bounded high-speed PCG/CPU ANK and sixteen global expansion/underline row/mode-exit fixtures pass. Exact ASIC/WAIT/switching, full Kanji attributes/native software and X3 timing/hardware remain open; see [PCG status](TURBO_HIGH_SPEED_PCG_STATUS.md) | Partial |
-| Turbo Z analog palette/graphics | [RGB12 foundation](TURBO_Z_RGB_STATUS.md), exhaustive external palette transactions and [shared CPU ownership](TURBO_Z_PALETTE_OWNER_STATUS.md) pass. Separate [320x200/4096 renderer](TURBO_Z_VIDEO_STATUS.md) connects real GRAM fetch/pixels/palette; identity/custom retained-reset tests each check all 64,000 pixels, with no refill. Four reduced formats, analog text/priority, native ASIC timing and hardware remain open | Opt-in full-color subset; board disabled |
-| Turbo Z text palette/priority | [Opt-in CPU storage/access](TURBO_Z_TEXT_PALETTE_STATUS.md): nine unit profiles and five actual-CPU controls pass all six-bit values, DAM isolation and cold/warm retention. Subsequent [1FC0 CPU/ordering increment](TURBO_Z_PRIORITY_CPU_STATUS.md) passes all-byte real-Z80 controls and the full layer-order truth table; priority now crosses in the coherent video payload, with three actual-CPU cold/warm/stopped-clock profiles. The decoder is not connected to composition. Analog text RGB, intensity wire order, composition and native/hardware access policy remain open | Partial (opt-in) |
+| Turbo Z analog palette/graphics | Default-disabled shared experiments connect RGB12, external palette/CPU ownership and full 320x200/4096. [Reduced-mode matrix](TURBO_Z_MULTIMODE_STATUS.md) passes sixteen identity/custom cold/warm wide/tall/selected-screen cases with provisional index expansion; [640x400 internal8](TURBO_Z_INTERNAL8_STATUS.md) passes four cold/warm isolation cases. Both paired indices and captured priority now reach composition; original/strengthened matrices are separately tracked. Native reduced CPU bank/opacity/ASIC timing and Z board integration remain unqualified | Conditional subset; disabled by default |
+| Turbo Z text palette/priority | Opt-in CPU text storage and 1FC0 controls, exact decode/DAM/cold/warm/stopped-clock crossing tests pass. Analog text now connects actual post-attribute glyph color to retained text RGB and priority in 320x200 full/selected/paired layouts. [Distinct-entry reverse/warm fixture](TURBO_Z_TEXT_OPACITY_COVERAGE.md) passes all 64,000 pixels; stronger full ordering matrices are running. Old zero-visible-text/aliased-color fixtures do not establish stronger coverage. Native intensity/opacity/blackclip, broader attributes/live switches, firmware and hardware remain open; ordinary board defaults stay disabled | Partial (opt-in) |
 | Turbo Z YM2151 / expansion devices | [Standalone JT51 FM](TURBO_Z_FM_STATUS.md) bus/timers/stereo/mixer pass at three master frequencies; FM machine decode/IRQ/mixing, capture/HD/level-2 Kanji and other Z devices remain open; [roadmap](TURBO_Z_PLAN.md) | Disabled future/stub paths, not connected JT51 |
+| Turbo Z video input / capture effects | No connected ADC/line-FIFO/digitizer or implemented capture/mosaic/chroma/extra-scroll device. RGB12 output and generated pixel fixtures are not video-input capture. Derive native registers, source-clock/GRAM arbitration and quantization; qualify physical input separately | Not qualified |
+| Turbo Z 2HD / second-level Kanji | Base D88/first-level optional glyph work does not implement complete 2HD rate/media/format behavior or authentic level-2 addressing/storage. Native HD media and concurrent level-2 CPU/video loading, fit and hardware gates remain open | Not qualified |
 
 See [the detailed survey](CORE_STATUS.md) for evidence and
 [replacement chip candidates](CHIP_REUSE.md) for sources pulled from other
