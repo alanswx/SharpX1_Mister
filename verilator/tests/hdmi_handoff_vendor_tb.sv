@@ -92,6 +92,18 @@ module hdmi_handoff_vendor_tb;
         run_video=1;
         wait(!busy && active==0 && !blank);
         request(3'b111);
+        // Stop HIGH after the last rising edge samples gate-disable, before
+        // either the native gate or its falling-edge witness can close.
+        @(negedge control); requested=0;
+        wait(dut.gate_request_sample==0);
+        assert(video) else $fatal(1,"close-window fixture missed rising edge");
+        run_video=0;
+        #1500000;
+        assert(active==3'b111 && busy && dut.gate_observed_enable)
+            else $fatal(1,"handoff skipped the required selected falling edge");
+        run_video=1;
+        wait(!busy && active==0 && !blank);
+        request(3'b111);
         @(negedge control); reset_request=1;
         wait(active==0 && blank);
         repeat(20) @(posedge control);

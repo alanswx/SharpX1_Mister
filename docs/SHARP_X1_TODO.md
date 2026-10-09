@@ -64,6 +64,14 @@ pass; the actual raw-policy negative fails with exit 1. Default 72-case policy
 checks still pass. No board QSF enables it, no new RBF exists, and full upstream
 video/DDR/PHY, mapped/fitted clock controls, reset-phase and hardware gates
 remain open. Old mux constraints require explicit new-hierarchy qualification.
+The isolated real-PLL handoff harness now maps/fits, exposing input-side
+`enaout` feedback in the fitted topology. An explicit falling-edge witness and
+selected-clock enable synchronizer replace that assumption; twelve native
+clock/tag cases and six exact-policy cases (4,923 words) pass, including a
+stop-HIGH-before-closure test. Narrow mux-output clock choices pass twelve
+bounded timing rows at one corner; raw/global setup and hold remain open.
+Full fitted gate semantics, eight corners, startup/placement and board/DDR/I/O
+qualification are still required. No handoff-enabled QSF/RBF exists yet.
 Nine actual pending-transaction snapshots pass ninety byte-identical
 continuations; cold-start/clock guards remain tested. Fresh combined-Z
 pixels, current-source Quartus bundle/consumer timing and native/hardware

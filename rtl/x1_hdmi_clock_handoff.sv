@@ -14,6 +14,8 @@ module x1_hdmi_clock_handoff(
 );
     wire selected_clock, gate_open;
     reg gate_request = 0, blank_request = 1;
+    (* preserve *) reg gate_request_meta = 0, gate_request_sample = 0;
+    (* preserve *) reg gate_observed_enable = 0;
     reg blank_meta = 1, blank_sample = 1;
     reg blank_ack = 0;
     reg [3:0] blank_age = 0;
@@ -31,8 +33,23 @@ module x1_hdmi_clock_handoff(
     cyclonev_clkena #(.clock_type("Global Clock"),
                       .ena_register_mode("falling edge"),
                       .ena_register_power_up("low"))
-        gate(.inclk(selected_clock),.ena(gate_request),
+        gate(.inclk(selected_clock),.ena(gate_request_sample),
              .enaout(gate_open),.outclk(clk_output));
+
+    // The public primitive's falling-edge enable register is not a substitute
+    // for sampling the asynchronous control request. Keep both stages.
+    // While the mux changes, its gate and these two samples are already zero.
+    always @(posedge selected_clock) begin
+        gate_request_meta <= gate_request;
+        gate_request_sample <= gate_request_meta;
+    end
+    // Do not use enaout as a portable hardware closure acknowledgement:
+    // the fitted atom exposes the input-side enable there. Require the actual
+    // selected falling edge to have sampled the held gate input first.
+    // Placement/half-cycle timing of this witness and the native gate remains
+    // a separate FPGA gate; this is not a measured physical readback.
+    always @(negedge selected_clock)
+        gate_observed_enable <= gate_request_sample;
 
     // Ten selected-output edges flush both native-DV and output pipelines.
     // No acknowledgement is fabricated when the selected source is stopped.
@@ -64,7 +81,7 @@ module x1_hdmi_clock_handoff(
     always @(posedge clk_control) begin
         ack_meta <= blank_ack;
         ack_sample <= ack_meta;
-        gate_meta <= gate_open;
+        gate_meta <= gate_observed_enable;
         gate_sample <= gate_meta;
         completed_meta <= completed_generation;
         completed_sample <= completed_meta;

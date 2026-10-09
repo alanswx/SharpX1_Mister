@@ -1211,6 +1211,10 @@ test-hdmi-fixture-extraction:
 	python3 tests/test_hdmi_fixture_extraction.py
 .PHONY: test-hdmi-fixture-extraction
 
+test-hdmi-handoff-probe-audit:
+	python3 tests/test_hdmi_handoff_probe_audit.py
+.PHONY: test-hdmi-handoff-probe-audit
+
 $(HEADLESS_DIR)/crtc-machine/Vcrtc_machine_tb: tests/crtc_machine_tb.sv $(V_SRC)
 	$(V) --binary --timing --assert --top-module crtc_machine_tb --Mdir $(HEADLESS_DIR)/crtc-machine -j 4 tests/crtc_machine_tb.sv $(V_SRC) -Wno-fatal
 test-machine-crtc-write: $(HEADLESS_DIR)/crtc-machine/Vcrtc_machine_tb

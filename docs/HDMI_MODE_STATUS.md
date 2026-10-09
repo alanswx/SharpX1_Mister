@@ -295,6 +295,78 @@ new hierarchy. No selected-profile Quartus flow or new RBF exists. Fresh narrow
 constraints, source-bound fitting/all-corner timing and physical output remain
 required. Ordinary board revisions remain unchanged.
 
+## Isolated fitted clock-control qualification and closure witness
+
+The first native mapping harness connected controller clock ports directly to
+external pins. Quartus rejects those sources at mux `inclk[2:3]` (Error 15836),
+log `/tmp/x1-hdmi-handoff-native-map-v1.log`, exit 3. This is a harness mismatch,
+not justification to rewire the board's PLL inputs. The corrected
+`hdmi_handoff_map_top.sv` supplies two real `altera_pll` outputs. Mapping and
+isolated fitting finish zero; no assembler or MiSTer build is run.
+
+The follow-up preserves two selected-clock enable samples before the gate.
+Native fitted fanout then reveals that public `enaout` cannot be assumed to
+be registered physical readback: the status sample is fed by the input-side
+enable, alongside native `gate~FF_0`. The controller now uses an explicit
+selected-falling-edge witness, synchronized back to CTRL, instead. The witness
+is not an analog readback or placement proof. The
+[Cyclone V clock-enable handbook](https://docs.altera.com/r/docs/683375/current/cyclone-v-device-handbook-volume-1-device-interfaces-and-integration/clock-enable-signals)
+describes falling-edge synchronized enable and optional metastability
+registration; this does not establish the exact fitted status-pin contract.
+
+The current twelve native clock/tag cases finish zero, log
+`/tmp/x1-hdmi-handoff-v8.log`, including a new adversarial stop HIGH after
+gate-disable is sampled but before the necessary falling edge. Selection must
+not change during that hold. The six current actual-register cases finish
+zero, log `/tmp/x1-hdmi-handoff-policy-v4.log`, with **4,923 exact visible-word
+checks**. The raw-policy negative again fails at 414021 ps with exit 1,
+log `/tmp/x1-hdmi-handoff-policy-raw-negative-v4.log`.
+
+Current controller SHA-256:
+`978537bd98a29eb9ccb7187fcb0b495253c5210688417650f1012817f2553223`.
+Current clock/tag bench SHA-256:
+`59353c3b96b11a6765f0728bcd430dd55d962697511985a989a123f0c8998a30`.
+The actual-register bench and `sys_top.v` remain at the preceding section's
+hashes. The frozen isolated v4 map/fit finishes zero at 22:43:51 UTC, log
+`/tmp/x1-hdmi-handoff-native-map-fit-pll-v4.log`. Mapping reports three warnings
+(PLL connectivity/reset); fitting reports eight warnings, including unpinned
+I/O and missing SDC. Its 50 MHz control reference is an isolated probe, not a
+board-frequency claim. `ALLOW_POWER_UP_DONT_CARE=OFF` is probe-local; the real
+board initialization and placement contract still needs review.
+
+Reporting-only `quartus_hdmi_handoff_inventory.tcl` confirms the enable first
+stage only feeds the second stage. The second stage feeds the native gate
+register and falling witness. CTRL status now receives the witness, not the
+input-side enable. The mux retains four pins; the native gate retains three.
+The narrow `mux-clocks` probe creates two choices only at `handoff|mux|outclk`,
+leaving concurrent PLL masters and raw crossings uncut. Native probe terminates
+zero without warnings, `/tmp/x1-hdmi-handoff-native-gate-v4.log`.
+
+Independent `audit_hdmi_handoff_probe.py` passes all twelve bounded rows at
+**Slow/1100 mV/100 C only**, preserving actual endpoints and both clock choices:
+
+| Isolated fitted path | Minimum setup | Minimum hold |
+|---|---:|---:|
+| Enable stage 0 → stage 1 | +12.130 ns | +0.371 ns |
+| Enable stage 1 → falling witness | +4.954 ns | +6.803 ns |
+| Enable stage 1 → native gate register | +10.593 ns | +1.572 ns |
+
+The native gate report models a full-period setup relationship, whereas the
+explicit witness has a half-period relationship. Do not turn those abstractions
+into a measured closure-latency contract; device-specific enable semantics and
+post-fit/physical switching still need qualification. Raw enable input setup
+remains **-5.566 ns**, and global probe setup/hold remain **-5.785/-3.606 ns**.
+No raw input exception is applied or global/board closure claimed.
+The independent auditor also rejects fourteen invalid scope/report controls;
+`make -C verilator test-hdmi-handoff-probe-audit` checks those controls only.
+Retrieved map/fit/STA reports remain ignored under
+`output_files/hdmi-handoff-map-pll-v4/`.
+
+Next: resolve the fitted primitive's enable/closure semantics, audit all eight
+corners and initialization, then qualify a separate full-board profile with
+new-hierarchy constraints and all data/DDR paths. No existing QSF enables the
+handoff and no new RBF is produced. Unit fitting is not MiSTer acceptance.
+
 ## Next gates
 
 1. Establish an actually supported mode-sensitive STA method or a narrow

@@ -45,6 +45,9 @@ now connected through a default-off framework option. Six native extracted-
 register cases pass 4,826 exact output checks, including stopped pixel-enable
 recovery. No board revision enables it; fitting/timing and full upstream/physical
 output acceptance remain open.
+Its isolated real-PLL controller maps/fits; a fitted-feedback audit led to an
+explicit falling-edge closure witness. Current native cases pass, while raw
+crossings, all-corner/full-board timing and physical switching remain open.
 
 The experimental X3 [text-blink crossing](docs/VIDEO_BLINK_CDC_STATUS.md)
 now uses two video-domain samples. Delay-aware 40/80-column blink pixels and
