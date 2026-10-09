@@ -1,5 +1,23 @@
 # Private commercial-game bring-up
 
+## Current v13 requalification in progress
+
+Source `9748410` starts fresh native Galaga/Mappy boot chains after the
+transaction-bound DAM correction. Old v12 states are not converted or used.
+Frozen ordinary fast/savable runner SHA-256:
+`e3cb7cb2b0f91d4ebe200ecfc67c48f6aea650a5f123f5574ca70283aaba3b82`.
+Ignored outputs: `verilator/obj_dir_v13_requalify/{galaga,mappy}-9748410/`;
+logs `/tmp/x1-v13-{galaga,mappy}-requalify.log`. Both invocations use
+`--boot-chunk-ms 8000`, retaining the original sixteen-second total native
+boot and title-specific controller checks. Each invocation copies its runner
+and hashes originals; no private media or state is committed. The media is
+the release-bound Galaga `d0cdeb82…` and Mappy `297e89aa…` listed below.
+At this checkpoint both processes are live, not qualified. Complete all five
+fresh v13 titles, exact controls/RGB/repeatability and unchanged-input checks
+before attributing historical five-title acceptance to the new state format.
+
+## Historical qualified checkpoints
+
 October 4, 2026: **5 of the required 5 commercial games reached reproducible
 native gameplay-control evidence at the earlier checkpoint**. That five-title
 set was subsequently requalified as recorded below; historical results must

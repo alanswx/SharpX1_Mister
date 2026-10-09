@@ -263,7 +263,9 @@ or a new RBF.
 Its retained-reset test exposes a [PPI/DAM control-write corruption](docs/DAM_TRANSACTION_STATUS.md).
 The transaction-bound correction passes standalone/CPU tests and requires
 fresh **v13** snapshots; earlier v12 snapshots and game qualifications remain
-historical. Fixed full-pixel/reset tests pass; the complete baseline is running.
+historical. Fixed full-pixel/reset tests and the preceding complete default
+baseline suite pass. Fresh v13 commercial requalification and a source-bound
+Turbo single-clock Quartus refit are in progress; no new RBF is qualified yet.
 The subsequent [CPU/display pin audit](docs/TURBO_Z_PALETTE_CONTRACT.md#cpudisplay-pin-reconciliation-table-4-22)
 corrects a shared renderer/oracle significance error. Connected all-4096-index
 checks and corrected identity/custom retained-reset pixels pass. Earlier

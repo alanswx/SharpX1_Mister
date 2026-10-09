@@ -8,6 +8,24 @@ Kernel `6.18.38-MiSTer`, root OS Buildroot 2021.02.4.
 
 ## MGLs and native boot observations
 
+### Current-source refit in progress
+
+The authorized misterubuntu checkout was clean and idle, then fast-forwarded
+to pushed source `97484109c98f8d61691ff074dcfebfb104eb8178`. Quartus 17.0.2
+preflight passes. A frozen `sharpx1_turbo_single` full-flow build started at
+`2026-10-09T06:14:07Z` under
+`/home/alans/mister/SharpX1_Mister/output_files/quartus-linux-FnvQHrn8/`.
+Input-manifest SHA-256:
+`da17fc7815a4d96f64f12a0d8bae67b939aebf27bc10e9f8923c941318e575b2`.
+Local observation log `/tmp/x1-quartus-9748410-turbo-single.log`.
+The specific `quartus_sh`/`quartus_map` processes were observed live; no
+completion, fresh RBF, all-corner timing or deployment is claimed yet.
+This existing revision tests default-disabled Z behavior plus the new DAM
+transaction state; it does **not** enable X3, Z palettes/modes or DMA.
+No MiSTer was contacted or loaded during this refit launch.
+
+### Earlier hardware observations
+
 Browse `/media/fat/_Computer/X1Tests_20261008/` on mister126:
 
 | MGL | Observed result on earlier RBF `43737566…` |
