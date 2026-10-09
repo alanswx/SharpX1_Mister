@@ -14,13 +14,13 @@ support before optional Turbo extensions.
 
 ## Active goal: items 1–6 and Turbo Z (October 6)
 
-Source `9748410` now requalifies all five commercial titles from fresh v13
+Source `c7c35b2` now requalifies all five commercial titles from fresh v14
 native boot: Druaga, Xevious, Mappy and Galaga movement, Galaga firing, and
 Shanghai cursor/matching-pair removal. Exact RGB/dump/state/report and private
 input-preservation checks pass on the frozen ordinary fast runner; see
 [commercial evidence](COMMERCIAL_COMPATIBILITY.md). This is not native Turbo,
-Arcus/Bastard Special, delay-aware or new-RBF hardware acceptance. The same
-checkpoint's Turbo single-clock RBF fits and passes all eight constrained
+Arcus/Bastard Special, delay-aware or new-RBF hardware acceptance. The earlier
+`9748410` checkpoint's Turbo single-clock RBF fits and passes all eight constrained
 timing corners; deployment/physical gates remain open.
 
 The [DMA-build hardware feature matrix](HARDWARE_DMA_FEATURE_MATRIX_STATUS.md)

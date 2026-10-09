@@ -1,13 +1,15 @@
 # Private commercial-game bring-up
 
-## Current v14 qualification: four titles pass, Shanghai pending
+## Current v14 qualification: all five bounded gameplay gates pass
 
 October 9: source `c7c35b2` builds a fresh ordinary fast/savable runner with
 snapshot v14. Its SHA-256 is
 `c03a0de6b0fa08af4fe763cb0ca6a92b7590c9b5b4a10611ce78bc78656a5c86`.
-Fresh Xevious, Druaga, Mappy and Galaga native boots and controls terminate
-successfully. Galaga's firing gate also passes; Shanghai's cursor/pair gate
-is still running. Four v14 titles are counted so far, not five.
+Fresh Xevious, Druaga, Mappy, Galaga and Shanghai native boots and controls
+terminate successfully. Galaga's firing and Shanghai's cursor/matching-pair
+gates also pass. The entire two-worker batch exits zero; all five final
+collectors record `gameplay_verified: true` and unchanged inputs. An
+independent final check verifies each title and every frozen support hash.
 
 The isolated ignored qualification root is
 `verilator/obj_dir_v14_c7c35b2_requalify/frozen-4CLvS6/`. It contains frozen
@@ -23,7 +25,7 @@ does not alter the original simulation/control durations. States are generated
 from real IPL/disk boot, never converted from v13 or populated by game RAM
 injection. Required gates remain movement/repeatability for the four action
 games, Galaga firing, Shanghai cursor/pair removal and unchanged private inputs.
-Only terminal successful provenance will qualify this runner; the five-title
+Only terminal successful provenance qualifies this runner; the five-title
 v13 result below remains historical. Delay-aware gameplay, Turbo/Z native
 software, Arcus/Bastard and current-RBF hardware acceptance are still open.
 
@@ -68,6 +70,18 @@ A convenience Xevious screenshot is retained at
 It is a format conversion of the actual controlled-run PPM, not an illustration.
 `scripts/compare_video_png.py` checks all 64,000 decoded PNG pixels against
 that PPM with zero mismatches. This conversion check is not MiSTer evidence.
+
+Shanghai passes the unchanged cursor/matching-pair assertions: idle cursor
+`(488,167)` to `(544,160)`, matching raw tiles at `3E1B/3EBA`, removed count
+`0` to `2` and repeatable full RAM/RGB/state/reports. Native cursor feedback
+positions the same historical pair using only normal joystick inputs;
+it does not patch game RAM or alter release-bound assertions. Idle/removed
+RGB hashes are `f80f4af748047b39` / `44ed23bc5976312c`;
+cursor-state hash `2a1f480412964859b9374a50beb892f1640b6905186f8025171208187854a75d`,
+pair-state hash `0139b7aed9911bcc9ff5e6c72aa3b891f8ae87012cb27f473c513499ff521cb5`.
+The final collector and independent asset/support integrity checks pass.
+This completes the five-title bounded ordinary fast v14 gameplay gate, not
+full-game compatibility, optional-device/native Turbo Z or hardware acceptance.
 
 ## Five-title v13 bounded requalification passes
 

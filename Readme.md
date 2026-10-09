@@ -322,6 +322,12 @@ new native-game/Quartus/hardware acceptance. A subsequent
 [text-opacity coverage audit](docs/TURBO_Z_TEXT_OPACITY_COVERAGE.md) narrows older
 graphics-on-top evidence; corrected full/paired text-visible warm windows now
 pass all 64,000 pixels and require every nonzero text color.
+The [fresh v14 commercial qualification](docs/COMMERCIAL_COMPATIBILITY.md)
+now passes all five bounded native gameplay gates on the frozen ordinary
+fast runner: Druaga, Xevious, Mappy and Galaga movement, Galaga firing,
+and Shanghai cursor/matching-pair removal. Original media and frozen support
+files remain unchanged. This is not optional Turbo Z, delay-aware gameplay
+or current-source hardware acceptance.
 
 The headless simulator has been compiled with Verilator 5.044 on macOS.
 The timing/reset regression passes. A 200,000-system-cycle run reports:
