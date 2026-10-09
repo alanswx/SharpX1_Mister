@@ -81,9 +81,22 @@ Logs: `/tmp/x1-crtc-write-phases.log`,
 
 Full ordinary regression is running in `/tmp/x1-crtc-full-baseline.log`;
 partial PASS reports are not completion. The two older frozen 120-case Z
-matrices are historical for this changed machine. Fresh combined-Z pixels,
+matrices are historical for this changed machine. A fresh current-source
+120-case combined matrix now runs under
+`verilator/obj_dir_headless/z-crtc-combined/qualified-inputs-bJ8Ldf/all-120/`,
+log `/tmp/x1-crtc-z-combined-all-120.log`. Its actual-runner preflight passes
+all seven requested feature flags and nominal clock checks before the first
+pixel case. Runner SHA-256:
+`46ecba0cc7d69c80480b012856e585b19984f89d02f734363cd498100b92e1d9`.
+The runner, oracle, emitter, scheduler, font reference and RTL copies are
+frozen; scheduler checks input hashes before/after each case. Started is not
+completed. Fresh combined-Z pixels,
 commercial/native Turbo software, physical reset/input/audio and current-source
-Quartus fitting/timing remain required. The earlier `6e334b4` blink RBF does
+Quartus fitting/timing remain required. Commit `72b77c4` has started a frozen
+`sharpx1_turbo_z_video` build on idle `misterubuntu`, under
+`output_files/quartus-linux-4005kWb5/`; log
+`/tmp/x1-quartus-72b77c4-build.log`. No completed fit/timing result is claimed.
+The earlier `6e334b4` blink RBF does
 not include this change and fails overall setup timing.
 
 FPGA acceptance needs source-bound request/ack synchronizer inventories,
