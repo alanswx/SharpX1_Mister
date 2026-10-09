@@ -321,6 +321,14 @@ test-machine-dma-restart-board:
 	python3 tests/test_machine_dma_restart_fdc.py ./$(DMA_RESTART_BOARD_DIR)/Vtop --sys-hz 28571428
 .PHONY: test-machine-dma-restart-irq test-machine-dma-restart-irq-snapshot test-machine-dma-restart-fdc test-machine-dma-restart-board
 
+test-machine-dma-restart-visible:
+	$(MAKE) turbo-dma-irq-savable DMA_RESTART=1 DMA_IRQ_SAVE_DIR=$(DMA_RESTART_BOARD_DIR) \
+	  V='$(V) -GSINGLE_CLOCK=1 -GMASTER_HZ=28571428 -CFLAGS "-DX1_SINGLE_CLOCK -DX1_SINGLE_MASTER_HZ=28571428"'
+	$(MAKE) turbo-dma-irq-savable DMA_RESTART=0 DMA_IRQ_SAVE_DIR=$(DMA_RESTART_CONTROL_DIR)
+	python3 tests/test_dma_visible_ipl.py ./$(DMA_RESTART_BOARD_DIR)/Vtop \
+	  $(DMA_RESTART_BOARD_DIR)/visible-$(shell date -u +%Y%m%dT%H%M%S) --completion-only ./$(DMA_RESTART_CONTROL_DIR)/Vtop
+.PHONY: test-machine-dma-restart-visible
+
 # Savable fast DMA profiles: separate artifacts and application identities.
 DMA_SAVE_DIR ?= obj_dir_turbo_dma_savable
 DMA_IRQ_SAVE_DIR ?= obj_dir_turbo_dma_irq_savable

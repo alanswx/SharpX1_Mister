@@ -10,11 +10,14 @@ import pathlib
 import subprocess
 import tempfile
 from test_machine_dma import Fixture
+import dma_visible
 
 
-def diagnostic(a_source, mode, delay=10000, pending_delay=0):
+def diagnostic(a_source, mode, delay=10000, pending_delay=0, visible=False):
     f = Fixture()
     p = f.p
+    if visible:
+        dma_visible.initialize(f)
     old = bytes(0x31+i*13 for i in range(4))
     new = bytes(0xa7+i*7 for i in range(4))
     for address in (0xf000, 0xf010, 0xf011, 0xf012):
@@ -60,9 +63,13 @@ def diagnostic(a_source, mode, delay=10000, pending_delay=0):
             p.compare_memory(base+i, 0xee)
     for i, byte in enumerate(b"RST!"):
         p.store(0xf000+i, byte)
+    if visible:
+        dma_visible.result(f, True)
     p.emit(0x76)
     p.label("fail")
     p.store(0xf000, 0xee)
+    if visible:
+        dma_visible.result(f, False)
     p.emit(0xf3, 0x76)
     assert len(p.code) < 0x1000
     p.code.extend(bytes(0x1000-len(p.code)))

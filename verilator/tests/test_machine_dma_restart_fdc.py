@@ -10,11 +10,14 @@ import pathlib
 import subprocess
 import tempfile
 from test_machine_dma import Fixture, media
+import dma_visible
 
 
-def diagnostic(drive, a_source, mode, payload):
+def diagnostic(drive, a_source, mode, payload, visible=False):
     f = Fixture()
     p = f.p
+    if visible:
+        dma_visible.initialize(f)
     for address in (0xf000, 0xf010):
         p.store(address, 0)
     for base in (0x9100, 0x9300):
@@ -53,9 +56,13 @@ def diagnostic(drive, a_source, mode, payload):
             p.compare_memory(base+i, 0xee)
     for i, byte in enumerate(b"FDC!"):
         p.store(0xf000+i, byte)
+    if visible:
+        dma_visible.result(f, True)
     p.emit(0x76)
     p.label("fail")
     p.store(0xf000, 0xee)
+    if visible:
+        dma_visible.result(f, False)
     p.emit(0xf3, 0x76)
     assert len(p.code) < 0x4000
     p.code.extend(bytes(0x4000-len(p.code)))
