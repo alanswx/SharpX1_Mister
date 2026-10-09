@@ -47,6 +47,10 @@ owned disk-host/mixed-service and physical reset gates remain open. The
 live-FM [pending-SD reset matrix](FM_SD_RESET_STATUS.md) now passes all sixteen
 payload cases with generated media, alongside sixteen FM-disabled controls.
 Its expanded metadata matrix is running; do not count it as completion.
+The [Turbo Z in-flight control reset test](TURBO_Z_INFLIGHT_RESET_STATUS.md)
+passes at three independent video rates, including a deliberately failing
+asynchronous-reset-removal control. Exact reset frames, pending palette/
+DMA traffic and native/physical acceptance remain separate gates.
 The full v17 fast suite finishes zero with 137 PASS reports.
 The delay-aware suite finishes zero with 140 PASS reports, and all five fresh
 native game qualifications pass on frozen source/inputs, including Galaga

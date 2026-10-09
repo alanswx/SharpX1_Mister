@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 // Original CPU-written priority/control crossing diagnostic. No private ROM.
 `timescale 1ps/1ps
-module z_priority_machine_cdc_tb #(parameter PRIORITY_CPU=1);
+module z_priority_machine_cdc_tb #(parameter PRIORITY_CPU=1,INFLIGHT_RESET=0);
     logic clk=0,video_clk=0,sys_run=1,video_run=1,reset=1;
     integer video_half=11640;
     always #15625 if(sys_run) clk=!clk;
@@ -27,6 +27,7 @@ module z_priority_machine_cdc_tb #(parameter PRIORITY_CPU=1);
         .sub_wait(),.sub_tx(),.sub_rx(),.cpu_address(),.cpu_in(),.cpu_out(),
         .cpu_mreq_n(),.cpu_iorq_n(),.cpu_rd_n(),.cpu_wr_n(),
         .video(),.rgb(),.rgb12(),.audio(),.ce_pix(),.HSync(),.VSync(),.HBlank(),.VBlank(),
+        .audio_left(),.audio_right(),.audio_mono(),.audio_sample(),
         .sys_edges(),.video_edges(),.reset_edges(),.cpu_enables(),.delayed_sys_edges(),
         .dma_grants(),.dma_reads(),.dma_writes(),.cpu_fdc_data_reads(),.cpu_fdc_data_writes()
     );
@@ -35,7 +36,13 @@ module z_priority_machine_cdc_tb #(parameter PRIORITY_CPU=1);
     bit [255:0] seen=0;
     integer live_priority_differences=0;
     integer excluded_mode_samples=0;
+    wire [7:0] reset_requested_priority,reset_pixel_priority;
+    wire reset_requested_composition,reset_pixel_composition;
     generate if(PRIORITY_CPU) begin : captured_control_checks
+        assign reset_requested_priority=dut.machine.z_palette_cpu.paired_composition.requested_priority;
+        assign reset_pixel_priority=dut.machine.z_palette_cpu.paired_composition.pixel_priority;
+        assign reset_requested_composition=dut.machine.z_palette_cpu.paired_composition.requested_composition;
+        assign reset_pixel_composition=dut.machine.z_palette_cpu.paired_composition.pixel_composition;
         // Observe real character phases and CPU changes, never force a bus
         // or manufacture a shifter result. A new live control cannot bypass
         // the request/load boundary and reorder the current character.
@@ -63,6 +70,9 @@ module z_priority_machine_cdc_tb #(parameter PRIORITY_CPU=1);
                    !dut.machine.z_composition_enabled) excluded_mode_samples++;
             end
         end
+    end else begin : absent_composition
+        assign reset_requested_priority=0;assign reset_pixel_priority=0;
+        assign reset_requested_composition=0;assign reset_pixel_composition=0;
     end endgenerate
     always @(negedge video_clk) if(valid && !reset && controls[23:16]==8'h90) begin
         assert(controls[15:0]==16'h0001)
@@ -81,6 +91,46 @@ module z_priority_machine_cdc_tb #(parameter PRIORITY_CPU=1);
         wait(!halt_n); repeat(64) tick();
         assert(&seen && controls==32'hff900001)
             else $fatal(1,"CPU sweep incomplete seen=%h controls=%h",seen,controls);
+    endtask
+    task automatic reset_inflight;
+        logic [31:0] pending_payload;
+        logic pending_ack,pending_request;
+        // Wait for a real CPU-written byte to be published, before the
+        // destination synchronizer has acknowledged its new source phase.
+        // Do not fabricate a request, bus value or video shifter state.
+        wait(dut.machine.z_palette_cpu.controls_crossing.multimode.snapshot.held_data==32'h5a900001 &&
+             dut.machine.z_palette_cpu.controls_crossing.multimode.snapshot.acknowledgement!=
+             dut.machine.z_palette_cpu.controls_crossing.multimode.snapshot.acknowledgement_sync);
+        #1;video_run=0;
+        pending_payload=dut.machine.z_palette_cpu.controls_crossing.multimode.snapshot.held_data;
+        pending_ack=dut.machine.z_palette_cpu.controls_crossing.multimode.snapshot.acknowledgement;
+        pending_request=dut.machine.z_palette_cpu.controls_crossing.multimode.snapshot.request;
+        assert(halt_n) else $fatal(1,"in-flight control reset started after HALT");
+        reset=1;#1;
+        assert(dut.machine.video_reset && dut.machine.z_palette_cpu.priority_control==0 &&
+               reset_requested_priority==0 && reset_pixel_priority==0 &&
+               !reset_requested_composition && !reset_pixel_composition)
+            else $fatal(1,"stopped-video in-flight reset retained composition");
+        repeat(32) begin
+            tick();
+            assert(dut.machine.video_reset && !dut.machine.z_composition_enabled &&
+                   dut.machine.z_palette_cpu.controls_crossing.multimode.snapshot.held_data==pending_payload &&
+                   dut.machine.z_palette_cpu.controls_crossing.multimode.snapshot.acknowledgement==pending_ack &&
+                   dut.machine.z_palette_cpu.controls_crossing.multimode.snapshot.request==pending_request)
+                else $fatal(1,"reset overwrote pending coherent control payload");
+        end
+        // Old payload may cross while reset is held, but cannot become a
+        // visible character. The reset payload must subsequently cross too.
+        video_run=1;
+        repeat(64) begin
+            @(negedge video_clk);
+            assert(dut.machine.video_reset && !dut.machine.z_composition_enabled)
+                else $fatal(1,"old in-flight controls escaped video reset");
+        end
+        assert(valid && controls==32'h00000001)
+            else $fatal(1,"in-flight reset controls failed to cross %h",controls);
+        seen=0;tick();reset=0;
+        $display("PASS live CPU control reset with stopped VID: held pending 5A payload, cleared composition, reset payload crossed before release");
     endtask
     initial begin #100000000000; $fatal(1,"CPU/control CDC timeout"); end
     initial begin
@@ -109,6 +159,7 @@ module z_priority_machine_cdc_tb #(parameter PRIORITY_CPU=1);
             load=1;address=25'(n);data=program_bytes[n];tick();
         end
         load=0;download=0;repeat(8) tick();reset=0;
+        if(INFLIGHT_RESET) reset_inflight();
         await_cpu();
         // Physically stop SYS; destination must hold after in-flight ACK drain.
         tick();sys_run=0;

@@ -84,3 +84,7 @@ sixteen actual/expected PPM pairs also pass; the frozen executable hash is
 rechecked as `6420d299...`. This qualifies the strengthened experimental
 single-screen recipe, not physical DAC levels, native Z software or FPGA
 acceptance. The older passes remain historical evidence with narrower coverage.
+The subsequent [in-flight control reset test](TURBO_Z_INFLIGHT_RESET_STATUS.md)
+passes with VID stopped during a real CPU-written coherent payload, at three
+rates, and rejects a missing asynchronous composition reset. This strengthens
+the control-state seam, not the exact RGB/native/physical reset matrix.
