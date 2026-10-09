@@ -159,6 +159,22 @@ $(HEADLESS_DIR)/z-priority-inflight-reset/Vz_priority_machine_cdc_tb: $(V_SRC) t
 	  -GINFLIGHT_RESET=1 -j 4 $(V_SRC) tests/z_priority_machine_cdc_tb.sv -Wno-fatal
 .PHONY: test-machine-z-priority-inflight-reset
 
+test-machine-z-combined-control-reset: $(HEADLESS_DIR)/z-combined-control-reset/Vz_priority_machine_cdc_tb $(HEADLESS_DIR)/z-combined-control-negative/Vz_priority_machine_cdc_tb
+	@for half in 17500 11640 25000; do ./$< +VIDEO_HALF_PS=$$half || exit 1; done
+	@ulimit -c 0; log=$$(mktemp /tmp/x1-z-combined-control-negative-XXXXXX); \
+	  ./$(HEADLESS_DIR)/z-combined-control-negative/Vz_priority_machine_cdc_tb >$$log 2>&1; result=$$?; \
+	  test $$result -ne 0 && rg -q 'CPU sweep incomplete' $$log || { cat $$log; exit 1; }; \
+	  echo "PASS combined internal8 disabled-priority negative (log $$log)"
+$(HEADLESS_DIR)/z-combined-control-reset/Vz_priority_machine_cdc_tb: $(V_SRC) tests/z_priority_machine_cdc_tb.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module z_priority_machine_cdc_tb --Mdir $(@D) \
+	  -GINFLIGHT_RESET=1 -GINTERNAL8=1 -j 4 $(V_SRC) tests/z_priority_machine_cdc_tb.sv -Wno-fatal
+$(HEADLESS_DIR)/z-combined-control-negative/Vz_priority_machine_cdc_tb: $(V_SRC) tests/z_priority_machine_cdc_tb.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module z_priority_machine_cdc_tb --Mdir $(@D) \
+	  -GPRIORITY_CPU=0 -GINTERNAL8=1 -j 4 $(V_SRC) tests/z_priority_machine_cdc_tb.sv -Wno-fatal
+.PHONY: test-machine-z-combined-control-reset
+
 test-dam-control: $(HEADLESS_DIR)/dam-control/Vdam_control_tb
 	./$(HEADLESS_DIR)/dam-control/Vdam_control_tb
 $(HEADLESS_DIR)/dam-control/Vdam_control_tb: tests/dam_control_tb.sv ../rtl/x1_dam_control.sv Makefile

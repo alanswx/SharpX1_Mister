@@ -26,7 +26,8 @@ lint does not qualify every combination of the jointly enabled features.
 Read-only inspection of `misterubuntu` finds the authorized checkout clean at
 `a7e100731cae6eb450737d1a7a0ebb78c487f57e` and no active Quartus flow. The next
 step fast-forwards from the user's fork and starts the frozen-source native
-17.0 helper for this revision. The flow is now running, not terminal:
+17.0 helper for this revision. The full flow now finishes zero, but reports
+unmet timing requirements; it is not a hardware-qualified candidate:
 
 - Source `c3906aeda8b5d3b560e772579a3ee3424d4d46de`.
 - Frozen host folder `/home/alans/mister/SharpX1_Mister/output_files/quartus-linux-yoGgHbzg`.
@@ -35,18 +36,36 @@ step fast-forwards from the user's fork and starts the frozen-source native
 The first fetch fails before Quartus because the host calls the fork remote
 `origin`, not `alanswx`; its log is preserved separately. The retry fetches
 the explicit alanswx URL, verifies a clean checkout and expected commit, and
-checks no competing Quartus process before launching. Until the flow terminates
-successfully and reports/manifests are audited, no fitted resource/timing/RBF
-claim is made. Do not start supplemental STA while the full flow is active.
+checks no competing Quartus process before launching. The flow finishes at
+15:00:39 UTC after ten minutes seven seconds. Reports/RBF retrieval and
+source/constraints/path audit are in progress. A zero flow exit is not timing
+acceptance. Supplemental STA must wait for confirmed host-idle state.
 
 The exact jointly enabled video combination also builds a delay-aware C++
 runner successfully. Two original CPU-written custom/retained-reset pixel
-tests are running: 640x400 internal-eight and paired64 text-between-screens
+tests cover 640x400 internal-eight and paired64 text-between-screens
 with priority 12h/screen 1. Frozen runner/emitter/oracle/ANK source are under
 `verilator/obj_dir_headless/z-board-combined/qualification-CBgbK8/`, hashed
 before either run. Logs `/tmp/x1-z-board-combined-internal8.log` and
-`/tmp/x1-z-board-combined-paired-text.log`. These bounded tests are not yet
-accepted and cannot establish the full mode matrix or fitted hardware.
+`/tmp/x1-z-board-combined-paired-text.log`. Both finish zero and byte-compare
+their actual/expected frames exactly. Three-clock combined control/reset and
+disabled negative also pass; four more pixel cases are running. See
+[combined qualification](TURBO_Z_COMBINED_STATUS.md) for identities and scope.
+
+Analysis and synthesis succeeds at 14:52:00 UTC: 33,378 registers,
+3,192,734 block-memory bits, 32 DSPs and four PLLs. The report retains external,
+internal-eight and text palette/control hierarchy. These are synthesis counts,
+not final fitted resource acceptance. Static synthesis report and initial
+manifests are retrieved under `output_files/quartus-linux-yoGgHbzg/map-stage/`.
+Input-manifest hash `d2c2997791e136c79ab94b89dcd6f548beac20ab50606cd7c63e402138c1e73b`.
+
+Initial reported timing: worst setup **−14.815 ns** and recovery **−13.494 ns**;
+hold/removal/pulse minima are positive (0.190/1.170/0.529 ns). Several clocks
+have nonzero setup TNS. Do not mask these with broad false paths or treat the
+simulation passes as timing closure. Detailed failing-path, all-corner and
+unconstrained-I/O audits remain required. Generated-clock logging selects
+50 MHz ×189/(10×22), approximately 42.954545 MHz for VID; final reports still
+need inspection, and this is not a measured board clock.
 
 ```sh
 QUARTUS_REVISION=sharpx1_turbo_z_video bash scripts/build_quartus_linux.sh --build

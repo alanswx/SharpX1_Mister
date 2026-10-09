@@ -4,7 +4,7 @@
 package require ::quartus::project
 package require ::quartus::sta
 set revision [lindex $quartus(args) 0]
-if {$revision ni {sharpx1 sharpx1_single sharpx1_turbo_single sharpx1_turbo_video sharpx1_turbo_dma_single sharpx1_turbo_fm}} {
+if {$revision ni {sharpx1 sharpx1_single sharpx1_turbo_single sharpx1_turbo_video sharpx1_turbo_dma_single sharpx1_turbo_fm sharpx1_turbo_z_video}} {
     error "expected a checked-in Sharp X1 project revision"
 }
 project_open sharpx1 -revision $revision

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 // Original CPU-written priority/control crossing diagnostic. No private ROM.
 `timescale 1ps/1ps
-module z_priority_machine_cdc_tb #(parameter PRIORITY_CPU=1,INFLIGHT_RESET=0);
+module z_priority_machine_cdc_tb #(parameter PRIORITY_CPU=1,INFLIGHT_RESET=0,INTERNAL8=0);
     logic clk=0,video_clk=0,sys_run=1,video_run=1,reset=1;
     integer video_half=11640;
     always #15625 if(sys_run) clk=!clk;
@@ -12,7 +12,8 @@ module z_priority_machine_cdc_tb #(parameter PRIORITY_CPU=1,INFLIGHT_RESET=0);
     wire load_wait,halt_n;
     integer size=0;
     top #(.TURBO(1),.TURBO_VIDEO_MASTER(1),.TURBO_Z_PALETTE_CPU(1),
-          .TURBO_Z_VIDEO(1),.TURBO_Z_MULTIMODE(1),.TURBO_Z_TEXT_CPU(PRIORITY_CPU)) dut (
+          .TURBO_Z_VIDEO(1),.TURBO_Z_MULTIMODE(1),.TURBO_Z_TEXT_CPU(PRIORITY_CPU),
+          .TURBO_Z_INTERNAL8(INTERNAL8)) dut (
         .clk_sys(clk),.clk_28636(video_clk),.reset(reset),
         .ioctl_download(download),.ioctl_index(8'd0),.ioctl_wr(load),
         .ioctl_addr(address),.ioctl_dout(data),.ioctl_wait(load_wait),
@@ -191,7 +192,7 @@ module z_priority_machine_cdc_tb #(parameter PRIORITY_CPU=1,INFLIGHT_RESET=0);
             else $fatal(1,"no live-vs-captured priority changes exercised");
         if(PRIORITY_CPU) assert(excluded_mode_samples>0)
             else $fatal(1,"no excluded 640-line-width mode exercised");
-        $display("PASS real CPU priority CDC: 256 cold/warm values, held payload, both stopped clocks, retained IPL; video half=%0d ps",video_half);
+        $display("PASS real CPU priority CDC: 256 cold/warm values, held payload, both stopped clocks, retained IPL; video half=%0d ps internal8=%0d",video_half,INTERNAL8);
         $finish;
     end
 endmodule
