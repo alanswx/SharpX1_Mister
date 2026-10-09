@@ -22,7 +22,10 @@ input-preservation checks pass on the frozen ordinary fast runner
 [commercial evidence](COMMERCIAL_COMPATIBILITY.md). This is not native Turbo,
 Arcus/Bastard Special, delay-aware or new-RBF hardware acceptance. The earlier
 `9748410` checkpoint's Turbo single-clock RBF fits and passes all eight constrained
-timing corners; deployment/physical gates remain open.
+timing corners; deployment/physical gates remain open. The latest `0009dd1`
+Turbo single-clock refit also completes and passes all eight constrained
+corners, producing the identical RBF; SIO and Turbo Z remain disabled in it.
+Unconstrained I/O remains. See [the refit audit](SIO_MACHINE_STATUS.md#completed-source-bound-refit).
 
 The [DMA-build hardware feature matrix](HARDWARE_DMA_FEATURE_MATRIX_STATUS.md)
 records six exact 40/80-column graphics/text/PCG cases before and after warm

@@ -34,10 +34,13 @@ module machine_sio_tb #(parameter SIO_ENABLED=1, DMA_ENABLED=1);
     wire dma_read=dut.dma_owner && !dut.mreq && !dut.rd;
     wire dma_write=dut.dma_owner && !dut.mreq && !dut.wr;
     wire [1:0] observed_rx_tick;
+    wire observed_rx_busy;
     generate if(SIO_ENABLED) begin : serial_observation
         assign observed_rx_tick=dut.turbo_sio.rx_tick;
+        assign observed_rx_busy=dut.turbo_sio.device.channels[0].unit.rx_busy;
     end else begin : absent_serial_observation
         assign observed_rx_tick=0;
+        assign observed_rx_busy=0;
     end endgenerate
     always @(posedge clk) begin
         if(dut.core_reset) begin acks=0;returns=0;reads=0;writes=0;grants=0;end
@@ -104,7 +107,20 @@ module machine_sio_tb #(parameter SIO_ENABLED=1, DMA_ENABLED=1);
         for(integer i=0;i<8;i++) begin rxd[ch]=value[i];serial_events(ch,16);end
         rxd[ch]=1;serial_events(ch,32);
     endtask
-    task automatic run_native(input bit reset_nested);
+    task automatic reset_and_reboot;
+        assert(!dut.dma_owner && dut.dma_busrq_n)
+            else $fatal(1,"machine reset requires drained bus");
+        @(negedge clk);#1;reset=1;rxd=3;cts_n=3;
+        repeat(256) begin
+            tick();
+            assert(dut.core_reset && !dut.cpu_ce && !dut.pe4M4 &&
+                dut.sio_wait_n && !dut.sio_read_tail && !observed_rx_busy && !dut.sio_in_service &&
+                !dut.dma_in_service && dut.ctc.in_service==0)
+                else $fatal(1,"machine warm reset retained WAIT/tail/service or advanced CPU");
+        end
+        @(negedge clk);#1;reset=0;
+    endtask
+    task automatic run_native(input bit reset_nested,input bit reset_wait);
         wait(dut.RAM.mem[16'h4000]==1 && !dut.halt_n);
         assert(dut.RAM.mem[16'h4102]==4) else $fatal(1,"machine SIO programmed status/read failed");
         wait(dut.RAM.mem[16'h4000]==(DMA_ENABLED ? 8'h20 : 8'h10));
@@ -118,11 +134,7 @@ module machine_sio_tb #(parameter SIO_ENABLED=1, DMA_ENABLED=1);
             dut.RAM.mem[16'h4100]==8'hb6 && dut.RAM.mem[16'h4101]==8'ha5)
             else $fatal(1,"machine actual serial reads/nesting");
         if(reset_nested) begin
-            assert(!dut.dma_owner && dut.dma_busrq_n) else $fatal(1,"machine reset requires drained bus");
-            reset=1;repeat(256) tick();
-            assert(!dut.sio_in_service && !dut.dma_in_service && dut.ctc.in_service==0)
-                else $fatal(1,"machine warm reset retained service");
-            reset=0;
+            reset_and_reboot();
             $display("PASS shared machine serial nested warm reset; unchanged IPL reboot follows DMA=%0d",DMA_ENABLED);
         end else begin
             cts_n[0]=0;
@@ -131,6 +143,18 @@ module machine_sio_tb #(parameter SIO_ENABLED=1, DMA_ENABLED=1);
                 tick();assert(dut.a==16'h1f90 && !dut.rd && !dut.sio_wait_n &&
                     dut.RAM.mem[16'h4000]==8'h50)
                     else $fatal(1,"shared serial RX WAIT failed to hold actual CPU read");
+            end
+            if(reset_wait) begin
+                // Start a real partial frame while the CPU is stalled, then
+                // abort it through machine reset, not internal-state forcing.
+                @(negedge clk);#1;rxd[0]=0;serial_events(0,4);
+                assert(acks==(DMA_ENABLED ? 4 : 3) && returns==acks &&
+                    observed_rx_busy && !dut.sio_wait_n &&
+                    dut.RAM.mem[16'h4103]==8'h99)
+                    else $fatal(1,"machine stalled read committed before reset");
+                reset_and_reboot();
+                $display("PASS shared serial warm reset aborts CPU RX WAIT with stopped CE; retained IPL reboot DMA=%0d",DMA_ENABLED);
+                return;
             end
             receive(0,8'h53);
             wait(dut.RAM.mem[16'h4000]==8'haa && !dut.halt_n);repeat(1000) tick();
@@ -150,6 +174,7 @@ module machine_sio_tb #(parameter SIO_ENABLED=1, DMA_ENABLED=1);
         for(integer i=0;i<8192;i++) program_bytes[i]=0;
         emit(8'hf3);emit(8'h31);emit(0);emit(8'hff);
         load(8'h80);emit(8'hed);emit(8'h47);emit(8'hed);emit(8'h5e);
+        load(8'h99);store(16'h4103); // actual CPU sentinel for aborted WAIT read
         vector_entry(8'ha0,16'h0400);vector_entry(8'hc4,16'h0480);
         vector_entry(8'he4,16'h0500);vector_entry(8'hec,16'h0580);
         for(integer i=0;i<4;i++) begin load(8'h31+8'(i));store(16'h8000+16'(i));end
@@ -184,7 +209,7 @@ module machine_sio_tb #(parameter SIO_ENABLED=1, DMA_ENABLED=1);
             tick();assert(!upload_wait) else $fatal(1,"unexpected IPL upload wait");
         end
         @(negedge clk);#1;download=0;upload_wr=0;repeat(16) tick();reset=0;
-        run_native(1);run_native(0);$finish;
+        run_native(1,0);run_native(0,1);run_native(0,0);$finish;
     end
     initial begin #10000000000;$fatal(1,"machine SIO watchdog stage=%h ACK=%0d RETI=%0d",dut.RAM.mem[16'h4000],acks,returns);end
 endmodule

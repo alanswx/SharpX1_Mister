@@ -110,8 +110,8 @@ gameplay checks do not enable or establish native SIO/Turbo Z compatibility.
 
 Native two-phase CTC/SIO pin timing and CDC; broader short/channel/held-ACK/
 owned-SD reset phases; TX/Ready combinations and missing serial modes;
-pin-driven mouse/native software; enabled-profile serialization; current-source
-Quartus fit and available-board physical acceptance. Ordinary v15 baseline,
+pin-driven mouse/native software; enabled-profile serialization;
+enabled-SIO Quartus fit and available-board physical acceptance. Ordinary v15 baseline,
 fast/snapshot and fresh commercial qualifications are tracked separately;
 older v14 gameplay and fitted RBF evidence remain source-bound history.
 Work groups 1–6 and Turbo Z are not complete.
@@ -168,7 +168,64 @@ for `x1_sio_irq.sv`. A new clean, source-frozen refit of pushed
 `output_files/quartus-linux-WosvSRv1`. Input-manifest SHA-256 is
 `b0a1e93399051a5dc24266ad47de34974dca02b72ac0474b61729a398ca42006`.
 Analysis/synthesis now **passes**, zero errors/143 warnings, and the observed
-process is fitting. Log: `/tmp/x1-quartus-0009dd1-turbo-single.log`.
-Fit, full flow, all-corner timing and an updated retrieved RBF are not yet
-qualified. This revision still has SIO disabled; it does not synthesize or
+process was fitting at that observation. Log: `/tmp/x1-quartus-0009dd1-turbo-single.log`.
+The terminal results follow below. This revision still has SIO disabled; it does not synthesize or
 physically qualify an enabled serial connector. No MiSTer is accessed/loaded.
+
+## Completed source-bound refit
+
+The frozen `0009dd1` full Quartus 17.0.2 flow terminates successfully at
+`2026-10-09T12:11:21Z`, exit zero, 152 warnings. Fit uses 20,403/41,910 ALMs,
+32,028 registers, 393/553 RAM blocks and three of six PLLs. The retrieved
+artifact is `output_files/quartus-linux-WosvSRv1/source/output_files/sharpx1_turbo_single.rbf`.
+Its SHA-256 is
+`eaca279a7c137dd6b9cef50a3da2fbb793b558eced3c3177ebb5b454352a3e1d`,
+identical to the earlier fitted `f013d02` artifact. This establishes that the
+disabled SIO increment does not change this board bitstream, not that enabled
+serial hardware has been built or tested.
+
+Supplemental path reporting and explicit all-corner TimeQuest both terminate
+zero (`/tmp/x1-quartus-0009dd1-corners.log`). Independent inspection of all
+40 summary tables (eight models, five check types, 264 numeric rows) finds
+no negative slack or nonzero TNS. Minimum slack in ns across all models:
+setup 0.514, hold 0.064, recovery 4.078, removal 0.317, minimum pulse width 1.122.
+There are still three unconstrained input ports/seven paths and 44 unconstrained
+output ports/50 paths; this does **not** establish complete timing closure.
+
+The post-build input audit has 374 entries: 373 match and only `sharpx1.qpf`
+differs, after Quartus updates its revision/date metadata. The generated QPF
+SHA-256 is `f89a37b47bc401061b78cac7f19579c259002e48d64eddc2c932d36bfabb6bca`.
+The nonzero manifest-audit result is retained, not reported as a full pass.
+Full frozen sources remain on the build host; local ignored outputs preserve
+the reports, manifests, metadata and RBF, not a copy of every source input.
+No MiSTer was contacted or loaded. Native serial, Turbo Z and physical
+acceptance remain open.
+
+## Shared-machine reset during blocked receive
+
+The follow-up fixture runs three native executions per enabled model: nested
+service reset, reset during an empty-RX WAIT read, then complete receive and
+HALT. The actual CPU writes `99` to the destination before each execution.
+After 256 edges of confirmed stalled IN, a pin-driven partial start frame
+advances four accepted RX clocks; real channel RX-busy must be set, WAIT must
+remain asserted and the destination must still be `99`.
+
+Warm reset is then held for 256 SYS edges. Each edge checks stopped CPU/device
+CE, released WAIT, cleared read tail, cleared partial RX state and cleared
+SIO/DMA/CTC service. No device state is forced. Serial inputs return to idle
+and the CPU reboots the unchanged retained IPL without an upload. The final
+execution repeats real nesting and receives/stores a fresh `53`, with exact
+ACK/RETI/payload checks. Both DMA-present and DMA-absent models are required;
+the unchanged disabled-SIO negative still fails its programmed read check.
+
+This extends local functional reset acceptance, not actual OSD dispatch,
+owned DMA/SD reset, physical pin clocks, short-reset or enabled-SIO snapshots.
+Machine RTL and snapshot version are unchanged.
+
+`make -C verilator test-machine-sio HEADLESS_DIR=obj_dir_v15_sio_machine`
+terminates zero with seven PASS reports in
+`/tmp/x1-v15-machine-sio-reset-wait-partial.log` (Verilator 5.044).
+The extended fixture SHA-256 is
+`92402f6892ba4664b1a6ddeb26baee4d5fac0a056d9414981a3f83bcf71f46c5`;
+the earlier fixture hash above remains historical. SYS=32 MHz,
+VID=28.571428 MHz and synchronous external A=1 MHz are unchanged.

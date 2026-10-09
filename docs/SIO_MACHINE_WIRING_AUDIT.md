@@ -1,5 +1,10 @@
 # SIO machine-wiring audit and integration gates
 
+Current follow-up: [opt-in shared-machine functional routing](SIO_MACHINE_STATUS.md)
+uses the traced CZ-851 event routes. Its dependencies are now in `machine.qip`.
+The standalone observations below remain historical; native CTC pulse phases,
+CZ-880 routing and physical serial/mouse qualification remain open.
+
 October 9, 2026. Schematic/source research and standalone clock-route tests,
 not connected machine RTL,
 native serial/mouse acceptance or physical timing signoff.

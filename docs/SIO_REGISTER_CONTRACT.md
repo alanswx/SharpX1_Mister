@@ -1,5 +1,10 @@
 # SIO implementation contract — research, not a device
 
+Current follow-up: the [default-off shared-machine SIO subset](SIO_MACHINE_STATUS.md)
+now executes generated IPL-driven CPU/RX/IRQ/WAIT/reset diagnostics. The
+October 5 observations below describe the earlier checkpoint, not today's
+integration state. Native clock/pin/software and full-device gates remain open.
+
 October 5, 2026. The active shared machine has no connected SIO implementation.
 A subsequent [standalone polled asynchronous slice](SIO_ASYNC_STATUS.md) passes
 108 dual-channel 5–8-bit N/E/O formats and original pin/FIFO/collision tests;

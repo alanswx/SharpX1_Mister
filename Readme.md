@@ -43,7 +43,7 @@ The [CZ-851 selector audit](docs/SIO_MACHINE_WIRING_AUDIT.md) now adds verified
 DTRB polarity/source switching and documents the differing CZ-880 drawing;
 CZ-851 CTC1-to-A-alternate and CTC2-to-B routes are now traced and tested with
 distinct-rate real CTC/SIO diagnostics. Physical pulse width, pin CDC, CZ-880
-routing and shared-machine integration remain open. Native clock acceptance
+routing and native shared-machine qualification remain open. Native clock acceptance
 also needs the [two-phase CTC contract](docs/CTC_PIN_TIMING_AUDIT.md):
 native ZC output release follows a falling clock, not the next rising CE.
 Strengthened experimental Z graphics, paired-text and single-text matrices
@@ -363,10 +363,12 @@ After shared SIO integration, [both complete ordinary v15 suites](docs/BASELINE_
 and fresh v15 native boot/gameplay qualification of all five titles pass again.
 The serial profile remains off in that ordinary game runner; generated enabled
 SIO diagnostics are qualified separately, not by those game results.
-The [latest fitted Turbo single-clock RBF](output_files/quartus-linux-xsC7rEDR/sharpx1_turbo_single.rbf)
+The [latest fitted Turbo single-clock RBF](output_files/quartus-linux-WosvSRv1/source/output_files/sharpx1_turbo_single.rbf)
 now builds on Quartus 17.0.2 and passes all eight constrained timing corners;
 [source/hash and exclusions](docs/HARDWARE_126_STATUS.md) are recorded separately.
-It binds `f013d02`, predates the shared serial increment, and has SIO disabled.
+It binds `0009dd1` and is byte-identical to the earlier `f013d02` artifact;
+the shared serial increment remains disabled in this board profile.
+See [the current refit audit](docs/SIO_MACHINE_STATUS.md#completed-source-bound-refit).
 It is not deployed or hardware-qualified and does not enable Z/X3/DMA/Kanji/SIO/FM.
 
 The headless simulator has been compiled with Verilator 5.044 on macOS.
