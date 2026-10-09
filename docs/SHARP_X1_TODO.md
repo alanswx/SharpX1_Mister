@@ -250,7 +250,12 @@ including real SIO DTRB writes in the 36 CTC/SIO profiles. The enlarged CZ-880
 scan shows a different/possibly mislabelled alternate input route; the
 [updated wiring audit](SIO_MACHINE_WIRING_AUDIT.md) withdraws the previous
 common-internal-source implication. Finish that native model distinction,
-upstream routing and pin CDC before connecting the shared machine.
+pin waveform and CDC before connecting the shared machine. Subsequent
+contiguous CZ-851 sheet-1 tracing now establishes CTC1-to-A-alternate and
+CTC2-to-B. The original route module passes 128 exhaustive net truth cases
+and 36 real distinct-rate CTC/SIO profiles, including stopped-CTC1 A isolation
+with B continuing. This resolves earlier-board routing, not native pulse width,
+CZ-880 routing, shared CPU/daisy integration or full work group 1/Z7.
 The new standalone [DMA service engine](DMA_SERVICE_STATUS.md) passes 4,096
 arbitration and 2,048 status-vector cases, plus twelve connected CPU/DMA
 completion/IM2/RETI profiles. Native

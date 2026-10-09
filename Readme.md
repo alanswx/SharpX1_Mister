@@ -27,7 +27,9 @@ queue tests and real CTC/SIO diagnostics pass. Native clock selection, pin CDC,
 machine integration and serial/mouse acceptance remain open.
 The [CZ-851 selector audit](docs/SIO_MACHINE_WIRING_AUDIT.md) now adds verified
 DTRB polarity/source switching and documents the differing CZ-880 drawing;
-upstream native clock routes remain unresolved. Strengthened experimental Z
+CZ-851 CTC1-to-A-alternate and CTC2-to-B routes are now traced and tested with
+distinct-rate real CTC/SIO diagnostics. Physical pulse width, pin CDC, CZ-880
+routing and shared-machine integration remain open. Strengthened experimental Z
 graphics, paired-text and single-text matrices now pass 24/12/16 cold/warm
 cases respectively; see the [graphics](docs/TURBO_Z_PAIRED_VIDEO_STATUS.md),
 [paired text](docs/TURBO_Z_TEXT_COMPOSITION_STATUS.md) and

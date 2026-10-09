@@ -13,6 +13,10 @@ channels 1/2 receive 2 MHz; channel 0 ZC/TO feeds channel 3. The clock is the
 inverted CPU clock. SIO/DMA precede CTC, and CTC IEO qualifies the downstream
 keyboard interrupt/acknowledge. With SIO/DMA absent, **CTC precedes keyboard**.
 The parent inspected the rendered chain and keyboard qualification details.
+The later [contiguous SIO route audit](SIO_MACHINE_WIRING_AUDIT.md#end-to-end-cz-851-ctc-routes-and-connected-diagnostic)
+also traces CTC1 ZC/TO to A's alternate clock and CTC2 ZC/TO to B's shared
+clock. Standalone distinct-rate transport tests pass; physical ZC pulse width
+and connected shared-machine SIO remain open.
 
 MAME uses keyboard-first ordering; the legacy X1 RTL agrees with the schematic.
 MAME's keyboard has no in-service state, and X Millennium excludes keyboard

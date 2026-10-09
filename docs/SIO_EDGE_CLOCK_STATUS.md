@@ -69,6 +69,12 @@ The subsequent [CZ-851 selector checkpoint](SIO_MACHINE_WIRING_AUDIT.md#numbered
 adds 16 pin-level truth cases and extends all 36 CTC/SIO profiles with real
 B WR5/DTRB source switching. The original command evidence above remains
 historical; `/tmp/x1-sio-selector-all.log` is the terminal extended result.
+The subsequent [end-to-end route checkpoint](SIO_MACHINE_WIRING_AUDIT.md#end-to-end-cz-851-ctc-routes-and-connected-diagnostic)
+traces CZ-851 CTC1 to A's alternate input and CTC2 to B. Its 128 routing truth
+cases and all 36 distinct-rate CTC/SIO profiles terminate zero in
+`/tmp/x1-sio-routes-final.log`; the earlier shared-source recipe remains
+historical, not proof of native routing. Pin waveform qualification, CZ-880
+differences and shared-machine integration remain open.
 
 Finish native internal clock routes/LS157 selection, external pin CDC and
 model-specific inputs. Then default-disabled machine decode, real CPU daisy

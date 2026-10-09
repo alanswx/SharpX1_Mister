@@ -1,6 +1,7 @@
 # SIO machine-wiring audit and integration gates
 
-October 9, 2026. Schematic/source research, not connected machine RTL,
+October 9, 2026. Schematic/source research and standalone clock-route tests,
+not connected machine RTL,
 native serial/mouse acceptance or physical timing signoff.
 
 ## Sources actually inspected
@@ -49,18 +50,18 @@ identical spare modem inputs or phase conditioning.
 | C/D, B/A | CZ-880 SIO pins 33/34 are labelled AB0/AB1; CZ-851 corresponding shared bus wiring | Preserve A data/control then B data/control. Local MAME maps `1F90..93`; exact ASIC aliases still need evidence |
 | CLOCK | CZ-880 SIO pin 20 is on the labelled `4MHz` net; CZ-851 pin 20 joins CPU clock circuitry, with CTC phase inversion conditioned separately | Use a system-clock enable for the chip rate, not a new fabric clock. Document actual enabled frequency and sampling phase per profile |
 | A TX/RX clocks | CZ-851 IC51 and CZ-880 IC15 LS157 outputs 1Y/2Y feed SIO TxCA/RxCA pins 14/13. External ST2/RT pass through 75189A receivers into 1A/2A | Model separate RX rising / TX falling events. Do not substitute one arbitrary fixed baud generator or assume external clocks always selected |
-| Clock selection | SIO DTRB pin 25 drives LS157 select; G pin 15 is grounded. CZ-851 pins 3/6 share a separately routed alternate net; the CZ-880 drawing instead appears to tie these to received RT | B DTR is also a board clock-control bit. Use numbered pins, preserve the model/drawing discrepancy and finish the end-to-end source audit; do not assume a common internal source on both boards |
-| B RX/TX clock | SIO/0 pin 27 is the shared RxTxCB clock; CTC ZC/TO routing is visible across adjoining sheets | Trace the cross-sheet source and width/phase; a one-master-edge CTC event is not automatically a native clock level |
+| Clock selection | SIO DTRB pin 25 drives LS157 select; G pin 15 is grounded. CZ-851 pins 3/6 trace to CTC ZC/TO1 pin 8; the CZ-880 drawing instead appears to tie these to received RT | B DTR is also a board clock-control bit. Use numbered pins and preserve the model/drawing discrepancy; do not assume a common internal source on both boards |
+| B RX/TX clock | CZ-851 SIO/0 RxTxCB pin 27 traces to CTC ZC/TO2 pin 9. CZ-880 cross-sheet source remains unresolved | Qualify width/phase; a one-master-edge CTC event is not automatically a native clock level |
 | A serial/modem | RD/CS/DR connector signals pass through 75189A receivers to RxDA/CTSA/DCDA; TxDA/RTSA/DTRA pass through 75188 drivers | Distinguish TTL input polarity from RS-232 voltages. Never connect raw FPGA pins to RS-232 electrical levels |
 | B mouse controls | CZ-880 MS connector CTRL routes through LS07 from RTSB; TD routes through LS367A to RxDB. B TxDB is shown without an external routed connection on this sheet | Add an actual mouse protocol/pin source; a helper that directly inserts three FIFO bytes does not qualify serial timing or native mouse behavior |
 | B carrier inputs | CZ-880 CI/CD receiver paths feed CTSB/DCDB. The older CZ-851 CTSB drawing instead runs to the grounded connector-side net | Preserve model-specific idle/modem policies. Do not silently tie both channels' CTS/DCD to one guessed constant |
 | WAIT/Ready | CZ-880 W/RDYA/W/RDYB pins 10/30 are drawn as short unconnected stubs on the inspected sheet; no SIO-to-DMA Ready net is traced | Keep generic standalone SIO/DMA flow experiments distinct. Do not invent a native direct Ready connection because the chip supports one |
 | IRQ/chain | CZ-880 INT pin 5 is SYSINT; IEI pin 6 is EXIEI and IEO pin 7 is SIOIEO. CZ-851 sheets 1/5 and legacy support SIO upstream of DMA/CTC/keyboard | Extend explicit ACK/RETI ownership, not just OR another IRQ into the CPU. Verify model-specific conditioning and downstream blocking |
 
-The clock-selector endpoints and LS157 polarity are established; exact source
-routing, the CZ-880 drawing discrepancy, scan seams and physical phases remain open. Do not
-turn the likely CTC channel assignment into a confirmed netlist simply from
-the conventional use of CTC channels 1/2. The ASIC supplies SIOCE, but the
+The CZ-851 clock-source routes and LS157 polarity are now traced; the CZ-880
+drawing discrepancy/source routing and physical phases remain open. CTC1/2
+assignment below is based on visible paths, not conventional channel use or
+MAME's unconnected SIO callbacks. The ASIC supplies SIOCE, but the
 schematic exposes its inputs/outputs, not its complete internal alias decode.
 Native `1F90..93` is the conservative local-emulator/software contract, not
 proof of every hardware mirror. Adjacent `1F94..97` and external `1F98..9F`
@@ -92,10 +93,61 @@ the nine queue-oracle profiles). No new warning suppression is used.
 These are standalone diagnostics, not native CTC routing or shared-machine
 integration; the current RBF and v14 snapshots remain unchanged.
 
+### End-to-end CZ-851 CTC routes and connected diagnostic
+
+A subsequent sheet-1 trace follows both nets in contiguous enlarged views:
+`/tmp/x1-851-alternate-vertical.png`, `/tmp/x1-851-alternate-horizontal.png`,
+`/tmp/x1-851-clock-left.png` and `/tmp/x1-851-clock-right.png`. The latter pair
+uses adjoining crops of the same scale/vertical range, not assumed alignment
+between separate drawings. The joined selector 1B/2B net rises from its two
+marked junctions, crosses right, turns down and then across/up to CTC IC53
+ZC/TO1 **pin 8**. SIO IC52 RxTxCB **pin 27** follows the separate horizontal
+route and turns up to CTC ZC/TO2 **pin 9**. Crossings without junction dots
+are not treated as connections. This resolves the earlier-board assignment:
+
+| Source | Destination |
+|---|---|
+| CTC1, ZC/TO1 pin 8 | LS157 IC51 1B/2B pins 3/6, selected for A when DTRB level is high |
+| CTC2, ZC/TO2 pin 9 | SIO IC52 shared channel-B RxTxCB pin 27 |
+| External ST2/RT after receivers | LS157 1A/2A pins 2/5, selected for A when DTRB level is low |
+
+Original `rtl/x1_sio_clocks_851.sv` encodes these nets with caller-supplied
+clock levels. It is not in `machine.qip` and does not manufacture physical
+CTC pin widths from the existing one-master-edge ZC event.
+
+The revised `test-sio-clock-select` passes 16 selector plus 128 exhaustive
+CTC0/1/2/3/external/DTRB routing truth cases. `test-sio-ctc-clock` now programs
+real CTC0/1/2 timers with different constants 1/2/3. CTC0 supplies explicit
+**external diagnostic** pulses, not native connector wiring. B receives from
+CTC2 independently of A. Real SIO register writes select CTC1 for A, then a
+real CTC1 software reset stops A while B's CTC2 events demonstrably continue;
+reasserting DTRB restores the external diagnostic source. Distinct A/B bytes,
+exact x16 8N1 TX ticks/full stop, held reads and stopped-enable reset pass all
+36 master-label/CE/phase profiles. TX is checked at both the external
+diagnostic CTC0 rate and the selected internal CTC1 rate, not just idle levels.
+The bypass negative uses these same routed
+clock levels and fails specifically on lost events, not swapped wiring.
+
+Terminal exit zero, Verilator 5.044, `/tmp/x1-sio-routes-final.log`, 48 PASS
+messages including the nine unchanged event-queue oracle profiles. No warning
+suppression is added. The earlier common-CTC0 and selector-only logs remain
+historical narrower diagnostics. No private asset, shared machine, snapshot
+or fitted RBF is changed.
+All fourteen existing SIO targets also terminate zero after this increment,
+87 PASS messages in `/tmp/x1-sio-routes-existing.log` on the unchanged engine.
+
+Next qualify actual CTC pulse width/phase and external pin CDC, then connect
+the earlier-board profile with real CPU decode/daisy/reset ownership. The
+inspected UM0081 CTC description confirms active-high terminal pulses and
+timer periods, but that prose alone does not establish physical pulse width.
+Counter input synchronization/clock phase also remains a separate native gate.
+Resolve CZ-880's differing drawing before adopting these nets for Turbo Z.
+
 ## Next implementation sequence and concrete tests
 
-1. Finish the internal clock source/LS157 selection and model-specific idle
-   contract using cross-sheet traces and original programming documentation.
+1. CZ-851 internal sources/LS157 selection are now traced and tested. Finish
+   physical pulse/phase, CZ-880 routing and model-specific idle contracts
+   using original documentation and model-specific evidence.
    Preserve unsupported x1/synchronous/break behavior; optional diagnostics
    cannot enable a fake complete-Turbo signature.
 2. The original [clock-level-to-enable adapter](SIO_EDGE_CLOCK_STATUS.md) now

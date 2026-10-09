@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-// Original diagnostic coupling, NOT the native X1 clock netlist. Both SIO
-// channels use CTC channel 0 so separate native channel routes are not guessed.
+// Original diagnostic coupling using traced CZ-851 CTC1/2 net routing.
+// CTC0 supplies explicit external diagnostic pulses, not native default wiring.
+// x1_ctc's one-master-edge ZC events are NOT qualified physical pin widths.
 module sio_ctc_clock_tb;
     timeunit 1ps; timeprecision 1ps;
     reg clk=0,reset=1,ce=0,pause=0;
@@ -8,25 +9,26 @@ module sio_ctc_clock_tb;
     time half_period;
     reg wr=0;
     reg [7:0] din=0;
+    reg [1:0] ctc_channel=0;
     wire [7:0] dout,vector;
     wire irq,ieo;
     wire [3:0] zc;
-    x1_ctc ctc(.clk(clk),.reset(reset),.ce(ce),.wr(wr),.channel(2'b00),
+    x1_ctc ctc(.clk(clk),.reset(reset),.ce(ce),.wr(wr),.channel(ctc_channel),
         .din(din),.dout(dout),.trigger(4'b0000),.iei(1'b1),.irq(irq),
         .ieo(ieo),.ack(1'b0),.reti(1'b0),.vector(vector),.zc(zc));
     reg [1:0] rxd=3;
-    wire selected_rx_a,selected_tx_a;
-    x1_sio_clock_select_851 selector(.dtr_b_n(dtr_n[1]),
-        .external_rx_clock(zc[0]),.external_tx_clock(zc[0]),.alternate_clock(1'b0),
-        .rx_clock_a(selected_rx_a),.tx_clock_a(selected_tx_a));
+    wire [1:0] selected_rx,selected_tx;
+    x1_sio_clocks_851 routing(.dtr_b_n(dtr_n[1]),
+        .external_rx_clock(zc[0]),.external_tx_clock(zc[0]),.ctc_clock(zc),
+        .rx_clock(selected_rx),.tx_clock(selected_tx));
     wire [1:0] rx_tick,tx_tick,sampled_rxd,rx_overflow,tx_overflow;
     bit direct=0;
-    reg last_zc=0;
-    always @(posedge clk) last_zc<=zc[0];
-    wire [1:0] used_rx_tick=direct ? {2{ce && zc[0] && !last_zc}} : rx_tick;
-    wire [1:0] used_tx_tick=direct ? {2{ce && !zc[0] && last_zc}} : tx_tick;
+    reg [1:0] last_rx_clock=0,last_tx_clock=0;
+    always @(posedge clk) begin last_rx_clock<=selected_rx;last_tx_clock<=selected_tx;end
+    wire [1:0] used_rx_tick=direct ? ({2{ce}} & selected_rx & ~last_rx_clock) : rx_tick;
+    wire [1:0] used_tx_tick=direct ? ({2{ce}} & ~selected_tx & last_tx_clock) : tx_tick;
     x1_sio_edge_clock adapter(.clk(clk),.reset(reset),.ce(ce),
-        .rx_clock({zc[0],selected_rx_a}),.tx_clock({zc[0],selected_tx_a}),.rxd(rxd),
+        .rx_clock(selected_rx),.tx_clock(selected_tx),.rxd(rxd),
         .rx_tick(rx_tick),.tx_tick(tx_tick),.sampled_rxd(sampled_rxd),
         .rx_overflow(rx_overflow),.tx_overflow(tx_overflow));
     reg cpu_cs=0,cpu_rd_n=1,cpu_wr_n=1;
@@ -84,11 +86,11 @@ module sio_ctc_clock_tb;
         repeat(3) begin accepted(); assert(cpu_dout==expected) else $fatal; end
         cpu_cs=0;cpu_rd_n=1;accepted();
     endtask
-    task automatic serial_ticks(input integer count);
+    task automatic serial_ticks(input integer count,input bit channel=0);
         integer target,waited;
-        target=rx_events+count;
+        target=(channel ? rx_events_b : rx_events)+count;
         waited=0;
-        while(rx_events<target) begin
+        while((channel ? rx_events_b : rx_events)<target) begin
             step();waited++;
             assert(waited<20000) else $fatal(1,"CTC/SIO clock test missed RX events");
         end
@@ -106,24 +108,45 @@ module sio_ctc_clock_tb;
             put({1'(ch),1'b1},5);put({1'(ch),1'b1},8'hea);
         end
         // Timer, /16 prescaler, constant follows, software reset then start.
-        wr=1;din=8'h07;step();din=1;step();wr=0;
+        // Deliberately different rates expose swapped CTC1/2 or shared clocks.
+        for(integer ch=0;ch<3;ch++) begin
+            ctc_channel=2'(ch);wr=1;din=8'h07;step();din=8'(ch+1);step();wr=0;
+        end
         monitor_tx=1;put(0,8'ha5);
-        rxd=0;serial_ticks(16);
+        rxd=2;serial_ticks(16);
         for(integer b=0;b<8;b++) begin
-            rxd={1'((32'h3c>>b)&1),1'((32'h96>>b)&1)};serial_ticks(16);
+            rxd[0]=1'((32'h96>>b)&1);serial_ticks(16);
         end
         rxd=3;serial_ticks(32);
+        rxd[1]=0;serial_ticks(16,1);
+        for(integer b=0;b<8;b++) begin
+            rxd[1]=1'((32'h3c>>b)&1);serial_ticks(16,1);
+        end
+        rxd=3;serial_ticks(32,1);
         get(0,8'h96);get(2,8'h3c);
         while(!completed) step();
         put(1,1);get(1,1); // RR1 all sent, no receive errors.
         // Real B WR5 writes drive DTRB's output level into the board selector.
-        // The unselected alternate clock is deliberately stopped. B retains
-        // its independent CTC clock, not channel A's selected source.
+        // Select the traced internal CTC1 source while CTC0/2 keep running.
         put(3,5);put(3,8'h6a);
+        repeat(period*2)step();before_events=rx_events;
+        repeat(period*128) begin
+            step();
+            assert(selected_rx[0]==zc[1] && selected_tx[0]==zc[1] &&
+                   selected_rx[1]==zc[2] && selected_tx[1]==zc[2]) else $fatal;
+        end
+        assert(rx_events>before_events && dtr_n[1]) else $fatal;
+        // Qualify a complete transmit frame at the traced internal rate too,
+        // not just the presence of selected clock levels or idle RX events.
+        started=0;completed=0;tx_events=0;put(0,8'ha5);
+        while(!completed)step();
+        put(1,1);get(1,1);
+        // Stop only the actual CTC1 timer: A must stop, B must continue.
+        ctc_channel=1;wr=1;din=8'h03;step();wr=0;
         repeat(period*2)step();before_events=rx_events;before_events_b=rx_events_b;
         repeat(period*64) begin
             step();
-            assert(!rx_tick[0] && !tx_tick[0] && !selected_rx_a && !selected_tx_a)
+            assert(!rx_tick[0] && !tx_tick[0] && !selected_rx[0] && !selected_tx[0])
                 else $fatal(1,"DTRB deassertion did not select stopped alternate clock");
         end
         assert(rx_events==before_events && rx_events_b>before_events_b && dtr_n[1])
