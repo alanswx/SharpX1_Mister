@@ -507,6 +507,23 @@ directory and fails the intended pipeline assertion with verified exit 1:
 `/tmp/x1-hdmi-handoff-raw-negative-reset-v5.log`. The default 72-case static
 policy and wrong-clock negative also pass their existing regression.
 
+To reproduce the native reset matrix with an installed Intel ModelSim and
+already provisioned ABI5 dependencies (no installation/download performed):
+
+```sh
+bash scripts/run_hdmi_handoff_reset_native.sh /path/to/modelsim_ase/linuxaloem /path/to/abi5/dependencies
+```
+
+The runner freezes its three inputs in a unique ignored output directory,
+requires every native process to succeed, and applies the independent matrix/
+source/warning auditor. This remains helper qualification, not board acceptance.
+
+The corrected `d8f7024` revision is pushed to alanswx. Its fresh full-board flow
+starts in `output_files/quartus-linux-t5zgQgO6/source`, log
+`/tmp/x1-quartus-d8f7024-z-handoff.log`, with live mapping confirmed. No terminal
+flow, new timing or hardware result is claimed yet; the preceding completed
+flow and additive reports remain preserved.
+
 ## Next gates
 
 1. Establish an actually supported mode-sensitive STA method or a narrow
