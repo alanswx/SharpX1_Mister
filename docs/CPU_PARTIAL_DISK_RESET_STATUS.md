@@ -1,5 +1,49 @@
 # CPU partial-sector reset with live FM
 
+## Current boundary qualification
+
+The subsequent extension accepts `PARTIAL_BYTES` only from 1 through 255 and
+rejects unrelated host-capture phase/stage/split selectors for the CPU profile.
+All **24 cases** at 1/64/255 bytes, A/B, read/write and held/2 ns reset finish
+with exit zero. The unchanged whole-image/no-publication and actual CPU retry
+assertions remain required. Totals are 257/320/511 CPU payload strobes in the
+selected direction, zero in the other, and zero DMA grants/pairs. This includes
+the first byte and the last byte before full-sector completion; it is not every
+byte, Ready-loss or exact hardware timing acceptance.
+
+```sh
+make -C verilator test-machine-cpu-partial-boundaries
+```
+
+Executed qualification uses the equivalent three eight-case targets, in
+parallel on one pre-hashed executable, with `CPU_PARTIAL_BYTES=1/64/255` and
+`HEADLESS_DIR=obj_dir_headless/cpu-boundaries-final`. Logs:
+`/tmp/x1-cpu-boundaries-{1,64,255}-qualified.log`. All three processes terminate
+zero; an independent audit requires 24 distinct profile tuples without
+duplicates. Final pre/post source/executable hashes match:
+
+| Artifact | SHA-256 |
+|---|---|
+| Boundary fixture | `5e7d24f0863a055050d484d045f5048ba62c1859c716a222bb78aae40d4c690c` |
+| Shared machine | `ddb49969b0c4e3cb0000c0aaac434c175e841e4dfa8c99f14b8c2f568e333b67` |
+| Boundary executable | `0a60f6cd24d533332ac86c83a6af7c64a2e6e7ae75aaf6c7b33c38fdbab3e665` |
+
+An initial complete 24-case run also passes (`*-final.log`), but its counter
+expressions expose two fixture width warnings. Explicit 64-bit operands remove
+them without suppression; the rebuilt executable is byte-identical. The full
+final qualification above nevertheless reruns all 24 cases. Inherited machine
+warnings remain. Invalid byte counts 0/256 and host phase 1 fail specifically
+at `invalid partial CPU reset profile` on the final executable; they cannot
+silently select the default test or duplicate a host-capture case.
+
+The following eight-case checkpoint remains historical, bound to its earlier
+fixture/executable. Production RTL, snapshot v17 and FPGA revisions remain
+unchanged by the boundary extension. The serial composite Make target is a
+reproducible interface; its three component recipes, not the composite launch,
+provide the executed full-matrix evidence above.
+
+## Earlier 64-byte checkpoint
+
 October 9, 2026. An explicit `CPU_PARTIAL=1` extension of the original
 generated-media SD reset fixture exercises actual CPU IN/OUT payload cycles,
 not DMA transfers. Production RTL, v17 snapshots and board revisions are

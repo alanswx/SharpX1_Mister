@@ -39,6 +39,7 @@ module dma_machine_sd_reset_tb #(parameter DMA_IRQ = 0, FM_ENABLED = 0, CPU_PART
     // 0 payload, 1 first metadata read, 2 first published metadata write,
     // 3 second (CRC) read, 4 second published CRC write.
     integer capture_stage=0, sector_offset=688;
+    integer partial_bytes=64;
     reg [23:0] image_size=960;
     reg captured=0, release_host=0, drained=0;
     reg captured_ack_drained=0;
@@ -157,7 +158,7 @@ module dma_machine_sd_reset_tb #(parameter DMA_IRQ = 0, FM_ENABLED = 0, CPU_PART
         return 8'((drive_b ? 32'h93 : 32'h21)+i*7);
     endfunction
     task automatic partial_cpu_reset;
-        wait((writing ? dut.cpu_fdc_data_writes : dut.cpu_fdc_data_reads)==64);
+        wait((writing ? dut.cpu_fdc_data_writes : dut.cpu_fdc_data_reads)==64'(partial_bytes));
         wait(dut.machine.iorq); // Complete the actual IN/OUT strobe, not just its observation.
         assert(dut.machine.fdc.s_busy && !dut.machine.fdc.sd_busy && !sd_wr && !sd_rd &&
                dut.dma_grants==0 && dut.dma_reads==0 && dut.dma_writes==0)
@@ -172,7 +173,7 @@ module dma_machine_sd_reset_tb #(parameter DMA_IRQ = 0, FM_ENABLED = 0, CPU_PART
         repeat(80) begin
             @(negedge clk_sys);
             if(!short_reset) assert(!dut.machine.cpu_ce && !dut.machine.fdc.ce);
-            assert((writing ? dut.cpu_fdc_data_writes : dut.cpu_fdc_data_reads)==64 &&
+            assert((writing ? dut.cpu_fdc_data_writes : dut.cpu_fdc_data_reads)==64'(partial_bytes) &&
                    dut.dma_reads==0 && dut.dma_writes==0 && !sd_wr)
                 else $fatal(1,"aborted partial CPU payload progressed/published");
         end
@@ -180,15 +181,15 @@ module dma_machine_sd_reset_tb #(parameter DMA_IRQ = 0, FM_ENABLED = 0, CPU_PART
         reset=0;wait(!dut.machine.halt_n);
         assert(dut.machine.RAM.mem[16'hf100]==2 && dut.machine.RAM.mem[16'hf101]==8'ha5 &&
                dut.dma_grants==0 && dut.dma_reads==0 && dut.dma_writes==0 &&
-               dut.cpu_fdc_data_reads==(writing ? 0 : 320) &&
-               dut.cpu_fdc_data_writes==(writing ? 320 : 0))
+               dut.cpu_fdc_data_reads==(writing ? 64'd0 : 64'(partial_bytes)+64'd256) &&
+               dut.cpu_fdc_data_writes==(writing ? 64'(partial_bytes)+64'd256 : 64'd0))
             else $fatal(1,"partial CPU reboot/payload/count failure entry=%h result=%h reads=%0d writes=%0d",
                 dut.machine.RAM.mem[16'hf100],dut.machine.RAM.mem[16'hf101],
                 dut.cpu_fdc_data_reads,dut.cpu_fdc_data_writes);
         verify_media(1);
         if(FM_ENABLED) assert(fm_seen && psg_seen && fm_ct==3 && !dut.machine.fm_irq_n)
             else $fatal(1,"partial CPU reboot failed to restore sound/timer");
-        $display("PASS partial CPU sector reset drive=%0d write=%0d short=%0d FM=%0d: 64 aborted bytes, unchanged pre-retry media, 256 fresh bytes, retained IPL",drive_b,writing,short_reset,FM_ENABLED);
+        $display("PASS partial CPU sector reset drive=%0d write=%0d short=%0d FM=%0d bytes=%0d: unchanged pre-retry media, 256 fresh bytes, retained IPL",drive_b,writing,short_reset,FM_ENABLED,partial_bytes);
     endtask
 
     // Independent host. Reset freezes CPU/FDC enables, not the SD ACK clock.
@@ -241,6 +242,10 @@ module dma_machine_sd_reset_tb #(parameter DMA_IRQ = 0, FM_ENABLED = 0, CPU_PART
         if(!$value$plusargs("CAPTURE_STAGE=%d",stage_arg)) stage_arg=0;
         if(!$value$plusargs("SHORT_RESET=%d",pulse_arg)) pulse_arg=0;
         if(!$value$plusargs("SPLIT_HEADER=%d",split_arg)) split_arg=0;
+        if(!$value$plusargs("PARTIAL_BYTES=%d",partial_bytes)) partial_bytes=64;
+        if(CPU_PARTIAL) assert(partial_bytes>0 && partial_bytes<256 &&
+            phase_arg==0 && stage_arg==0 && split_arg==0)
+            else $fatal(1,"invalid partial CPU reset profile");
         assert((writing_arg==0 || writing_arg==1) && (phase_arg==0 || phase_arg==1) &&
                (drive_arg==0 || drive_arg==1) && (pulse_arg==0 || pulse_arg==1) &&
                (split_arg==0 || split_arg==1) && stage_arg>=0 && stage_arg<=4 &&
