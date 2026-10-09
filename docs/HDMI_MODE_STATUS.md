@@ -721,6 +721,35 @@ The new controller hash is
 prior native/fitted results stay historical. Fresh native reset qualification
 and a source-bound full build are next.
 
+The fresh native runner subsequently completes **all 96** ordered reset
+phase/rate/readiness profiles, explicit completion gates and independent
+current-source/before-after hash checks. Host evidence is
+`output_files/hdmi-native-reset-BgTnTzWF`; log
+`/tmp/x1-hdmi-handoff-noreplicate-reset-8685be0-native.log`.
+The initial legacy `bin` wrapper cannot locate its old `linux_rh60/vlib` and
+is not counted; the actual run uses installed `linuxaloem` binaries and
+existing verified ABI5 dependencies, with no installation or library changes.
+
+Six fresh extracted actual-policy profiles also complete zero in
+`output_files/hdmi-policy-noreplicate-d8xnd0m0`; log
+`/tmp/x1-hdmi-policy-noreplicate-8685be0.log`. Independent
+`scripts/audit_hdmi_handoff_policy_runs.py` checks all ordered profiles,
+completion/warning summaries, frozen before/after controller/fixture/bench/
+macro hashes and the actual framework hash embedded in the fixture. It
+confirms **4,994 exact words**, **198 first-edge hold checks**, minimum
+**169,791 ps**. The current local emitter reproduces the exact frozen fixture
+hash. Eleven invalid profile/settle/warning/completion/source controls pass
+through `test-hdmi-handoff-reset-audit` (also in CI). This remains an extracted
+policy check, not native VID csync timing, whole upstream/DDR/PHY or physical
+acceptance; no old fit is relabelled.
+
+The clean build checkout now launches a fresh **`8685be0`** full flow in
+`output_files/quartus-linux-1T5MGfci/source`, complete source commit
+`8685be09c0663d63e84eefda87c20fca643187c5`, log
+`/tmp/x1-quartus-8685be0-z-handoff-noreplicate.log`. Mapping completes and
+the fitter is confirmed live (PID 1312593). Final replica guards, fit/STA/RBF
+and hardware are still unproven. Earlier frozen outputs remain untouched.
+
 ## Next gates
 
 1. Establish an actually supported mode-sensitive STA method or a narrow

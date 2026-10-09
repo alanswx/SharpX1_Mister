@@ -30,6 +30,11 @@ The new controller narrowly marks `gate_request` with the documented
 `dont_replicate` synthesis attribute. Strict source/replica/fanout scope stays
 unchanged; local static/negative tests pass. Fresh native and fitted evidence
 is required for its new hash, not inherited from previous controller results.
+Fresh native 96-case reset and six-profile connected-policy runs now complete
+zero; independent current-source/hash audits pass (4,994 exact words and
+198 first-edge holds). Eleven invalid policy-evidence controls pass in CI's
+audit target. The source-bound `8685be0` full flow is fitting in a new snapshot;
+final replica scope/timing and hardware are still open, not inherited passes.
 
 The experimental [coherent CRTC transport](CRTC_WRITE_CDC_STATUS.md) now
 passes four helper clock ratios, three real-CPU clock ratios, five owned-DMA

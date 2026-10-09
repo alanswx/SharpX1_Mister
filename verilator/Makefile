@@ -1223,6 +1223,7 @@ test-hdmi-handoff-board-profile:
 
 test-hdmi-handoff-reset-audit:
 	python3 tests/test_hdmi_handoff_reset_audit.py
+	python3 tests/test_hdmi_handoff_policy_audit.py
 .PHONY: test-hdmi-handoff-reset-audit
 
 test-hdmi-handoff-board-inventory:

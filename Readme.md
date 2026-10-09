@@ -68,7 +68,10 @@ confirms the changed driver; replication/equivalence and fresh timing still
 need qualification. The guard is not weakened and this flow is not accepted.
 The next candidate prevents replication only on the gate-enable source with
 a documented synthesis attribute. Local scope/isolation tests pass; native
-and fitted qualification must be repeated for this new controller hash.
+qualification now repeats all 96 reset profiles and six actual-policy
+profiles (4,994 exact words and 198 first-edge holds) on this new controller
+hash. The fresh source-bound full flow is fitting; replica scope and timing
+are not yet accepted. No MiSTer is loaded.
 Its isolated real-PLL controller maps/fits; a fitted-feedback audit led to an
 explicit falling-edge closure witness. Current native cases pass, while raw
 crossings, full-board timing and physical switching remain open. All 96 bounded
