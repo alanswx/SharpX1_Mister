@@ -159,6 +159,10 @@ The subsequent [shared restart-service profile](docs/DMA_RESTART_MACHINE_STATUS.
 adds actual CPU handler snapshots and A/B sector-boundary IRQ/DRQ acceptance
 in both directions/all three bus modes. It is separately opt-in; mixed causes,
 native firmware, reset races and hardware remain open.
+The separate [DMA board qualification revision](docs/DMA_BOARD_BUILD_STATUS.md)
+now enables that subset on the single-clock FPGA wrapper. Fitting, timing and
+hardware acceptance must be recorded separately; it does not change existing
+board revisions or the recommended RBF.
 The [Kanji contract audit](docs/KANJI_CONTRACT_STATUS.md) adds an exhaustive
 schematic-derived first-level address component and a separately tested 128 KiB
 dual-clock ROM loader. Synthetic byte/read/reset checks pass; the opt-in shared

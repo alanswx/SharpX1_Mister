@@ -1,5 +1,10 @@
 # Working on Sharp X1 for MiSTer
 
+`sharpx1_turbo_dma_single` is a separate DMA/IRQ/restart FPGA qualification
+revision; other board revisions stay disabled. Use
+`make -C verilator lint-wrapper-turbo-dma` for its interface check, not hardware
+acceptance. Record build/timing/hardware gates in `docs/DMA_BOARD_BUILD_STATUS.md`.
+
 ## Scope and working tree
 
 This is an experimental FPGA core under bring-up. Read `Readme.md` and

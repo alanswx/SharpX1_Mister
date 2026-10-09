@@ -351,8 +351,19 @@ localparam TURBO_FOUNDATION = 1;
 `else
 localparam TURBO_FOUNDATION = 0;
 `endif
+// Separate hardware qualification profile; inherited board revisions stay off.
+`ifdef X1_TURBO_DMA_RESTART
+localparam TURBO_DMA_PROFILE = 1;
+initial begin
+	if (!TURBO_FOUNDATION || !SINGLE_CLOCK || TURBO_VIDEO_MASTER)
+		$error("DMA restart board profile requires single-clock Turbo foundation");
+end
+`else
+localparam TURBO_DMA_PROFILE = 0;
+`endif
 
-sharpx1 #(.SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ), .TURBO(TURBO_FOUNDATION), .TURBO_VIDEO_MASTER(TURBO_VIDEO_MASTER)) sharpx1
+sharpx1 #(.SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ), .TURBO(TURBO_FOUNDATION), .TURBO_VIDEO_MASTER(TURBO_VIDEO_MASTER),
+	.TURBO_DMA(TURBO_DMA_PROFILE), .TURBO_DMA_IRQ(TURBO_DMA_PROFILE), .TURBO_DMA_RESTART_IRQ(TURBO_DMA_PROFILE)) sharpx1
 (
 	.clk_sys(clk_sys),
 	.clk_28636(clk_28636),

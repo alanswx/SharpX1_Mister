@@ -1220,6 +1220,12 @@ lint-wrapper-turbo-video:
 
 .PHONY: lint-wrapper-turbo-video
 
+lint-wrapper-turbo-dma:
+	$(V) --lint-only --timing --top-module emu -DX1_TURBO_FOUNDATION -DX1_SINGLE_CLOCK -DX1_TURBO_DMA_RESTART -Itests \
+		../sharpx1.sv ../sys/hps_io.sv tests/board_pll_lint.v ../rtl/x1_joystick_map.v \
+		../rtl/x1_cdc_snapshot.sv $(MACHINE_SRC) -Wno-fatal
+.PHONY: lint-wrapper-turbo-dma
+
 clean:
 	# obj_dir is a tracked legacy GUI build artifact; preserve it.
 	rm -rf obj_dir_headless

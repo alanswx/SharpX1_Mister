@@ -9,8 +9,8 @@ INSTALL_ROOT="${QUARTUS_CACHE_DIR:-$BUILDER_ROOT/build/quartus}/intelFPGA_lite"
 IMAGE=docker.io/library/quartus17-runtime:apple-amd64
 REVISION="${QUARTUS_REVISION:-sharpx1}"
 case "$REVISION" in
-  sharpx1|sharpx1_single|sharpx1_turbo_single|sharpx1_turbo_video) ;;
-  *) echo 'QUARTUS_REVISION must be sharpx1, sharpx1_single, sharpx1_turbo_single or sharpx1_turbo_video' >&2; exit 2 ;;
+  sharpx1|sharpx1_single|sharpx1_turbo_single|sharpx1_turbo_video|sharpx1_turbo_dma_single) ;;
+  *) echo 'Unsupported QUARTUS_REVISION' >&2; exit 2 ;;
 esac
 [[ -f "$ROOT/$REVISION.qsf" ]] || { echo "Missing $REVISION.qsf" >&2; exit 2; }
 [[ -x "$INSTALL_ROOT/17.0/quartus/bin/quartus_sh" ]] || {

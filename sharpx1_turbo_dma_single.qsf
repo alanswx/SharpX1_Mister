@@ -1,0 +1,4 @@
+# Separate opt-in DMA completion/restart IRQ hardware qualification profile.
+# Existing revisions stay unchanged. Not full DMA, Turbo or Turbo Z support.
+source sharpx1_turbo_single.qsf
+set_global_assignment -name VERILOG_MACRO "X1_TURBO_DMA_RESTART=1"

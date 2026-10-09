@@ -35,7 +35,9 @@ It runs the native project flow including inherited hooks; project settings
 (including processor count) remain unchanged. The process check is not a
 host-wide lock, so coordinate simultaneous work. The source checkout and other
 repositories remain untouched by compilation. `QUARTUS_BIN` overrides the
-installation path; `QUARTUS_REVISION` selects one of the four current revisions.
+installation path; `QUARTUS_REVISION` selects the baseline, single,
+Turbo single, Turbo video, or separate `sharpx1_turbo_dma_single` qualification
+revision. The latter does not establish fitted/timing/hardware acceptance.
 
 Setup/preflight does not prove successful fitting or timing closure. Inspect
 all timing corners, unconstrained paths, warnings and source/RBF identities
