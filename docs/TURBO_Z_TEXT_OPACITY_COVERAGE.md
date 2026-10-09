@@ -111,8 +111,12 @@ The original paired-text matrix subsequently terminates with exit zero,
 12/12 cases, retaining its original visibility/alias limitations. Only after
 that terminal handle was observed, a new independent twelve-case strengthened
 matrix was launched in `/tmp/x1-z-strengthened-paired-text-matrix.log` with
-the current fixture. It remains pending; the other old matrices and the
-independently frozen reverse/warm case continue unchanged.
+the current fixture. It now terminates zero, 12/12 cases, with all seven
+nonzero colors selected in every defined ordering/cold/warm case. Frozen
+identities and exact PPM comparisons are recorded in
+[paired-text status](TURBO_Z_TEXT_COMPOSITION_STATUS.md). The strengthened
+single-text/graphics matrices remain live; the independently frozen reverse/
+warm case and original matrices retain their own identities and limitations.
 Future fixtures now include the CPU-cleared window in the auxiliary paired
 raw-source coverage calculation too; non-text coverage is unchanged. The
 asset-free visibility regression adds an exhaustive 128x8/both-bank window

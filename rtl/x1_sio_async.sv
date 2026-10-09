@@ -5,8 +5,10 @@
 // x16/x32/x64 RX/TX event clocks and idle-transmitter Send Break.
 // WR5 Transmit Enable may change during a frame: drain the current character,
 // then retain queued data until enabled again (UM0081 printed 288).
-// Interrupts, x1, WAIT/Ready, receive/busy-transmit break and modem
-// gating, synchronous modes and live frame reconfiguration are unsupported.
+// Interrupts, x1, WAIT/Ready, receive/busy-transmit break,
+// synchronous modes and live frame reconfiguration are unsupported.
+// WR3 Auto Enables gates RX by DCD and new TX characters by CTS, in addition
+// to the software enables. Inputs must be synchronized by the caller.
 // IRQ_ENABLE is used only by the separate standalone interrupt wrapper:
 // it adds first/all-character RX, TX-empty and CTS/DCD requests, B-only RR2, A-only return,
 // and channel command events. The default polled wrapper remains unchanged.
@@ -81,9 +83,9 @@ module x1_sio_async_channel #(parameter IRQ_ENABLE=0, parameter CHANNEL_B=0, par
     wire supported_interrupts = IRQ_ENABLE ?
         (FLOW_ENABLE || wr1[7:5]==0) : wr1==0;
     wire polled_frame = supported_interrupts && wr4[7:6]!=0 && wr4[5:4]==0 && wr4[3:2]!=0;
-    wire rx_enabled = polled_frame && wr3[0] && (wr3 & 8'h3e)==0;
+    wire rx_enabled = polled_frame && wr3[0] && (wr3 & 8'h1e)==0 && (!wr3[5] || !dcd_n);
     wire tx_configured = polled_frame && (wr5 & 8'h15)==0;
-    wire tx_enabled = tx_configured && wr5[3];
+    wire tx_enabled = tx_configured && wr5[3] && (!wr3[5] || !cts_n);
     reg [7:0] fifo_data[0:2];
     reg [6:0] fifo_error[0:2];
     reg fifo_first[0:2];
@@ -208,7 +210,7 @@ module x1_sio_async_channel #(parameter IRQ_ENABLE=0, parameter CHANNEL_B=0, par
                         2: wr2<=cpu_din; // B consumed only by the interrupt wrapper.
                         3: begin
                             wr3<=cpu_din;
-                            if((cpu_din & 8'h3e)!=0 || rx_busy) unsupported<=1;
+                            if((cpu_din & 8'h1e)!=0 || rx_busy) unsupported<=1;
                         end
                         4: begin
                             wr4<=cpu_din;

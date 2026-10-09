@@ -151,7 +151,9 @@ The [full default v14 baseline](BASELINE_V14_STATUS.md) now exits zero.
 The [opacity coverage audit](TURBO_Z_TEXT_OPACITY_COVERAGE.md) finds missing
 selected text in older full/paired graphics-on-top scenes; corrected CPU
 windows and all-seven-color full/paired warm gates now pass 64,000 pixels each.
-The strengthened complete matrices remain open. Do not promote
+The strengthened twelve-case paired-text matrix now terminates zero,
+including seven distinct entries and selected text beneath graphics;
+strengthened single-text/graphics matrices remain open. Do not promote
 those earlier passes to beneath-graphics text acceptance or native Z completion.
 
 The expanded [hosted diagnostic run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37865161650)
@@ -221,7 +223,7 @@ builds and record synthesis, fit and timing separately.
 
 | Work group | Execution/acceptance still needed |
 |---|---|
-| 1. SIO | Owned serial read/write reset drain, idle Send Break, active-character Transmit Enable drain/queued resume and 12 actual-CPU stopped-CE ACK/handler/FIFO/RETI chip-reset cases pass separately; add channel/short-pulse and concurrent multi-device reset service; trace schematic clocks/modem/Ready/decode before opt-in shared-machine integration; finish remaining modes and native serial diagnostics |
+| 1. SIO | Owned serial read/write reset drain, idle Send Break, active-character Transmit Enable drain/queued resume, functional WR3 CTS/DCD automatic gating and 12 actual-CPU stopped-CE ACK/handler/FIFO/RETI chip-reset cases pass separately; add modem/IRQ/Ready combinations, channel/short-pulse and concurrent multi-device reset service; trace schematic clocks/modem/Ready/decode before opt-in shared-machine integration; finish remaining modes and native serial diagnostics |
 | 2. DMA | Reset/video/restart/comparison, search/stop and actual-CPU fast/delay-aware profiles pass; opt-in completion/restart IRQ has shared-machine IM2/HALT/RETI and snapshot acceptance; broaden concurrent-service/reset/savable gates, integrate Ready/mixed restart IRQ and variable timing, resolve sequential non-Byte stop; broaden payload/Ready/DAM/native Turbo IPL and hardware acceptance |
 | 3. Kanji/Turbo video | CPU latch/ROM/glyph paths with synthetic fixtures, then authorized native fonts; complete attribute/PCG/text combinations, ASIC behavior and native Turbo/400-line software |
 | 4. Timing/hardware | Narrow audited CDC/reset/mux constraints, current-source Quartus refit and positive setup/hold/recovery; hardware bandwidth/video/audio and Main/OSD reset verification |

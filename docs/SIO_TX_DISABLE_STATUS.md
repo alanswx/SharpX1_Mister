@@ -88,5 +88,7 @@ CI now selects the new target; its new source-bound result is not yet known.
 SIO remains outside `rtl/machine.qip` and the shared machine. Existing
 baseline snapshots, frozen five-game qualification and the separate fitted
 Turbo-single RBF are unchanged. Native decode/clocks/modem/Ready/IRQ integration,
-busy/receive break, auto-enables, x1/synchronous modes and physical validation
+busy/receive break, exact modem phases, x1/synchronous modes and physical validation
 remain open; this increment does not finish work group 1 or Turbo Z.
+The subsequent [automatic-enable increment](SIO_AUTO_ENABLE_STATUS.md) separately
+qualifies functional CTS/DCD gating, not physical modem timing or machine wiring.

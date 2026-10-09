@@ -71,7 +71,21 @@ not prove those indices are distinguished. After confirming the old handle
 terminated, a fresh separate twelve-case recipe starts in
 `/tmp/x1-z-strengthened-paired-text-matrix.log`. It freezes the corrected
 windows, seven distinct writable text RGB entries and all-color visibility
-assertions. It is still running, not a completed strengthened acceptance gate.
+assertions. This strengthened recipe now terminates with exit zero: 12/12 cases,
+both front banks and all three defined orderings, cold and retained warm reset.
+Frozen root: `verilator/obj_dir_v13_z_paired/text-matrix-aWWkN5/`;
+runner `6420d29945b4958ee8509334fb8e774f7191ab490babd2172f00b65e0ed634e0`,
+fixture `31f5ab3fe223f753948d9e984a553bf4b7aad399c6fbe1a142cf530ab87f7188`,
+ANK source `68aa689abd81c1a620980b5318b669b292a72d4877916ec43dc2461d713c831b`.
+Final independent hash checks match those captured at each invocation, and
+all twelve actual PPMs byte-compare exactly with their expected PPMs.
+Every nonzero text color is selected in every case: 2,250 samples each for
+text-on-top, 36 each for graphics-on-top, and 85–87 each for text-between.
+This closes this experimental strengthened paired-text matrix, not the live
+single/graphics matrices, native opacity/intensity or physical Z acceptance.
+Its auxiliary paired raw-code coverage metadata still omits the cleared
+window; do not quote that metadata as the corrected source distribution.
+The exact-frame and selected-text checks include the window correctly.
 
 ## Snapshot boundary
 
