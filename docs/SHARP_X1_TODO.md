@@ -99,13 +99,15 @@ Wide/tall custom-palette and selected-screen 0/1 retained-reset CPU pixels
 pass; the complete sixteen-case frozen reduced matrix is running. Corrected
 full-color identity/custom cold/warm matrix and current default-source
 timing/GRAM/DAM checks finish successfully.
-Native reduced CPU bank policy, composition and internal palette remain open.
+Native reduced CPU bank policy, composition and native internal-palette acceptance remain open.
 The separate [640x400 internal-palette extension](TURBO_Z_INTERNAL8_STATUS.md)
 now connects eight-entry storage and actual CPU writes/selector reads. Identity
 and custom retained-reset captures each pass all 256,000 pixels, as does a
 custom cold cross-store isolation case. Exhaustive alias/nibble/reset units
-and captured shifter tags pass. Full cold/warm isolation matrix, native
-priority and hardware remain; Z2/Z3 and the work groups are not complete.
+and captured shifter tags pass. The stronger four individual cold/warm
+identity/custom isolation cases subsequently all finish with exit zero.
+Native priority, live switches/reset races and hardware remain; Z2/Z3 and
+the work groups are not complete.
 
 The expanded [hosted diagnostic run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37865161650)
 now completes successfully on `95c3e4a`. The newer `99eb141` palette-RAM/

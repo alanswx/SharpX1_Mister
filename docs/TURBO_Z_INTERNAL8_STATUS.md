@@ -64,23 +64,23 @@ remains excluded. Text/priority/blackclip and native acceptance remain open.
   Same runner; fixture SHA:
   `8d46fb897bdaccbe2f39e6f9c8c38e852400bb7df89d12e77dcc7bdd5b46b3fd`.
 
-Stronger identity cold and custom warm cases also finish with exit zero:
+Stronger identity cold and identity/custom warm cases also finish with exit zero:
 all 256,000 pixels, CPU external-sentinel preservation and no-refill retained
-reset where applicable. Their logs/outputs follow the naming below. The
-stronger identity warm case is still running, not qualified.
+reset where applicable. Together with custom cold this completes all four
+individual stronger cases on the same runner/oracle; it is not execution of
+the newly added aggregate target or native ASIC/hardware acceptance.
 
 The stronger cases use directories
 `obj_dir_v13_z_internal8/{identity-cold,identity-warm,custom-warm}-isolation/`;
 logs `/tmp/x1-z-internal8-{identity-cold,identity-warm,custom-warm}-isolation.log`.
-They use the same frozen runner and stronger fixture; do not rebuild that
-runner until the remaining identity-warm handle finishes.
+They use the same frozen runner and stronger fixture. All four individual
+processes finish with exit zero; source-bound dumps/frames/logs stay ignored.
 Current default-source timing/GRAM/DAM CPU checks and three wrapper lint
 profiles finish with exit zero; default runner SHA
 `4f4cbf7d2b7c8b68412082f7eea2be86af87d24174ad5d2aa11006491a826e5c`,
 build/lint log `/tmp/x1-z-internal8-default-wrapper.log`. That is focused
 coverage, not another complete baseline suite or Intel PLL simulation.
 
-Still required: both palettes/cold-warm combinations with the stronger sequence,
-connected live switches/reset races, native register/decode/WAIT evidence,
+Still required: connected live switches/reset races, native register/decode/WAIT evidence,
 combined fitting/CDC and native software/hardware before closing Z2/Z3.
 Text two-bit significance is separate; it is not used by this four-bit store.
