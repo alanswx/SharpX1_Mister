@@ -157,3 +157,18 @@ fast rebuild again produces the identical `f484bede...` executable
 (`/tmp/x1-v15-genvar-fast.log`). A new frozen refit is required before any
 updated FPGA artifact/timing claim; the first two failures are not erased or
 described as successful fits.
+
+Final module-scope-declaration source hashes are
+`b0579b7c352d43a5564cf874fcfa5e6c334d56d591b030d1be9b2383c94c36f9`
+for `x1_sio_async.sv` and
+`304e778ae4f551476e9fd2d5cc235841658c5919098b7d447aef987816c8b194`
+for `x1_sio_irq.sv`. A new clean, source-frozen refit of pushed
+`0009dd1bddc43a1f373cdd39443f102065fe97c7` starts at
+`2026-10-09T12:04:17Z` under host
+`output_files/quartus-linux-WosvSRv1`. Input-manifest SHA-256 is
+`b0a1e93399051a5dc24266ad47de34974dca02b72ac0474b61729a398ca42006`.
+Analysis/synthesis now **passes**, zero errors/143 warnings, and the observed
+process is fitting. Log: `/tmp/x1-quartus-0009dd1-turbo-single.log`.
+Fit, full flow, all-corner timing and an updated retrieved RBF are not yet
+qualified. This revision still has SIO disabled; it does not synthesize or
+physically qualify an enabled serial connector. No MiSTer is accessed/loaded.
