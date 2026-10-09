@@ -70,7 +70,18 @@ repeatability and FST checks (`/tmp/x1-z-owner-baseline-timing.log`).
 `test-reset-release test-turbo-pcg-access` also finishes zero
 (`/tmp/x1-z-owner-pcg-reset.log`), including 16,395 high-speed CDC transactions.
 These focused checks do not establish full baseline/game/snapshot acceptance.
-No new Quartus fit or hardware load is performed yet. This change does not
+The full ordinary delay-aware suite is now running separately
+(`/tmp/x1-z-owner-baseline-full.log`), with no completion claim yet.
+
+A source-bound Quartus flow is now confirmed live on `misterubuntu`:
+source `c05edb03a6ea587e3ca9e23600872a2e9bb40a65`, revision
+`sharpx1_turbo_z_video`, frozen build folder
+`/home/alans/mister/SharpX1_Mister/output_files/quartus-linux-nyZrupn1`,
+observation log `/tmp/x1-quartus-c05edb0-z-owner-build.log`. The checkout was
+clean and the host idle before fast-forward/build; actual `quartus_sh` and
+`quartus_map` processes are observed. It must finish before supplemental STA,
+input/report/RBF audits or any timing claim. No hardware is contacted/loaded.
+This change does not
 fix the same-clock HDMI routing failure or constrain bundled-data transfers.
 Destination-local reset recovery, first-stage synchronizers, all corners and
 native/physical reset acceptance still require source-bound timing review.
