@@ -42,13 +42,13 @@ line/frame periods, not an emulator screenshot or fabricated framebuffer.
 | Format / selected case | Current result |
 |---|---|
 | 640x400 / internal 8 | Passed all 256,000 pixels and retained-reset/no-refill checks |
-| 640x200 / 64 | Running custom warm case |
-| 320x400 / 64 | Running custom warm case |
-| 320x200 / 64 | Paired text-between/front-bank-0 case passes 64,000 pixels; selected-bank-1 case running |
-| 320x200 / 4096 | Running custom warm graphics-on-top/text case |
+| 640x200 / 64 | Passed all 128,000 pixels and retained-reset/no-refill checks |
+| 320x400 / 64 | Passed all 128,000 pixels and retained-reset/no-refill checks |
+| 320x200 / 64 | Paired text-between/front-bank-0 and selected-bank-1 cases each pass 64,000 pixels |
+| 320x200 / 4096 | Graphics-on-top/text case passes all 64,000 pixels and retained-reset/no-refill checks |
 
-Both completed processes exit zero. Independent `cmp` of their actual/expected
-PPMs passes. Paired text selects all seven writable colors (86–87 pixels each)
+All six processes exit zero: 704,000 exact pixels in total. Independent `cmp`
+of all six actual/expected PPMs passes. Paired text selects all seven writable colors (86–87 pixels each)
 and differs from the alternate text order at 15,132 pixels. Its auxiliary raw
 graphics coverage metadata retains the previously documented window omission;
 do not promote that metadata to an exact source distribution. These are bounded
@@ -59,8 +59,8 @@ Frozen executable SHA-256
 `fd41ee4c1f6b4950d31d712be11a6c4afc356ef3654a5a69d159a29c8eabf0c8`,
 pixel fixture `1e03a9ecd39af3f049ef924db059c5bd5827c10879e479a593181da517009117`,
 ANK source `68aa689abd81c1a620980b5318b669b292a72d4877916ec43dc2461d713c831b`.
-Completed-case pre/post hashes match; do not replace this executable while
-the remaining runs are active. Generated programs/captures stay ignored.
+Final pre/post executable/emitter/helper/ANK hashes match after all six runs.
+Generated programs/captures stay ignored.
 
 The [source-bound FPGA flow](TURBO_Z_BOARD_BUILD_STATUS.md) completes, but fails
 reported timing. No timing closure, physical scaler/CDC, native ASIC opacity/

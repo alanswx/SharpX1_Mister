@@ -14,7 +14,7 @@ fitted frequency must be recorded separately. DMA/SIO/FM/Kanji remain off;
 audio remains unsigned PSG. Existing RGB12-to-eight-bit-component wrapper
 outputs carry the result. No private BIOS/font bytes are added.
 
-## Executed checks / pending build
+## Completed source-bound flow / failed timing
 
 Ordinary, X3, FM, DMA and new combined-Z wrapper lint all finish zero with
 Verilator 5.044 (`/tmp/x1-z-board-profile-lint.log`). This uses a PLL interface
@@ -25,8 +25,8 @@ lint does not qualify every combination of the jointly enabled features.
 
 Read-only inspection of `misterubuntu` finds the authorized checkout clean at
 `a7e100731cae6eb450737d1a7a0ebb78c487f57e` and no active Quartus flow. The next
-step fast-forwards from the user's fork and starts the frozen-source native
-17.0 helper for this revision. The full flow now finishes zero, but reports
+step fast-forwarded from the user's fork and started the frozen-source native
+17.0 helper for this revision. The full flow finishes zero, but reports
 unmet timing requirements; it is not a hardware-qualified candidate:
 
 - Source `c3906aeda8b5d3b560e772579a3ee3424d4d46de`.
@@ -37,19 +37,20 @@ The first fetch fails before Quartus because the host calls the fork remote
 `origin`, not `alanswx`; its log is preserved separately. The retry fetches
 the explicit alanswx URL, verifies a clean checkout and expected commit, and
 checks no competing Quartus process before launching. The flow finishes at
-15:00:39 UTC after ten minutes seven seconds. Reports/RBF retrieval and
-source/constraints/path audit are in progress. A zero flow exit is not timing
-acceptance. Supplemental STA must wait for confirmed host-idle state.
+15:00:39 UTC after ten minutes seven seconds. Initial reports/RBF are retained
+locally in `output_files/quartus-linux-yoGgHbzg/completed-flow/`; supplemental
+all-corner/path reports are separate in `all-corners/`. A zero flow exit is
+not timing acceptance. Supplemental STA started only after confirmed host-idle
+state and finishes zero; no RTL or constraints were changed.
 
 The exact jointly enabled video combination also builds a delay-aware C++
-runner successfully. Two original CPU-written custom/retained-reset pixel
-tests cover 640x400 internal-eight and paired64 text-between-screens
-with priority 12h/screen 1. Frozen runner/emitter/oracle/ANK source are under
+runner successfully. Six original CPU-written custom/retained-reset pixel
+tests cover internal-eight, wide/tall/selected-screen 64-color, paired text
+and full-color text. Frozen runner/emitter/oracle/ANK source are under
 `verilator/obj_dir_headless/z-board-combined/qualification-CBgbK8/`, hashed
-before either run. Logs `/tmp/x1-z-board-combined-internal8.log` and
-`/tmp/x1-z-board-combined-paired-text.log`. Both finish zero and byte-compare
-their actual/expected frames exactly. Three-clock combined control/reset and
-disabled negative also pass; four more pixel cases are running. See
+before the runs, and final hashes match. All six finish zero and byte-compare
+their actual/expected frames exactly (704,000 pixels). Three-clock combined
+control/reset and disabled negative also pass. See
 [combined qualification](TURBO_Z_COMBINED_STATUS.md) for identities and scope.
 
 Analysis and synthesis succeeds at 14:52:00 UTC: 33,378 registers,
@@ -60,12 +61,63 @@ manifests are retrieved under `output_files/quartus-linux-yoGgHbzg/map-stage/`.
 Input-manifest hash `d2c2997791e136c79ab94b89dcd6f548beac20ab50606cd7c63e402138c1e73b`.
 
 Initial reported timing: worst setup **−14.815 ns** and recovery **−13.494 ns**;
-hold/removal/pulse minima are positive (0.190/1.170/0.529 ns). Several clocks
+initial hold/removal/pulse minima are positive (0.190/1.170/0.529 ns). Several clocks
 have nonzero setup TNS. Do not mask these with broad false paths or treat the
-simulation passes as timing closure. Detailed failing-path, all-corner and
-unconstrained-I/O audits remain required. Generated-clock logging selects
+simulation passes as timing closure. All eight corner reports now complete;
+their global hold/removal/pulse minima are 0.057/0.478/0.529 ns, with the same
+negative setup/recovery extrema. Unconstrained I/O remains three input ports /
+seven paths and 44 output ports / 50 paths. Generated-clock logging selects
 50 MHz ×189/(10×22), approximately 42.954545 MHz for VID; final reports still
-need inspection, and this is not a measured board clock.
+do not establish a measured board clock.
+
+Final fit: 20,894/41,910 ALMs (50%), 33,273 registers, 3,192,734 RAM bits (56%),
+400/553 M10Ks (72%), 32/112 DSPs (29%) and four/six PLLs. Experimental RBF:
+`output_files/quartus-linux-yoGgHbzg/completed-flow/source/output_files/sharpx1_turbo_z_video.rbf`,
+SHA-256 `6f0e3e27d07a0f2024bbd3e5297c3172e286852edfe0ebe3540ebf09c995bea8`.
+This is an **unqualified** artifact, not a timing-passing replacement for the FM build.
+The post-flow input audit reports 379 files matching and only `sharpx1.qpf`
+changed (Quartus generated revision/date). Its exit is one, not a clean manifest
+exit; inspected RTL/QSF/SDC inputs match the pre-flow manifest.
+
+## Path diagnosis and next acceptance gates
+
+Reporting-only sidecar extension runs on this same fitted database under
+native 17.0.2, terminal zero (`/tmp/x1-quartus-c3906ae-z-sameclock.log`). Its
+SHA-256 is `1d5ec6a2109b444e3b290fcd8b1dfbc5c7bfdf791287d67e52fbe6f71d4daa9a`.
+Each selected clock must resolve uniquely; no timing exceptions are added.
+At the reported Slow 1100 mV / 100 C corner:
+
+| Same-clock domain | Worst setup | Worst recovery |
+|---|---:|---:|
+| System PLL | +6.728 ns | +10.477 ns |
+| Independent video PLL | +8.123 ns | +11.368 ns |
+| HDMI PLL | **−2.172 ns** | +3.364 ns |
+
+The global worst setup path is `d[13]` → `hdmi_out_d[13]` with HDMI launch
+and video latch clock labels. Both registers use the same physical selectable
+`hdmi_tx_clk`: `sys/sys_top.v` selects core video or HDMI PLL. The inherited
+`sys_top.sdc` clock-group pattern includes the original core PLL but not the
+new `turbo_video_pll`. This explains why both alternative clocks are analyzed
+together, not why every physical path is safe. The **same-HDMI-clock** version
+of this path also fails (6.732 ns relationship; 9.578 ns data delay, mostly
+routing), so merely excluding alternatives does not repair this fit.
+
+PCG setup failures include held `response` → `cpu_q` (−9.562 ns), selector
+payload → video response and first-stage ACK synchronizers. They require a
+bounded bundled-data/toggle-handshake constraint audit, not a blanket false
+path. Recovery failures include system-domain `ioctl_download` → video-domain
+palette ownership reset (−13.494 ns) and video-reset release → CPU ownership
+reset. The ownership module shares one reset across two independent clocks;
+destination-local release and reset/drain semantics must be checked before
+changing that interface.
+
+Next: audit each crossing and its allowed transfer/reset latency; express
+targeted clock-mux and handshake constraints without suppressing same-clock
+HDMI failures; then refit and inspect all corners and unconstrained paths.
+If HDMI routing still fails, use measured placement/path evidence for the
+smallest necessary board-specific change. Same-clock positive reports above
+cover one corner, not eight-corner closure. Native firmware/palette traffic,
+exact reset frames and physical acceptance remain outstanding.
 
 ```sh
 QUARTUS_REVISION=sharpx1_turbo_z_video bash scripts/build_quartus_linux.sh --build

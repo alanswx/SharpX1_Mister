@@ -16,5 +16,22 @@ report_timing -hold -npaths 20 -detail full_path -file output_files/${revision}_
 report_timing -recovery -npaths 20 -detail full_path -file output_files/${revision}_sidecar_recovery.rpt
 report_timing -setup -to [get_registers {*cg_bus*}] -npaths 20 -detail full_path -file output_files/${revision}_sidecar_pcg.rpt
 report_timing -setup -to [get_registers {*sub_cpu*|cpu*}] -npaths 20 -detail full_path -file output_files/${revision}_sidecar_mr16.rpt
+# Independent X3 clocks are not covered by the inherited framework's PLL
+# name pattern. Keep same-clock paths visible separately from crossings;
+# these are reports only, never clock-group/false-path exceptions.
+if {$revision in {sharpx1_turbo_video sharpx1_turbo_z_video}} {
+    foreach {label pattern} {
+        video {*|turbo_video_pll|*|divclk}
+        system {*|pll|pll_inst|altera_pll_i|*|divclk}
+        hdmi {pll_hdmi|pll_hdmi_inst|altera_pll_i|*|divclk}
+    } {
+        set clocks [get_clocks $pattern]
+        if {[get_collection_size $clocks] != 1} {
+            error "expected exactly one $label clock for $revision"
+        }
+        report_timing -setup -from_clock $clocks -to_clock $clocks -npaths 20 -detail full_path -file output_files/${revision}_sidecar_${label}_same_setup.rpt
+        report_timing -recovery -from_clock $clocks -to_clock $clocks -npaths 20 -detail full_path -file output_files/${revision}_sidecar_${label}_same_recovery.rpt
+    }
+}
 delete_timing_netlist
 project_close

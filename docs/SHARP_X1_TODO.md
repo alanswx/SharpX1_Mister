@@ -59,7 +59,8 @@ The [experimental combined Z FPGA profile](TURBO_Z_BOARD_BUILD_STATUS.md)
 now exposes the existing palette/multi-mode/text paths for separate fitting;
 wrapper lint passes. Its full Quartus flow completes but reports negative
 setup/recovery; this is not timing or native/physical acceptance. Combined
-control/reset and two pixel cases pass; more pixel formats are running. See
+control/reset and all six selected custom/warm pixel cases pass (704,000 exact
+pixels); the complete combined cold/identity/front/order matrix remains open. See
 [combined-profile evidence](TURBO_Z_COMBINED_STATUS.md).
 The [Turbo Z in-flight control reset test](TURBO_Z_INFLIGHT_RESET_STATUS.md)
 passes at three independent video rates, including a deliberately failing
