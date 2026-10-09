@@ -353,7 +353,8 @@ int main(int argc, char **argv) {
         // a reconstructed RAM bootstrap. Only quiescent host interfaces are
         // supported; disk contents must match and clocks keep absolute phase.
         uint64_t resume_time = 0;
-        // v13: transaction-bound DAM arming adds pending state.
+        // v14: raw glyph output changes elaborated observation/state layout.
+        // v13 added transaction-bound DAM pending state.
         // v12: added full-color output port; reject older serialized models.
         // v10: X3 destination-clock video reset release.
         // v09: Turbo text expansion and reserved underline raster state.
@@ -395,9 +396,9 @@ int main(int argc, char **argv) {
             ^ (1ULL << 44) // Separate experimental glyph pipeline revision 1.
 #endif
             ;
-        // Preserve single-drive v13 bytes. Dual-drive headers have a distinct
+        // Dual-drive headers have a distinct
         // identity and a fifth field: ordered B-media fingerprint.
-        const uint64_t snapshot_magic = 0x5831534e41503133ULL ^ sys_hz ^ snapshot_profile
+        const uint64_t snapshot_magic = 0x5831534e41503134ULL ^ sys_hz ^ snapshot_profile
             ^ (dual_snapshot ? (1ULL << 42) : 0);
 #ifdef X1_SAVABLE
         if (restore_path) {
@@ -636,9 +637,9 @@ int main(int argc, char **argv) {
                         // predicate from observed inputs; do not force it.
                         graphics_selected += ((root->top__DOT__machine__DOT__display__DOT__PRIO_R
                             >> root->top__DOT__machine__DOT__display__DOT__gr_col) & 1)
-                            || root->top__DOT__machine__DOT__display__DOT__cg_col == 0;
+                            || root->top__DOT__machine__DOT__z_cg_color == 0;
                         ++graphics_colors[root->top__DOT__machine__DOT__display__DOT__gr_col];
-                        ++text_colors[root->top__DOT__machine__DOT__display__DOT__cg_col];
+                        ++text_colors[root->top__DOT__machine__DOT__z_cg_color];
                     }
                 }
             }

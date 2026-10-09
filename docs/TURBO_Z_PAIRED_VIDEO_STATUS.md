@@ -58,7 +58,9 @@ Current pixel runs are **in progress, not a completed matrix**:
   pixels and periods, 2,056 front-only / 2,054 back-only / 59,518 overlap /
   372 all-zero pixels, including 534 black-front/nonzero-back samples.
   Its retained warm-reset follow-up is running on the same frozen runner and
-  oracle in `/tmp/x1-z-paired-black-front-warm.log`, not yet accepted.
+  oracle in `/tmp/x1-z-paired-black-front-warm.log` subsequently exits zero:
+  all 64,000 pixels/periods and the same coverage, with real post-reset I/O
+  and no palette/GRAM/text refill. This binds the graphics-only checkpoint.
 - Both use runner SHA-256
   `ca830ccd225e87fb10a63115d287d833a09154194ebd951720c2ee11f5144178`.
 
@@ -82,3 +84,7 @@ these are focused default regressions, not a fresh full baseline suite.
 Next gates: terminal pixel evidence including the programmed-black cases,
 held/live control/reset seams, reduced CPU bank contract, actual analog text
 and glyph coverage, blackclip, native firmware and source-bound Quartus/hardware.
+The subsequent [analog-text follow-up](TURBO_Z_TEXT_COMPOSITION_STATUS.md)
+connects raw glyph color and text palette with provisional intensity; its
+pixel acceptance is running. This page's frozen graphics-only results must
+not be promoted to acceptance of that newer implementation.

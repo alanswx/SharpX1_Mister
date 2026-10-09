@@ -94,6 +94,10 @@ Neither establishes native ASIC WAIT, text palette or priority behavior.
 priority. Do not infer text intensity significance from the external graphics
 palette pin map, or advertise the provisional inactive/upper-bit read policy
 as measured ASIC behavior. Existing board revisions leave it disabled.
+Combined with video/multi-mode, it now also enables provisional paired analog
+text composition; see `docs/TURBO_Z_TEXT_COMPOSITION_STATUS.md`. Raw glyph
+codes, not palette RGB, determine presence. Intensity is explicitly 0/5/A/F,
+not a resolved DAC pin contract; do not infer native Z support from that policy.
 The same CPU-only profile now accepts `1FC0`; see
 `docs/TURBO_Z_PRIORITY_CPU_STATUS.md`. Its reset-to-zero/unused-bit/inactive
 policies are provisional. `x1_z_layer_order.sv` consumes caller visibility,
@@ -108,13 +112,14 @@ The PPI width latch is retained during this reset; do not assume it clears.
 See `docs/TURBO_Z_PAIRED_VIDEO_STATUS.md` for current composition and running
 pixel gates. This diagnostic does not qualify rendered pixels or hardware CDC placement.
 
-Snapshot format v13 rejects older states after transaction-bound DAM arming
+Snapshot format v14 rejects older states after exposing raw glyph color
+(v13 added transaction-bound DAM arming)
 (v12 added the RGB12 output port; v11 added opt-in CPU/DMA bus and instrumentation;
 v09 added text-raster state;
 v08 added X3 PPI sampling; v07 added PCG/metadata state). Regenerate from native boot,
 never convert or patch state bytes to bypass model compatibility checks.
 DMA-enabled states also require DMA revision 7 after separating an auto-loaded
-first destination from later starting-buffer writes; all current profiles need v13.
+first destination from later starting-buffer writes; all current profiles need v14.
 Use `docs/TURBO_TEXT_RASTER_STATUS.md` for the provisional digital expansion/
 underline policy and CRTC R9=31/R5=0 regression. Unit success does not complete
 the documented row/width or native BASIC acceptance matrix. Mode 01 graphics

@@ -302,6 +302,12 @@ now builds with captured priority and bank selection before palette lookup.
 The first 64,000-pixel paired case passes; the wider actual-CPU RGB matrices
 are in progress. Opaque/analog text, native opacity
 and physical acceptance remain incomplete. Existing board revisions are unchanged.
+An opt-in [analog text composition follow-up](docs/TURBO_Z_TEXT_COMPOSITION_STATUS.md)
+now connects raw glyph color and retained text palette to paired ordering.
+Its first 64,000-pixel text-between-screens case passes; the complete cold/warm
+matrix is running. Intensity mapping is provisional.
+Current snapshots require v14 after the internal raw-glyph interface change;
+regenerate old states from native execution, never convert them.
 
 The headless simulator has been compiled with Verilator 5.044 on macOS.
 The timing/reset regression passes. A 200,000-system-cycle run reports:

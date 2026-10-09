@@ -68,3 +68,9 @@ priority/transparency, blackclip and overlap rules; exercise native Z firmware,
 live controls/reset races and physical access timing. Combine with graphics,
 Kanji/PCG and both-screen composition before claiming Z2/Z4 completion.
 The profile is non-savable; ordinary v13 snapshot models remain unchanged.
+
+The subsequent [paired analog-text experiment](TURBO_Z_TEXT_COMPOSITION_STATUS.md)
+connects this palette when video/multi-mode are also enabled. Its intensity and
+opacity policies remain provisional; native/hardware gates are not closed.
+The raw-glyph interface advances current snapshots to v14. Above CPU-storage
+and snapshot evidence remains historical/source-bound, not text-renderer acceptance.

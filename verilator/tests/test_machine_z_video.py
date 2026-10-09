@@ -4,7 +4,9 @@ import csv
 import hashlib
 import json
 import pathlib
+import re
 import subprocess
+from functools import lru_cache
 from z80_fixture import Program
 
 
@@ -18,7 +20,16 @@ def table_byte(row, k):
             ((v << shift) | (v >> (8 - shift)))) & 255
 
 
-def fixture(custom=False, mode="full", screen=0, priority=0x10):
+@lru_cache()
+def font8_bytes():
+    candidates = (pathlib.Path(__file__).with_name("cg8_reference.v"),
+                  pathlib.Path("../rtl/legacy/x1_cg8.v"), pathlib.Path("rtl/legacy/x1_cg8.v"))
+    source = next(path for path in candidates if path.exists())
+    return {int(a, 16): int(b, 2) for a, b in re.findall(
+        r"11'h([0-9A-Fa-f]+):cg8_rom = 8'b([01]{8})", source.read_text())}
+
+
+def fixture(custom=False, mode="full", screen=0, priority=0x10, text=False):
     p = Program(0x8000)
     p.emit(0xF3)
     p.word(0x31, 0xFFFF)
@@ -42,7 +53,12 @@ def fixture(custom=False, mode="full", screen=0, priority=0x10):
         p.word(0x01, base)
         p.word(0x11, 2048)
         p.label(label)
-        p.emit(0xAF, 0xED, 0x79, 0x03, 0x1B, 0x7A, 0xB3)
+        if text:
+            # ANK A glyph, independent cell colors including transparent zero.
+            p.emit(*( (0x79, 0xE6, 7) if base == 0x2000 else (0x3E, 0x41) ))
+        else:
+            p.emit(0xAF)
+        p.emit(0xED, 0x79, 0x03, 0x1B, 0x7A, 0xB3)
         p.jump(0xC2, label)
     for page in range(2):
         out(0x1FD0, page << 4)
@@ -124,6 +140,12 @@ def fixture(custom=False, mode="full", screen=0, priority=0x10):
                 p.word(0x01, port)
                 p.emit(0xED, 0x78, 0xE6, 15, 0xFE, (color ^ component ^ 15) & 15)
                 p.jump(0xC2, "fail")
+    if text:
+        out(0x1FB0, 0x90)
+        for color in range(1, 8):
+            # All four channel levels; nonzero text color 7 programmed black.
+            bits = 0 if color == 7 else ((color & 3) << 4) | (((color + 1) & 3) << 2) | ((color + 2) & 3)
+            out(0x1FB8 + color, bits)
     p.store(0xF040, 0xA5)
     p.label("retained")
     columns = 80 if mode in ("wide64", "internal8") else 40
@@ -155,12 +177,19 @@ def fixture(custom=False, mode="full", screen=0, priority=0x10):
         table_byte(row, k) for row in range(8) for k in range(256))
 
 
-def expected_pixel(x, y, custom=False, mode="full", screen=0, priority=0x10):
+def expected_pixel(x, y, custom=False, mode="full", screen=0, priority=0x10, text=False):
     if mode == "paired64":
         # Independent per-screen address/color oracle. Presence is raw source
         # code, not final RGB: custom palette black must not reveal the back.
         front = (priority >> 3) & 1
-        for bank in (front, 1 - front):
+        color = (((y // 8) * 40 + x // 8) & 7) if text and font8_bytes()[0x41 * 8 + y % 8] & (128 >> (x % 8)) else 0
+        order = ("text", front, 1 - front) if priority & 3 == 0 else \
+                (front, 1 - front, "text") if priority & 3 == 1 else (front, "text", 1 - front)
+        for bank in order:
+            if bank == "text":
+                if color:
+                    return bytes(3) if color == 7 else bytes((((color + 1) & 3) * 85, (color & 3) * 85, ((color + 2) & 3) * 85))
+                continue
             raw = expected_pixel(x, y, False, "dual64", bank)
             if raw != bytes(3):
                 if custom and raw == bytes((85, 170, 255)):
@@ -206,6 +235,7 @@ def main():
     parser.add_argument("--custom", action="store_true")
     parser.add_argument("--mode", choices=("full", "dual64", "paired64", "wide64", "tall64", "internal8"), default="full")
     parser.add_argument("--priority", type=lambda value: int(value, 0), default=0x10)
+    parser.add_argument("--text", action="store_true")
     parser.add_argument("--screen", type=int, choices=(0, 1), default=0)
     parser.add_argument("--timeout", type=float, default=900)
     args = parser.parse_args()
@@ -214,7 +244,8 @@ def main():
     digest = hashlib.sha256(executable.read_bytes()).hexdigest()
     code = args.output / "original.bin"
     assert args.mode != "paired64" or args.priority in (0x10, 0x11, 0x12, 0x18, 0x19, 0x1A)
-    code.write_bytes(fixture(args.custom, args.mode, args.screen, args.priority))
+    assert not args.text or args.mode == "paired64"
+    code.write_bytes(fixture(args.custom, args.mode, args.screen, args.priority, args.text))
     frame = args.output / "actual.ppm"
     # Full palette programming adds actual CPU/ownership cycles. Leave enough
     # time to finish cold initialization BEFORE a retained warm reset.
@@ -260,6 +291,7 @@ def main():
         assert not any(a >= 0x2000 or 0x1000 <= a < 0x1300 for a in addresses), addresses[:60]
         if args.mode == "paired64":
             assert addresses.count(0x1FC0) == 1, addresses
+            assert not any(0x1FB9 <= a <= 0x1FBF for a in addresses), addresses
     tolerance = 31251
     high = args.mode in ("tall64", "internal8")
     line_edges = 1792 if high else 2688
@@ -268,7 +300,7 @@ def main():
     header, dimensions, maximum, actual = frame.read_bytes().split(b"\n", 3)
     width, height = (640 if args.mode in ("wide64", "internal8") else 320), (400 if high else 200)
     assert (header, dimensions, maximum) == (b"P6", f"{width} {height}".encode(), b"255"), report
-    expected = b"".join(expected_pixel(x, y, args.custom, args.mode, args.screen, args.priority) for y in range(height) for x in range(width))
+    expected = b"".join(expected_pixel(x, y, args.custom, args.mode, args.screen, args.priority, args.text) for y in range(height) for x in range(width))
     if args.mode == "paired64":
         coverage = dict(front_only=0, back_only=0, overlap=0, both_zero=0, black_front_over_back=0)
         for y in range(height):
@@ -280,10 +312,21 @@ def main():
                 coverage["black_front_over_back"] += front == bytes((85, 170, 255)) and back != bytes(3)
         assert all(coverage.values()), coverage
         print(json.dumps({"paired_raw_code_coverage": coverage}), flush=True)
+    if args.text:
+        colored = sum(bool(expected_pixel(x, y, False, "paired64", args.screen, 0x10, True) != bytes(3))
+                      for y in range(height) for x in range(width))
+        assert colored > 1000, colored
     (args.output / "expected.ppm").write_bytes(f"P6\n{width} {height}\n255\n".encode() + expected)
     mismatches = [(i // 3 % width, i // (width * 3), tuple(actual[i:i+3]), tuple(expected[i:i+3]))
                   for i in range(0, len(expected), 3) if actual[i:i+3] != expected[i:i+3]]
     assert actual == expected, (len(mismatches), mismatches[:20])
+    if args.text:
+        alternative = (args.priority & ~3) | (0 if args.priority & 3 else 2)
+        wrong_order = b"".join(expected_pixel(x, y, args.custom, args.mode, args.screen, alternative, True)
+                              for y in range(height) for x in range(width))
+        different = sum(actual[i:i+3] != wrong_order[i:i+3] for i in range(0, len(actual), 3))
+        assert different > 100, (args.priority, alternative, different)
+        print(json.dumps({"wrong_text_order_rejected_pixels": different}), flush=True)
     assert hashlib.sha256(executable.read_bytes()).hexdigest() == digest, "runner changed during test"
     print(f"PASS: {width*height} CPU-written {args.mode} pixels; screen={args.screen}; retained reset={args.warm}")
 

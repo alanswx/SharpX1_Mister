@@ -155,6 +155,9 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     wire [11:0] z_second_graphics_index;
     wire z_paired_screens;
     wire [7:0] z_priority_video;
+    wire [2:0] z_cg_color;
+    wire [5:0] z_text_video_bits;
+    wire z_text_video_valid,z_text_pixel_selected;
     wire z_graphics_valid, z_graphics_start, z_graphics_load, z_cg_transparent, z_graphics_disp;
     wire z_gram_read;
     wire [14:0] z_gram_address;
@@ -180,7 +183,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
                 .clear_read(!mreq || !m1 || (io_cycle && !(z_text_selected && io_read))),
                 .address(a),.data(data_out),.selected(z_text_selected),.read_data(live_data),
                 .read_hold(read_hold),.held_data(held_data),
-                .video_index(3'd0),.video_bits(),.video_valid());
+                .video_index(z_cg_color),.video_bits(z_text_video_bits),.video_valid(z_text_video_valid));
             assign z_text_tail=read_hold && !core_reset && mreq && iorq && m1 &&
                                a[15:3]==13'h3f7 && a[2:0]!=0;
             assign z_text_data=z_text_tail ? held_data : live_data;
@@ -195,6 +198,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
             assign z_priority_tail=priority_read_hold && !core_reset && mreq && iorq && m1 && a==16'h1fc0;
             assign z_priority_data=z_priority_tail ? priority_held : priority_live;
         end else begin : no_text_cpu
+            assign z_text_video_bits=0;assign z_text_video_valid=0;
             assign priority_control=0;
             assign z_text_selected=0;assign z_text_tail=0;assign z_text_data=8'hff;
             assign z_priority_selected=0;assign z_priority_tail=0;assign z_priority_data=8'hff;
@@ -322,24 +326,26 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
             wire [1:0] selected_source;
             x1_z_layer_order order(
                 .enabled(z_paired_screens),.two_screen_mode(1'b1),.selected_screen(1'b0),
-                .priority_control(pixel_priority),.text_visible(1'b0),
+                .priority_control(pixel_priority),.text_visible(!z_cg_transparent),
                 .screen0_visible(z_graphics_index!=0),.screen1_visible(z_second_graphics_index!=0),
                 .defined(defined_order),.source(selected_source));
             wire [11:0] back_index=pixel_priority[3] ? z_graphics_index : z_second_graphics_index;
             // Explicit experimental raw-code opacity, not palette RGB. When
             // all graphics codes are zero, text-on-top/between falls through
             // to graphics entry zero; graphics-on-top ends at fixed text zero.
-            // Only transparent text enters this graphics-only increment.
+            // Opacity is the raw glyph/graphics code, never programmed RGB.
             assign display_index=!z_paired_screens ? z_graphics_index :
                 selected_source==2 ? z_graphics_index : selected_source==3 ? z_second_graphics_index : back_index;
             assign graphics_present=!z_paired_screens ||
-                (defined_order && (selected_source!=0 || !pixel_priority[0]));
+                (defined_order && (selected_source>=2 || (selected_source==0 && !pixel_priority[0])));
+            assign z_text_pixel_selected=defined_order && selected_source==1;
         end else begin : no_paired_composition
             assign display_index=z_graphics_index;
             assign graphics_present=1;
+            assign z_text_pixel_selected=0;
         end
         wire display_read=TURBO_Z_VIDEO && z_video_enabled && z_graphics_valid && graphics_present &&
-                          z_cg_transparent && z_graphics_disp && palette_display_allowed;
+                          (z_cg_transparent || z_paired_screens) && z_graphics_disp && palette_display_allowed;
         assign ram_data=internal_owned ? internal_data : external_data;
         assign ram_valid=internal_owned ? internal_valid : external_valid;
         assign z_palette_valid=external_display_valid || internal_display_valid;
@@ -369,6 +375,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         assign z_palette_data=read_valid ? {4'd0,read_nibble} :
                               z_palette_read_tail ? {4'd0,held_nibble} : 8'hff;
     end else begin : no_z_palette_cpu
+        assign z_text_video_bits=0;assign z_text_video_valid=0;assign z_text_pixel_selected=0;
         assign z_text_selected=0;assign z_text_tail=0;assign z_text_data=8'hff;
         assign z_priority_selected=0;assign z_priority_tail=0;assign z_priority_data=8'hff;
         assign z_palette_selected=0;
@@ -785,7 +792,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         .I_VCLK(clk_28636), .I_CLK1(clk1), .O_VQ(), .I_W40(TURBO_VIDEO_MASTER ? width_video : mode_c[6]),
         .O_VA(vaddr), .O_GRAPHICS_RA(graphics_ra),
         .O_GRAPHICS_START(z_graphics_start),.O_GRAPHICS_LOAD(z_graphics_load),
-        .O_CG_TRANSPARENT(z_cg_transparent),.O_GRAPHICS_DISP(z_graphics_disp),
+        .O_CG_TRANSPARENT(z_cg_transparent),.O_GRAPHICS_DISP(z_graphics_disp),.O_CG_COLOR(z_cg_color),
         .O_TXT_WE(), .O_ATT_WE(), .O_KAN_WE(),
         .I_TXT_D(text_vid), .I_ATT_D(attr_vid), .I_KAN_D(TURBO ? kan_vid : 8'd0),
         .O_GRB_WE(), .O_GRR_WE(), .O_GRG_WE(),
@@ -805,11 +812,31 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         always @(posedge clk_28636 or posedge video_reset)
             if(video_reset) graphics_selected<=0;
             else graphics_selected<=z_video_enabled && z_cg_transparent && z_graphics_disp;
-        // Transparent-text full-colour prototype. Native analog text/priority
-        // is not implemented: opaque text retains the digital renderer result.
+        // Default transparent-text prototype retains digital opaque text.
+        // The combined paired/text experiment below adds provisional analog
+        // text; neither profile establishes native Z opacity/blackclip.
         // A denied/invalid graphics response is black, never stale RAM color.
-        assign rgb12=graphics_selected ? (z_palette_valid ? z_palette_rgb12 : 12'd0)
-                                      : {{4{r}}, {4{g}}, {4{b}}};
+        if(TURBO_Z_TEXT_CPU && TURBO_Z_MULTIMODE) begin : paired_text
+            reg composition_active=0,text_selected=0,text_valid=0;
+            reg [11:0] text_rgb=0;
+            always @(posedge clk_28636 or posedge video_reset)
+                if(video_reset) begin
+                    composition_active<=0;text_selected<=0;text_valid<=0;text_rgb<=0;
+                end else begin
+                    composition_active<=z_video_enabled && z_paired_screens && z_graphics_disp;
+                    text_selected<=z_text_pixel_selected;
+                    text_valid<=z_text_video_valid;
+                    // Explicit experimental eX1/MAME intensity policy:
+                    // 00/01/10/11 -> 0/5/A/F. Not qualified DAC pin order.
+                    text_rgb<={{2{z_text_video_bits[3:2]}},{2{z_text_video_bits[5:4]}},{2{z_text_video_bits[1:0]}}};
+                end
+            assign rgb12=composition_active ?
+                (text_selected ? (text_valid ? text_rgb : 12'd0) : (z_palette_valid ? z_palette_rgb12 : 12'd0)) :
+                graphics_selected ? (z_palette_valid ? z_palette_rgb12 : 12'd0) : {{4{r}}, {4{g}}, {4{b}}};
+        end else begin : no_paired_text
+            assign rgb12=graphics_selected ? (z_palette_valid ? z_palette_rgb12 : 12'd0)
+                                          : {{4{r}}, {4{g}}, {4{b}}};
+        end
     end else begin : digital_output
         assign rgb12 = {{4{r}}, {4{g}}, {4{b}}};
     end endgenerate

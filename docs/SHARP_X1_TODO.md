@@ -134,6 +134,11 @@ admits both banks and selects a captured-priority index before palette lookup,
 behind the combined opt-in profile. Its first 64,000-pixel case passes;
 the remaining pixel matrices are in progress, not a completed acceptance gate.
 Opaque/analog text, native reduced banks/opacity and hardware remain open.
+The [analog text follow-up](TURBO_Z_TEXT_COMPOSITION_STATUS.md) now builds and
+connects actual glyph presence to paired ordering; the first 64,000-pixel
+between-screen text case passes, with wider cold/warm tests running. Fresh v14 ordinary snapshot/old-version rejection and
+focused default timing/GRAM/DAM checks pass. Native intensity, opacity,
+attribute/blackclip and hardware gates remain open; v13 results stay historical.
 
 The expanded [hosted diagnostic run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37865161650)
 now completes successfully on `95c3e4a`. The newer `99eb141` palette-RAM/
