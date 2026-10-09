@@ -23,6 +23,11 @@ helper finishes zero (149 PASS reports); the older combined matrix is
 historical for this new RTL. Fresh
 FPGA fitting/timing, current combined pixels and native/physical gates remain
 required. This does not complete any broad work group.
+The blink-source `6e334b4` fit now finishes zero. Independent native blink
+inventory/timing checks pass all 12,080 reported synchronous rows at eight
+corners, including all 85 final consumer keepers. Raw input remains open;
+full global timing, the current 120-case matrix and physical/native acceptance
+are not established by those bounded paths.
 
 The experimental [SYS VSYNC increment](VSYNC_SYS_CDC_STATUS.md) adds two-stage
 sampling before frame-wait/configuration consumers. Nine local clock pairs

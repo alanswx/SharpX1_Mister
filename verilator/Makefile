@@ -1151,6 +1151,14 @@ test-video-blink-paths:
 	tclsh tests/video_blink_paths_tb.tcl
 .PHONY: test-video-blink-paths
 
+test-z-build-isolation:
+	python3 tests/test_z_build_isolation.py
+.PHONY: test-z-build-isolation
+
+test-video-blink-report-audit:
+	python3 tests/test_video_blink_report_audit.py
+.PHONY: test-video-blink-report-audit
+
 test-reset-release: $(HEADLESS_DIR)/reset-release/Vreset_release_tb
 	@for half in 3 7 31; do ./$(HEADLESS_DIR)/reset-release/Vreset_release_tb +VIDEO_HALF=$$half || exit 1; done
 	@for half in 15625 17500 11640 25000; do ./$(HEADLESS_DIR)/reset-release/Vreset_release_tb +VIDEO_HALF_PS=$$half || exit 1; done
