@@ -15,7 +15,11 @@ module x1_z_graphics (
     input wire [7:0] blue_q, red_q, green_q,
     output wire [11:0] palette_index,
     output wire index_valid,
-    output wire internal_palette
+    output wire internal_palette,
+    // Mode 5 keeps the two screens separate; priority and palette-bank
+    // selection are downstream work, not an OR of the component bits.
+    output wire paired_screens,
+    output wire [11:0] second_palette_index
 );
     wire ready, fetched, rejected;
     wire [31:0] fetch_blue, fetch_red, fetch_green;
@@ -65,6 +69,10 @@ module x1_z_graphics (
     end
     assign index_valid=enabled && character_valid && !reset;
     assign internal_palette=index_valid && pixel_mode==4;
+    assign paired_screens=index_valid && pixel_mode==5;
+    assign second_palette_index=paired_screens ?
+        {green[23],green[31],green[23],green[31],
+         red[23],red[31],red[23],red[31],blue[23],blue[31],blue[23],blue[31]} : 12'd0;
     // Techknow table 4-22 (printed 156): physical PA[3:0] is
     // QHA[3:0] for display, but DB[4:7] for CPU. Likewise PA[7:4]
     // uses AB[0:3], and PA[11:8] uses AB[4:7]. Storage is indexed

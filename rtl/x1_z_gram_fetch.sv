@@ -10,7 +10,8 @@ module x1_z_gram_fetch (
     output wire ready,
     input wire [13:0] base_address,
     // 0: 320x200/4096; 1: two-screen 320x200/64; 2: 640x200/64;
-    // 3: 320x400/64; 4: 640x400/8. These are internal IDs, not ASIC bits.
+    // 3: 320x400/64; 4: 640x400/8; 5: both 320x200/64 screens.
+    // These are internal IDs, not ASIC bits.
     input wire [2:0] mode,
     input wire screen, raster_odd,
     output wire read_enable,
@@ -26,9 +27,9 @@ module x1_z_gram_fetch (
     reg selected_page = 0;
     reg pending = 0;
     reg [1:0] pending_lane = 0;
-    wire offset = selected_mode == 0 ? issued[0] :
+    wire offset = (selected_mode == 0 || selected_mode == 5) ? issued[0] :
                   (selected_mode == 1 || selected_mode == 3) && issued[0];
-    wire bank = selected_mode == 0 ? issued[1] :
+    wire bank = (selected_mode == 0 || selected_mode == 5) ? issued[1] :
                 selected_mode == 2 ? issued[0] : selected_page;
     // Offset wraps within a component's 16 KiB bank, never into the next bank.
     wire [13:0] byte_address = base + (offset ? 14'h0400 : 14'd0);
@@ -46,13 +47,13 @@ module x1_z_gram_fetch (
             rejected <= 0;
             pending <= read_enable;
             if (ready && request) begin
-                if (mode > 4) rejected <= 1;
+                if (mode > 5) rejected <= 1;
                 else begin
                     busy <= 1;
                     base <= base_address;
                     selected_mode <= mode;
                     selected_page <= mode == 1 ? screen : raster_odd;
-                    count <= mode == 0 ? 4 : mode == 4 ? 1 : 2;
+                    count <= (mode == 0 || mode == 5) ? 4 : mode == 4 ? 1 : 2;
                     issued <= 0;
                     blue <= 0; red <= 0; green <= 0;
                 end

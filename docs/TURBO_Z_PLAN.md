@@ -151,6 +151,10 @@ extra GRAM. The digital RGB output reduces analog multi-mode colors to eight
   The [priority/composition contract](TURBO_Z_PRIORITY_CONTRACT.md) now traces
   primary `1FC0` bits 0/1/3/4, undefined combinations and SCRN interaction,
   and specifies the missing dual-bank fetch/palette/opacity acceptance work.
+  Its subsequent paired-screen fetch/shifter increment passes all-address
+  and all 64x64 independent color-pair checks at three clocks. The machine
+  does not yet admit that layout or connect the second index to composition;
+  `1FC0`, native reduced indices, opacity and actual overlapping pixels remain.
 - [ ] Z5: standard stereo FM (YM2151), board CTC/interrupts and PSG mixing.
   The [standalone FM foundation](TURBO_Z_FM_STATUS.md) now executes genuine
   JT51 bus/timer/stereo notes and original signed mixer tests at all three

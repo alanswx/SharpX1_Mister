@@ -287,6 +287,10 @@ The new [text-palette CPU increment](docs/TURBO_Z_TEXT_PALETTE_STATUS.md)
 passes nine unit profiles and five actual-CPU controls, including all six-bit
 values, DAM isolation and warm retention without refill. It is opt-in,
 non-savable and not connected to text RGB or priority; board defaults are unchanged.
+The [paired-screen fetch/shifter](docs/TURBO_Z_PRIORITY_CONTRACT.md#executed-paired-screen-fetchshifter-increment)
+now preserves two independent indices and passes all-address/color-pair unit
+checks at three clocks. CPU priority controls and actual two-screen composition
+remain unconnected; these units do not establish native priority or a Z RBF.
 
 The headless simulator has been compiled with Verilator 5.044 on macOS.
 The timing/reset regression passes. A 200,000-system-cycle run reports:

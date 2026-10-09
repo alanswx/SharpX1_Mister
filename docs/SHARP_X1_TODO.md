@@ -116,6 +116,11 @@ cold/warm, disabled negative). Seven writable six-bit entries, fixed black
 zero, DAM isolation and reset retention are covered. Analog text RGB,
 intensity pin order, `1FC0` priority and native/hardware qualification remain
 open; this does not complete Z2/Z4 or change board defaults.
+The [paired-screen fetch/shifter increment](TURBO_Z_PRIORITY_CONTRACT.md#executed-paired-screen-fetchshifter-increment)
+passes nine clock/profile gates, all base addresses and all 64x64 independent
+color pairs. It retains two distinct indices; the shared machine still leaves
+the second unconnected. CPU priority registers, dual-screen composition,
+opacity/text RGB and native/hardware acceptance remain unfinished.
 
 The expanded [hosted diagnostic run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37865161650)
 now completes successfully on `95c3e4a`. The newer `99eb141` palette-RAM/

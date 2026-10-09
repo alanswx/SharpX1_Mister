@@ -1,7 +1,7 @@
 # Turbo Z priority/composition implementation contract
 
-October 9, 2026: research and remaining integration requirements, **not an
-implemented renderer or register**. This follows the completed bounded
+October 9, 2026: research and remaining integration requirements, **not a
+completed priority renderer or register**. This follows the completed bounded
 graphics matrices and [CPU text-palette path](TURBO_Z_TEXT_PALETTE_STATUS.md).
 
 ## Primary register evidence
@@ -76,5 +76,54 @@ Neither was executed with a priority diagnostic in this audit; no code copied.
    Existing selected-screen captures do not close the simultaneous-screen or
    text-priority gates, even though all sixteen reduced-mode cases pass.
 
-This contract fleshes out Z4 and the missing portion of Z3. No implementation
-or hardware completion box is checked by this research checkpoint.
+## Executed paired-screen fetch/shifter increment
+
+The shared fetch/shifter components now accept internal layout ID 5: bank 0
+base/+400h followed by bank 1 base/+400h, wrapping offsets within each 16 KiB
+component bank. Both source pairs are captured in the existing four lanes.
+The shifter emits two distinct indices and a captured `paired_screens` tag.
+SCRN/parity inputs cannot redirect this layout. Index expansion deliberately
+uses the existing provisional effective-pair policy; it does not resolve
+native reduced palette addressing or introduce a new brightness policy.
+
+The machine still admits only existing layouts 0–4 and leaves the second
+index/tag unconnected. No CPU `1FC0`, simultaneous-screen lookup/composition,
+opacity or priority renderer is advertised. Ordinary board profiles remain
+unchanged. This is infrastructure for step 2 above, not completed Z3/Z4.
+
+```sh
+make -C verilator test-z-gram-fetch test-z-graphics test-z-palette-pins
+```
+
+Final matrix exits zero: nine passes, log
+`/tmp/x1-z-dual-fetch-final-matrix.log`. Video half-periods are 17,500,
+11,640 and 25,000 ps. The real-RAM fetch fixture covers all 16,384 bases,
+six layouts, both selected/ignored page inputs, exact four-read paired
+responses, live-input mutation, reset at each pipeline seam and phase-14
+deadlines at all scan/width settings. CPU RAM writes initialize the sources;
+no private assets are used. The shifter checks all bases/eight pixels and all
+64x64 independent screen-color pairs against both address and direct-color
+oracles, including held enables and captured control mutation. Existing
+all-4096 full-color GRAM/palette pin checks also pass at the three clocks.
+
+Unit executable SHA-256 values after this terminal run (not a frozen
+native-game qualification):
+
+- Fetch: `519c200f782e29fc4a078acd5aeffcc9257c3c336581025f1574644974502ba2`
+- Shifter: `9a1db015838df76e9c8652b6de4432be748d6fb2fc03dd534e9f61e84c983a43`
+- Full-color pins: `60ac07287fb1fbbcb7d68b5a90f03264cd48113778e6a41f5e704734cf6b1bb6`
+
+Ordinary/X3/DMA wrapper lint also exits zero in
+`/tmp/x1-z-dual-fetch-current-suite.log`, with inherited warnings and a PLL
+stand-in, not fitted timing. The current actual-CPU full-color matrix is
+running separately in `/tmp/x1-z-dual-fetch-machine-regression.log`; do not
+count it as passed until its terminal evidence is recorded.
+That already-started run uses the hash-checked original executable
+`c6f5e379baa27278b46dd8f25a8952981ef935a124dffd4146b4a0bfbf3a8ceb`
+and copied oracle/emitter under `pixel-matrix-F0CIRT`; do not rebuild its
+runner until it finishes. The Make target subsequently also copies the
+executable for future invocations, like the reduced/internal/text matrices.
+Its updated recipe has been dry-run inspected, not yet executed as a new run.
+
+This contract fleshes out Z4 and the missing portion of Z3. No native or
+hardware completion box is checked by this increment.

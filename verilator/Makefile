@@ -271,11 +271,11 @@ test-machine-z-text-cpu: turbo-z-text-cpu headless
 .PHONY: test-machine-z-text-cpu
 test-machine-z-video: turbo-z-video
 	@run_root=$$(mktemp -d $(Z_VIDEO_DIR)/pixel-matrix-XXXXXX); \
-	  cp tests/test_machine_z_video.py tests/z80_fixture.py $$run_root/ && \
-	  python3 $$run_root/test_machine_z_video.py ./$(Z_VIDEO_DIR)/Vtop --output $$run_root/identity-cold && \
-	  python3 $$run_root/test_machine_z_video.py ./$(Z_VIDEO_DIR)/Vtop --warm --output $$run_root/identity-warm && \
-	  python3 $$run_root/test_machine_z_video.py ./$(Z_VIDEO_DIR)/Vtop --custom --output $$run_root/custom-cold && \
-	  python3 $$run_root/test_machine_z_video.py ./$(Z_VIDEO_DIR)/Vtop --custom --warm --output $$run_root/custom-warm
+	  cp tests/test_machine_z_video.py tests/z80_fixture.py $(Z_VIDEO_DIR)/Vtop $$run_root/ && \
+	  python3 $$run_root/test_machine_z_video.py $$run_root/Vtop --output $$run_root/identity-cold && \
+	  python3 $$run_root/test_machine_z_video.py $$run_root/Vtop --warm --output $$run_root/identity-warm && \
+	  python3 $$run_root/test_machine_z_video.py $$run_root/Vtop --custom --output $$run_root/custom-cold && \
+	  python3 $$run_root/test_machine_z_video.py $$run_root/Vtop --custom --warm --output $$run_root/custom-warm
 .PHONY: test-machine-z-video
 test-machine-z-multimode: turbo-z-multimode
 	@run_root=$$(mktemp -d obj_dir_v13_z_multimode/mode-matrix-XXXXXX); \

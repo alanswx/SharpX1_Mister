@@ -677,7 +677,8 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
             .base_address(graphics_addr[13:0]),.read_enable(z_gram_read),.read_address(z_gram_address),
             .mode(z_graphics_mode),.screen(z_graphics_screen),.raster_odd(graphics_ra[0]),
             .blue_q(grb_vid),.red_q(grr_vid),.green_q(grg_vid),.internal_palette(z_graphics_internal),
-            .palette_index(z_graphics_index),.index_valid(z_graphics_valid)
+            .palette_index(z_graphics_index),.index_valid(z_graphics_valid),
+            .paired_screens(),.second_palette_index()
         );
     end else begin : no_z_graphics
         assign z_gram_read=0;assign z_gram_address=0;

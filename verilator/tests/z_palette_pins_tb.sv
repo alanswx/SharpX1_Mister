@@ -25,7 +25,8 @@ module z_palette_pins_tb;
         .character_start(start),.character_load(load),.pixel_step(step),
         .base_address(base),.read_enable(read_enable),.read_address(read_address),
         .mode(3'd0),.screen(1'b0),.raster_odd(1'b0),
-        .blue_q(bq),.red_q(rq),.green_q(gq),.palette_index(index),.index_valid(valid),.internal_palette());
+        .blue_q(bq),.red_q(rq),.green_q(gq),.palette_index(index),.index_valid(valid),.internal_palette(),
+        .paired_screens(),.second_palette_index());
     x1_z_palette_ram palette(.cpu_clk(cpu_clk),.video_clk(video_clk),
         .cpu_reset(reset),.video_reset(reset),.cpu_access(1'b0),.cpu_write(1'b0),
         .cpu_address(12'd0),.cpu_component(2'd0),.cpu_nibble(4'd0),.cpu_data(),.cpu_valid(),

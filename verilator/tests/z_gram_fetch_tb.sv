@@ -38,12 +38,12 @@ module z_gram_fetch_tb;
     task automatic check_fetch(input integer q,m,s,p);
         integer lanes, start_reads, edges, bank, offset, address;
         reg [31:0] expected_b,expected_r,expected_g;
-        lanes=m==0 ? 4 : m==4 ? 1 : 2;
+        lanes=(m==0 || m==5) ? 4 : m==4 ? 1 : 2;
         expected_b=0;expected_r=0;expected_g=0;
         for(integer n=0;n<lanes;n=n+1) begin
             // Arithmetic oracle distinct from the RTL's bit-mux expressions.
             case(m)
-                0: begin bank=n/2;offset=(n%2)*1024;end
+                0,5: begin bank=n/2;offset=(n%2)*1024;end
                 1: begin bank=s;offset=n*1024;end
                 2: begin bank=n;offset=0;end
                 3: begin bank=p;offset=n*1024;end
@@ -93,24 +93,28 @@ module z_gram_fetch_tb;
                 check_fetch(q,4,0,page);
             end
             check_fetch(q,2,0,0);
+            check_fetch(q,5,0,0);
+            check_fetch(q,5,1,1);
         end
         // Invalid modes cannot silently become a supported graphics format.
-        for(integer m=5;m<8;m=m+1) begin
+        for(integer m=6;m<8;m=m+1) begin
             @(negedge clk);mode=3'(m);request=1;
             tick();assert(rejected && ready && !valid && !read_enable)
                 else $fatal(1,"invalid mode accepted");
             @(negedge clk);request=0;tick();
         end
         // Abort at every pipeline seam, then qualify a clean fresh request.
+        for(integer abort_mode=0;abort_mode<2;abort_mode=abort_mode+1) begin
         for(integer delay_edges=0;delay_edges<5;delay_edges=delay_edges+1) begin
-            @(negedge clk);base_address=14'h3fff;mode=0;request=1;
+            @(negedge clk);base_address=14'h3fff;mode=abort_mode==0 ? 0 : 5;request=1;
             tick();@(negedge clk);request=0;
             repeat(delay_edges) tick();
             @(negedge clk);reset=1;#1;
             assert(!valid && !read_enable && !ready) else $fatal(1,"reset did not mask");
             tick();@(negedge clk);reset=0;
             repeat(6) begin tick();assert(!valid) else $fatal(1,"old response replayed");end
-            check_fetch(1023,0,0,0);
+            check_fetch(1023,abort_mode==0 ? 0 : 5,0,0);
+        end
         end
         // Separate CPU port and retained RAM contents still read normally.
         @(negedge cpu_clk);cpu_address=15'h7fff;
@@ -131,7 +135,7 @@ module z_gram_fetch_tb;
                     @(negedge clk);request=0;
                     if(step && !phase[0] && phase[4:1]==0) begin
                         assert(ready && !in_flight) else $fatal(1,"missed character admission");
-                        request=1;mode=0;base_address=14'(starts);
+                        request=1;mode=starts[0] ? 5 : 0;base_address=14'(starts);
                         starts=starts+1;in_flight=1;completed=0;
                     end
                     if(step && !phase[0] && phase[4:1]==14 && in_flight) begin
@@ -147,7 +151,7 @@ module z_gram_fetch_tb;
                 assert(loads>20 && starts-loads<=1) else $fatal(1,"timing fixture missing characters");
             end
         end
-        $display("PASS Z sequential GRAM fetch: all base addresses/five modes/pages/parities, frozen metadata, exact one-edge RAM response and reset seams; video half=%0d ps",video_half);
+        $display("PASS Z sequential GRAM fetch: all base addresses/six modes/pages/parities, both-screen independence, frozen metadata, exact one-edge RAM response and reset seams; video half=%0d ps",video_half);
         $finish;
     end
 endmodule
