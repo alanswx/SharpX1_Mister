@@ -1,5 +1,36 @@
 # Connected 4096-color video experiment
 
+## Pin-order correction after `533961a`
+
+Printed 156 table 4-22 reverses CPU-address bit order within each nibble
+relative to display QHA/QHB/QHC channels. The first fetched source therefore
+supplies logical component bit 3, not bit 0. The initial renderer and oracle
+at `533961a` shared the unreversed convention: their pixel passes below are
+historical internal-agreement evidence, **not native index-significance proof**.
+See [the explicit pin table](TURBO_Z_PALETTE_CONTRACT.md#cpudisplay-pin-reconciliation-table-4-22).
+
+Corrected `x1_z_graphics.sv` and independent CPU-pixel/shifter oracles now
+use the physical-to-logical permutation. `test-z-palette-pins` checks all
+4096 indices times eight pixels through real component RAM, sequential fetch,
+shifter and palette RAM at three video half-periods; all profiles pass.
+This connected fixture drives accepted RAM writes, not Z80 instructions.
+All-address standalone shifter checks also pass after the correction.
+The preserved old identity capture differs at 52,198 pixels under the new
+pin-derived oracle, a negative control rather than a converted asset.
+
+Corrected identity retained-reset CPU pixels pass all 64,000 pixels, periods
+and no-refill I/O assertions. Frozen renderer SHA-256:
+`8afb17c15999327b59b66de5f5b8ffa12ac00e8f4fa31ed24f2cc5829ca2018c`;
+logs `/tmp/x1-z-indexfix-{identity,custom}-warm.log`. Custom retained-reset
+also passes all 64,000 pixels, periods and no-refill I/O assertions.
+Old four-case matrix results use the preceding
+convention and must not be promoted to this corrected renderer's acceptance.
+New matrix invocations freeze both Python fixture/emitter and runner identity,
+and print the oracle revision/source hash, so later cases cannot silently
+adopt edits made while a long matrix is active.
+
+## Profile and historical integration evidence
+
 `TURBO_Z_VIDEO=1` connects the sequential GRAM fetch, original twelve-bit
 shifter and synchronous external palette to the shared machine's RGB12
 output. It requires `TURBO=1`, `TURBO_VIDEO_MASTER=1` and

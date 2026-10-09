@@ -172,8 +172,12 @@ additional `+400h` byte position inside that bank.
 | 640×400/8 | One bit/component from the bank selected by raster parity; use the internal eight-entry analog palette, not the external 4096 store. |
 
 Component order is B/R/G, while the final RGB12 interface remains R:G:B.
-The chapter's significance diagram makes bit 0 the most rapidly varying
-component bit; do not reverse nibble significance to make an image look right.
+Here bit numbers name **source channels**, not logical CPU-address significance.
+The earlier claim that channel zero is the least-significant logical nibble bit
+was incorrect. Printed 156 table 4-22 permutes CPU pins against display pins;
+the display index must reverse each source nibble before a logical CPU-indexed
+RAM lookup. See the explicit pin reconciliation below. Synthetic agreement
+with an identically mistaken oracle was not native-significance acceptance.
 Reduced-color replication and the palette-bank selector remain distinct from
 the GRAM source-bank selection in this table.
 
@@ -199,3 +203,32 @@ each bank/offset, independently predict component indices and final RGB12,
 check every pixel in all five modes and both low-scan screens, then exercise
 live exits, retained reset and unchanged base/Turbo rendering. This is a
 documented integration contract, not executed Z-mode acceptance.
+
+## CPU/display pin reconciliation (table 4-22)
+
+Re-read printed 121/122 source diagrams and printed 156 table 4-22 while
+extending the renderer. CPU external access is still logical
+`{AB[7:0], DB[7:4]}`; the physical memory PA pins have a different order:
+
+| Source channel order | Physical PA order | CPU pin order | Logical component bits |
+|---|---|---|---|
+| QHA0,1,2,3 (blue) | 0,1,2,3 | DB7,6,5,4 | B3,2,1,0 |
+| QHB0,1,2,3 (red) | 4,5,6,7 | AB3,2,1,0 | R3,2,1,0 |
+| QHC0,1,2,3 (green) | 8,9,10,11 | AB7,6,5,4 | G3,2,1,0 |
+
+First GRAM source is BD0/RD0/GD0, then the other three bank/offset sources.
+Thus the first fetched byte supplies logical component bit **3**, not bit 0.
+This is a physical-to-logical representation correction, not an aesthetic
+image adjustment. CPU selector/write packing and palette storage identity
+stay unchanged. The old renderer/oracle at `533961a` used unreversed logical
+nibbles; its pixel passes establish internal agreement, not this pin contract.
+The correction updates both independently derived pin and CPU-pixel oracles.
+Full native software and physical pin timing remain separate gates.
+
+Reduced modes still require interpreting the effective-source expansion and
+page policy, not blindly copying emulator tables: local X Millennium selects
+only `CCC`/`333` positions for its two 64-color banks, while local MAME expands
+masked `CCC` bits by OR with a two-bit right shift under a different C64
+condition marked TODO. Those implementations do not agree on the contract;
+neither executes a complete Z multicolor renderer. Preserve this discrepancy
+until the book/ASIC controls and native pixel sequences resolve it.

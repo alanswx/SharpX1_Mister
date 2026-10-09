@@ -105,7 +105,9 @@ def expected_pixel(x, y, custom=False):
             seed = SEEDS[component] ^ (0x91 if lane & 2 else 0x2D)
             k = (port >> 8) ^ (port & 255) ^ seed
             value = table_byte((port & 0x3800) >> 11, k)
-            nibble |= bool(value & (128 >> (x % 8))) << lane
+            # CPU/physical-PA table 4-22: source BD0/QHA0 is CPU DB7,
+            # not DB4. All three component nibbles reverse the PA ordering.
+            nibble |= bool(value & (128 >> (x % 8))) << (3 - lane)
         components.append(nibble)
     blue, red, green = components
     if custom:
@@ -139,6 +141,8 @@ def main():
                     "--bus-trace", str(bus.resolve()), "--bus-events", "--io-only",
                     "--bus-start-ms", str(reset_ms), "--bus-end-ms", str(duration_ms)]
     print(json.dumps({"runner_sha256": digest,
+                      "oracle_revision": "table-4-22-CPU-PA-v2",
+                      "fixture_source_sha256": hashlib.sha256(pathlib.Path(__file__).read_bytes()).hexdigest(),
                       "program_sha256": hashlib.sha256(code.read_bytes()).hexdigest(),
                       "command": command}), flush=True)
     result = subprocess.run(command, capture_output=True, text=True, timeout=args.timeout)

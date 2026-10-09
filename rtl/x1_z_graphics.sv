@@ -58,7 +58,13 @@ module x1_z_graphics (
         end
     end
     assign index_valid=enabled && character_valid && !reset;
-    assign palette_index={green[31],green[23],green[15],green[7],
-                          red[31],red[23],red[15],red[7],
-                          blue[31],blue[23],blue[15],blue[7]};
+    // Techknow table 4-22 (printed 156): physical PA[3:0] is
+    // QHA[3:0] for display, but DB[4:7] for CPU. Likewise PA[7:4]
+    // uses AB[0:3], and PA[11:8] uses AB[4:7]. Storage is indexed
+    // by logical CPU {AB[7:0],DB[7:4]}, NOT the physical PA pins.
+    // Consequently each display nibble must reverse before the RAM lookup:
+    // first fetched source QH?0 corresponds to logical component bit 3.
+    assign palette_index={green[7],green[15],green[23],green[31],
+                          red[7],red[15],red[23],red[31],
+                          blue[7],blue[15],blue[23],blue[31]};
 endmodule

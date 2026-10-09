@@ -260,6 +260,10 @@ Its retained-reset test exposes a [PPI/DAM control-write corruption](docs/DAM_TR
 The transaction-bound correction passes standalone/CPU tests and requires
 fresh **v13** snapshots; earlier v12 snapshots and game qualifications remain
 historical. Fixed full-pixel/reset tests pass; the complete baseline is running.
+The subsequent [CPU/display pin audit](docs/TURBO_Z_PALETTE_CONTRACT.md#cpudisplay-pin-reconciliation-table-4-22)
+corrects a shared renderer/oracle significance error. Connected all-4096-index
+checks and corrected identity/custom retained-reset pixels pass. Earlier
+pixel images remain historical; full baseline/matrix regressions remain running.
 
 The headless simulator has been compiled with Verilator 5.044 on macOS.
 The timing/reset regression passes. A 200,000-system-cycle run reports:

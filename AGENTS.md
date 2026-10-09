@@ -114,6 +114,12 @@ palette owner's display permission and response validity. See
 reduced-mode/text support or hardware acceptance. CPU fixtures must clear DAM
 with a real IN after PPI mode-set before writing width; never loosen timing or
 pixel assertions to accept an incorrectly initialized diagnostic.
+Palette RAM is indexed by logical CPU `{AB[7:0],DB[7:4]}`, not physical
+PA pins. Table 4-22 reverses each display-source nibble: the first fetched
+QH?0 supplies logical component bit 3. Use `test-z-palette-pins` to cover the
+whole GRAM/fetch/shifter/palette chain; earlier unreversed pixel passes are
+historical internal agreement only. Freeze the Python oracle/emitter as well
+as the runner for long multi-case matrices.
 During an owned reset drain, CPU CE stops while DMA/target CE and host SD ACK
 processing continue. Do not replace actual BUSACK ownership with BUSRQ or
 reset the CPU before the already-started pair completes. Uploads must honor

@@ -77,6 +77,11 @@ and actual-CPU regressions. Fixed identity/custom retained-reset pixels each
 pass all 64,000 pixels, with post-reset I/O proving no refill. The new complete
 baseline is in progress. Current snapshots require v13; prior v12 qualifications remain
 source-bound history, not acceptance of this pending-state change.
+The subsequent [palette pin reconciliation](TURBO_Z_PALETTE_CONTRACT.md#cpudisplay-pin-reconciliation-table-4-22)
+corrects the renderer/oracle's shared reversed-significance assumption.
+All 4096 connected GRAM/fetch/shifter/palette indices and corrected identity
+CPU retained-reset pixels pass, including corrected custom-palette pixels.
+Pre-correction images prove internal agreement only, not the physical pin map.
 
 The expanded [hosted diagnostic run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37865161650)
 now completes successfully on `95c3e4a`. The newer `99eb141` palette-RAM/

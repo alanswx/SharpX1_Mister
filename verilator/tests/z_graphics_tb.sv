@@ -41,7 +41,9 @@ module z_graphics_tb;
                 lane_address={lane[1],q};
                 for(integer component=0;component<3;component=component+1) begin
                     byte_value=source(lane_address,component);
-                    expected[component*4+lane]=byte_value[7-pixel];
+                    // Independent CPU/PA table oracle: PA[c*4+lane]
+                    // corresponds to logical CPU index[c*4+3-lane].
+                    expected[component*4+3-lane]=byte_value[7-pixel];
                 end
             end
             assert(index==expected) else $fatal(1,"index %h != %h at base %h pixel %0d",index,expected,a,pixel);

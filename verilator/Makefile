@@ -71,6 +71,14 @@ $(HEADLESS_DIR)/z-graphics/Vz_graphics_tb: tests/z_graphics_tb.sv ../rtl/x1_z_gr
 	  -j 4 tests/z_graphics_tb.sv ../rtl/x1_z_graphics.sv ../rtl/x1_z_gram_fetch.sv
 .PHONY: test-z-graphics
 
+test-z-palette-pins: $(HEADLESS_DIR)/z-palette-pins/Vz_palette_pins_tb
+	@for half in 17500 11640 25000; do ./$(HEADLESS_DIR)/z-palette-pins/Vz_palette_pins_tb +video_half=$$half || exit 1; done
+$(HEADLESS_DIR)/z-palette-pins/Vz_palette_pins_tb: tests/z_palette_pins_tb.sv ../rtl/x1_z_graphics.sv ../rtl/x1_z_gram_fetch.sv ../rtl/x1_video_ram.v ../rtl/x1_z_palette_ram.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module z_palette_pins_tb --Mdir $(@D) \
+	  -j 4 tests/z_palette_pins_tb.sv ../rtl/x1_z_graphics.sv ../rtl/x1_z_gram_fetch.sv ../rtl/x1_video_ram.v ../rtl/x1_z_palette_ram.sv
+.PHONY: test-z-palette-pins
+
 test-z-palette-owner: $(HEADLESS_DIR)/z-palette-owner/Vz_palette_owner_tb
 	@for half in 17500 11640 25000; do \
 	  ./$(HEADLESS_DIR)/z-palette-owner/Vz_palette_owner_tb +video_half=$$half || exit 1; done
@@ -207,10 +215,11 @@ $(Z_VIDEO_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d
 .PHONY: turbo-z-video
 test-machine-z-video: turbo-z-video
 	@run_root=$$(mktemp -d $(Z_VIDEO_DIR)/pixel-matrix-XXXXXX); \
-	  python3 tests/test_machine_z_video.py ./$(Z_VIDEO_DIR)/Vtop --output $$run_root/identity-cold && \
-	  python3 tests/test_machine_z_video.py ./$(Z_VIDEO_DIR)/Vtop --warm --output $$run_root/identity-warm && \
-	  python3 tests/test_machine_z_video.py ./$(Z_VIDEO_DIR)/Vtop --custom --output $$run_root/custom-cold && \
-	  python3 tests/test_machine_z_video.py ./$(Z_VIDEO_DIR)/Vtop --custom --warm --output $$run_root/custom-warm
+	  cp tests/test_machine_z_video.py tests/z80_fixture.py $$run_root/ && \
+	  python3 $$run_root/test_machine_z_video.py ./$(Z_VIDEO_DIR)/Vtop --output $$run_root/identity-cold && \
+	  python3 $$run_root/test_machine_z_video.py ./$(Z_VIDEO_DIR)/Vtop --warm --output $$run_root/identity-warm && \
+	  python3 $$run_root/test_machine_z_video.py ./$(Z_VIDEO_DIR)/Vtop --custom --output $$run_root/custom-cold && \
+	  python3 $$run_root/test_machine_z_video.py ./$(Z_VIDEO_DIR)/Vtop --custom --warm --output $$run_root/custom-warm
 .PHONY: test-machine-z-video
 Z_PALETTE_DIR ?= obj_dir_v12_z_palette_cpu
 Z_PALETTE_CPU ?= 1
