@@ -55,6 +55,32 @@ five-enable held writes, A's retained queued byte and RR0/RR1, B isolation,
 serial ticks stop during CPU programming; SYS/CPU access still advances.
 No byte is supplied by a patched CPU register or firmware asset.
 
+### Expanded disable-format matrix
+
+The same fixture now exercises 504 cases per CE profile: 5–8 data bits,
+none/even/odd parity, 1/1.5/2 stop bits and x16/x32/x64 serial clock rates
+(108 formats). Each format covers start/data/stop disable and mid-frame
+disable/re-enable; parity formats additionally disable on the parity bit.
+Every actual A/B pin is checked on every serial tick, including the full
+programmed stop duration. RR1 must remain not-all-sent immediately before
+the last stop tick, both for the original character and the resumed queued
+character. The original 8N1 disable/re-enable seams are retained.
+
+The eleven-target invocation above is rerun with the expanded fixture and
+terminates zero: `/tmp/x1-sio-tx-disable-formats-full.log`, 69 PASS records.
+The new matrix contributes 1,512 cases across CE=1/4/7; its rebuild emits no
+warnings. No RTL, CPU fixture assertion, firmware or shared-machine setting
+is changed for this expansion.
+
+As a negative control, the unchanged expanded fixture is built against
+`a569417^:rtl/x1_sio_async.sv` in a separate temporary directory. It terminates
+nonzero at case 1 (5-bit/no parity/one stop/x16), start-bit disable: actual
+A/B pins `01`, expected `00`. Logs:
+`/tmp/x1-sio-tx-disable-formats-negative-build.log` and
+`/tmp/x1-sio-tx-disable-formats-negative.log`. The old behavior is not accepted
+by the stronger matrix; neither internal state nor the expected pins are
+patched to obtain the result.
+
 The original polled, 108-format, idle-break, IRQ/first-status, actual-CPU
 IM2/flow/reset and SIO/DMA fixtures also pass unchanged assertions. Hosted
 CI now selects the new target; its new source-bound result is not yet known.

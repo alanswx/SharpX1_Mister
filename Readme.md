@@ -402,7 +402,10 @@ A bounded [idle Send Break increment](docs/SIO_ASYNC_STATUS.md#october-6-idle-se
 now passes A/B pin/register/reset tests at CE=1/4/7 with serial ticks stopped.
 A [standalone transmitter-disable correction](docs/SIO_TX_DISABLE_STATUS.md)
 now finishes an already-started character when WR5 Transmit Enable clears,
-retains queued data and resumes it after re-enable. Original pin/format/IRQ/
+retains queued data and resumes it after re-enable. Its expanded pin test
+passes 504 disable/resume cases across 108 formats at each of CE=1/4/7,
+including complete parity/stop timing and a failing old-RTL control.
+Original pin/format/IRQ/
 CPU/flow/reset/DMA regressions pass; no shared-machine SIO is added.
 Queued/busy break and receive-break detection remain unsupported.
 The SIO wrappers are not connected to the machine; native reset arming,
