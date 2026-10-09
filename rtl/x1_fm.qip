@@ -1,6 +1,7 @@
 # Standalone FM qualification sources. Not connected to machine.qip yet.
 # Original adapter plus unchanged, attributed JT51 snapshot.
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_fm.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_fm_decode.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_fm_mix.sv
 set_global_assignment -name VERILOG_FILE references/chip-src/jt51/hdl/jt51.v
 set_global_assignment -name VERILOG_FILE references/chip-src/jt51/hdl/jt51_acc.v

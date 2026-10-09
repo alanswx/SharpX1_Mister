@@ -169,6 +169,9 @@ extra GRAM. The digital RGB output reduces analog multi-mode colors to eight
   HALT/timer-flag reset tests pass nine clock combinations separately.
   Shared-machine decode/IRQ, signed PSG conversion,
   native/hardware fidelity remain open; Z5 is not completed.
+  A subsequent [conservative FM decoder](FM_DECODE_STATUS.md) qualifies exact
+  ports and CPU neighboring-port isolation through genuine JT51; native ASIC
+  aliases, IRQ routing and actual shared-machine ownership remain required.
   Reuse audited JT51 sources, preserve licenses, verify busy/status/timers,
   stereo panning, clipping and deterministic note WAVs. Manual page 3 routes
   PSG equally to L/R and combines FM channels for the internal mono speaker;

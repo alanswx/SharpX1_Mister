@@ -29,6 +29,9 @@ Unconstrained I/O remains. See [the refit audit](SIO_MACHINE_STATUS.md#completed
 The [SIO asynchronous ×1 increment](SIO_X1_STATUS.md) adds external
 bit-synchronization behavior; ×1 fractional-stop and native timing are still
 required before full serial acceptance.
+The [FM decoder increment](FM_DECODE_STATUS.md) connects conservative exact-port
+selection to the real CPU/JT51 fixture and exhausts bus-control isolation;
+shared-machine FM/audio/IRQ integration remains open.
 
 The [DMA-build hardware feature matrix](HARDWARE_DMA_FEATURE_MATRIX_STATUS.md)
 records six exact 40/80-column graphics/text/PCG cases before and after warm

@@ -14,6 +14,22 @@ FM_MASTER_HZ ?= 32000000
 
 all: headless
 
+test-fm-decode: $(HEADLESS_DIR)/fm-decode/Vfm_decode_tb test-fm-cpu $(HEADLESS_DIR)/fm-cpu-disabled-$(FM_MASTER_HZ)/Vfm_cpu_tb
+	./$(HEADLESS_DIR)/fm-decode/Vfm_decode_tb
+	@ulimit -c 0; if ./$(HEADLESS_DIR)/fm-cpu-disabled-$(FM_MASTER_HZ)/Vfm_cpu_tb >$(HEADLESS_DIR)/fm-cpu-disabled-$(FM_MASTER_HZ)/negative.log 2>&1; then \
+		echo 'ERROR: disabled FM decoder unexpectedly passed'; exit 1; \
+	fi; rg -q 'CPU FM programmed decode/read failed' $(HEADLESS_DIR)/fm-cpu-disabled-$(FM_MASTER_HZ)/negative.log || \
+		{ echo 'ERROR: wrong disabled FM decoder failure'; exit 1; }; \
+	echo 'PASS actual CPU disabled-FM decode negative rejects missing read path'
+$(HEADLESS_DIR)/fm-decode/Vfm_decode_tb: tests/fm_decode_tb.sv ../rtl/x1_fm_decode.sv
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module fm_decode_tb --Mdir $(@D) -j 4 tests/fm_decode_tb.sv ../rtl/x1_fm_decode.sv -Wno-fatal
+$(HEADLESS_DIR)/fm-cpu-disabled-$(FM_MASTER_HZ)/Vfm_cpu_tb: $(FM_SRC) tests/fm_cpu_tb.sv $(FM_MANIFEST) ../rtl/cpu.v $(wildcard ../rtl/tv80/*.v) Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module fm_cpu_tb -GMASTER_HZ=$(FM_MASTER_HZ) -GDECODE_ENABLED=0 \
+		--Mdir $(@D) -j 4 $(FM_SRC) tests/fm_cpu_tb.sv ../rtl/cpu.v $(wildcard ../rtl/tv80/*.v) -Wno-fatal
+.PHONY: test-fm-decode
+
 test-sio-x1: $(HEADLESS_DIR)/sio-x1/Vsio_x1_tb
 	@for rate in 1 4 7; do ./$(HEADLESS_DIR)/sio-x1/Vsio_x1_tb +CE_PERIOD=$$rate || exit 1; done
 $(HEADLESS_DIR)/sio-x1/Vsio_x1_tb: tests/sio_x1_tb.sv ../rtl/x1_sio_async.sv

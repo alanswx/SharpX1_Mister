@@ -2,7 +2,7 @@
 // Original Z80-executed FM bus diagnostic. This is not native board decode,
 // IRQ routing or firmware acceptance. No forced CPU/chip state or private assets.
 `timescale 1ps/1ps
-module fm_cpu_tb #(parameter integer MASTER_HZ=32000000);
+module fm_cpu_tb #(parameter integer MASTER_HZ=32000000, parameter DECODE_ENABLED=1);
     localparam longint unsigned HALF_PS=64'd500000000000/64'(MASTER_HZ);
     logic clk=0, reset=1, enable=1, ce=0;
     always #(HALF_PS) clk=!clk;
@@ -16,8 +16,11 @@ module fm_cpu_tb #(parameter integer MASTER_HZ=32000000);
     logic [7:0] memory[0:65535];
     logic [7:0] memory_data=0, io_data=0;
     logic io_active=0;
-    // Exact test addresses, not an assertion about ASIC aliases/DAM behavior.
-    wire selected=m1_n && !iorq_n && address[15:1]==15'(16'h0700>>1);
+    // Conservative decode, not an assertion about native ASIC mirrors or IRQ.
+    wire selected;
+    x1_fm_decode decode(.enabled(1'(DECODE_ENABLED)),.reset(reset),.dam(1'b0),
+        .m1_n(m1_n),.mreq_n(mreq_n),.iorq_n(iorq_n),.rd_n(rd_n),.wr_n(wr_n),
+        .address(address),.selected(selected),.read_access(),.write_access());
     wire [7:0] response=selected && !rd_n ? status :
         io_active && mreq_n ? io_data : memory_data;
     cpu processor (
@@ -99,6 +102,9 @@ module fm_cpu_tb #(parameter integer MASTER_HZ=32000000);
                irq_n && ct1 && ct2 && !fault)
             else $fatal(1,"CPU FM bus/status mismatch writes=%0d busy=%0d waits=%0d irq=%0d",
                 dispatches,busy_reads,wait_edges,irq_edges);
+        assert(memory[16'h4004]==0) else $fatal(1,"CPU FM programmed decode/read failed");
+        for(integer i=0;i<10;i++) assert(memory[16'h4100+16'(i)]==8'hff)
+            else $fatal(1,"CPU neighboring port selected FM index=%0d value=%h",i,memory[16'h4100+16'(i)]);
         $display("PASS CPU FM MASTER=%0d CE=%0d writes=%0d busy_reads=%0d waits=%0d irq_edges=%0d",
                  MASTER_HZ,period,dispatches,busy_reads,wait_edges,irq_edges);
     endtask
@@ -108,6 +114,17 @@ module fm_cpu_tb #(parameter integer MASTER_HZ=32000000);
         for(integer i=0;i<65536;i++) memory[i]=0;
         emit(8'hf3);emit(8'h31);emit(8'h00);emit(8'hf0); // DI; LD SP,F000
         load(0);store(16'h4000);
+        port(16'h0701);emit(8'hed);emit(8'h78);store(16'h4004);
+        load(8'h91);store(16'h4005);
+        for(integer i=0;i<10;i++) begin
+            case(i)
+                0:port(16'h0600);1:port(16'h06ff);2:port(16'h0702);
+                3:port(16'h0703);4:port(16'h0704);5:port(16'h0707);
+                6:port(16'h07ff);7:port(16'h0800);8:port(16'h1f90);
+                default:port(16'h1fa0);
+            endcase
+            output_byte(8'h7f);emit(8'hed);emit(8'h78);store(16'h4100+16'(i));
+        end
         reg_write(8'h1b,8'hc0); // CT pins, no invented board use
         reg_write(8'h10,8'hfa);reg_write(8'h11,8'h00); // timer A=1000
         reg_write(8'h14,8'h05); // start timer A, enable its flag IRQ
@@ -117,6 +134,8 @@ module fm_cpu_tb #(parameter integer MASTER_HZ=32000000);
         port(16'h0702);emit(8'hed);emit(8'h78);store(16'h4003);
         load(8'h5a);store(16'h4000);emit(8'h76);
         ticks(40);reset=0;
+        wait(memory[16'h4005]==8'h91);
+        assert(memory[16'h4004]==0) else $fatal(1,"CPU FM programmed decode/read failed");
         // Pause the FM engine at the first data write. CPU continues running
         // and must wait without changing its transaction or repeating it.
         wait(dut.pending && dut.saved_a0);@(negedge clk);enable=0;

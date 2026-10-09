@@ -1,5 +1,10 @@
 # Turbo Z FM foundation
 
+October 9 follow-up: [conservative decode and CPU isolation](FM_DECODE_STATUS.md)
+adds exhaustive control/address guards and real neighboring-port transactions
+to the standalone CPU/JT51 fixture. Shared-machine decode/IRQ/audio integration
+is still required; the earlier qualifications below retain their source hashes.
+
 October 6, 2026. Original standalone adapter/mixer and executed JT51 tests;
 **not connected to the shared machine or accepted as native Turbo Z sound**.
 Default X1/Turbo builds, machine.qip, audio ports and snapshot v12 are unchanged.
