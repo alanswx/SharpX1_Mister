@@ -206,13 +206,18 @@ single-fast: obj_dir_single_fast/Vtop
 # Partial Turbo peripherals behind an explicit experimental model parameter.
 turbo: obj_dir_turbo/Vtop
 Z_VIDEO_DIR ?= obj_dir_v13_z_video
+Z_MULTIMODE ?= 0
 turbo-z-video: $(Z_VIDEO_DIR)/Vtop
 $(Z_VIDEO_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc --timing --assert --trace-fst --exe --build -j 4 --Mdir $(Z_VIDEO_DIR) --top-module top \
 	  -GTURBO=1 -GTURBO_VIDEO_MASTER=1 -GTURBO_Z_PALETTE_CPU=1 -GTURBO_Z_VIDEO=1 \
-	  -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_Z_PALETTE_CPU -DX1_Z_VIDEO" \
+	  -GTURBO_Z_MULTIMODE=$(Z_MULTIMODE) \
+	  -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_Z_PALETTE_CPU -DX1_Z_VIDEO $(if $(filter 1,$(Z_MULTIMODE)),-DX1_Z_MULTIMODE)" \
 	  -MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 .PHONY: turbo-z-video
+turbo-z-multimode:
+	$(MAKE) turbo-z-video Z_MULTIMODE=1 Z_VIDEO_DIR=obj_dir_v13_z_multimode
+.PHONY: turbo-z-multimode
 test-machine-z-video: turbo-z-video
 	@run_root=$$(mktemp -d $(Z_VIDEO_DIR)/pixel-matrix-XXXXXX); \
 	  cp tests/test_machine_z_video.py tests/z80_fixture.py $$run_root/ && \
@@ -221,6 +226,24 @@ test-machine-z-video: turbo-z-video
 	  python3 $$run_root/test_machine_z_video.py ./$(Z_VIDEO_DIR)/Vtop --custom --output $$run_root/custom-cold && \
 	  python3 $$run_root/test_machine_z_video.py ./$(Z_VIDEO_DIR)/Vtop --custom --warm --output $$run_root/custom-warm
 .PHONY: test-machine-z-video
+test-machine-z-multimode: turbo-z-multimode
+	@run_root=$$(mktemp -d obj_dir_v13_z_multimode/mode-matrix-XXXXXX); \
+	  cp tests/test_machine_z_video.py tests/z80_fixture.py obj_dir_v13_z_multimode/Vtop $$run_root/ && \
+	  for mode in wide64 tall64 dual64; do \
+	    screens=0; [ $$mode != dual64 ] || screens="0 1"; \
+	    for screen in $$screens; do \
+	      for palette in identity custom; do \
+	        palette_arg=; [ $$palette != custom ] || palette_arg=--custom; \
+	        for reset in cold warm; do \
+	          reset_arg=; [ $$reset != warm ] || reset_arg=--warm; \
+	          python3 $$run_root/test_machine_z_video.py $$run_root/Vtop \
+	            --mode $$mode --screen $$screen $$palette_arg $$reset_arg \
+	            --output $$run_root/$$mode-$$screen-$$palette-$$reset || exit $$?; \
+	        done; \
+	      done; \
+	    done; \
+	  done
+.PHONY: test-machine-z-multimode
 Z_PALETTE_DIR ?= obj_dir_v12_z_palette_cpu
 Z_PALETTE_CPU ?= 1
 turbo-z-palette-cpu: $(Z_PALETTE_DIR)/Vtop
@@ -1269,10 +1292,10 @@ $(HEADLESS_DIR)/rgb12/frame_rgb12_tb: tests/frame_rgb12_tb.cpp frame_capture.h
 test-rgb12-wrapper: $(HEADLESS_DIR)/rgb12-wrapper/Vrgb12_wrapper_tb
 	./$(HEADLESS_DIR)/rgb12-wrapper/Vrgb12_wrapper_tb
 
-$(HEADLESS_DIR)/rgb12-wrapper/Vrgb12_wrapper_tb: tests/rgb12_wrapper_tb.sv ../sharpx1.sv ../sys/hps_io.sv tests/board_pll_lint.v ../rtl/x1_joystick_map.v ../rtl/x1_cdc_snapshot.sv $(MACHINE_SRC) Makefile
+$(HEADLESS_DIR)/rgb12-wrapper/Vrgb12_wrapper_tb: tests/rgb12_wrapper_tb.sv ../sharpx1.sv ../sys/hps_io.sv tests/board_pll_lint.v ../rtl/x1_joystick_map.v $(MACHINE_SRC) Makefile
 	mkdir -p $(@D)
 	$(V) --binary --timing --assert --top-module rgb12_wrapper_tb --Mdir $(HEADLESS_DIR)/rgb12-wrapper -j 4 -Itests \
-		../sharpx1.sv ../sys/hps_io.sv tests/board_pll_lint.v ../rtl/x1_joystick_map.v ../rtl/x1_cdc_snapshot.sv \
+		../sharpx1.sv ../sys/hps_io.sv tests/board_pll_lint.v ../rtl/x1_joystick_map.v \
 		$(MACHINE_SRC) tests/rgb12_wrapper_tb.sv -Wno-fatal
 .PHONY: test-rgb12-wrapper
 
@@ -1324,19 +1347,19 @@ $(HEADLESS_DIR)/write-eject-during/Vdual_fdc_tb: ../rtl/x1_disk_media.sv ../rtl/
 
 lint-wrapper:
 	$(V) --lint-only --timing --top-module emu -Itests ../sharpx1.sv ../sys/hps_io.sv \
-		tests/board_pll_lint.v ../rtl/x1_joystick_map.v ../rtl/x1_cdc_snapshot.sv $(MACHINE_SRC) -Wno-fatal
+		tests/board_pll_lint.v ../rtl/x1_joystick_map.v $(MACHINE_SRC) -Wno-fatal
 
 lint-wrapper-turbo-video:
 	$(V) --lint-only --timing --top-module emu -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -Itests \
 		../sharpx1.sv ../sys/hps_io.sv tests/board_pll_lint.v ../rtl/x1_joystick_map.v \
-		../rtl/x1_cdc_snapshot.sv $(MACHINE_SRC) -Wno-fatal
+		$(MACHINE_SRC) -Wno-fatal
 
 .PHONY: lint-wrapper-turbo-video
 
 lint-wrapper-turbo-dma:
 	$(V) --lint-only --timing --top-module emu -DX1_TURBO_FOUNDATION -DX1_SINGLE_CLOCK -DX1_TURBO_DMA_RESTART -Itests \
 		../sharpx1.sv ../sys/hps_io.sv tests/board_pll_lint.v ../rtl/x1_joystick_map.v \
-		../rtl/x1_cdc_snapshot.sv $(MACHINE_SRC) -Wno-fatal
+		$(MACHINE_SRC) -Wno-fatal
 .PHONY: lint-wrapper-turbo-dma
 
 clean:

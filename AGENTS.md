@@ -71,6 +71,16 @@ do not embed private font bytes. See `docs/TURBO_VIDEO_CLOCK_STATUS.md` for
 exact checks and missing Kanji/text/high-speed PCG behavior. The FPGA revision
 `sharpx1_turbo_video` requests its own PLL; record the fitted frequency,
 source-bound timing and hardware results separately from nominal simulation.
+`turbo-z-multimode` is a separate, delay-aware, non-savable experiment;
+ordinary board/runner defaults do not enable it. See
+`docs/TURBO_Z_MULTIMODE_STATUS.md`: reduced effective-pair expansion is
+provisional, not reconciled native ASIC behavior. CPU palette programming
+in its fixtures uses full/40-column mode before switching. Do not claim
+reduced CPU bank controls or simultaneous two-screen composition from a
+selected-screen pixel pass. `test-machine-z-multimode` freezes the executable,
+oracle and emitter for its sixteen cases. `x1_cdc_snapshot.sv` now belongs
+to the shared machine manifest; do not also add it to wrapper source lists.
+
 Snapshot format v13 rejects older states after transaction-bound DAM arming
 (v12 added the RGB12 output port; v11 added opt-in CPU/DMA bus and instrumentation;
 v09 added text-raster state;

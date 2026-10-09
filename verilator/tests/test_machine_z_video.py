@@ -1,4 +1,4 @@
-"""Original CPU-written 320x200/4096 raster; no private ROM/font assets."""
+"""Original CPU-written full/reduced-color rasters; no private ROM/font assets."""
 import argparse
 import csv
 import hashlib
@@ -18,7 +18,7 @@ def table_byte(row, k):
             ((v << shift) | (v >> (8 - shift)))) & 255
 
 
-def fixture(custom=False):
+def fixture(custom=False, mode="full", screen=0):
     p = Program(0x8000)
     p.emit(0xF3)
     p.word(0x31, 0xFFFF)
@@ -79,9 +79,18 @@ def fixture(custom=False):
             p.jump(0xC2, outer)
     p.store(0xF040, 0xA5)
     p.label("retained")
-    out(0x1FD0, 0)
-    out(0x1FB0, 0x80)
-    registers = (55, 40, 46, 0x28, 31, 2, 25, 28, 0, 7, 0, 0, 0, 0, 0, 0)
+    columns = 80 if mode == "wide64" else 40
+    # Palette programming uses the supported full/40-column sequence first.
+    # Reduced CPU access/bank controls are deliberately not inferred here.
+    if columns == 80:
+        out(0x1A02, 0)
+    out(0x1FD0, 1 if mode == "tall64" else screen << 3 if mode == "dual64" else 0)
+    out(0x1FB0, 0x90 if mode == "dual64" else 0x80)
+    registers = [55 if columns == 40 else 111, columns,
+                 46 if columns == 40 else 92, 0x28, 31, 2, 25, 28, 0, 7,
+                 0, 0, 0, 0, 0, 0]
+    if mode == "tall64":
+        registers[4:10] = [27, 0, 25, 26, 0, 15]
     for register, value in enumerate(registers):
         out(0x1800, register)
         out(0x1801, value)
@@ -94,20 +103,27 @@ def fixture(custom=False):
         table_byte(row, k) for row in range(8) for k in range(256))
 
 
-def expected_pixel(x, y, custom=False):
-    q = (y % 8) * 2048 + (y // 8) * 40 + x // 8
+def expected_pixel(x, y, custom=False, mode="full", screen=0):
+    columns = 80 if mode == "wide64" else 40
+    q = ((y // 2) % 8 if mode == "tall64" else y % 8) * 2048 + \
+        (y // (16 if mode == "tall64" else 8)) * columns + x // 8
+    sources = ((0, 0), (0, 0x400), (1, 0), (1, 0x400)) if mode == "full" else \
+              ((0, 0), (1, 0)) if mode == "wide64" else \
+              ((y & 1, 0), (y & 1, 0x400)) if mode == "tall64" else \
+              ((screen, 0), (screen, 0x400))
     components = []
     for component, base in enumerate((0x4000, 0x8000, 0xC000)):
         nibble = 0
-        for lane in range(4):
-            address = (q + (0x400 if lane & 1 else 0)) & 0x3FFF
+        for lane, (page, offset) in enumerate(sources):
+            address = (q + offset) & 0x3FFF
             port = base + address
-            seed = SEEDS[component] ^ (0x91 if lane & 2 else 0x2D)
+            seed = SEEDS[component] ^ (0x91 if page else 0x2D)
             k = (port >> 8) ^ (port & 255) ^ seed
             value = table_byte((port & 0x3800) >> 11, k)
             # CPU/physical-PA table 4-22: source BD0/QHA0 is CPU DB7,
             # not DB4. All three component nibbles reverse the PA ordering.
-            nibble |= bool(value & (128 >> (x % 8))) << (3 - lane)
+            nibble |= (bool(value & (128 >> (x % 8))) *
+                       ((1 << (3 - lane)) if mode == "full" else (10, 5)[lane]))
         components.append(nibble)
     blue, red, green = components
     if custom:
@@ -121,13 +137,15 @@ def main():
     parser.add_argument("--output", type=pathlib.Path, required=True)
     parser.add_argument("--warm", action="store_true")
     parser.add_argument("--custom", action="store_true")
+    parser.add_argument("--mode", choices=("full", "dual64", "wide64", "tall64"), default="full")
+    parser.add_argument("--screen", type=int, choices=(0, 1), default=0)
     parser.add_argument("--timeout", type=float, default=900)
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=False)
     executable = args.executable.resolve()
     digest = hashlib.sha256(executable.read_bytes()).hexdigest()
     code = args.output / "original.bin"
-    code.write_bytes(fixture(args.custom))
+    code.write_bytes(fixture(args.custom, args.mode, args.screen))
     frame = args.output / "actual.ppm"
     # Full palette programming adds actual CPU/ownership cycles. Leave enough
     # time to finish cold initialization BEFORE a retained warm reset.
@@ -152,6 +170,8 @@ def main():
     report = json.loads(result.stdout.splitlines()[-1])
     print(json.dumps(report), flush=True)
     assert report["z_video_experiment"] and report["z_palette_cpu_experiment"], report
+    if args.mode != "full":
+        assert report["z_multimode_experiment"], report
     assert report["intra_assignment_delays"] and report["turbo_video_master"], report
     assert report["sys_hz"] == 32000000 and report["video_hz"] == 42954540, report
     assert report["halted"] and report["peek"].startswith(b"ZVID".hex()), report
@@ -163,20 +183,22 @@ def main():
         # A correct final frame alone could hide a cold refill. Observe actual
         # reboot I/O: real CRTC/PPI reinitialization, no GRAM/text/palette writes.
         assert addresses.count(0x1800) == 16 and addresses.count(0x1801) == 16, addresses
-        assert addresses.count(0x1A03) == 1 and addresses.count(0x1A02) == 1, addresses
+        assert addresses.count(0x1A03) == 1 and addresses.count(0x1A02) == (2 if args.mode == "wide64" else 1), addresses
         assert not any(a >= 0x2000 or 0x1000 <= a < 0x1300 for a in addresses), addresses[:60]
     tolerance = 31251
-    for field, edges in (("hs_period_ps", 2688), ("vs_period_ps", 2688 * 258)):
+    line_edges = 1792 if args.mode == "tall64" else 2688
+    for field, edges in (("hs_period_ps", line_edges), ("vs_period_ps", line_edges * (448 if args.mode == "tall64" else 258))):
         assert abs(report[field] - round(edges * 10**12 / 42954540)) <= tolerance, report
     header, dimensions, maximum, actual = frame.read_bytes().split(b"\n", 3)
-    assert (header, dimensions, maximum) == (b"P6", b"320 200", b"255"), report
-    expected = b"".join(expected_pixel(x, y, args.custom) for y in range(200) for x in range(320))
-    (args.output / "expected.ppm").write_bytes(b"P6\n320 200\n255\n" + expected)
-    mismatches = [(i // 3 % 320, i // 960, tuple(actual[i:i+3]), tuple(expected[i:i+3]))
+    width, height = (640 if args.mode == "wide64" else 320), (400 if args.mode == "tall64" else 200)
+    assert (header, dimensions, maximum) == (b"P6", f"{width} {height}".encode(), b"255"), report
+    expected = b"".join(expected_pixel(x, y, args.custom, args.mode, args.screen) for y in range(height) for x in range(width))
+    (args.output / "expected.ppm").write_bytes(f"P6\n{width} {height}\n255\n".encode() + expected)
+    mismatches = [(i // 3 % width, i // (width * 3), tuple(actual[i:i+3]), tuple(expected[i:i+3]))
                   for i in range(0, len(expected), 3) if actual[i:i+3] != expected[i:i+3]]
     assert actual == expected, (len(mismatches), mismatches[:20])
     assert hashlib.sha256(executable.read_bytes()).hexdigest() == digest, "runner changed during test"
-    print(f"PASS: 64000 CPU-written full-color pixels; retained reset={args.warm}")
+    print(f"PASS: {width*height} CPU-written {args.mode} pixels; screen={args.screen}; retained reset={args.warm}")
 
 
 if __name__ == "__main__":

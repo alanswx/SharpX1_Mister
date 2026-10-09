@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: GPL-2.0-only
 // Original full-colour fetch/shifter integration. Source bit significance is
 // from Techknow figs. 4-8..4-14; no emulator implementation is copied.
-// Only the full 320x200/4096 layout is enabled here. Native address wrap,
-// reduced modes, text/priority and palette ownership are upstream/downstream.
+// Layout IDs match x1_z_gram_fetch. Mode 4 still requires an internal palette
+// downstream; reduced external expansion is an explicit experimental policy.
 `timescale 1ps/1ps
 module x1_z_graphics (
     input wire clk, reset, enabled,
     input wire character_start, character_load, pixel_step,
     input wire [13:0] base_address,
+    input wire [2:0] mode,
+    input wire screen, raster_odd,
     output wire read_enable,
     output wire [14:0] read_address,
     input wire [7:0] blue_q, red_q, green_q,
@@ -17,11 +19,12 @@ module x1_z_graphics (
     wire ready, fetched, rejected;
     wire [31:0] fetch_blue, fetch_red, fetch_green;
     reg have_data=0, character_valid=0;
+    reg [2:0] requested_mode=0, pixel_mode=0;
     reg [31:0] blue=0, red=0, green=0;
     x1_z_gram_fetch fetch(
         .clk(clk),.reset(reset || !enabled),
         .request(enabled && character_start),.ready(ready),
-        .base_address(base_address),.mode(3'd0),.screen(1'b0),.raster_odd(1'b0),
+        .base_address(base_address),.mode(mode),.screen(screen),.raster_odd(raster_odd),
         .read_enable(read_enable),.read_address(read_address),
         .blue_q(blue_q),.red_q(red_q),.green_q(green_q),
         .valid(fetched),.rejected(rejected),
@@ -29,12 +32,13 @@ module x1_z_graphics (
     );
     always @(posedge clk or posedge reset) begin
         if(reset) begin
-            have_data<=0;character_valid<=0;blue<=0;red<=0;green<=0;
+            have_data<=0;character_valid<=0;blue<=0;red<=0;green<=0;requested_mode<=0;pixel_mode<=0;
         end else if(!enabled) begin
-            have_data<=0;character_valid<=0;blue<=0;red<=0;green<=0;
+            have_data<=0;character_valid<=0;blue<=0;red<=0;green<=0;requested_mode<=0;pixel_mode<=0;
         end else begin
             if(character_start) begin
                 have_data<=0;
+                requested_mode<=mode;
                 assert(ready) else $error("Z GRAM character fetch overrun");
             end
             if(fetched) have_data<=1;
@@ -50,6 +54,7 @@ module x1_z_graphics (
             // a reused previous character. Completed fetch data is held stable.
             if(character_load) begin
                 character_valid<=have_data;
+                pixel_mode<=requested_mode;
                 blue<=have_data ? fetch_blue : 32'd0;
                 red<=have_data ? fetch_red : 32'd0;
                 green<=have_data ? fetch_green : 32'd0;
@@ -64,7 +69,13 @@ module x1_z_graphics (
     // by logical CPU {AB[7:0],DB[7:4]}, NOT the physical PA pins.
     // Consequently each display nibble must reverse before the RAM lookup:
     // first fetched source QH?0 corresponds to logical component bit 3.
-    assign palette_index={green[7],green[15],green[23],green[31],
+    wire [11:0] full_index={green[7],green[15],green[23],green[31],
                           red[7],red[15],red[23],red[31],
                           blue[7],blue[15],blue[23],blue[31]};
+    // Printed 161: unused external-address bits expand effective channels.
+    // This replicated effective-pair policy is not the emulator's CCC/333
+    // bank-only table. CPU reduced-mode programming/bank controls remain open.
+    assign palette_index=pixel_mode==0 ? full_index : pixel_mode==4 ? full_index :
+        {green[7],green[15],green[7],green[15],
+         red[7],red[15],red[7],red[15],blue[7],blue[15],blue[7],blue[15]};
 endmodule

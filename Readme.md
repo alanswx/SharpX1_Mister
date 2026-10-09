@@ -223,8 +223,12 @@ Turbo Z is a separate capability target with a
 video, stereo FM, HD disks and capture effects. Its first
 [RGB12 output foundation](docs/TURBO_Z_RGB_STATUS.md) connects full-color
 capture and wrapper interfaces while preserving digital colors. Analog palette
-rendering, multi-mode graphics and the other Z devices are not implemented in
-the shared machine; the CPU-only palette subset is described below.
+rendering now has a separate opt-in full-color experiment; a
+[multi-mode extension](docs/TURBO_Z_MULTIMODE_STATUS.md) passes generated
+wide/tall/selected-screen pixel and retained-reset checks under an explicitly
+provisional reduced-color policy. Native ASIC compatibility, internal/text
+palettes and other Z devices remain incomplete; ordinary board defaults do
+not enable these experiments.
 A separate [FM foundation](docs/TURBO_Z_FM_STATUS.md) passes
 JT51 busy/timers, stereo notes, fractional enables and signed mixing at three
 master frequencies; CPU decode/IRQ, native sound and hardware remain open.
@@ -264,6 +268,11 @@ The subsequent [CPU/display pin audit](docs/TURBO_Z_PALETTE_CONTRACT.md#cpudispl
 corrects a shared renderer/oracle significance error. Connected all-4096-index
 checks and corrected identity/custom retained-reset pixels pass. Earlier
 pixel images remain historical; full baseline/matrix regressions remain running.
+The preceding default v13 baseline suite now finishes successfully. A separate
+[reduced-format experiment](docs/TURBO_Z_MULTIMODE_STATUS.md) compiles and
+passes expanded shifter checks; actual wide/tall/two-screen pixel tests are
+running. Reduced native palette-bank policy and 640x400 internal palette remain
+open, not complete Turbo Z support.
 
 The headless simulator has been compiled with Verilator 5.044 on macOS.
 The timing/reset regression passes. A 200,000-system-cycle run reports:

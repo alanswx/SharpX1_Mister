@@ -125,8 +125,13 @@ extra GRAM. The digital RGB output reduces analog multi-mode colors to eight
   primitive at three clock ratios, with exact response latency and reset seams.
   The full-color experiment connects it to CRTC/pixel/palette stages for
   320x200/4096, with all 64,000 pixels checked under identity/custom palettes
-  and retained reset. Four reduced formats and native ASIC/priority gates
-  remain open; this does not close Z3.
+  and retained reset. A separate
+  [multi-mode extension](TURBO_Z_MULTIMODE_STATUS.md) now passes generated
+  640x200/64, 320x400/64 and both selected 320x200/64 screen captures after
+  retained reset under an explicit provisional effective-pair expansion.
+  Its sixteen-case cold/warm palette matrix is running. Internal 640x400/8,
+  simultaneous screen composition and native ASIC/priority gates remain open;
+  this does not close Z3.
   Verify MA wrap, screen-page capacity, priority/transparency and blackclip
   before/after palette stages; compare every active pixel and native HS/VS.
 - [ ] Z4: text-display/priority control `1FC0`, analog text colors, background

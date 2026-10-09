@@ -1,6 +1,6 @@
 // Sharp X1 base-machine integration. Shared by MiSTer and simulation.
 // See docs/BASE_X1_CONTRACT.md for address-map sources and limitations.
-module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0, TURBO_DSW = 241, TURBO_DMA_RESTART_IRQ = 0, TURBO_Z_PALETTE_CPU = 0, TURBO_Z_VIDEO = 0) (
+module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0, TURBO_DSW = 241, TURBO_DMA_RESTART_IRQ = 0, TURBO_Z_PALETTE_CPU = 0, TURBO_Z_VIDEO = 0, TURBO_Z_MULTIMODE = 0) (
     input clk_sys, clk_28636, reset,
     input pal, scandouble,
     input ioctl_download,
@@ -99,6 +99,8 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
             $error("CPU-only Z palette experiment requires TURBO and excludes unqualified DMA ownership");
         if(TURBO_Z_VIDEO && !(TURBO_Z_PALETTE_CPU && TURBO_VIDEO_MASTER && !SINGLE_CLOCK))
             $error("Z video experiment requires palette CPU and enabled X3, not compensated single-clock timing");
+        if(TURBO_Z_MULTIMODE && !TURBO_Z_VIDEO)
+            $error("Z multi-mode experiment requires Z video");
         if (TURBO_DMA_IRQ && !(TURBO && TURBO_DMA))
             $error("TURBO_DMA_IRQ requires TURBO and TURBO_DMA");
         if (TURBO_DMA_RESTART_IRQ && !TURBO_DMA_IRQ)
@@ -149,6 +151,8 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     wire z_graphics_valid, z_graphics_start, z_graphics_load, z_cg_transparent, z_graphics_disp;
     wire z_gram_read;
     wire [14:0] z_gram_address;
+    wire [2:0] z_graphics_mode;
+    wire z_graphics_screen;
     wire machine_wait_n=cg_wait_n && z_palette_wait_n;
     generate if(TURBO_Z_PALETTE_CPU) begin : z_palette_cpu
         // Explicit CPU-only full external-palette experiment. No Z signature,
@@ -161,11 +165,35 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
             (* async_reg = "true" *) reg enabled_meta=0, enabled_video=0;
             always @(posedge clk_28636 or posedge video_reset)
                 if(video_reset) begin enabled_meta<=0;enabled_video<=0;end
-                else begin enabled_meta<=mode==8'h80;enabled_video<=enabled_meta;end
-            assign z_video_enabled=enabled_video && width_video && !turbo_scrn_video[0]
-                && !turbo_scrn_video[2] && !turbo_scrn_video[7] && turbo_black_video==0;
+                else begin enabled_meta<=TURBO_Z_MULTIMODE ? (mode==8'h80 || mode==8'h90) : mode==8'h80;enabled_video<=enabled_meta;end
+            if(TURBO_Z_MULTIMODE) begin : multimode
+                wire [23:0] controls;
+                wire controls_valid;
+                x1_cdc_snapshot #(.WIDTH(24)) snapshot(
+                    .source_clk(clk_sys),.destination_clk(clk_28636),
+                    .source_data({mode,turbo_scrn,turbo_black,mode_c[6]}),
+                    .destination_data(controls),.destination_valid(controls_valid));
+                wire [7:0] analog_mode=controls[23:16], scrn=controls[15:8];
+                wire width40=controls[0];
+                wire supported=(analog_mode==8'h80 && (!scrn[0] || (width40 && !scrn[1]))) ||
+                               (analog_mode==8'h90 && width40 && !scrn[0]);
+                // Compare with timing-domain controls before admitting a
+                // character. Coherent payload is held during handshake; live
+                // changes still require blanking/software and hardware review.
+                assign z_video_enabled=enabled_video && controls_valid && supported &&
+                    width40==width_video && scrn==turbo_scrn_video &&
+                    !scrn[2] && !scrn[7] && controls[7:1]==0 && turbo_black_video==0;
+                assign z_graphics_mode=scrn[0] ? 3'd3 : !width40 ? 3'd2 :
+                                       analog_mode[4] ? 3'd1 : 3'd0;
+                assign z_graphics_screen=scrn[3];
+            end else begin : full_only
+                assign z_video_enabled=enabled_video && width_video && !turbo_scrn_video[0]
+                    && !turbo_scrn_video[2] && !turbo_scrn_video[7] && turbo_black_video==0;
+                assign z_graphics_mode=0;assign z_graphics_screen=0;
+            end
         end else begin : no_video_controls
             assign z_video_enabled=0;
+            assign z_graphics_mode=0;assign z_graphics_screen=0;
         end
         reg control_write_old=0;
         wire control_write=io_write && !dam && (a==16'h1fb0 || a==16'h1fc5);
@@ -236,6 +264,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         assign z_palette_data=8'hff;
         assign z_palette_read_tail=0;
         assign z_video_enabled=0;
+        assign z_graphics_mode=0;assign z_graphics_screen=0;
         assign z_display_allowed=0;
         assign z_palette_valid=0;
         assign z_palette_rgb12=0;
@@ -591,6 +620,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
             .clk(clk_28636),.reset(video_reset),.enabled(z_video_enabled),
             .character_start(z_graphics_start),.character_load(z_graphics_load),.pixel_step(ce_pix),
             .base_address(graphics_addr[13:0]),.read_enable(z_gram_read),.read_address(z_gram_address),
+            .mode(z_graphics_mode),.screen(z_graphics_screen),.raster_odd(graphics_ra[0]),
             .blue_q(grb_vid),.red_q(grr_vid),.green_q(grg_vid),
             .palette_index(z_graphics_index),.index_valid(z_graphics_valid)
         );

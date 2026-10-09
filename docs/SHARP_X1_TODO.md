@@ -82,6 +82,15 @@ corrects the renderer/oracle's shared reversed-significance assumption.
 All 4096 connected GRAM/fetch/shifter/palette indices and corrected identity
 CPU retained-reset pixels pass, including corrected custom-palette pixels.
 Pre-correction images prove internal agreement only, not the physical pin map.
+The preceding default v13 baseline suite exits zero. A separate
+[multi-mode experiment](TURBO_Z_MULTIMODE_STATUS.md) adds coherent controls,
+wide/tall/selected-screen fetch and explicit provisional reduced expansion.
+All-address/five-layout and held-request live-control mutation checks pass.
+Wide/tall custom-palette and selected-screen 0/1 retained-reset CPU pixels
+pass; the complete sixteen-case frozen reduced matrix is running. Corrected
+full-color identity/custom cold/warm matrix and current default-source
+timing/GRAM/DAM checks finish successfully.
+Native reduced CPU bank policy, composition and internal palette remain open.
 
 The expanded [hosted diagnostic run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37865161650)
 now completes successfully on `95c3e4a`. The newer `99eb141` palette-RAM/

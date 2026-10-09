@@ -147,6 +147,28 @@ These inconsistencies do not erase repeated `80h/88h` setup agreement, but
 prevent treating every printed literal as an exact hardware oracle. No listing
 or register sequence was executed in this research checkpoint.
 
+### Text two-bit output significance: gate before integration
+
+Re-reading printed 162 fig. 4-32 exposes a detail not resolved by merely saying
+"replicate two bits": left-to-right it labels each output group
+`B4 B5 B4 B5` (green), `B2 B3 B2 B3` (red), and `B0 B1 B0 B1`
+(blue). If that drawing is high-to-low logical output order, CPU code `01`
+expands to `Ah`, not `5h`; code `10` expands to `5h`, not `Ah`.
+The locally inspected MAME `x1turbo_txpal_w` instead passes ordinary two-bit
+values to `pal2bit`, implying `01 -> 5h`, `10 -> Ah`. The drawing has no
+explicit numeric output-pin labels, so it cannot alone establish whether
+its left-to-right wire order is logical RGB12 significance. Defaults use
+only `00`/`11` and therefore cannot distinguish these policies.
+
+Before accepting text palette rendering, trace the output pin order through
+the Z schematic or capture independently programmed intermediate intensities
+on reference hardware. An original test must use all four component codes
+individually, retain the CPU readback code, and distinguish the two output
+policies. Do not use default white/primary colors or MAME agreement alone
+to close that gate. No text-palette RTL or native/hardware result is claimed
+by this follow-up. Printed 160 table 4-24 independently confirms the eight
+internal graphics cold RGB12 colors, but does not resolve text significance.
+
 Next integration gates are now concrete: cold defaults versus retained IPL
 reset; the supported explicit selector/write/read path with deduplicated held
 strobes; internal/external mode selection and fixed-zero text entry; independent

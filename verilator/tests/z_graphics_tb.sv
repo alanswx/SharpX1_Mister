@@ -3,6 +3,8 @@
 module z_graphics_tb;
     reg clk=0,reset=1,enabled=0,start=0,load=0,step=0;
     reg [13:0] base=0;
+    reg [2:0] mode=0;
+    reg screen=0,odd=0;
     wire read_enable,valid;
     wire [14:0] address;
     wire [11:0] index;
@@ -21,41 +23,75 @@ module z_graphics_tb;
     x1_z_graphics dut(.clk(clk),.reset(reset),.enabled(enabled),
         .character_start(start),.character_load(load),.pixel_step(step),
         .base_address(base),.read_enable(read_enable),.read_address(address),
+        .mode(mode),.screen(screen),.raster_odd(odd),
         .blue_q(b),.red_q(r),.green_q(g),.palette_index(index),.index_valid(valid));
     task automatic tick;
         @(posedge clk);#1;@(negedge clk);
     endtask
-    task automatic character(input [13:0] a);
+    task automatic character(input [13:0] a,input bit disturb=0);
         reg [11:0] expected;
         reg [7:0] byte_value;
         reg [13:0] q;
         reg [14:0] lane_address;
+        reg [2:0] accepted_mode;
+        reg accepted_screen,accepted_odd;
+        accepted_mode=mode;accepted_screen=screen;accepted_odd=odd;
         base=a;start=1;tick();start=0;
-        repeat(6) tick();
+        repeat(6) begin
+            if(disturb) begin
+                mode=mode==4 ? 0 : mode+3'd1;
+                screen=~screen;odd=~odd;base=base+14'h719;
+            end
+            tick();
+        end
         load=1;step=1;tick();load=0;step=0;
         assert(valid) else $fatal(1,"missing complete character");
         for(integer pixel=0;pixel<8;pixel=pixel+1) begin
             expected=0;
             for(integer lane=0;lane<4;lane=lane+1) begin
-                q=a+(lane[0] ? 14'h400 : 14'd0);
-                lane_address={lane[1],q};
+                q=a+((accepted_mode==0 || accepted_mode==1 || accepted_mode==3) && lane[0] ? 14'h400 : 14'd0);
+                lane_address={accepted_mode==0 ? lane[1] : accepted_mode==2 ? lane[0] : accepted_mode==1 ? accepted_screen : accepted_odd,q};
                 for(integer component=0;component<3;component=component+1) begin
                     byte_value=source(lane_address,component);
                     // Independent CPU/PA table oracle: PA[c*4+lane]
                     // corresponds to logical CPU index[c*4+3-lane].
-                    expected[component*4+3-lane]=byte_value[7-pixel];
+                    if(accepted_mode==0) expected[component*4+3-lane]=byte_value[7-pixel];
+                    else if(accepted_mode==4 && lane==0) expected[component*4+3]=byte_value[7-pixel];
+                    else if(accepted_mode!=4 && lane<2) begin
+                        expected[component*4+3-lane]=byte_value[7-pixel];
+                        expected[component*4+1-lane]=byte_value[7-pixel];
+                    end
                 end
             end
             assert(index==expected) else $fatal(1,"index %h != %h at base %h pixel %0d",index,expected,a,pixel);
+            if(disturb) begin
+                mode=mode==4 ? 0 : mode+3'd1;
+                screen=~screen;odd=~odd;base=base+14'h719;
+            end
             // Held physical edges must not shift without a pixel enable.
             repeat(2) tick();
             assert(index==expected) else $fatal(1,"shift without enable");
             step=1;tick();step=0;
         end
+        mode=accepted_mode;screen=accepted_screen;odd=accepted_odd;
     endtask
     initial begin
         tick();reset=0;enabled=1;
-        for(integer a=0;a<16384;a=a+1) character(14'(a));
+        for(integer m=0;m<5;m=m+1) begin
+            mode=3'(m);
+            for(integer page=0;page<(m==1 || m==3 || m==4 ? 2 : 1);page=page+1) begin
+                screen=page[0];odd=page[0];
+                for(integer a=0;a<16384;a=a+1) character(14'(a));
+            end
+        end
+        // Change every live fetch control after acceptance, during RAM reads,
+        // before load and between pixels. Only the captured request may win.
+        for(integer m=0;m<5;m=m+1) begin
+            for(integer page=0;page<2;page=page+1) begin
+                mode=3'(m);screen=page[0];odd=page[0];
+                character(14'h3f93,1);
+            end
+        end
         // Incomplete mode-entry load must never reuse a previous character.
         enabled=0;tick();enabled=1;load=1;tick();load=0;
         assert(!valid && index==0) else $fatal(1,"stale character after mode exit");
@@ -63,7 +99,7 @@ module z_graphics_tb;
         reset=1;tick();reset=0;
         assert(!valid && !read_enable && index==0) else $fatal(1,"pending reset failed");
         character(14'h3fff);
-        $display("PASS: all 16384 bases x 8 pixels x 12 bits, held enables, mode exit, pending reset");
+        $display("PASS: five layouts x all 16384 bases x 8 pixels, selected pages/parity, live-control mutation, held enables, mode exit, pending reset");
         $finish;
     end
 endmodule
