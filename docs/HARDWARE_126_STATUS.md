@@ -8,6 +8,27 @@ Kernel `6.18.38-MiSTer`, root OS Buildroot 2021.02.4.
 
 ## MGLs and native boot observations
 
+### Current v14 source-bound refit running, not deployed
+
+October 9: after the fresh five-game v14 qualification, the authorized
+misterubuntu checkout is verified clean and idle, then fast-forwarded to
+pushed source `f013d02d125307403f707ecc1edec90e5ce23d11`. Quartus 17.0.2
+preflight passes. A separate frozen `sharpx1_turbo_single` full-flow build
+starts at `2026-10-09T09:03:23Z`, under
+`/home/alans/mister/SharpX1_Mister/output_files/quartus-linux-xsC7rEDR/`.
+Input-manifest SHA-256 is
+`ca133f8883255f45d9fee023f9eaca9684cd56de726f56e5674f82ef9c550eb0`;
+local observation log `/tmp/x1-quartus-f013d02-turbo-single.log`.
+
+The job is still running; no current-source fitted RBF/timing acceptance is
+claimed. This revision uses the existing actual 28.571428 MHz single-clock
+Turbo subset, with experimental Z, X3, DMA, Kanji, SIO and FM disabled.
+It does not qualify those opt-in features. No MiSTer is contacted or loaded
+for this refit; physical availability/ownership must be coordinated before
+deployment. The available `9748410` RBF below remains the prior artifact,
+not a result of this job. Check terminal flow, all eight timing corners,
+unconstrained paths and frozen-input mutation before promoting a new artifact.
+
 ### Fresh source-bound refit, not yet deployed
 
 The authorized misterubuntu checkout was clean and idle, then fast-forwarded
