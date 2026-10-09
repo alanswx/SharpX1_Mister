@@ -148,6 +148,9 @@ extra GRAM. The digital RGB output reduces analog multi-mode colors to eight
   passes nine unit profiles and five actual-CPU controls, with all six-bit
   values and retained reset. It does not connect analog text RGB or priority;
   intensity wire order and native/hardware access policy remain open.
+  The [priority/composition contract](TURBO_Z_PRIORITY_CONTRACT.md) now traces
+  primary `1FC0` bits 0/1/3/4, undefined combinations and SCRN interaction,
+  and specifies the missing dual-bank fetch/palette/opacity acceptance work.
 - [ ] Z5: standard stereo FM (YM2151), board CTC/interrupts and PSG mixing.
   The [standalone FM foundation](TURBO_Z_FM_STATUS.md) now executes genuine
   JT51 bus/timer/stereo notes and original signed mixer tests at all three
