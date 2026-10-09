@@ -17,6 +17,16 @@ RAM/palette contents, addressing, lease protocol and WAIT semantics are unchange
 
 ## Executed checks
 
+October 9 follow-up: `test-reset-release` now adds native half-periods
+15,625/17,500/11,640/25,000 ps to the three inherited ratios. It tests short
+asynchronous pulses, release 1 ps before an edge, four reassertions during
+pending release, and a stopped clock. All seven cases finish zero, no emitted
+warnings (`/tmp/x1-reset-release-native-final.log`); both PCG SDC inventory
+tests also pass. This is unchanged reset RTL and digital phase/reassertion
+evidence, not metastability, minimum physical pulse width or a reset-path
+timing exception. Raw asynchronous pipeline-input recovery and downstream
+synchronous release/placement must be audited separately.
+
 `make -C verilator test-z-palette-owner test-z-palette-owner-local-reset`
 finishes zero (`/tmp/x1-z-owner-local-reset.log`), with no emitted warnings:
 

@@ -1136,6 +1136,7 @@ $(HEADLESS_DIR)/video-status/Vvideo_status_tb: tests/video_status_tb.sv ../rtl/x
 
 test-reset-release: $(HEADLESS_DIR)/reset-release/Vreset_release_tb
 	@for half in 3 7 31; do ./$(HEADLESS_DIR)/reset-release/Vreset_release_tb +VIDEO_HALF=$$half || exit 1; done
+	@for half in 15625 17500 11640 25000; do ./$(HEADLESS_DIR)/reset-release/Vreset_release_tb +VIDEO_HALF_PS=$$half || exit 1; done
 
 $(HEADLESS_DIR)/reset-release/Vreset_release_tb: tests/reset_release_tb.sv ../rtl/x1_reset_release.sv
 	mkdir -p $(@D)

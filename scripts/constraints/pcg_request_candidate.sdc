@@ -1,5 +1,5 @@
-# Experimental Z revision only. Audited 32 MHz SYS / X3 endpoint scope.
-# Selected by its QSF; fresh-fit endpoint and all-corner gates remain mandatory.
+# Analysis-only again: completed-fit 32 MHz SYS / X3 endpoint scope.
+# Early fitting uses a different RAM representation; not selected by any QSF.
 # Requests are frozen before the toggle crosses two VID synchronizers.
 # Address/control admission is >=2 VID periods later; RAM writes are later.
 set x1_req_address [get_registers {*x1_pcg_access:cg_bus|frozen_addr* *x1_pcg_access:cg_bus|font_cpu_addr*}]

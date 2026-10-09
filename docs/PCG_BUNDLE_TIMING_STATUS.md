@@ -200,6 +200,35 @@ qualify new placement or the RBF. Native/physical acceptance remains open.
 | Response SDC after comment-only project-selection update | `9d12a546dd9cbf1c89a53942ff99fe353755fe98b4ee4ce7cbbc05c7c7a34b9b` |
 | Request probe | `3fe3b9c818afdb6399906945a68555635302f336ca7559b42bec1b67b5165be4` |
 
+### Integrated refit fails closed; mapped inventory differs
+
+The source-bound `bec30d0522af33314ce21181cd46c9259fae3d05` full flow in
+`quartus-linux-kMsFZAWz` **fails**, terminal exit 3 at 16:29:07 UTC (1:57).
+Log `/tmp/x1-quartus-bec30d0-pcg-build-final.log`; failed manifest/fitter report
+are preserved in ignored `output_files/quartus-linux-kMsFZAWz/failed-flow/`.
+Fitting reads both PCG SDC files but refuses the request `control_dest`
+inventory, also warning that fitted `PORT_A_DATA_IN_*` aliases do not yet
+exist. The later generic cannot-fit message is not independent evidence of
+resource exhaustion. No RBF is produced or hardware loaded.
+
+`scripts/quartus_pcg_mapped_inventory.tcl` then inspects the failed build's
+post-map database **without loading any SDC**. It finishes zero with five
+netlist warnings, recorded in `/tmp/x1-quartus-bec30d0-pcg-mapped-inventory.log`.
+There are 23 machine state registers (no fitted `stage.01~DUPLICATE`) and
+192 RAM registers: exactly 48 each of write-enable, data-in, A-address and
+B-address, with sixteen logical RAM banks per plane. This differs materially
+from the completed fit's twelve write enables and 192 replicated data
+destinations. Neither a blanket count relaxation nor silently ignoring missing
+endpoint patterns is acceptable.
+
+**Current selection:** the request SDC is analysis-only again; its QSF
+assignment is removed until the map/fitter endpoint transition is verified.
+The response SDC remains selected only for experimental Z, not yet
+fresh-fit-qualified. Completed-fit experiments above remain valid history,
+not acceptance of this failed full flow. Next: enumerate the constraint-read
+stage, establish explicit validated early/fitted profiles and preserve every
+physical destination in post-fit checks, then repeat full flow/all corners.
+
 Audit source payload paths into RAM data/write controls, selected addresses
 and response selection separately; response-to-CPU is a distinct held bus.
 First-stage request/ACK synchronizers require their own treatment, with the

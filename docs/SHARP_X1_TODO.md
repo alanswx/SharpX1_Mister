@@ -86,8 +86,10 @@ request reconnaissance identifies 293 VID and 154 SYS paths per check,
 including physical PCG RAM data/write-enable replication. Request constraints,
 source-bound refit and full PCG timing/hardware qualification remain open.
 Both request and response bounds now pass completed-fit eight-corner probes;
-the experimental Z QSF selects them with strict inventory checks. A fresh fit
-and all-corner audit are required; other revisions and RTL remain unchanged.
+the first integrated refit fails the strict request inventory gate because
+early RAM endpoints differ. Request selection is withdrawn pending a verified
+early/fitted endpoint contract; response selection remains experimental-Z-only.
+A fresh fit/all-corner audit are required; machine RTL remains unchanged.
 The [Turbo Z in-flight control reset test](TURBO_Z_INFLIGHT_RESET_STATUS.md)
 passes at three independent video rates, including a deliberately failing
 asynchronous-reset-removal control. Exact reset frames, pending palette/
