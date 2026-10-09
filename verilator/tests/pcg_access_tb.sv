@@ -2,13 +2,20 @@
 module pcg_access_tb;
     reg reset = 1, cpu_clk = 0, video_clk = 0;
     integer video_half = 7;
+    integer cpu_half_ps = 5000, video_half_ps = 0;
     initial begin
         if ($value$plusargs("VIDEO_HALF=%d", video_half)) begin
             assert (video_half > 0 && video_half < 100) else $fatal(1, "invalid video clock");
         end
+        if ($value$plusargs("CPU_HALF_PS=%d", cpu_half_ps)) begin
+            assert(cpu_half_ps>0 && cpu_half_ps<100000) else $fatal(1,"invalid CPU clock");
+        end
+        if ($value$plusargs("VIDEO_HALF_PS=%d", video_half_ps)) begin
+            assert(video_half_ps>0 && video_half_ps<100000) else $fatal(1,"invalid video ps clock");
+        end
     end
-    always #5 cpu_clk = !cpu_clk;
-    always #(video_half) video_clk = !video_clk;
+    always #(cpu_half_ps*0.001) cpu_clk = !cpu_clk;
+    always #(video_half_ps ? video_half_ps*0.001 : video_half) video_clk = !video_clk;
     reg select = 0, write_enable = 0;
     reg [1:0] plane = 0;
     reg [7:0] data = 0;
@@ -27,6 +34,43 @@ module pcg_access_tb;
     x1_pcg_access dut(reset,cpu_clk,video_clk,select,write_enable,plane,data,
                       wait_n,result,beam,address,access_data,writes,rom,blue,red,green,
                       1'b0,11'd0,1'b0,1'b0,12'd0,1'b0,,8'd0,,reset,1'b0,17'd0,1'b0,1'b0,8'd0,,);
+    realtime request_time=0, response_time=0;
+    reg request_valid=0, response_valid=0, previous_request=0;
+    reg [10:0] held_bundle=0;
+    integer request_checks=0, response_checks=0;
+    // Observe the actual toggle and consumption edges. The request bundle is
+    // frozen by the DUT; a response launches with ACK and crosses two flops.
+    always @(posedge cpu_clk or posedge reset) begin
+        if(reset) begin request_valid=0;previous_request=0;held_bundle=0;end
+        else begin
+            if(dut.busy && dut.ack_sync==dut.request) begin
+                assert(response_valid && $realtime-response_time >= 4*cpu_half_ps*0.001-0.002)
+                    else $fatal(1,"PCG response captured before two SYS periods");
+                response_checks++;
+            end
+            #0.001;
+            if(dut.request!=previous_request) begin
+                request_valid=1;request_time=$realtime;
+                previous_request=dut.request;
+                held_bundle={dut.plane,dut.write_request,dut.payload};
+            end else if(dut.busy) begin
+                assert({dut.plane,dut.write_request,dut.payload}==held_bundle)
+                    else $fatal(1,"PCG request bundle mutated before ACK");
+            end
+        end
+    end
+    always @(posedge video_clk or posedge reset) begin
+        if(reset) response_valid=0;
+        else begin
+            if(dut.stage==0 && dut.request_sync!=dut.seen) begin
+                assert(request_valid && $realtime-request_time >=
+                       4*(video_half_ps ? video_half_ps*0.001 : video_half)-0.002)
+                    else $fatal(1,"PCG request consumed before two VID periods");
+                request_checks++;
+            end
+            if(dut.stage==2) begin response_time=$realtime;response_valid=1;end
+        end
+    end
     x1_video_ram #(11) b(video_clk,address,access_data,writes[0],blue,video_clk,beam,);
     x1_video_ram #(11) r(video_clk,address,access_data,writes[1],red,video_clk,beam,);
     x1_video_ram #(11) g(video_clk,address,access_data,writes[2],green,video_clk,beam,);
@@ -81,6 +125,9 @@ module pcg_access_tb;
         assert (write_count == before_count && wait_n) else $fatal(1, "stale request after reset");
         transaction(0,1,0,0,8'h20);
         assert (waits > 28) else $fatal(1, "wait path not exercised");
+        assert(request_checks>=28 && response_checks>=28)
+            else $fatal(1,"PCG bundle window coverage missing");
+        $display("PASS: PCG two-period request/response windows and immutable accepted bundle; request checks=%0d response checks=%0d SYS half=%0d ps VID half=%0d ps",request_checks,response_checks,cpu_half_ps,video_half_ps ? video_half_ps : video_half*1000);
         $display("PASS: asynchronous PCG transactions, single writes, all planes/bounds, ROM read-only, reset and WAIT");
         $finish;
     end

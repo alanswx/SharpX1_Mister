@@ -1738,11 +1738,22 @@ test-pcg-access: $(HEADLESS_DIR)/pcg/Vpcg_access_tb
 	./$(HEADLESS_DIR)/pcg/Vpcg_access_tb +VIDEO_HALF=3
 	./$(HEADLESS_DIR)/pcg/Vpcg_access_tb +VIDEO_HALF=17
 
+test-pcg-bundle-windows: test-pcg-access
+	@for half in 17500 11640 25000; do \
+	  ./$(HEADLESS_DIR)/pcg/Vpcg_access_tb +CPU_HALF_PS=15625 +VIDEO_HALF_PS=$$half || exit 1; done
+.PHONY: test-pcg-bundle-windows
+
 test-turbo-pcg-access: test-font16 test-pcg-access $(HEADLESS_DIR)/pcg-selector/Vpcg_selector_tb $(HEADLESS_DIR)/turbo-pcg/Vturbo_pcg_access_tb
 	./$(HEADLESS_DIR)/pcg-selector/Vpcg_selector_tb
 	@for half in 3 7 31; do for width in 1 3; do \
 		./$(HEADLESS_DIR)/turbo-pcg/Vturbo_pcg_access_tb +VIDEO_HALF=$$half +WINDOW_WIDTH=$$width || exit 1; \
 	done; done
+
+test-turbo-pcg-native-windows: test-turbo-pcg-access
+	@for half in 17500 11640 25000; do for width in 1 3; do \
+	  ./$(HEADLESS_DIR)/turbo-pcg/Vturbo_pcg_access_tb +CPU_HALF_PS=15625 +VIDEO_HALF_PS=$$half +WINDOW_WIDTH=$$width || exit 1; \
+	done; done
+.PHONY: test-turbo-pcg-native-windows
 
 $(HEADLESS_DIR)/pcg-selector/Vpcg_selector_tb: tests/pcg_selector_tb.sv ../rtl/x1_pcg_selector.sv
 	mkdir -p $(@D)

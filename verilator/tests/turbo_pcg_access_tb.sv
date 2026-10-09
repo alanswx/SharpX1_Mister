@@ -2,13 +2,18 @@
 module turbo_pcg_access_tb;
     reg cpu_clk=0,video_clk=0,reset=1;
     integer video_half=7,window_width=3;
+    integer cpu_half_ps=5000,video_half_ps=0;
+    initial if($value$plusargs("CPU_HALF_PS=%d",cpu_half_ps))
+        assert(cpu_half_ps>0 && cpu_half_ps<100000) else $fatal(1,"bad SYS period");
+    initial if($value$plusargs("VIDEO_HALF_PS=%d",video_half_ps))
+        assert(video_half_ps>0 && video_half_ps<100000) else $fatal(1,"bad VID period");
     initial if($value$plusargs("VIDEO_HALF=%d",video_half))
         assert(video_half>0 && video_half<100) else $fatal(1,"bad clock ratio");
     initial if($value$plusargs("WINDOW_WIDTH=%d",window_width))
         assert(window_width>0 && window_width<16) else $fatal(1,"bad window width");
     reg video_run=1;
-    always #5 cpu_clk=!cpu_clk;
-    always #(video_half) if(video_run) video_clk=!video_clk;
+    always #(cpu_half_ps*0.001) cpu_clk=!cpu_clk;
+    always #(video_half_ps ? video_half_ps*0.001 : video_half) if(video_run) video_clk=!video_clk;
     reg select=0,write_enable=0,high_speed=1,font16_select=0,unsupported=0;
     reg [1:0] plane=0;
     reg [7:0] data=0;
@@ -36,6 +41,42 @@ module turbo_pcg_access_tb;
         wait_n,q,beam,address,access_data,writes,rom_q,blue,red,green,
         high_speed,selected_addr,font16_select,unsupported,selected_font_addr,window_open,
         font_cpu_addr,font_cpu_q,read_hold,video_reset,1'b0,17'd0,1'b0,1'b0,8'd0,,);
+    realtime request_time=0,response_time=0;
+    reg request_valid=0,response_valid=0,previous_request=0;
+    reg [36:0] held_bundle=0;
+    integer request_windows=0,response_windows=0;
+    always @(posedge cpu_clk or posedge reset) begin
+        if(reset) begin request_valid=0;previous_request=0;held_bundle=0;end
+        else begin
+            if(dut.busy && dut.ack_sync==dut.request) begin
+                assert(response_valid && $realtime-response_time>=4*cpu_half_ps*0.001-0.002)
+                    else $fatal(1,"Turbo PCG response before two SYS periods");
+                response_windows++;
+            end
+            #0.001;
+            if(dut.request!=previous_request) begin
+                request_valid=1;request_time=$realtime;previous_request=dut.request;
+                held_bundle={dut.plane,dut.write_request,dut.payload,dut.frozen_addr,
+                    dut.font_cpu_addr,dut.font16_request,dut.unsupported_request,dut.high_speed_request};
+            end else if(dut.busy) begin
+                assert(held_bundle=={dut.plane,dut.write_request,dut.payload,dut.frozen_addr,
+                    dut.font_cpu_addr,dut.font16_request,dut.unsupported_request,dut.high_speed_request})
+                    else $fatal(1,"Turbo PCG frozen fields changed before ACK");
+            end
+        end
+    end
+    always @(posedge video_clk or posedge video_reset) begin
+        if(video_reset) response_valid=0;
+        else begin
+            if(dut.stage==0 && dut.request_sync!=dut.seen &&
+               (!dut.high_speed_request || window_open)) begin
+                assert(request_valid && $realtime-request_time>=4*(video_half_ps ? video_half_ps*0.001 : video_half)-0.002)
+                    else $fatal(1,"Turbo PCG request before two VID periods");
+                request_windows++;
+            end
+            if(dut.stage==2) begin response_time=$realtime;response_valid=1;end
+        end
+    end
     x1_video_ram #(11) b(video_clk,address,access_data,writes[0],blue,video_clk,beam,);
     x1_video_ram #(11) r(video_clk,address,access_data,writes[1],red,video_clk,beam,);
     x1_video_ram #(11) g(video_clk,address,access_data,writes[2],green,video_clk,beam,);
@@ -152,6 +193,9 @@ module turbo_pcg_access_tb;
         assert(wait_n && !read_hold && q==255 && loaded)
             else $fatal(1,"stale ACK/response after reset");
         transaction(0,1,0,0,0,0,0,37);
+        assert(request_windows>=checks && response_windows>=checks)
+            else $fatal(1,"Turbo PCG bundle-window coverage missing");
+        $display("PASS: Turbo PCG two-period windows and immutable 37-bit accepted bundle; requests=%0d responses=%0d",request_windows,response_windows);
         $display("PASS: %0d high-speed CDC transactions, all PCG/font bytes, frozen bundle/window/held bus/reset",checks);
         $finish;
     end

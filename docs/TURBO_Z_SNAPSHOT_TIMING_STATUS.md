@@ -74,16 +74,34 @@ remain visible. The original RBF's constraints are unchanged by the probe.
 
 ## Remaining acceptance
 
-The candidate is now connected to the experimental QSF, but needs a fresh
-source-bound full flow to verify SDC ordering, map/fit endpoint retention,
-all corners and actual frequencies. This prior-fit experiment cannot qualify
-that future placement or RBF. Check physical delays again after every fit.
-The fresh flow is confirmed live on `misterubuntu`, source
+The candidate is connected to the experimental QSF. Its fresh source-bound
+full flow and supplemental all-corner analysis now complete on `misterubuntu`, source
 `32a3210362ad8dfada8798a405a8f48f1e7a4ca8`, isolated folder
 `/home/alans/mister/SharpX1_Mister/output_files/quartus-linux-EDi2XntO`;
-actual `quartus_sh`/`quartus_map` processes are observed after clean-checkout
-and host-idle checks. Log `/tmp/x1-quartus-32a3210-z-bundle-build.log`.
-No completion or new-RBF timing claim is made yet. The exact-SDC report audit
+after clean-checkout and host-idle checks.
+Log `/tmp/x1-quartus-32a3210-z-bundle-build.log`.
+The full flow now finishes zero at 15:58:23 UTC after 8:24, with the new SDC
+actually read during fitting and no endpoint-count error. Initial setup still
+fails (−15.053 ns); all-corner/path/payload audits finish zero, but no new
+timing-qualified RBF claim is made. Initial reports and RBF are preserved in
+`output_files/quartus-linux-EDi2XntO/completed-flow/`. RBF SHA-256
+`80328ef67899df477a97f09a97770e23e2abcd84c54a34932bf8cce9f642b4d9`;
+it remains **unqualified**. Supplemental log
+`/tmp/x1-quartus-32a3210-z-bundle-acceptance.log`.
+Retrieved supplemental reports are kept separately in
+`output_files/quartus-linux-EDi2XntO/acceptance/`. Independent table audit
+confirms 16 selected corner files, each with 72 paths (1,152 total): minimum
+selected setup **+20.244 ns**, hold **+0.642 ns**, maximum physical data delay
+**13.119 ns**. Both before/after probe reports already include the integrated
+SDC; they are not an unconstrained comparison. The post-flow input audit has
+380 matching files and only Quartus's rewritten `sharpx1.qpf` mismatching.
+
+The full eight-corner design still fails: global minimum setup **−15.053 ns**,
+hold **−1.047 ns**, recovery **−9.402 ns**. Removal/pulse minima are
++0.462/+0.529 ns. Slow 100 C same-clock setup remains SYS +6.625 ns,
+VID +7.656 ns and HDMI **−2.380 ns**. Therefore the dimensions bundle gate
+passes on this fit, not the remaining clock crossings or real HDMI routing.
+The exact-SDC prior-fit report audit
 independently confirms 16 corner files, 72 nonnegative paths each and maximum
 11.800 ns payload data delay; copied reports are retained separately under
 `output_files/quartus-linux-nyZrupn1/snapshot-exact-sdc/`.

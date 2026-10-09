@@ -75,7 +75,12 @@ and both ordinary runners are byte-identical to their previously qualified v17 b
 The [bounded dimensions snapshot constraint](TURBO_Z_SNAPSHOT_TIMING_STATUS.md)
 now checks the real two-period protocol window and passes 72-bit payload
 setup/hold at eight prior-fit corners. It is selected only by the experimental
-Z QSF; fresh map/fit and remaining CDC/HDMI/native/physical gates remain open.
+Z QSF; fresh map/fit and eight-corner payload checks now pass, while global
+setup/recovery/hold and remaining CDC/HDMI/native/physical gates remain open.
+The [PCG bundle-window audit](PCG_BUNDLE_TIMING_STATUS.md) now measures real
+request/response consumption and accepted-field stability in base and Turbo
+fixtures, including six high-speed SYS=32 MHz cases. All existing PCG/font/reset checks pass; bounded FPGA payload,
+synchronizer and native/physical acceptance remain open.
 The [Turbo Z in-flight control reset test](TURBO_Z_INFLIGHT_RESET_STATUS.md)
 passes at three independent video rates, including a deliberately failing
 asynchronous-reset-removal control. Exact reset frames, pending palette/
