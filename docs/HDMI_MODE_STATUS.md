@@ -64,6 +64,80 @@ evidence of supported or effective static-mode analysis. Older primary
 lists case analysis as unsupported; it is historical context, not proof of
 every Quartus 17 command variant.
 
+### Native command-support follow-up
+
+The no-argument native command invocation now emits **Error 332139: SDC
+Command entered is not currently supported by the TimeQuest timing analyzer**.
+Log `/tmp/x1-hdmi-case-command-support.log`, terminal exit 3. This identifies
+the installed compatibility command as unsupported, rather than merely
+assuming an alternative positional syntax would work. Do not use its presence
+in `info commands` or help-only success as a static-mode qualification.
+
+## Runtime mode changes are in scope
+
+Read-only inspection of sibling `../MainMess`, commit `da46d07`, finds
+`set_vga_fb()` immediately calls `user_io_send_buttons(1)`, which sends
+`UIO_BUT_SW=0x01`; `CONF_VGA_FB` and `CONF_DIRECT_VIDEO` map to bits 12 and 10.
+`video_fb_enable()` calls `set_vga_fb(enable)` during direct video, and menu
+code can toggle that framebuffer while running. This matches this framework's
+command-1 `cfg <= io_din` path. Therefore a fixed-until-reload selector
+assumption would omit a real reference workflow. The sibling is unchanged;
+its Main source is a reference, not proof of the binary deployed on any MiSTer.
+
+## Installed Intel primitive simulation
+
+The installed Quartus `cyclonev_clkselect` wrapper delegates to an encrypted
+vendor model. That model was not copied, decrypted or substituted. Its normal
+precompiled `cyclonev_ver` library was exercised through installed ModelSim
+Altera Starter 10.5b on the authorized build host.
+
+Ubuntu 24.04 lacks the required legacy ABI5 library. The project's
+`scripts/setup_modelsim_runtime.sh` downloads actual i386 ABI5 packages from
+Ubuntu's official security archive, checks published SHA-256, and extracts
+them under this build's ignored `modelsim-abi5-runtime/`. Metadata:
+[libncurses5](https://packages.ubuntu.com/jammy/i386/libncurses5/download),
+[libtinfo5](https://packages.ubuntu.com/jammy/i386/libtinfo5/download).
+No sudo/system installation, fake ABI symlinks, vendor edits or license bypass
+were used. Version output alone is not simulation qualification.
+
+The original `hdmi_vendor_clock_tb.sv` diagnostic and `.do` macro finish zero
+at 22:07:24 UTC, log `/tmp/x1-hdmi-vendor-clock-qualified.log`. Actual native
+elaboration/steady selection passes 48 high/low checks. The seven reported
+warnings concern debugger symbols on the modern host; compilation has zero
+warnings and simulation has zero errors. Earlier runs used a same-delta edge
+observer race and an incorrect normal-finish macro; those are not relabelled
+as the final qualification. The corrected observer waits for same-time native
+edge callbacks, and the final macro exits normally on `$finish`.
+
+With deliberately asynchronous changes while the incoming clock is high and
+outgoing clock low, the vendor model records two off-source rising edges and
+three shortened transition intervals. Independent review of the actual
+clock-only VCD confirms:
+
+| Output edge time (ps) | Interval since previous output edge (ps) |
+|---|---|
+| 154842 | 4 |
+| 442324 | 4 |
+| 444314 | 1990 |
+
+The first two are rising edges away from either corresponding selected-source
+rising edge. These are **model observations**, not measurements of physical
+FPGA glitches or proof of any exact hardware delay. They show why a simple
+Boolean selector/static matrix cannot qualify a safe switch protocol.
+The diagnostic does not simulate full HDMI registers, DDR output or the PHY.
+Waveform remains ignored at
+`output_files/quartus-linux-6FBt6YWN/hdmi-vendor-clock/vendor-clock.vcd`.
+No vendor simulation bytes or private machine assets are bundled.
+
+Final bench SHA-256:
+`9b4c293ea510f3f35cc16fa77d523c99a8005702efb0d54f8729678ec6ae5f15`.
+Final macro SHA-256:
+`233bc41fac87378026d863a57acfc8735d542ffef653acda2abf39f34d47ad19`.
+Next implementation research: a device-supported glitch-free clock-control
+primitive/handoff plus matching data selection and startup/transition blanking,
+with both clocks running/stopped and repeated framebuffer changes. Keep this
+separate from steady-mode STA and leave ordinary revisions unchanged.
+
 ## Next gates
 
 1. Establish an actually supported mode-sensitive STA method or a narrow

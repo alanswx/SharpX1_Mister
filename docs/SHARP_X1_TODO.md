@@ -37,6 +37,14 @@ The [HDMI mode investigation](HDMI_MODE_STATUS.md) now passes 72 actual-source
 static-policy cases and confirms fitted cfg10/cfg12 selector routing. The
 conventional case-analysis call fails native Quartus; no mode timing or
 safe-switching pass is inferred from command presence or static simulation.
+Native follow-up explicitly reports case analysis unsupported. The local Main
+reference toggles framebuffer mode at runtime, so fixed-until-reload timing
+assumptions are invalid. Installed Intel primitive simulation now runs using
+project-local verified ABI5 dependencies: 48 steady checks pass, while
+asynchronous switch diagnostics produce two off-source rising edges and
+three shortened intervals in the model, independently confirmed from VCD.
+A device-supported safe clock/data handoff remains implementation work;
+these observations are not measured physical glitches or a qualified RBF.
 Nine actual pending-transaction snapshots pass ninety byte-identical
 continuations; cold-start/clock guards remain tested. Fresh combined-Z
 pixels, current-source Quartus bundle/consumer timing and native/hardware
