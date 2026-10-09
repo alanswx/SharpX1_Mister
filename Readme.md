@@ -25,6 +25,14 @@ The standalone [SIO clock-event adapter](docs/SIO_EDGE_CLOCK_STATUS.md) now
 preserves serial edges and sampled RX data across enable gaps; independent
 queue tests and real CTC/SIO diagnostics pass. Native clock selection, pin CDC,
 machine integration and serial/mouse acceptance remain open.
+The [CZ-851 selector audit](docs/SIO_MACHINE_WIRING_AUDIT.md) now adds verified
+DTRB polarity/source switching and documents the differing CZ-880 drawing;
+upstream native clock routes remain unresolved. Strengthened experimental Z
+graphics, paired-text and single-text matrices now pass 24/12/16 cold/warm
+cases respectively; see the [graphics](docs/TURBO_Z_PAIRED_VIDEO_STATUS.md),
+[paired text](docs/TURBO_Z_TEXT_COMPOSITION_STATUS.md) and
+[single text](docs/TURBO_Z_SINGLE_TEXT_STATUS.md) evidence. These exact
+simulation frames do not establish native Z or physical FPGA acceptance.
 The [summary table](docs/CHIP_IMPLEMENTATION_TABLE.md) and
 [chip reuse survey](docs/CHIP_REUSE.md) describe available replacement sources
 and the remaining integration work.

@@ -117,7 +117,9 @@ identities and exact PPM comparisons are recorded in
 [paired-text status](TURBO_Z_TEXT_COMPOSITION_STATUS.md). The strengthened
 single-text matrix now terminates zero, 16/16, with independent actual/expected
 PPM byte comparisons; see [single-text status](TURBO_Z_SINGLE_TEXT_STATUS.md).
-The graphics matrix remains live; the independently frozen reverse/
+The graphics matrix now terminates zero, 24/24, with independent actual/expected
+PPM comparisons and frozen runner/fixture/program hash checks; see
+[paired graphics status](TURBO_Z_PAIRED_VIDEO_STATUS.md). The independently frozen reverse/
 warm case and original matrices retain their own identities and limitations.
 Future fixtures now include the CPU-cleared window in the auxiliary paired
 raw-source coverage calculation too; non-text coverage is unchanged. The

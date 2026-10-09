@@ -154,7 +154,8 @@ windows and all-seven-color full/paired warm gates now pass 64,000 pixels each.
 The strengthened twelve-case paired-text matrix now terminates zero,
 including seven distinct entries and selected text beneath graphics;
 strengthened single-text matrix now terminates zero (16/16, with independent
-PPM byte comparisons); the strengthened graphics matrix remains open. Do not promote
+PPM byte comparisons); the strengthened graphics matrix also terminates zero
+(24/24, independent PPM and frozen runner/fixture/program hash checks). Do not promote
 those earlier passes to beneath-graphics text acceptance or native Z completion.
 
 The expanded [hosted diagnostic run](https://github.com/alanswx/SharpX1_Mister/actions/runs/37865161650)
@@ -244,6 +245,12 @@ The [standalone event adapter](SIO_EDGE_CLOCK_STATUS.md) now passes nine
 queue-oracle and 36 real CTC/SIO clock/CE profiles, plus the required lost-event
 negative control. Native selector/pin CDC and shared-machine integration remain
 open; this does not alter default machine RTL or the current RBF.
+The CZ-851 clock-selector polarity and all 16 pin-level combinations now pass,
+including real SIO DTRB writes in the 36 CTC/SIO profiles. The enlarged CZ-880
+scan shows a different/possibly mislabelled alternate input route; the
+[updated wiring audit](SIO_MACHINE_WIRING_AUDIT.md) withdraws the previous
+common-internal-source implication. Finish that native model distinction,
+upstream routing and pin CDC before connecting the shared machine.
 The new standalone [DMA service engine](DMA_SERVICE_STATUS.md) passes 4,096
 arbitration and 2,048 status-vector cases, plus twelve connected CPU/DMA
 completion/IM2/RETI profiles. Native

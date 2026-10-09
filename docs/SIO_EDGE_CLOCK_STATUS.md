@@ -65,6 +65,11 @@ no new hosted outcome is asserted here.
 
 ## Remaining integration gates
 
+The subsequent [CZ-851 selector checkpoint](SIO_MACHINE_WIRING_AUDIT.md#numbered-pin-correction-and-tested-cz-851-selector)
+adds 16 pin-level truth cases and extends all 36 CTC/SIO profiles with real
+B WR5/DTRB source switching. The original command evidence above remains
+historical; `/tmp/x1-sio-selector-all.log` is the terminal extended result.
+
 Finish native internal clock routes/LS157 selection, external pin CDC and
 model-specific inputs. Then default-disabled machine decode, real CPU daisy
 ownership/reset and snapshots, clock/mouse/short-frame/modem/IRQ combinations,

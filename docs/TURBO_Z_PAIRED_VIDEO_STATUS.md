@@ -62,7 +62,13 @@ remain **in progress**:
   and fixture `1e03a9ecd39af3f049ef924db059c5bd5827c10879e479a593181da517009117`,
   including programmed-black/raw-source coverage. This is a new independently
   frozen matrix, not a replacement or reinterpretation of the original.
-  No complete strengthened matrix acceptance is claimed yet.
+  The strengthened matrix now terminates zero: all 24 cold/warm cases pass
+  64,000 exact pixels, periods, programmed-black/raw-source coverage and
+  retained-reset/no-refill checks. An independent audit compares all 24
+  actual/expected PPM pairs byte-for-byte, verifies the frozen runner/fixture
+  identities above, and checks all 24 program hashes against their logged
+  manifests. This qualifies the current experimental graphics recipe, not
+  native Z firmware, physical palette/DAC behavior or FPGA acceptance.
 - Separate strengthened custom/front-bank-1 cold probe:
   `/tmp/x1-z-paired-black-front.log`, independently frozen under
   `verilator/obj_dir_v13_z_paired/black-front-2uq5yt/`. It exits zero: all 64,000

@@ -1,5 +1,16 @@
 # Downloaded Sharp X1 documentation
 
+## SIO clock-selector manufacturer's datasheet
+
+`TI_SN74LS157_SDLS058.pdf` is retained locally/ignored from
+[Texas Instruments](https://www.ti.com/lit/ds/symlink/sn74ls157.pdf), SHA-256
+`998f4a5c11e3d83c3547aef0b5fbea36f0a6581dc7abb72be9183447ab9816ff`.
+The first scanned page's pinout/function table was visually read, not merely
+text-extracted (its scanned pages have no extracted prose). It establishes
+the LS157 selector polarity and numbered inputs, exposing a CZ-880 drawing
+discrepancy recorded in the [SIO audit](../../docs/SIO_MACHINE_WIRING_AUDIT.md).
+The rest of the device timing/package document is not a complete audit.
+
 ## Output DAC manufacturer's data book
 
 `Fujitsu_1990_Linear_Products_Data_Book.pdf`: 31,259,014 bytes, 870 pages,

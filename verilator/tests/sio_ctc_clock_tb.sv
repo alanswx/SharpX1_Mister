@@ -15,6 +15,10 @@ module sio_ctc_clock_tb;
         .din(din),.dout(dout),.trigger(4'b0000),.iei(1'b1),.irq(irq),
         .ieo(ieo),.ack(1'b0),.reti(1'b0),.vector(vector),.zc(zc));
     reg [1:0] rxd=3;
+    wire selected_rx_a,selected_tx_a;
+    x1_sio_clock_select_851 selector(.dtr_b_n(dtr_n[1]),
+        .external_rx_clock(zc[0]),.external_tx_clock(zc[0]),.alternate_clock(1'b0),
+        .rx_clock_a(selected_rx_a),.tx_clock_a(selected_tx_a));
     wire [1:0] rx_tick,tx_tick,sampled_rxd,rx_overflow,tx_overflow;
     bit direct=0;
     reg last_zc=0;
@@ -22,7 +26,7 @@ module sio_ctc_clock_tb;
     wire [1:0] used_rx_tick=direct ? {2{ce && zc[0] && !last_zc}} : rx_tick;
     wire [1:0] used_tx_tick=direct ? {2{ce && !zc[0] && last_zc}} : tx_tick;
     x1_sio_edge_clock adapter(.clk(clk),.reset(reset),.ce(ce),
-        .rx_clock({2{zc[0]}}),.tx_clock({2{zc[0]}}),.rxd(rxd),
+        .rx_clock({zc[0],selected_rx_a}),.tx_clock({zc[0],selected_tx_a}),.rxd(rxd),
         .rx_tick(rx_tick),.tx_tick(tx_tick),.sampled_rxd(sampled_rxd),
         .rx_overflow(rx_overflow),.tx_overflow(tx_overflow));
     reg cpu_cs=0,cpu_rd_n=1,cpu_wr_n=1;
@@ -37,14 +41,16 @@ module sio_ctc_clock_tb;
         .tx_tick(used_tx_tick),.rxd(direct ? rxd : sampled_rxd),.cts_n(2'b00),.dcd_n(2'b00),
         .txd(txd),.rts_n(rts_n),.dtr_n(dtr_n),.unsupported(unsupported));
     bit monitor_tx=0,started=0,completed=0;
-    integer tx_events=0,rx_events=0;
+    integer tx_events=0,rx_events=0,rx_events_b=0;
     reg [9:0] expected_tx={1'b1,8'ha5,1'b0};
     bit saw_rx,saw_tx;
+    integer before_events,before_events_b;
 
     task automatic step;
         clk=0; ce=!pause && ((edges+phase)%period==0);
         #(half_period);
         saw_rx=used_rx_tick[0]; saw_tx=used_tx_tick[0];
+        if(used_rx_tick[1]) rx_events_b++;
         clk=1; #(half_period); edges++;
         if(saw_rx) rx_events++;
         if(monitor_tx && saw_tx) begin
@@ -110,6 +116,20 @@ module sio_ctc_clock_tb;
         get(0,8'h96);get(2,8'h3c);
         while(!completed) step();
         put(1,1);get(1,1); // RR1 all sent, no receive errors.
+        // Real B WR5 writes drive DTRB's output level into the board selector.
+        // The unselected alternate clock is deliberately stopped. B retains
+        // its independent CTC clock, not channel A's selected source.
+        put(3,5);put(3,8'h6a);
+        repeat(period*2)step();before_events=rx_events;before_events_b=rx_events_b;
+        repeat(period*64) begin
+            step();
+            assert(!rx_tick[0] && !tx_tick[0] && !selected_rx_a && !selected_tx_a)
+                else $fatal(1,"DTRB deassertion did not select stopped alternate clock");
+        end
+        assert(rx_events==before_events && rx_events_b>before_events_b && dtr_n[1])
+            else $fatal(1,"A clock selection disturbed independent B events");
+        put(3,5);put(3,8'hea);serial_ticks(16);
+        assert(!dtr_n[1] && !unsupported) else $fatal;
         assert(!unsupported) else $fatal(1,"supported diagnostic flagged unsupported");
         // Reset both real devices and adapter while device enables are stopped.
         pause=1;reset=1;repeat(8)step();reset=0;repeat(8)step();
