@@ -64,10 +64,12 @@ suppressed; the inherited TV80 DIRSET warning remains visible.
 
 ## Remaining gates
 
-The [executing reload snapshot](DMA_RELOAD_SNAPSHOT_STATUS.md) now qualifies
-that flag in the non-IRQ shared machine. Restart-handler snapshots, combined
-Ready/match/restart interrupts, SIO/FDC/multi-device service, schematic-qualified
-shared-machine profile identity and native Turbo firmware remain required.
+The [executing reload snapshot](DMA_RELOAD_SNAPSHOT_STATUS.md) qualifies that
+flag in the non-IRQ shared machine. The subsequent
+[shared restart profile](DMA_RESTART_MACHINE_STATUS.md) now adds six executing
+handler snapshots, a separate identity and actual A/B sector-boundary service.
+Combined Ready/match/restart interrupts, SIO and restart-specific multi-device
+contention/reset, broader snapshots and native Turbo firmware remain required.
 Source-bound Quartus and physical MiSTer gates remain unexecuted for restart
 IRQ; the current experimental RBF does not enable it. No private assets were
 used or changed. Hosted execution of the expanded target is a separate gate.

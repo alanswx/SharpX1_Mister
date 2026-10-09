@@ -155,6 +155,10 @@ shared-machine/native/hardware restart service remains open.
 The [executing reload snapshot](docs/DMA_RELOAD_SNAPSHOT_STATUS.md) now confirms
 revision-7 flag/counter/buffer serialization in both directions on the non-IRQ
 shared machine; restart-handler and hardware snapshots remain unqualified.
+The subsequent [shared restart-service profile](docs/DMA_RESTART_MACHINE_STATUS.md)
+adds actual CPU handler snapshots and A/B sector-boundary IRQ/DRQ acceptance
+in both directions/all three bus modes. It is separately opt-in; mixed causes,
+native firmware, reset races and hardware remain open.
 The [Kanji contract audit](docs/KANJI_CONTRACT_STATUS.md) adds an exhaustive
 schematic-derived first-level address component and a separately tested 128 KiB
 dual-clock ROM loader. Synthetic byte/read/reset checks pass; the opt-in shared

@@ -1,6 +1,6 @@
 // Sharp X1 base-machine integration. Shared by MiSTer and simulation.
 // See docs/BASE_X1_CONTRACT.md for address-map sources and limitations.
-module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0, TURBO_DSW = 241) (
+module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0, TURBO_DSW = 241, TURBO_DMA_RESTART_IRQ = 0) (
     input clk_sys, clk_28636, reset,
     input pal, scandouble,
     input ioctl_download,
@@ -97,6 +97,8 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     initial begin
         if (TURBO_DMA_IRQ && !(TURBO && TURBO_DMA))
             $error("TURBO_DMA_IRQ requires TURBO and TURBO_DMA");
+        if (TURBO_DMA_RESTART_IRQ && !TURBO_DMA_IRQ)
+            $error("TURBO_DMA_RESTART_IRQ requires the explicit DMA IRQ profile");
         if (TURBO_KANJI && (!TURBO || TURBO_DMA))
             $error("TURBO_KANJI requires TURBO; combined DMA profile is not qualified");
         if (TURBO_KANJI_RENDER && !TURBO_KANJI)
@@ -106,7 +108,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     end
     wire dma_cs = TURBO && TURBO_DMA && !dma_owner && io_cycle && !dam && a[15:4] == 12'h1f8;
     generate if (TURBO && TURBO_DMA) begin : turbo_dma
-        x1_dma #(.COMPLETION_IRQ(TURBO_DMA_IRQ)) engine (
+        x1_dma #(.COMPLETION_IRQ(TURBO_DMA_IRQ), .RESTART_IRQ(TURBO_DMA_RESTART_IRQ)) engine (
             .iei(dma_iei),.acknowledge(dma_ack),.reti(dma_reti),
             .irq(dma_irq),.ieo(dma_ieo),.irq_pending(dma_irq_pending),
             .irq_in_service(dma_in_service),.ack_vector(dma_vector),

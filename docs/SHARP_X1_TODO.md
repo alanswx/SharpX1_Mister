@@ -125,6 +125,13 @@ blocks/IM2 handlers/RETIs, CPU payload/guard checks and observed address separat
 The [executing reload-seam snapshot](DMA_RELOAD_SNAPSHOT_STATUS.md) now passes
 both-direction non-IRQ shared-machine continuation and a failing original-bug
 control. Restart-handler snapshots and mixed/native/hardware service remain open.
+The subsequent [shared restart-service profile](DMA_RESTART_MACHINE_STATUS.md)
+now passes executing-handler/pre-ACK snapshots with profile rejection, actual
+CPU buffered-address service in all three modes/both directions, and twelve
+A/B sector-boundary DRQ cases on both timing models; the clock-matched fast
+board profile also passes all eighteen memory/FDC cases. Ready/mixed causes,
+restart-specific concurrent/reset/owned-SD snapshots, native and hardware
+qualification remain open; no work group is marked complete.
 The [Kanji contract audit](KANJI_CONTRACT_STATUS.md) now derives a tested
 first-level physical ROM address decoder from the model-20/30 schematic,
 covering all 131,072 bytes. Its connected standalone 128 KiB dual-clock ROM

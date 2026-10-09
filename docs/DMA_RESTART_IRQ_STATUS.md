@@ -91,5 +91,8 @@ Hosted CI now includes both new targets, but hosted acceptance is not inferred
 from local success.
 Shared-machine profile identity, FDC/SIO/multi-device service, snapshots,
 native Turbo firmware, Quartus and physical MiSTer qualification remain open.
+The subsequent [shared restart increment](DMA_RESTART_MACHINE_STATUS.md) now
+qualifies its explicit profile identity, actual CPU handler snapshots and A/B
+sector-boundary service; SIO, mixed/native/reset/hardware gates remain open.
 The current recommended RBF does not enable this parameter. No work group or
 Turbo Z milestone is marked complete by this increment.

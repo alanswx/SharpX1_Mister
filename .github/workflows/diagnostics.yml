@@ -64,6 +64,7 @@ jobs:
             test-dma-native-irq test-dma-native-irq-cpu test-dma-ready-irq test-dma-ready-irq-cpu \
             test-dma-restart-irq test-dma-restart-irq-cpu \
             test-dma-reload-snapshot \
+            test-machine-dma-restart-irq test-machine-dma-restart-irq-snapshot test-machine-dma-restart-fdc test-machine-dma-restart-board \
             test-board-single \
             test-dma-irq-bridge test-machine-dma-irq test-machine-dma-irq-nested test-machine-dma-irq-keyboard test-machine-dma-irq-snapshot \
             test-kanji-conversion test-kanji-address test-kanji-decode test-kanji-rom test-kanji-cg-selector test-kanji-cg-access test-kanji-cg-cpu \
@@ -83,6 +84,9 @@ jobs:
             # This fixture retains its full 65,537-byte/wrap cases at all CEs;
             # allow its unoptimized build/run extra time, not fewer cycles.
             if [ "${target}" = test-dma ]; then limit_s=600; fi
+            # Observed 180-second timeout after passing clock/keyboard/MR16,
+            # during the unchanged actual-board-frequency dual-disk matrix.
+            if [ "${target}" = test-board-single ]; then limit_s=900; fi
             if [ "${target}" = test-machine-dma-irq ]; then limit_s=300; fi
             if [ "${target}" = test-machine-dma-irq-nested ] || [ "${target}" = test-machine-dma-irq-snapshot ]; then limit_s=300; fi
             if [ "${target}" = test-machine-dma-irq-keyboard ]; then limit_s=300; fi
@@ -92,6 +96,7 @@ jobs:
             case "${target}" in test-machine-kanji-mixed*) limit_s=900 ;; esac
             if [ "${target}" = test-turbo-dsw-snapshot ]; then limit_s=900; fi
             case "${target}" in test-machine-dma-x3*) limit_s=900 ;; esac
+            case "${target}" in test-machine-dma-restart*) limit_s=900 ;; esac
             if [ "${target}" = test-dual-snapshot ]; then limit_s=900; fi
             if [ "${target}" = test-dual-write-snapshot ]; then limit_s=900; fi
             if [ "${target}" = test-video-dump ]; then limit_s=900; fi

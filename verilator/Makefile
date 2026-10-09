@@ -281,10 +281,12 @@ test-continue-native-dual:
 
 # Completion IRQ has its own model and output directory; no default promotion.
 DMA_IRQ_DIR ?= obj_dir_turbo_dma_irq
+DMA_RESTART ?= 0
+DMA_RESTART_FLAGS = -GTURBO_DMA_RESTART_IRQ=$(DMA_RESTART) $(if $(filter 1,$(DMA_RESTART)),-CFLAGS "-DX1_TURBO_DMA_RESTART_IRQ")
 turbo-dma-irq: $(DMA_IRQ_DIR)/Vtop
 $(DMA_IRQ_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc $(DMA_TIMING) --assert --trace-fst --exe --build -j 4 --Mdir $(DMA_IRQ_DIR) --top-module top \
-		$(TURBO_DSW_FLAGS) $(DMA_VIDEO_FLAGS) -GTURBO=1 -GTURBO_DMA=1 -GTURBO_DMA_IRQ=1 -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_TURBO_DMA -DX1_TURBO_DMA_IRQ" \
+		$(TURBO_DSW_FLAGS) $(DMA_VIDEO_FLAGS) $(DMA_RESTART_FLAGS) -GTURBO=1 -GTURBO_DMA=1 -GTURBO_DMA_IRQ=1 -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_TURBO_DMA -DX1_TURBO_DMA_IRQ" \
 		-MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 .PHONY: turbo-dma-irq
 test-machine-dma-irq: turbo-dma-irq
@@ -297,6 +299,28 @@ test-machine-dma-irq-keyboard: turbo-dma-irq
 	python3 tests/test_machine_dma_irq_nested.py ./$(DMA_IRQ_DIR)/Vtop --keyboard
 .PHONY: test-machine-dma-irq-keyboard
 
+# Restart service has an explicit independent machine/snapshot profile.
+DMA_RESTART_DIR ?= obj_dir_v12_dma_restart_irq
+DMA_RESTART_SAVE_DIR ?= obj_dir_v12_dma_restart_irq_save
+DMA_RESTART_CONTROL_DIR ?= obj_dir_v12_dma_restart_completion_control
+DMA_RESTART_BOARD_DIR ?= obj_dir_v12_dma_restart_board_fast
+test-machine-dma-restart-irq:
+	$(MAKE) turbo-dma-irq DMA_RESTART=1 DMA_IRQ_DIR=$(DMA_RESTART_DIR)
+	python3 tests/test_machine_dma_restart_irq.py ./$(DMA_RESTART_DIR)/Vtop
+test-machine-dma-restart-irq-snapshot:
+	$(MAKE) turbo-dma-irq-savable DMA_RESTART=1 DMA_IRQ_SAVE_DIR=$(DMA_RESTART_SAVE_DIR)
+	$(MAKE) turbo-dma-irq-savable DMA_RESTART=0 DMA_IRQ_SAVE_DIR=$(DMA_RESTART_CONTROL_DIR)
+	python3 tests/test_machine_dma_restart_irq.py ./$(DMA_RESTART_SAVE_DIR)/Vtop --completion-only ./$(DMA_RESTART_CONTROL_DIR)/Vtop
+test-machine-dma-restart-fdc:
+	$(MAKE) turbo-dma-irq DMA_RESTART=1 DMA_IRQ_DIR=$(DMA_RESTART_DIR)
+	python3 tests/test_machine_dma_restart_fdc.py ./$(DMA_RESTART_DIR)/Vtop
+test-machine-dma-restart-board:
+	$(MAKE) turbo-dma-irq-savable DMA_RESTART=1 DMA_IRQ_SAVE_DIR=$(DMA_RESTART_BOARD_DIR) \
+	  V='$(V) -GSINGLE_CLOCK=1 -GMASTER_HZ=28571428 -CFLAGS "-DX1_SINGLE_CLOCK -DX1_SINGLE_MASTER_HZ=28571428"'
+	python3 tests/test_machine_dma_restart_irq.py ./$(DMA_RESTART_BOARD_DIR)/Vtop --sys-hz 28571428
+	python3 tests/test_machine_dma_restart_fdc.py ./$(DMA_RESTART_BOARD_DIR)/Vtop --sys-hz 28571428
+.PHONY: test-machine-dma-restart-irq test-machine-dma-restart-irq-snapshot test-machine-dma-restart-fdc test-machine-dma-restart-board
+
 # Savable fast DMA profiles: separate artifacts and application identities.
 DMA_SAVE_DIR ?= obj_dir_turbo_dma_savable
 DMA_IRQ_SAVE_DIR ?= obj_dir_turbo_dma_irq_savable
@@ -308,7 +332,7 @@ $(DMA_SAVE_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h 
 turbo-dma-irq-savable: $(DMA_IRQ_SAVE_DIR)/Vtop
 $(DMA_IRQ_SAVE_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc --no-timing --savable --assert --trace-fst --exe --build -j 4 --Mdir $(DMA_IRQ_SAVE_DIR) --top-module top \
-		$(TURBO_DSW_FLAGS) $(DMA_VIDEO_FLAGS) -GTURBO=1 -GTURBO_DMA=1 -GTURBO_DMA_IRQ=1 -CFLAGS "-std=c++20 -DX1_SAVABLE -DX1_TURBO_FOUNDATION -DX1_TURBO_DMA -DX1_TURBO_DMA_IRQ" \
+		$(TURBO_DSW_FLAGS) $(DMA_VIDEO_FLAGS) $(DMA_RESTART_FLAGS) -GTURBO=1 -GTURBO_DMA=1 -GTURBO_DMA_IRQ=1 -CFLAGS "-std=c++20 -DX1_SAVABLE -DX1_TURBO_FOUNDATION -DX1_TURBO_DMA -DX1_TURBO_DMA_IRQ" \
 		-MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 test-machine-dma-irq-snapshot: turbo-dma-savable turbo-dma-irq-savable
 	python3 tests/test_machine_dma_irq_snapshot.py ./$(DMA_IRQ_SAVE_DIR)/Vtop ./$(DMA_SAVE_DIR)/Vtop

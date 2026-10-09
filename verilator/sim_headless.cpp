@@ -381,6 +381,9 @@ int main(int argc, char **argv) {
 #ifdef X1_TURBO_DMA_IRQ
             ^ (1ULL << 47) ^ (1ULL << 46) // Completion IRQ revision 1: reset ACK quarantine.
 #endif
+#ifdef X1_TURBO_DMA_RESTART_IRQ
+            ^ (1ULL << 40) // Distinct terminal-event/restart-service model.
+#endif
 #ifdef X1_TURBO_KANJI
             ^ (1ULL << 45) // First-level physical CG backend revision 1.
 #endif
@@ -835,6 +838,11 @@ int main(int argc, char **argv) {
                 << "counter_a=" << dma_root->top__DOT__machine__DOT__turbo_dma__DOT__engine__DOT__counter_a << '\n'
                 << "counter_b=" << dma_root->top__DOT__machine__DOT__turbo_dma__DOT__engine__DOT__counter_b << '\n'
                 << "reload_destination=" << unsigned(dma_root->top__DOT__machine__DOT__turbo_dma__DOT__engine__DOT__restart_destination_loaded) << '\n';
+#ifdef X1_TURBO_DMA_RESTART_IRQ
+            dma << "restart_profile=1\n"
+                << "pending=" << unsigned(dma_root->top__DOT__machine__DOT__dma_irq_pending) << '\n'
+                << "in_service=" << unsigned(dma_root->top__DOT__machine__DOT__dma_in_service) << '\n';
+#endif
 #endif
             // Read-only simulation instrumentation. Sub-CPU work RAM begins
             // at 0x1000; write explicit little-endian bytes, not host words.

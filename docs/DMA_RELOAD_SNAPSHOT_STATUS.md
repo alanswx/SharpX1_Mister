@@ -44,3 +44,6 @@ zero, including its disk/loader/PCG/index checks; log:
 This is non-IRQ Byte-mode shared-machine acceptance. Restart-handler snapshots,
 mixed Ready/match/restart causes, other mode/count boundaries, native Turbo
 firmware and source-bound Quartus/MiSTer acceptance remain separate work.
+The later [shared restart-service increment](DMA_RESTART_MACHINE_STATUS.md)
+now passes handler snapshots across all three modes in both directions;
+mixed/native/hardware acceptance remains open.

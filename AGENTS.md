@@ -83,6 +83,11 @@ Simulator disk writes require `--disk-output NEW_COPY`; private originals and
 snapshots remain ignored. See `docs/DISK_STATUS.md` for tested and missing cases.
 `TURBO_DMA=1` / `turbo-dma` is a separate, opt-in shared-machine DMA subset,
 not enabled by ordinary Turbo/X3 or board revisions. See `docs/DMA_MACHINE_STATUS.md`.
+`TURBO_DMA_RESTART_IRQ=1` additionally requires `TURBO_DMA_IRQ=1`. Its independent
+snapshot identity uses bit 40; do not reuse it for other profiles or convert
+completion states. See `docs/DMA_RESTART_MACHINE_STATUS.md` for actual handler/
+FDC tests and the still-open Ready/mixed/native/board gates. Build separate
+directories for `DMA_RESTART=0/1`; no existing RBF enables this profile.
 During an owned reset drain, CPU CE stops while DMA/target CE and host SD ACK
 processing continue. Do not replace actual BUSACK ownership with BUSRQ or
 reset the CPU before the already-started pair completes. Uploads must honor
