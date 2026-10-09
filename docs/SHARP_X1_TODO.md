@@ -83,6 +83,9 @@ The separate `sharpx1_turbo_z_handoff` full-board qualification revision now
 enables the handoff while existing revisions stay disabled. Static feature/
 constraint isolation and eighteen new invalid mux-scope controls pass;
 native scope acceptance, full flow/timing and physical results remain open.
+Its `4800715` source-bound full flow is now started on `misterubuntu` in
+`quartus-linux-O40JuhMa`, with live mapping confirmed; no terminal flow/timing
+or RBF result is yet claimed. Hardware has not been touched.
 Nine actual pending-transaction snapshots pass ninety byte-identical
 continuations; cold-start/clock guards remain tested. Fresh combined-Z
 pixels, current-source Quartus bundle/consumer timing and native/hardware

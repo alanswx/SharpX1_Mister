@@ -437,6 +437,19 @@ actual fitted inventory, all-corner setup/hold/recovery/removal/pulse-width/I/O
 and physical/native video acceptance are still required. No qualified RBF is
 claimed from the profile's existence.
 
+### Source-bound full flow started, not yet qualified
+
+The clean authorized `misterubuntu` checkout fast-forwards from the alanswx
+fork to `48007152a28f4a61ff73c4831f811528582a5f0d`; preflight finishes zero.
+`build_quartus_linux.sh --build` starts the separate revision's full project
+flow at **2026-10-09 22:58:02 UTC**, snapshot
+`output_files/quartus-linux-O40JuhMa/source`, log
+`/tmp/x1-quartus-4800715-z-handoff.log`. Input manifest SHA-256:
+`daa2012b5e57c24c33e21af7a980d29e5fcc60d246fe2971f3b54a1a73cbd3a3`.
+The actual `quartus_sh`/`quartus_map` processes are confirmed live at this
+observation. Mapping, fitted scope, full-flow result, timing and any RBF remain
+unproven. Nothing is loaded on a MiSTer; previous fit evidence is preserved.
+
 ## Next gates
 
 1. Establish an actually supported mode-sensitive STA method or a narrow
