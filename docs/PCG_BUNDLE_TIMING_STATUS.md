@@ -62,6 +62,34 @@ No new warnings/suppressions are introduced by the timing observations.
 
 ## Remaining constraints/acceptance
 
+### Fresh fitted endpoint inventory
+
+The reporting-only `scripts/quartus_pcg_bundle_inventory.tcl` executes on the
+completed `32a3210` Z fit, with the existing project SDC unchanged. Native
+Quartus 17.0.2 finishes zero, no warnings, at all eight Slow/Fast 1100 mV
+temperature corners (`/tmp/x1-quartus-32a3210-pcg-merged.log`). Reports are
+preserved under ignored `output_files/quartus-linux-EDi2XntO/pcg-inventory/`.
+Script SHA-256 `9c7504273065d39884d3da1b4903fda5eed3cd55175f676747aaf99a65fd3a20`.
+
+Map explicitly merges `frozen_addr[4..10]` into `font_cpu_addr[5..11]`.
+Only four frozen-address registers retain their original names; blindly
+constraining that prefix would miss seven address bits. The reporting group
+therefore also includes all twelve font-address registers (28 source
+registers total), deliberately retaining their ordinary SYS-only paths.
+This broad source group is **not** a proposed exception. Request reports are
+capped at 100 paths per check/corner, so they are reconnaissance, not proof of
+complete coverage; unsupported/write-window control and each RAM pin path
+still require dedicated enumeration before constraints.
+
+The response group is exact: eight `response` and eight `cpu_q` registers.
+Independent table audit finds eight response paths in each of sixteen
+setup/hold reports (128 total). Worst existing setup is **−8.832 ns**,
+minimum hold **+0.661 ns**, maximum data delay **11.290 ns**. This physical
+delay is below the digitally checked 62.5 ns SYS capture window, but the
+existing cross-clock edge relationship still reports violations. A scoped
+bounded response constraint must be tested separately and refitted before
+qualification; no PCG exception has been applied by this inventory.
+
 Audit source payload paths into RAM data/write controls, selected addresses
 and response selection separately; response-to-CPU is a distinct held bus.
 First-stage request/ACK synchronizers require their own treatment, with the
