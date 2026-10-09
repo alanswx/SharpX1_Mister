@@ -24,6 +24,12 @@ chain/consumer rows pass eight-corner setup/hold. Raw stage-zero input timing
 remains open. PCG/snapshot and reported scaler paths pass local audits;
 global setup/hold still fail −46.112/−1.800 ns. The RBF is unqualified and
 native/physical/full-feature gates remain open.
+The unselected VSYNC input-only probe now preserves all 48 synchronous
+report pairs and reports hold +0.017 ns; setup still fails −12.017 ns.
+Actual early-map scope validation now passes in a hash-matching unfitted copy;
+the misleading ignored `-post_map` attempt is explicitly not counted. Only
+experimental Z selects the guarded source-to-stage-zero data input for a fresh
+fit. Setup, physical/native and all remaining feature gates remain open.
 The [expanded combined diagnostic matrix](TURBO_Z_COMBINED_STATUS.md#expanded-combined-diagnostic-matrix-started-not-yet-qualified)
 now schedules 120 cold/warm, identity/custom, bank/priority/text/reverse cases
 on the frozen ownership-corrected runner. Enumeration passes; actual execution

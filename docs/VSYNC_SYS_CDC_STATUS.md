@@ -143,3 +143,75 @@ An exact input-pin-only before/after probe remains next; no exception is
 selected. No hardware is contacted/
 loaded. Work groups 1–6,
 native/full Turbo Z and physical acceptance remain incomplete.
+
+## Executed unselected first-data-input probe
+
+`scripts/constraints/vsync_sys_input_candidate.sdc` validates two primary
+stages, exact keeper fanout, one stage-zero data pin and its unique VSYNC
+data-source register before a single source-to-data-pin false path. CLK, Q,
+stage one, the frame/configuration consumers and the separate measurement/
+HPS paths are not excluded. The source may be the primary output or its actual
+router duplicate; it is resolved from the data pin, never guessed from a
+register fanin list (which also includes the clock port).
+Mapped/fitted data-pin representations `d`/`asdata` are accepted only if exactly
+one exists. No QSF selected the candidate during the probe below.
+
+Mock tests pass 19 rejecting scope inventories. The optional reporter completes
+all 80 baseline scopes before applying the candidate, then emits 80 matching
+after scopes. No-argument reporting remains the original 64-file contract.
+Coverage/order, thirteen parser negatives, five preservation/exclusion negatives
+and the mapped-view refusal tests pass; all are selected by CI.
+
+The native completed-fit probe finishes zero/no warnings at 19:24:59 UTC,
+elapsed 36 seconds, log `/tmp/x1-quartus-e32bd69-vsync-input-probe.log`.
+Actual reports are preserved locally in
+`output_files/quartus-linux-1uPykZZ7/vsync-input-probe/`.
+Executed candidate SHA-256
+`b159991586efc04d19f31e817d38f8b8bcf0f88dc0877fe8c33b7bb28ae3b5ab`;
+reporter SHA-256
+`856b489c5fb5d8545c7c1c950e68eb407c1cc7f8be0570ecbf17208dbcd3f07a`.
+Scope is exactly `hdmi_out_vs~_Duplicate_1` →
+`hdmi_vsync_to_sys|sample_pipe[0]|asdata`.
+
+`scripts/audit_vsync_sys_probe.py` independently confirms 48 unchanged
+synchronous before/after report pairs (80 rows) at eight corners. All sixteen
+raw input after-reports are valid `Nothing to report` exclusions, **not timing
+passes**. Bounded global reports have 800 rows/check/phase: setup changes
+−46.112 → **−12.017 ns**, hold −1.800 → **+0.017 ns**. Other CDC, inactive
+mode data branches, external I/O and physical pulse/MTBF acceptance stay open.
+
+### Mapped-view trap and actual early validation
+
+The first `-post_map` invocation on the completed fit exits zero but issues
+Critical Warning 332199: Quartus ignores that option after fitting. Those
+reported "mapped" names are fitted names and are **not mapped validation**.
+Log `/tmp/x1-quartus-e32bd69-vsync-input-mapped-fitted.log` preserves this
+attempt. `quartus_vsync_sys_inventory.tcl` now refuses known fitter outputs
+before opening a mapped view; its mock tests cover fit.rpt, fit.summary and
+SOF markers and invalid configurations.
+
+A new, unfitted input-only copy is created under
+`output_files/vsync-map-OtdEHdiq/source`. The original QPF is restored from
+the original source commit, not the Quartus-rewritten copy; its pre-map audit
+matches the original input manifest. Bare `quartus_map` first fails because it
+does not execute the inherited build-ID pre-flow hook. That failed log is
+preserved in `/tmp/x1-quartus-e32bd69-vsync-isolated-map.log`.
+The corrected map-only invocation runs `sys/build_id.tcl` first, then mapping
+and early scope validation; log
+`/tmp/x1-quartus-e32bd69-vsync-isolated-map-retry.log`. Mapping finishes zero
+at 19:32:53 UTC, followed by actual mapped inventory/scope validation zero at
+19:32:57 UTC. Its five warnings are inherited PLL RST/LOCKED connectivity,
+not ignored `-post_map`; no timing clocks are loaded in this structural view.
+All **388 inputs** match the original manifest before mapping. Generated
+build-ID SHA-256 matches the completed fit's `1129592d58d7243fb463315e148909ab7b4035ce090d35bdd499dee7f26e2824`.
+This true mapped view has six pins, a primary `hdmi_out_vs` source and the
+stage-zero `|d` input; the fitted view has eight pins, duplicated source and
+`|asdata`. Both have exactly two stages and the same one/three keeper fanout.
+
+After both native views and preservation checks, only the experimental Z QSF
+selects the single guarded source-to-input-data-pin scope for a fresh flow.
+Ordinary revisions, machine RTL and the stage/consumer timing remain unchanged.
+The selected file changes the probe's header comment only; the executed probe
+hash above binds the actual experiment, not the newly selected file hash.
+Fresh selected-QSF fitting, all-corner audits and physical/native gates remain
+required; no new qualified RBF follows from the reporting probe.

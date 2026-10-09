@@ -8,6 +8,7 @@ import tempfile
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2] / "scripts"))
 from audit_vsync_sys_reports import audit, FIRST, LAST, SYS
+from audit_vsync_sys_probe import audit_probe
 
 RAW = "hdmi_out_vs~_Duplicate_1"
 
@@ -35,6 +36,48 @@ with tempfile.TemporaryDirectory(prefix="x1-vsync-audit-") as temporary:
                 write(valid / f"{prefix}_input_{check}.rpt", [row(RAW, FIRST, c, slack="-40.000") for c in ("x1_hdmi_mux", "x1_video_mux")])
     with contextlib.redirect_stdout(io.StringIO()):
         assert audit(valid, RAW) == (80, .25, 32, -40)
+    probe = root / "probe"
+    probe.mkdir()
+    for file in valid.iterdir():
+        before_name = file.name.replace("vsync_sys_", "vsync_sys_probe_before_")
+        after_name = before_name.replace("probe_before", "probe_after")
+        shutil.copyfile(file, probe / before_name)
+        if "_input_" in file.name:
+            (probe / after_name).write_text("; Report Timing ;\nNothing to report.\n")
+        else:
+            shutil.copyfile(file, probe / after_name)
+    for model in ("slow", "fast"):
+        for temperature in (-40, 0, 85, 100):
+            for phase in ("before", "after"):
+                for check in ("setup", "hold"):
+                    slack = {("before", "setup"): "-40.000", ("before", "hold"): "-1.800",
+                             ("after", "setup"): "-12.017", ("after", "hold"): "0.017"}[phase, check]
+                    path = probe / f"sharpx1_turbo_z_video_vsync_sys_probe_{phase}_{model}_{temperature}_global_{check}.rpt"
+                    write(path, [row(LAST, "vsd", slack=slack)])
+    with contextlib.redirect_stdout(io.StringIO()):
+        assert audit_probe(probe, RAW)["after", "hold"] == .017
+    for control in ("changed_sync", "retained_raw", "empty_global", "missing_pair", "malformed_excluded"):
+        directory = root / ("probe-" + control)
+        shutil.copytree(probe, directory)
+        prefix = "sharpx1_turbo_z_video_vsync_sys_probe_after_fast_100_"
+        consumer = directory / (prefix + "consumer_hold.rpt")
+        if control == "changed_sync":
+            write(consumer, [row(LAST, c, data="0.600") for c in ("vsd", "vs_d0", "vs_d1")])
+        elif control == "retained_raw":
+            write(directory / (prefix + "input_hold.rpt"), [row(RAW, FIRST, "x1_hdmi_mux")])
+        elif control == "empty_global":
+            (directory / (prefix + "global_hold.rpt")).write_text("Nothing to report.\n")
+        elif control == "missing_pair":
+            consumer.unlink()
+        else:
+            (directory / (prefix + "input_hold.rpt")).write_text("")
+        try:
+            with contextlib.redirect_stdout(io.StringIO()):
+                audit_probe(directory, RAW)
+        except (AssertionError, FileNotFoundError, ValueError):
+            pass
+        else:
+            raise AssertionError(f"probe control passed: {control}")
     for control in ("missing", "empty", "first_leak", "fanout_extra", "wrong_chain",
                     "negative_chain", "negative_consumer", "wrong_clock", "duplicate_consumer",
                     "missing_alias", "wrong_raw", "large_data", "nonfinite_data"):
@@ -76,3 +119,4 @@ with tempfile.TemporaryDirectory(prefix="x1-vsync-audit-") as temporary:
         else:
             raise AssertionError(f"negative control passed: {control}")
 print("PASS: VSYNC report parser/scope and 13 rejecting controls; mock only")
+print("PASS: paired-probe preservation/exclusion audit and five rejecting controls; mock only")

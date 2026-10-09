@@ -1795,6 +1795,18 @@ test-vsync-report-audit:
 	python3 tests/test_vsync_report_audit.py
 .PHONY: test-vsync-report-audit
 
+test-vsync-sys-input-sdc:
+	tclsh tests/vsync_sys_input_sdc_tb.tcl
+.PHONY: test-vsync-sys-input-sdc
+
+test-vsync-sys-probe:
+	tclsh tests/vsync_sys_probe_tb.tcl
+.PHONY: test-vsync-sys-probe
+
+test-vsync-sys-inventory:
+	tclsh tests/vsync_sys_inventory_tb.tcl $(HEADLESS_DIR)
+.PHONY: test-vsync-sys-inventory
+
 test-scaler-reset-paths:
 	tclsh tests/scaler_reset_paths_tb.tcl
 .PHONY: test-scaler-reset-paths

@@ -13,9 +13,10 @@ FIRST = "x1_vsync_sys:hdmi_vsync_to_sys|sample_pipe[0]"
 LAST = "x1_vsync_sys:hdmi_vsync_to_sys|sample_pipe[1]"
 
 
-def rows(path):
+def rows(path, allow_excluded=False):
     result = []
-    for line in path.read_text().splitlines():
+    contents = path.read_text()
+    for line in contents.splitlines():
         fields = [f.strip() for f in line.split(";")]
         if len(fields) != 10 or not re.fullmatch(r"-?\d+(?:\.\d+)?", fields[1]):
             continue
@@ -24,19 +25,22 @@ def rows(path):
             value = float(row[index])
             assert math.isfinite(value), f"nonfinite numeric field: {path}"
         result.append(row)
+    if not result and allow_excluded:
+        assert "Nothing to report." in contents, f"not a valid excluded-path report: {path}"
+        return result
     assert result, f"empty summary is not acceptance: {path}"
     assert len(result) < 10000, f"report cap reached: {path}"
     return result
 
 
-def audit(directory, raw_source):
+def audit(directory, raw_source, filename_prefix="sharpx1_turbo_z_video_vsync_sys"):
     synchronous = []
     asynchronous = []
     files = 0
     for model in ("slow", "fast"):
         for temperature in (-40, 0, 85, 100):
             for check in ("setup", "hold"):
-                prefix = directory / f"sharpx1_turbo_z_video_vsync_sys_{model}_{temperature}"
+                prefix = directory / f"{filename_prefix}_{model}_{temperature}"
                 reports = {kind: rows(pathlib.Path(str(prefix) + f"_{kind}_{check}.rpt"))
                            for kind in ("input", "chain", "first_fanout", "consumer")}
                 files += 4
