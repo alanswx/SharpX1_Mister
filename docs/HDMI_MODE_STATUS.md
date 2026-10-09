@@ -637,6 +637,14 @@ all-corner native scope/MTBF/consumer timing and physical acceptance remain
 required. A completed-fit exception probe cannot retroactively qualify the
 original RBF or replace the remaining held-mode/data work.
 
+The verified checkpoint is pushed to alanswx as `3a61604`. A clean host
+checkout starts a **fresh full flow**, not reuse of the completed-fit probe,
+in `output_files/quartus-linux-wBmGGSvP/source`, source commit
+`3a61604fa9f7d5e47d07f9a4088a227dfd9d0610`, log
+`/tmp/x1-quartus-3a61604-z-handoff-input.log`. Live mapping is confirmed.
+Terminal flow, mapped/fitted input guards, new timing, MTBF and hardware remain
+unproven. All preceding fits/probe reports are preserved; no MiSTer is loaded.
+
 ## Next gates
 
 1. Establish an actually supported mode-sensitive STA method or a narrow
