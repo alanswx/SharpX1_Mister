@@ -1764,6 +1764,25 @@ test-x3-clock-paths:
 	tclsh tests/x3_clock_paths_tb.tcl
 .PHONY: test-x3-clock-paths
 
+$(HEADLESS_DIR)/vsync-sys/Vvsync_sys_tb: ../rtl/x1_vsync_sys.sv tests/vsync_sys_tb.sv
+	$(V) --binary --timing --assert --top-module vsync_sys_tb --Mdir $(HEADLESS_DIR)/vsync-sys -j 4 ../rtl/x1_vsync_sys.sv tests/vsync_sys_tb.sv -Wno-fatal
+
+test-vsync-sys: $(HEADLESS_DIR)/vsync-sys/Vvsync_sys_tb
+	@for half in 15625 17500 10000; do for source in 3366 11640 25000; do \
+	  ./$(HEADLESS_DIR)/vsync-sys/Vvsync_sys_tb +HALF_PS=$$half +SOURCE_HALF_PS=$$source || exit 1; \
+	done; done
+.PHONY: test-vsync-sys
+
+test-vsync-sys-controls: test-vsync-sys
+	@for control in RAW_CONTROL EARLY_CONTROL; do \
+	  if ./$(HEADLESS_DIR)/vsync-sys/Vvsync_sys_tb +$$control >$(HEADLESS_DIR)/vsync-sys/$$control.log 2>&1; then \
+	    echo "FAIL: $$control unexpectedly passed"; exit 1; \
+	  fi; \
+	  rg -q 'VSYNC changed away from SYS edge|VSYNC two-sample latency mismatch|first-stage leaked' $(HEADLESS_DIR)/vsync-sys/$$control.log || exit 1; \
+	  echo "PASS: $$control rejected by VSYNC fixture"; \
+	done
+.PHONY: test-vsync-sys-controls
+
 test-scaler-reset-paths:
 	tclsh tests/scaler_reset_paths_tb.tcl
 .PHONY: test-scaler-reset-paths

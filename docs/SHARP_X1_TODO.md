@@ -14,6 +14,12 @@ support before optional Turbo extensions.
 
 ## Active goal: items 1–6 and Turbo Z (October 6)
 
+The experimental [SYS VSYNC increment](VSYNC_SYS_CDC_STATUS.md) adds two-stage
+sampling before frame-wait/configuration consumers. Nine local clock pairs
+pass; raw/one-stage controls fail. Ordinary revisions and other VSYNC domains
+remain unchanged. Fresh fitted inventory/timing, pulse/physical and native
+acceptance remain open; this is not completion of the Turbo Z work group.
+
 The shared-SIO increment now requalifies all five commercial titles from fresh v15
 native boot: Druaga, Xevious, Mappy and Galaga movement, Galaga firing, and
 Shanghai cursor/matching-pair removal. Exact RGB/dump/state/report and private

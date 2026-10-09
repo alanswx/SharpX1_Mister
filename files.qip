@@ -1,5 +1,6 @@
 source rtl/machine.qip
 set_global_assignment -name VHDL_FILE rtl/x1_scaler_reset_release.vhd
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_vsync_sys.sv
 set_global_assignment -name VERILOG_FILE rtl/x1_joystick_map.v
 set_global_assignment -name SDC_FILE sharpx1.sdc
 set_global_assignment -name SYSTEMVERILOG_FILE sharpx1.sv

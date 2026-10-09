@@ -18,6 +18,11 @@ the remaining physical and unimplemented-feature gates.
 
 ## Current status
 
+An experimental-only [SYS VSYNC synchronizer](docs/VSYNC_SYS_CDC_STATUS.md)
+now passes nine local clock combinations and two failing-control checks.
+Ordinary revisions are unchanged. Fresh FPGA timing, separate HPS/measurement
+crossings and physical/native acceptance remain open.
+
 See the [chip-by-chip implementation survey](docs/CORE_STATUS.md) for the
 current wiring audit and [downloaded hardware manuals](references/manuals/README.md)
 for schematics and machine documentation.

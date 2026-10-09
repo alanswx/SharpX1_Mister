@@ -305,6 +305,19 @@ reg        lowlat = 0;
 reg        cfg_done = 0;
 
 reg        vs_wait = 0;
+// Only the experimental independent-X3 profile changes these SYS consumers.
+// HPS IRQ and clk_100 video measurement retain their separate raw path.
+wire hdmi_vs_sys;
+`ifdef X1_TURBO_Z_VIDEO_EXPERIMENT
+x1_vsync_sys hdmi_vsync_to_sys
+(
+	.clk_sys(clk_sys),
+	.async_vsync(HDMI_TX_VS),
+	.vsync_sys(hdmi_vs_sys)
+);
+`else
+assign hdmi_vs_sys = HDMI_TX_VS;
+`endif
 reg [11:0] vs_line = 0;
 
 reg        scaler_out = 0;
@@ -487,8 +500,8 @@ always@(posedge clk_sys) begin
 				^ ary[7:0] ^ ary[11:8];
 `endif
 
-	vs_d0 <= HDMI_TX_VS;
-	if(vs_d0 == HDMI_TX_VS) vs_d1 <= vs_d0;
+	vs_d0 <= hdmi_vs_sys;
+	if(vs_d0 == hdmi_vs_sys) vs_d1 <= vs_d0;
 
 	vs_d2 <= vs_d1;
 	if(~vs_d2 & vs_d1) vs_wait <= 0;
@@ -1033,7 +1046,7 @@ always @(posedge clk_sys) begin
 	reg vsd, vsd2;
 	if(~cfg_ready || ~cfg_set) cfg_got <= cfg_set;
 	else begin
-		vsd  <= HDMI_TX_VS;
+		vsd  <= hdmi_vs_sys;
 		vsd2 <= vsd;
 		if(~vsd2 & vsd) cfg_got <= cfg_set;
 	end
