@@ -28,8 +28,9 @@ module hdmi_handoff_vendor_tb;
         pipe1 <= pipe0;
         pipe2 <= pipe1;
     end
-    hdmi_handoff_candidate dut(control,video,hdmi,reset_request,requested,
-                               outclock,active,blank,busy);
+    x1_hdmi_clock_handoff dut(.clk_control(control),.clk_video(video),.clk_hdmi(hdmi),
+        .reset_request(reset_request),.requested_mode(requested),.video_policy_ready(1'b1),
+        .clk_output(outclock),.active_mode(active),.output_blank(blank),.busy(busy),.video_policy_epoch());
     always #15625 control=~control;
     initial begin #1; forever #(video_half) if(run_video) video=~video; end
     initial begin #2; forever #(hdmi_half) if(run_hdmi) hdmi=~hdmi; end

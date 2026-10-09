@@ -2,19 +2,23 @@
 // Original experimental controller, NOT selected by a board revision.
 // Installed Intel atoms supply clocks; no vendor implementation is bundled.
 // mode[0] selects video, mode[2:1] are held output-policy qualifiers.
-module hdmi_handoff_candidate(
+module x1_hdmi_clock_handoff(
     input wire clk_control, clk_video, clk_hdmi, reset_request,
     input wire [2:0] requested_mode, // already synchronous to clk_control
+    input wire video_policy_ready, // synchronous completed native-DV token
     output wire clk_output,
     output reg [2:0] active_mode = 0,
     output reg output_blank = 1,
-    output wire busy
+    output wire busy,
+    output reg video_policy_epoch = 0
 );
     wire selected_clock, gate_open;
     reg gate_request = 0, blank_request = 1;
     reg blank_meta = 1, blank_sample = 1;
     reg blank_ack = 0;
-    reg [1:0] blank_age = 0;
+    reg [3:0] blank_age = 0;
+    reg generation = 0, generation_meta = 0, generation_sample = 0, seen_generation = 0;
+    reg completed_generation = 1, completed_meta = 1, completed_sample = 1;
     reg ack_meta = 0, ack_sample = 0, gate_meta = 0, gate_sample = 0;
     reg [2:0] pending_mode = 0;
     reg [2:0] state = 0;
@@ -30,15 +34,23 @@ module hdmi_handoff_candidate(
         gate(.inclk(selected_clock),.ena(gate_request),
              .enaout(gate_open),.outclk(clk_output));
 
-    // Three selected-output edges are blank before permission to stop it.
+    // Ten selected-output edges flush both native-DV and output pipelines.
     // No acknowledgement is fabricated when the selected source is stopped.
     always @(posedge clk_output) begin
         blank_meta <= blank_request;
         blank_sample <= blank_meta;
-        if(blank_sample) begin
+        generation_meta <= generation;
+        generation_sample <= generation_meta;
+        if(generation_sample != seen_generation) begin
+            seen_generation <= generation_sample;
             output_blank <= 1;
-            if(blank_age != 3) blank_age <= blank_age + 1'b1;
-            blank_ack <= blank_age == 3;
+            blank_age <= 0;
+            blank_ack <= 0;
+        end else if(blank_sample) begin
+            output_blank <= 1;
+            if(blank_age != 10) blank_age <= blank_age + 1'b1;
+            blank_ack <= blank_age == 10;
+            if(blank_age == 10) completed_generation <= seen_generation;
         end else begin
             blank_age <= 0;
             blank_ack <= 0;
@@ -54,12 +66,15 @@ module hdmi_handoff_candidate(
         ack_sample <= ack_meta;
         gate_meta <= gate_open;
         gate_sample <= gate_meta;
+        completed_meta <= completed_generation;
+        completed_sample <= completed_meta;
         case(state)
             START: begin
                 if(settle == 4) begin gate_request <= 1; state <= OPEN; end
                 else settle <= settle + 1'b1;
             end
-            OPEN: if(gate_sample && ack_sample) begin
+            OPEN: if(gate_sample && ack_sample && completed_sample == generation &&
+                     (!active_mode[0] || video_policy_ready)) begin
                 if(reset_request) begin
                     if(active_mode != 0) state <= RUN;
                 end else begin
@@ -79,7 +94,13 @@ module hdmi_handoff_candidate(
             end
             BLANK: if(ack_sample) begin gate_request <= 0; state <= CLOSE; end
             CLOSE: if(!gate_sample) state <= SWITCH;
-            SWITCH: begin active_mode <= pending_mode; settle <= 0; state <= SETTLE; end
+            SWITCH: begin
+                active_mode <= pending_mode;
+                generation <= !generation;
+                if(pending_mode[0]) video_policy_epoch <= !video_policy_epoch;
+                settle <= 0;
+                state <= SETTLE;
+            end
             SETTLE: begin
                 if(settle == 4) begin gate_request <= 1; state <= OPEN; end
                 else settle <= settle + 1'b1;

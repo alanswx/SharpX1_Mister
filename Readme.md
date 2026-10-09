@@ -41,7 +41,10 @@ running/stopped-source native-model and independent waveform checks. Matching
 clock/data handoff, FPGA integration and physical acceptance remain open.
 A separate acknowledged-handoff controller now passes twelve native-model
 tagged-data/reset/stopped-clock cases and an unsafe-selector negative. It is
-not yet integrated into the actual HDMI datapath or any board build.
+now connected through a default-off framework option. Six native extracted-
+register cases pass 4,826 exact output checks, including stopped pixel-enable
+recovery. No board revision enables it; fitting/timing and full upstream/physical
+output acceptance remain open.
 
 The experimental X3 [text-blink crossing](docs/VIDEO_BLINK_CDC_STATUS.md)
 now uses two video-domain samples. Delay-aware 40/80-column blink pixels and

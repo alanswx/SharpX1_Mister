@@ -279,6 +279,8 @@ wire       direct_video = cfg[10];
 
 wire       audio_96k    = cfg[6];
 wire       csync_en     = cfg[3];
+// Default-off X1 experiment. Held policy changes only while HDMI is gated.
+wire       hdmi_policy_csync;
 wire       io_osd_vga   = io_ss1 & ~io_ss2;
 `ifndef MISTER_DUAL_SDRAM
 	wire    ypbpr_en     = cfg[5];
@@ -1168,6 +1170,22 @@ csync csync_hdmi(clk_hdmi, hdmi_hs_osd, hdmi_vs_osd, hdmi_cs_osd);
 
 reg [23:0] dv_data;
 reg        dv_hs, dv_vs, dv_de;
+`ifdef X1_HDMI_HANDOFF_EXPERIMENT
+// Follow the SAME ce_pix capture and three VID registers as native DV HS.
+// No fixed output-edge count substitutes for an actual pixel-enable capture.
+wire hdmi_video_policy_epoch;
+reg dv_policy_first=0,dv_policy_second=0,dv_policy_completed=0;
+always @(posedge clk_vid) begin
+    if(ce_pix) dv_policy_first <= hdmi_video_policy_epoch;
+    dv_policy_second <= dv_policy_first;
+    dv_policy_completed <= dv_policy_second;
+end
+reg dv_policy_meta=0,dv_policy_sample=0;
+always @(posedge clk_sys) begin
+    dv_policy_meta <= dv_policy_completed;
+    dv_policy_sample <= dv_policy_meta;
+end
+`endif
 always @(posedge clk_vid) begin
 	reg [23:0] dv_d1, dv_d2;
 	reg        dv_de1, dv_de2, dv_hs1, dv_hs2, dv_vs1, dv_vs2;
@@ -1195,7 +1213,7 @@ always @(posedge clk_vid) begin
 		end
 
 		dv_de1 <= !{hss,vga_hs_osd} && vde;
-		dv_hs1 <= csync_en ? vga_cs_osd : vga_hs_osd;
+		dv_hs1 <= hdmi_policy_csync ? vga_cs_osd : vga_hs_osd;
 		dv_vs1 <= vga_vs_osd;
 	end
 
@@ -1212,13 +1230,32 @@ always @(posedge clk_vid) begin
 end
 
 wire hdmi_tx_clk;
+wire [2:0] hdmi_held_mode;
+wire hdmi_transition_blank;
+`ifdef X1_HDMI_HANDOFF_EXPERIMENT
+assign hdmi_policy_csync = hdmi_held_mode[2];
+`else
+assign hdmi_policy_csync = csync_en;
+`endif
 `ifndef MISTER_DEBUG_NOHDMI
+`ifdef X1_HDMI_HANDOFF_EXPERIMENT
+x1_hdmi_clock_handoff hdmi_handoff(
+    .clk_control(clk_sys), .clk_video(clk_vid), .clk_hdmi(hdmi_clk_out),
+    .reset_request(reset_req),
+    .requested_mode({csync_en,direct_video,~vga_fb & direct_video}),
+    .video_policy_ready(dv_policy_sample == hdmi_video_policy_epoch),
+    .clk_output(hdmi_tx_clk), .active_mode(hdmi_held_mode),
+    .output_blank(hdmi_transition_blank), .busy(),
+    .video_policy_epoch(hdmi_video_policy_epoch)
+);
+`else
 cyclonev_clkselect hdmi_clk_sw
 ( 
 	.clkselect({1'b1, ~vga_fb & direct_video}),
 	.inclk({clk_vid, hdmi_clk_out, 2'b00}),
 	.outclk(hdmi_tx_clk)
 );
+`endif
 `else
 assign hdmi_tx_clk = clk_vid;
 `endif
@@ -1252,6 +1289,13 @@ reg hdmi_out_hs;
 reg hdmi_out_vs;
 reg hdmi_out_de;
 reg [23:0] hdmi_out_d;
+`ifdef X1_HDMI_HANDOFF_EXPERIMENT
+wire hdmi_select_video = hdmi_held_mode[0];
+wire hdmi_select_csync = hdmi_held_mode[1] & hdmi_held_mode[2];
+`else
+wire hdmi_select_video = ~vga_fb & direct_video;
+wire hdmi_select_csync = direct_video & csync_en;
+`endif
 
 always @(posedge hdmi_tx_clk) begin
 	reg [23:0] hdmi_dv_data;
@@ -1265,10 +1309,10 @@ always @(posedge hdmi_tx_clk) begin
 	hdmi_dv_vs   <= dv_vs;
 	hdmi_dv_de   <= dv_de;
 	
-	hs <= (~vga_fb & direct_video) ? hdmi_dv_hs   : (direct_video & csync_en) ? hdmi_cs_osd : hdmi_hs_osd;
-	vs <= (~vga_fb & direct_video) ? hdmi_dv_vs   : hdmi_vs_osd;
-	de <= (~vga_fb & direct_video) ? hdmi_dv_de   : hdmi_de_osd;
-	d  <= (~vga_fb & direct_video) ? hdmi_dv_data : hdmi_data_osd;
+	hs <= hdmi_select_video ? hdmi_dv_hs   : hdmi_select_csync ? hdmi_cs_osd : hdmi_hs_osd;
+	vs <= hdmi_select_video ? hdmi_dv_vs   : hdmi_vs_osd;
+	de <= hdmi_select_video ? hdmi_dv_de   : hdmi_de_osd;
+	d  <= hdmi_select_video ? hdmi_dv_data : hdmi_data_osd;
 
 	hdmi_out_hs <= hs;
 	hdmi_out_vs <= vs;
@@ -1278,8 +1322,13 @@ end
 
 assign HDMI_TX_HS = hdmi_out_hs;
 assign HDMI_TX_VS = hdmi_out_vs;
+`ifdef X1_HDMI_HANDOFF_EXPERIMENT
+assign HDMI_TX_DE = !hdmi_transition_blank & hdmi_out_de;
+assign HDMI_TX_D  = hdmi_transition_blank ? 24'd0 : hdmi_out_d;
+`else
 assign HDMI_TX_DE = hdmi_out_de;
 assign HDMI_TX_D  = hdmi_out_d;
+`endif
 
 /////////////////////////  VGA output  //////////////////////////////////
 

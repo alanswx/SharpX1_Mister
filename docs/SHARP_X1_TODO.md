@@ -56,6 +56,14 @@ runtime reset. The raw-mode negative fails with verified exit 1. Actual
 framework/OSD/DDR integration, reset-at-each-phase, placement/timing and
 physical output remain required; this diagnostic is not an implemented
 board fix. See [the handoff evidence](HDMI_MODE_STATUS.md).
+The default-off `X1_HDMI_HANDOFF_EXPERIMENT` now connects held clock/data/csync
+selection and transition blanking in the actual framework. A fresh post-switch
+generation and actual `ce_pix`/DV epoch prevent premature unblanking. Twelve
+native helper profiles and six extracted-register profiles (4,826 exact words)
+pass; the actual raw-policy negative fails with exit 1. Default 72-case policy
+checks still pass. No board QSF enables it, no new RBF exists, and full upstream
+video/DDR/PHY, mapped/fitted clock controls, reset-phase and hardware gates
+remain open. Old mux constraints require explicit new-hierarchy qualification.
 Nine actual pending-transaction snapshots pass ninety byte-identical
 continuations; cold-start/clock guards remain tested. Fresh combined-Z
 pixels, current-source Quartus bundle/consumer timing and native/hardware

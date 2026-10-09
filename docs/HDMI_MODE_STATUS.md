@@ -235,6 +235,66 @@ qualification. The controller is not in any board QIP/QSF or machine manifest;
 no RBF or ordinary behavior changed. Stopping a selected source blocks progress
 until its clock resumes; no physical stopped-clock/monitor behavior is claimed.
 
+## Default-off framework connection and actual-register tests
+
+`X1_HDMI_HANDOFF_EXPERIMENT` now connects `rtl/x1_hdmi_clock_handoff.sv` to
+the real `sys/sys_top.v` clock/output path. No QSF enables this macro yet.
+The controller is a board-only `files.qip` dependency, not shared machine RTL.
+The former test-only controller path is historical at commit `d91d5bb`.
+
+The held mode packs `{csync,direct_video,video_selected}`; clock selection,
+data selection and composite-sync policy use that same held packet. DE and
+RGB are masked during transition blanking. The native DV HS capture uses
+held csync rather than an immediately changing raw cfg bit. Default builds
+retain their original clock primitive and equivalent raw output policy;
+the fresh 72-case default matrix passes all 21,312 exact-word checks and the
+wrong-clock negative (`/tmp/x1-hdmi-policy-handoff-default-v2.log`, exit zero).
+This narrow framework change is needed because HDMI clock selection and final
+output registers live here, not in the machine wrapper.
+
+The post-switch blank handshake now has a fresh generation token and ten
+output-edge flush window. That count alone is **not** upstream readiness:
+native DV HS is sampled only on `ce_pix`. An additional video-policy epoch
+travels through the same CE capture and three VID register stages, then two
+control-domain samples. It changes only for video-target transactions, avoiding
+false readiness from two intervening HDMI-mode epochs. Unblanking a video
+target requires that actual returned epoch. CTRL is framework `clk_sys`, the
+cfg writer's domain; the machine's 32 MHz clock must not be assumed here.
+The Sharp X1 wrapper keeps forced-scaler selection zero; other cores' asynchronous
+forced-scaler contracts are outside this experimental integration.
+
+All twelve current-controller native clock-stop/tag/reset cases finish zero,
+log `/tmp/x1-hdmi-handoff-v6.log`. That helper bench explicitly ties video-policy
+readiness high and does not qualify the upstream handshake. The separate
+source-extracted actual-register fixture does qualify its connected epoch
+capture and stopped-`ce_pix` recovery: six frequency pairs finish zero, log
+`/tmp/x1-hdmi-handoff-policy-v2.log`, with **4,826 exact RGB/HS/VS/DE checks**.
+Each repeats all eight direct/framebuffer/csync combinations three times and
+performs three reset/recovery sequences. Blank frames require DE/RGB zero;
+visible frames use an independent two/three-edge source-history oracle.
+The extracted raw-policy negative fails that oracle at 414021 ps with exit 1,
+log `/tmp/x1-hdmi-handoff-policy-raw-negative.log`. Positive native compilations
+have zero warnings; simulation retains seven host debugger warnings per run.
+`test-hdmi-fixture-extraction` passes four source-bound profiles and two invalid
+option controls; extraction tests are not native execution.
+
+Current source hashes:
+
+- `sys_top.v`: `d1fb9155cc8de9604cc9ecfafbab2ac9be102e7cb653991235cc7130d7cccad3`
+- Controller: `49139bc1a7b3378521d61392c43cf07d4c2cf9f7ce11dc474b431ec6113ee9a6`
+- Exact-policy bench: `39a4f3a5b508a82c1311aa415de5a702ae58613d9e32f70c5586f3e39aa72a92`
+- Clock/tag bench: `aef6bdf1fb930098ac979ecaa0b0fa0e55e169dabe1c7ab3ed7bd61011521332`
+
+**Not yet qualified:** complete upstream OSD/scaler/DDR/PHY execution, actual
+DV CE/glyph/video timing, reset at every transaction phase, PLL lock/loss,
+debug-no-HDMI combinations, and mapped/fitted clock-resource/CDC inventories.
+The extracted fixture drives DV data/sync as source-clocked inputs; its epoch
+block is real extracted code, but this is not a full DV raster test. Existing
+mux constraints name the old primitive and cannot be reused silently with the
+new hierarchy. No selected-profile Quartus flow or new RBF exists. Fresh narrow
+constraints, source-bound fitting/all-corner timing and physical output remain
+required. Ordinary board revisions remain unchanged.
+
 ## Next gates
 
 1. Establish an actually supported mode-sensitive STA method or a narrow
