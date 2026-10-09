@@ -26,6 +26,10 @@ The fresh `3a61604` selected-input flow fails STA when the fitter creates
 discovery confirms first-stage-only fanout, not sequential equivalence.
 Qualify replication prevention or exact physical-source handling before a
 new flow; do not weaken the guard or call the failed build timing acceptance.
+The new controller narrowly marks `gate_request` with the documented
+`dont_replicate` synthesis attribute. Strict source/replica/fanout scope stays
+unchanged; local static/negative tests pass. Fresh native and fitted evidence
+is required for its new hash, not inherited from previous controller results.
 
 The experimental [coherent CRTC transport](CRTC_WRITE_CDC_STATUS.md) now
 passes four helper clock ratios, three real-CPU clock ratios, five owned-DMA

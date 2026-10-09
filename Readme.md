@@ -66,6 +66,9 @@ The new selected-input fit fails its STA scope guard because fitting creates
 a source replica feeding the gate-enable first stage. Connectivity discovery
 confirms the changed driver; replication/equivalence and fresh timing still
 need qualification. The guard is not weakened and this flow is not accepted.
+The next candidate prevents replication only on the gate-enable source with
+a documented synthesis attribute. Local scope/isolation tests pass; native
+and fitted qualification must be repeated for this new controller hash.
 Its isolated real-PLL controller maps/fits; a fitted-feedback audit led to an
 explicit falling-edge closure witness. Current native cases pass, while raw
 crossings, full-board timing and physical switching remain open. All 96 bounded

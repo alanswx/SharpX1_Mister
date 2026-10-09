@@ -705,6 +705,22 @@ Choose and qualify either supported replication prevention or exact physical
 source/equivalence handling, then repeat fitting and all timing audits. No
 SDC is loaded, exceptions changed or timing acceptance claimed by this probe.
 
+### Single-source replication prevention candidate
+
+The controller now applies `(* dont_replicate *)` only to `gate_request`.
+This is synthesis-side replication control, not broader CDC exception scope.
+Intel's [Standard Edition compilation guide](https://www.intel.com/programmable/technical-pdfs/683283.pdf)
+documents the attribute; this is guidance, not proof that Quartus 17's fit
+honors it. Strict six-input physical-source/replica/fanout guards are unchanged.
+Existing board revisions still do not instantiate this helper. Local profile
+isolation, nine invalid SDC inventories, twenty invalid before/after scope/
+timing controls, four invalid provenance controls and reset auditor controls
+pass. These static/synthetic checks are not a new native 96-case run or fit.
+The new controller hash is
+`47ca9d7da65df077b8a3b20012a2ede6a98d638756fbc6a746c9b20c71f7f58a`;
+prior native/fitted results stay historical. Fresh native reset qualification
+and a source-bound full build are next.
+
 ## Next gates
 
 1. Establish an actually supported mode-sensitive STA method or a narrow

@@ -13,7 +13,11 @@ module x1_hdmi_clock_handoff(
     output reg video_policy_epoch = 0
 );
     wire selected_clock, gate_open;
-    reg gate_request = 0, blank_request = 1;
+    // Keep one physical source for the guarded gate-enable CDC. A fitted
+    // replica previously redirected the first-stage driver. This directive
+    // is not a timing exception; the exact driver/fanout guards remain strict.
+    (* dont_replicate *) reg gate_request = 0;
+    reg blank_request = 1;
     (* preserve *) reg gate_request_meta = 0, gate_request_sample = 0;
     (* preserve *) reg gate_observed_enable = 0;
     reg blank_meta = 1, blank_sample = 1;
