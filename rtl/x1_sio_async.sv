@@ -400,7 +400,8 @@ module x1_sio_async (
     wire [1:0] unsupported_channel;
     assign cpu_dout = channel_data[address[1]];
     assign unsupported = |unsupported_channel;
-    generate for(genvar channel=0;channel<2;channel=channel+1) begin : channels
+    genvar channel;
+    generate for(channel=0;channel<2;channel=channel+1) begin : channels
         x1_sio_async_channel unit (
             .clk(clk), .ce(ce), .reset(reset), .cpu_cs(cpu_cs && address[1]==1'(channel)),
             .control(address[0]), .cpu_rd_n(cpu_rd_n), .cpu_wr_n(cpu_wr_n),

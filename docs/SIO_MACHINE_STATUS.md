@@ -146,3 +146,14 @@ Thus the independently frozen five-game qualifications bind exactly the
 ordinary executable still produced after this parser-only edit; no old state
 conversion or relaxed assertion was used. Enabled serial snapshot/hardware
 and the fresh native Quartus retry remain separate gates.
+
+The `b235004` retry also terminates before synthesis, exit 3: this parser
+requires the loop `genvar` declaration outside the initializer even with
+explicit generate blocks. Failure evidence remains separately under ignored
+`output_files/quartus-linux-gBoi5VOJ`. Both wrappers now declare `genvar channel`
+at module scope and retain the same named generated channels. All 23 targets
+again exit zero with 195 PASS reports (`/tmp/x1-v15-sio-genvar.log`); ordinary
+fast rebuild again produces the identical `f484bede...` executable
+(`/tmp/x1-v15-genvar-fast.log`). A new frozen refit is required before any
+updated FPGA artifact/timing claim; the first two failures are not erased or
+described as successful fits.
