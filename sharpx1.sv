@@ -186,9 +186,9 @@ assign VGA_SCALER  = 0;
 assign VGA_DISABLE = 0;
 assign HDMI_FREEZE = 0;
 
-assign AUDIO_S = 0;
-assign AUDIO_L = machine_audio;
-assign AUDIO_R = machine_audio;
+assign AUDIO_S = TURBO_FM_PROFILE;
+assign AUDIO_L = TURBO_FM_PROFILE ? machine_audio_left : machine_audio;
+assign AUDIO_R = TURBO_FM_PROFILE ? machine_audio_right : machine_audio;
 assign AUDIO_MIX = 0;
 
 assign LED_DISK = 0;
@@ -345,11 +345,18 @@ wire ce_pix;
 wire [7:0] video;
 wire [11:0] machine_rgb12;
 wire [15:0] machine_audio;
+wire signed [15:0] machine_audio_left,machine_audio_right;
 wire machine_ioctl_wait;
 `ifdef X1_TURBO_FOUNDATION
 localparam TURBO_FOUNDATION = 1;
 `else
 localparam TURBO_FOUNDATION = 0;
+`endif
+`ifdef X1_TURBO_FM_CPU
+localparam TURBO_FM_PROFILE = 1;
+initial if (!TURBO_FOUNDATION) $error("FM board experiment requires Turbo foundation");
+`else
+localparam TURBO_FM_PROFILE = 0;
 `endif
 // Separate hardware qualification profile; inherited board revisions stay off.
 `ifdef X1_TURBO_DMA_RESTART
@@ -363,7 +370,7 @@ localparam TURBO_DMA_PROFILE = 0;
 `endif
 
 sharpx1 #(.SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ), .TURBO(TURBO_FOUNDATION), .TURBO_VIDEO_MASTER(TURBO_VIDEO_MASTER),
-	.TURBO_DMA(TURBO_DMA_PROFILE), .TURBO_DMA_IRQ(TURBO_DMA_PROFILE), .TURBO_DMA_RESTART_IRQ(TURBO_DMA_PROFILE)) sharpx1
+	.TURBO_DMA(TURBO_DMA_PROFILE), .TURBO_DMA_IRQ(TURBO_DMA_PROFILE), .TURBO_DMA_RESTART_IRQ(TURBO_DMA_PROFILE), .TURBO_FM_CPU(TURBO_FM_PROFILE)) sharpx1
 (
 	.clk_sys(clk_sys),
 	.clk_28636(clk_28636),
@@ -397,7 +404,8 @@ sharpx1 #(.SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ), .TURBO(TURBO_FOUND
 	.VBlank(VBlank),
 	.VSync(VSync),
 
-	.video(video), .rgb(), .rgb12(machine_rgb12), .audio(machine_audio)
+	.video(video), .rgb(), .rgb12(machine_rgb12), .audio(machine_audio),
+	.audio_left(machine_audio_left), .audio_right(machine_audio_right), .audio_mono(), .audio_sample()
 );
 
 assign CLK_VIDEO = clk_28636;

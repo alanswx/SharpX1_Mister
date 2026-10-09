@@ -1,6 +1,9 @@
 # Private commercial-game bring-up
 
-## Current v16 qualification: all five bounded gameplay gates pass
+Current audio-interface snapshot format is v17. Fresh v17 game qualification
+is pending; the source-bound v16 results below are historical, not relabelled.
+
+## Historical v16 qualification: all five bounded gameplay gates pass
 
 October 9: after [shared FM CPU-bus integration](FM_MACHINE_STATUS.md), all
 five freshly native-booted processes terminate zero on the frozen ordinary

@@ -67,7 +67,7 @@ jobs:
         run: |
           for target in \
             test-sio-decode test-sio-clock-select test-sio-edge-clock test-sio-ctc-clock \
-            test-sio-async test-sio-x1 test-sio-tx-disable test-sio-auto-enable test-sio-rts test-sio-short-tx test-sio-break test-sio-formats test-sio-irq test-sio-irq-bridge test-sio-device-chain test-sio-chain-cpu test-machine-sio test-machine-fm test-sio-first-status \
+            test-sio-async test-sio-x1 test-sio-tx-disable test-sio-auto-enable test-sio-rts test-sio-short-tx test-sio-break test-sio-formats test-sio-irq test-sio-irq-bridge test-sio-device-chain test-sio-chain-cpu test-machine-sio test-machine-fm test-machine-fm-audio test-sio-first-status \
             test-sio-flow test-sio-cpu test-sio-cpu-irq-reset test-sio-dma test-sio-dma-cpu \
             test-dma test-dma-compare test-dma-search test-dma-cpu test-dma-service test-dma-service-cpu \
             test-dma-native-irq test-dma-native-irq-cpu test-dma-ready-irq test-dma-ready-irq-cpu \

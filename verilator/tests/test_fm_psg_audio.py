@@ -1,8 +1,8 @@
 """Original concurrent JT49/JT51 waveform checks, no private audio assets."""
 import csv
+import argparse
 import pathlib
 import struct
-import sys
 import wave
 
 
@@ -17,9 +17,14 @@ def frequency(signal):
     return (len(crossings) - 1) * 62500 / (crossings[-1] - crossings[0])
 
 
-prefix = pathlib.Path(sys.argv[1])
-captures = []
-for profile in range(5):
+parser = argparse.ArgumentParser()
+parser.add_argument("prefix", type=pathlib.Path)
+parser.add_argument("--profiles", type=int, nargs="+", default=list(range(5)))
+args = parser.parse_args()
+prefix = args.prefix
+assert 0 in args.profiles and 4 in args.profiles, "reset repeat profiles 0/4 required"
+captures = {}
+for profile in args.profiles:
     source = pathlib.Path(f"{prefix}-{profile}.csv")
     with source.open() as stream:
         values = [tuple(map(int, row)) for row in csv.reader(stream)]
@@ -53,7 +58,7 @@ for profile in range(5):
         output.setsampwidth(2)
         output.setframerate(62500)
         output.writeframes(b"".join(struct.pack("<hh", row[4], row[5]) for row in values))
-    captures.append(values)
+    captures[profile] = values
     print(f"PASS concurrent PSG/FM profile={profile}: PSG={pf:.3f} Hz, exact sample-aligned stereo/mono")
 assert captures[0] == captures[4], "mixed reset/reprogrammed waveform changed"
 print("PASS genuine concurrent JT49/JT51 mix: panning, DC, pitch, reset repeatability, WAVs")

@@ -107,6 +107,9 @@ int main(int argc, char **argv) {
         bool progress = false, io_only = false, interactive = false, joystick_keys = false;
         FrameCapture frame;
         AudioCapture audio;
+#ifdef X1_TURBO_FM_CPU
+        audio.stereo = true;
+#endif
         for (int i = 1; i < argc; ++i) {
             if (!std::strcmp(argv[i], "--trace") && i + 1 < argc) trace_path = argv[++i];
             else if (!std::strcmp(argv[i], "--cycles") && i + 1 < argc) cycles = number(argv[++i]);
@@ -353,6 +356,7 @@ int main(int argc, char **argv) {
         // a reconstructed RAM bootstrap. Only quiescent host interfaces are
         // supported; disk contents must match and clocks keep absolute phase.
         uint64_t resume_time = 0;
+        // v17: explicit signed shared FM mix/audio interface and state.
         // v16: shared-machine optional FM bus integration/model increment.
         // v15: shared-machine serial interface/optional device integration.
         // v14: raw glyph output changes elaborated observation/state layout.
@@ -397,10 +401,13 @@ int main(int argc, char **argv) {
 #ifdef X1_TURBO_KANJI_RENDER
             ^ (1ULL << 44) // Separate experimental glyph pipeline revision 1.
 #endif
+#ifdef X1_TURBO_FM_CPU
+            ^ (1ULL << 39) // Explicit signed FM/PSG sample state/profile.
+#endif
             ;
         // Dual-drive headers have a distinct
         // identity and a fifth field: ordered B-media fingerprint.
-        const uint64_t snapshot_magic = 0x5831534e41503136ULL ^ sys_hz ^ snapshot_profile
+        const uint64_t snapshot_magic = 0x5831534e41503137ULL ^ sys_hz ^ snapshot_profile
             ^ (dual_snapshot ? (1ULL << 42) : 0);
 #ifdef X1_SAVABLE
         if (restore_path) {
@@ -614,7 +621,13 @@ int main(int argc, char **argv) {
                 key_edge += 50000000;
             }
             evaluate();
-            if (!audio.path.empty() && next == audio.next_time()) audio.sample(top.audio);
+            if (!audio.path.empty() && next == audio.next_time()) {
+#ifdef X1_TURBO_FM_CPU
+                audio.sample_signed(static_cast<int16_t>(top.audio_left), static_cast<int16_t>(top.audio_right));
+#else
+                audio.sample(top.audio);
+#endif
+            }
             if (progress && next >= progress_time) {
                 std::fprintf(stderr, "t=%.3fs cpu=%04x sub=%04x tx=%u rx_empty=%u frames=%llu disk_blocks=%llu\n",
                              double(next) / 1e12, top.cpu_address, top.sub_pc,
@@ -913,6 +926,11 @@ int main(int argc, char **argv) {
 #else
         constexpr const char *turbo_dma_irq = "false";
 #endif
+#ifdef X1_TURBO_FM_CPU
+        constexpr const char *turbo_fm_cpu = "true";
+#else
+        constexpr const char *turbo_fm_cpu = "false";
+#endif
 #ifdef X1_TURBO_KANJI
         constexpr const char *turbo_kanji = "true";
 #else
@@ -943,7 +961,7 @@ int main(int argc, char **argv) {
 #else
         constexpr const char *z_text_cpu = "false";
 #endif
-        std::printf("{\"machine\":\"sharpx1\",\"turbo_foundation\":%s,\"turbo_video_master\":%s,\"turbo_dma\":%s,\"turbo_dma_irq\":%s,\"turbo_kanji\":%s,\"z_palette_cpu_experiment\":%s,\"z_video_experiment\":%s,\"z_multimode_experiment\":%s,\"z_internal8_experiment\":%s,\"z_text_cpu_experiment\":%s,\"intra_assignment_delays\":%s,\"sys_hz\":%llu,\"video_hz\":%llu,"
+        std::printf("{\"machine\":\"sharpx1\",\"turbo_foundation\":%s,\"turbo_video_master\":%s,\"turbo_dma\":%s,\"turbo_dma_irq\":%s,\"turbo_kanji\":%s,\"turbo_fm_cpu\":%s,\"z_palette_cpu_experiment\":%s,\"z_video_experiment\":%s,\"z_multimode_experiment\":%s,\"z_internal8_experiment\":%s,\"z_text_cpu_experiment\":%s,\"intra_assignment_delays\":%s,\"sys_hz\":%llu,\"video_hz\":%llu,"
                     "\"time_ps\":%llu,\"sys_edges\":%llu,\"video_edges\":%llu,"
                     "\"reset_edges\":%llu,\"cpu_enables\":%llu,\"delayed_sys_edges\":%llu,"
                     "\"hs_edges\":%llu,\"vs_edges\":%llu,\"hs_period_ps\":%llu,\"vs_period_ps\":%llu,\"video_hash\":\"%016llx\","
@@ -951,7 +969,7 @@ int main(int argc, char **argv) {
                     "\"ps2_bytes_sent\":%llu,\"disk_requests\":%llu,\"disk_writes\":%llu,\"frames\":%llu,\"frame_width\":%u,\"frame_height\":%u,\"frame_hash\":\"%016llx\","
                     "\"sub_pc\":%u,\"sub_address\":%u,\"sub_control\":%u,\"sub_running\":%s,\"sub_tx_busy\":%s,\"sub_rx_empty\":%s,"
                     "\"dma_grants\":%llu,\"dma_reads\":%llu,\"dma_writes\":%llu,\"cpu_fdc_data_reads\":%llu,\"cpu_fdc_data_writes\":%llu}\n",
-                    turbo_foundation, turbo_video_master, turbo_dma, turbo_dma_irq, turbo_kanji, z_palette_cpu, z_video, z_multimode, z_internal8, z_text_cpu, VM_TIMING ? "true" : "false",
+                    turbo_foundation, turbo_video_master, turbo_dma, turbo_dma_irq, turbo_kanji, turbo_fm_cpu, z_palette_cpu, z_video, z_multimode, z_internal8, z_text_cpu, VM_TIMING ? "true" : "false",
                     (unsigned long long)sys_hz,
                     (unsigned long long)video_hz, (unsigned long long)context.time(), (unsigned long long)top.sys_edges,
                     (unsigned long long)top.video_edges, (unsigned long long)top.reset_edges,

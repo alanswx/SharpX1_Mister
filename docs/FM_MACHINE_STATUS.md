@@ -1,5 +1,10 @@
 # Default-off shared-machine FM CPU bus
 
+Current follow-up: [shared signed audio](FM_MACHINE_AUDIO_STATUS.md) now
+passes generated-IPL CPU-programmed PSG/FM captures at three clocks and
+C++ stereo WAV checks. The CPU-bus-only boundary below is historical;
+native IRQ/analog/hardware acceptance remains open. Snapshots now require v17.
+
 October 9, 2026. `rtl/sharpx1.v` now has a default-zero `TURBO_FM_CPU`
 parameter active only with `TURBO=1`. It connects the conservative decoder,
 original adapter and attributed genuine JT51 in `rtl/x1_fm_bus.sv`.

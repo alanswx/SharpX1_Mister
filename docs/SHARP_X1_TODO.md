@@ -33,13 +33,16 @@ The [FM decoder increment](FM_DECODE_STATUS.md) connects conservative exact-port
 selection to the real CPU/JT51 fixture and exhausts bus-control isolation;
 the [shared FM CPU-bus increment](FM_MACHINE_STATUS.md) now passes generated
 IPL busy/status/WAIT, actual PPI DAM, real DMA and retained-reset checks at
-three clocks. Native IRQ/audio delivery and full FM hardware remain open.
+three clocks. Native IRQ and full FM hardware remain open.
 The standalone [signed PSG/mixer foundation](PSG_FM_MIX_STATUS.md) passes
 independent scalar DC/CE/reset/stereo/mono saturation checks. Its sample-aligned
 output now passes genuine concurrent JT49/JT51 waveform, pitch/panning and
-reset-repeatability tests at three master frequencies; machine delivery and
-analog calibration remain required.
-Current ordinary snapshots require v16; its full fast suite, direct snapshots
+reset-repeatability tests at three master frequencies. The [shared signed audio
+path](FM_MACHINE_AUDIO_STATUS.md) now passes actual CPU-programmed cold/warm
+captures and C++ stereo WAV checks; native IRQ/analog/hardware remain open.
+Current ordinary snapshots require v17; direct continuation/old-v16 rejection
+passes while both fresh full suites run. Fresh v17 games remain required.
+Historical v16 full fast suite, direct snapshots
 and fresh five-game native qualification pass. The delay-aware baseline also
 passes (140 PASS reports). The `832766f` refit completes with positive reported
 Slow 1100 mV 100 C timing; supplemental corners and unconstrained I/O remain

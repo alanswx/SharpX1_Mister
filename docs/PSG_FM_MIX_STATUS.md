@@ -1,5 +1,9 @@
 # Signed PSG / FM mixing foundation
 
+Current follow-up: the [shared machine audio integration](FM_MACHINE_AUDIO_STATUS.md)
+now passes actual CPU-programmed mixed captures and stereo C++ WAV checks.
+Standalone-only statements below describe this preceding checkpoint.
+
 October 9, 2026. Original `rtl/x1_psg_signed.sv` supplies the previously
 missing unsigned-to-signed conversion for `x1_fm_mix.sv`. Standalone only:
 the shared machine, base audio, board profile and snapshot v16 are unchanged.

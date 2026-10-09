@@ -15,6 +15,16 @@ PSG_SRC = $(wildcard ../references/chip-src/jt49/hdl/jt49*.v)
 
 all: headless
 
+FM_RUNNER_DIR ?= obj_dir_v17_fm
+turbo-fm: $(FM_RUNNER_DIR)/Vtop
+$(FM_RUNNER_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
+	mkdir -p $(@D)
+	$(V) --cc --exe --build --timing --trace-fst --top-module top --Mdir $(@D) -j 4 \
+		-GTURBO=1 -GTURBO_FM_CPU=1 $(TURBO_DSW_FLAGS) \
+		-CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_TURBO_FM_CPU" \
+		$(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
+.PHONY: turbo-fm
+
 test-psg-mix: $(HEADLESS_DIR)/psg-mix/Vpsg_mix_tb
 	./$(HEADLESS_DIR)/psg-mix/Vpsg_mix_tb
 $(HEADLESS_DIR)/psg-mix/Vpsg_mix_tb: tests/psg_mix_tb.sv ../rtl/x1_psg_signed.sv ../rtl/x1_fm_mix.sv ../rtl/x1_audio_mix.sv Makefile
@@ -44,6 +54,22 @@ $(HEADLESS_DIR)/machine-fm-single-board/Vmachine_fm_tb: tests/machine_fm_tb.sv $
 	mkdir -p $(@D)
 	$(V) --binary --timing --assert --top-module machine_fm_tb -GSINGLE_CLOCK=1 -GMASTER_HZ=28571428 --Mdir $(@D) -j 4 tests/machine_fm_tb.sv $(MACHINE_SRC) -Wno-fatal
 .PHONY: test-machine-fm
+
+test-machine-fm-audio: $(HEADLESS_DIR)/machine-fm-audio-$(FM_MASTER_HZ)/Vmachine_fm_tb
+	./$(HEADLESS_DIR)/machine-fm-audio-$(FM_MASTER_HZ)/Vmachine_fm_tb +OUTPUT=$(HEADLESS_DIR)/machine-fm-audio-$(FM_MASTER_HZ)/mixed +IPL_OUTPUT=$(HEADLESS_DIR)/machine-fm-audio-$(FM_MASTER_HZ)/generated.ipl
+	python3 tests/test_fm_psg_audio.py $(HEADLESS_DIR)/machine-fm-audio-$(FM_MASTER_HZ)/mixed --profiles 0 4
+$(HEADLESS_DIR)/machine-fm-audio-$(FM_MASTER_HZ)/Vmachine_fm_tb: tests/machine_fm_tb.sv $(MACHINE_SRC) Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module machine_fm_tb -GAUDIO_TEST=1 \
+		-GMASTER_HZ=$(FM_MASTER_HZ) $(if $(filter-out 32000000,$(FM_MASTER_HZ)),-GSINGLE_CLOCK=1) \
+		--Mdir $(@D) -j 4 tests/machine_fm_tb.sv $(MACHINE_SRC) -Wno-fatal
+.PHONY: test-machine-fm-audio
+
+test-machine-fm-wav: test-machine-fm-audio turbo-fm
+	./$(FM_RUNNER_DIR)/Vtop --cycles 25600000 --rom $(HEADLESS_DIR)/machine-fm-audio-$(FM_MASTER_HZ)/generated.ipl \
+		--audio $(FM_RUNNER_DIR)/generated.wav --peek 0x4000 > $(FM_RUNNER_DIR)/generated.json
+	python3 tests/test_signed_audio_capture.py $(FM_RUNNER_DIR)/generated.wav $(FM_RUNNER_DIR)/generated.json
+.PHONY: test-machine-fm-wav
 
 test-fm-decode: $(HEADLESS_DIR)/fm-decode/Vfm_decode_tb test-fm-cpu $(HEADLESS_DIR)/fm-cpu-disabled-$(FM_MASTER_HZ)/Vfm_cpu_tb
 	./$(HEADLESS_DIR)/fm-decode/Vfm_decode_tb
@@ -1706,6 +1732,11 @@ lint-wrapper-turbo-video:
 		$(MACHINE_SRC) -Wno-fatal
 
 .PHONY: lint-wrapper-turbo-video
+
+lint-wrapper-turbo-fm:
+	$(V) --lint-only --timing --top-module emu -DX1_TURBO_FOUNDATION -DX1_TURBO_FM_CPU -Itests \
+		../sharpx1.sv ../sys/hps_io.sv tests/board_pll_lint.v ../rtl/x1_joystick_map.v $(MACHINE_SRC) -Wno-fatal
+.PHONY: lint-wrapper-turbo-fm
 
 lint-wrapper-turbo-dma:
 	$(V) --lint-only --timing --top-module emu -DX1_TURBO_FOUNDATION -DX1_SINGLE_CLOCK -DX1_TURBO_DMA_RESTART -Itests \

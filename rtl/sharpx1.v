@@ -33,7 +33,10 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     output [7:0] video,
     output [2:0] rgb,
     output [11:0] rgb12,
-    output [15:0] audio
+    output [15:0] audio,
+    // Explicit signed experimental FM mix; default unsigned audio is retained.
+    output signed [15:0] audio_left, audio_right, audio_mono,
+    output audio_sample
 );
     // The actual CPU ACK selects the shared bus. Reset stops CPU execution,
     // but retains that ACK and peripheral enables until an owned pair drains.
@@ -185,9 +188,8 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
             .address(a),.cpu_data(data_out),.selected(fm_selected),.read_tail(fm_read_tail),
             .wait_n(fm_wait_n),.response(fm_data),.irq_n(fm_irq_n),.sample(fm_sample),
             .left(fm_left),.right(fm_right),.protocol_error(fm_protocol_error));
-        // Do not invent the unresolved built-in YM2151 IRQ route or signed
-        // PSG/stereo gains. Outputs remain available for diagnostic observers;
-        // existing CPU IRQ and unsigned PSG audio paths are unchanged.
+        // IRQ routing remains unresolved. Mixed signed outputs below use a
+        // provisional digital gain/filter, not measured native analog values.
     end else begin : no_fm_cpu
         assign fm_selected=0;assign fm_read_tail=0;assign fm_wait_n=1;
         assign fm_data=8'hff;assign fm_irq_n=1;assign fm_sample=0;
@@ -690,6 +692,15 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         .IOA_out(), .IOB_out(), .IOA_oe(), .IOB_oe()
     );
     assign audio = {psg_sound,6'd0};
+    generate if(TURBO && TURBO_FM_CPU) begin : turbo_fm_audio
+        x1_audio_mix mixer(.clk(clk_sys),.reset(core_reset),.sample_ce(fm_sample),
+            .psg(psg_sound),.fm_left(fm_left),.fm_right(fm_right),
+            .left(audio_left),.right(audio_right),.mono(audio_mono));
+        assign audio_sample=fm_sample;
+    end else begin : no_fm_audio
+        assign audio_left=0;assign audio_right=0;assign audio_mono=0;
+        assign audio_sample=0;
+    end endgenerate
 
     wire [7:0] fdc_data;
     wire fdc_prepare, fdc_fmt_wp, fdc_drq;
