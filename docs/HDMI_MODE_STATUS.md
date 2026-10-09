@@ -184,6 +184,57 @@ blanking, rapid repeated requests, startup/reset, fitted placement, timing or
 physical output. A stopped selected source also cannot complete handoff until
 it resumes in these tests. No board source, default or RBF changed.
 
+## Acknowledged clock/data handoff controller diagnostic
+
+The original, unselected `verilator/tests/hdmi_handoff_candidate.sv` now uses
+the installed public `cyclonev_clkselect`/`cyclonev_clkena` interfaces with a
+control-clock sequencer. This is project diagnostic code, not redistributed
+vendor-generated IP. The sequencer requests three blank output edges,
+synchronizes that acknowledgement, requests gate closure, observes native
+`enaout` closure, and only then changes its held three-bit mode. A four-control-
+cycle settling stage precedes reopening. The old blank acknowledgement must
+drain before another request is accepted, preventing rapid reversals from
+reusing it. Runtime reset requests the same blank/close transaction rather
+than asynchronously changing the clock selector. Requests are coalesced
+after the current transaction; there is no invented active-clock ACK.
+
+`hdmi_handoff_vendor_tb.sv` exercises a three-edge diagnostic data pipeline
+fed by independent source-clocked tokens and held mode qualifiers. All twelve
+native cases (the previous six frequency pairs × stopped-low/stopped-high)
+finish zero at 22:28:03 UTC, log `/tmp/x1-hdmi-handoff-v4.log`. Each includes
+ten held-mode changes, same-source policy changes, a queued reversal,
+incoming/outgoing stopped-clock recovery and retained-clock runtime reset.
+Assertions check every output interval and acknowledged-source rising edge,
+blanked native gate closure at mode changes, and visible data's held-mode tag.
+No forced vendor state or Boolean primitive substitute is used.
+
+The raw-data-mode negative control fails the intended visible-data assertion
+at 366896 ps with **exit 1**, log
+`/tmp/x1-hdmi-handoff-raw-negative-v4.log`. The first negative did trigger the
+assertion but returned zero because this simulator's `$fatal` reached normal
+finish; it is not counted as reliable exit-status qualification. The final
+`.do` macro checks an unsigned completion counter after simulation stops,
+giving twelve positive completion values of 1 and negative value 0. An earlier
+one-bit decimal completion value printed -1; that false failure is retained
+in `/tmp/x1-hdmi-handoff-completion-format.log`, not hidden as a passed run.
+Final positive compilation has zero warnings; native runs retain the seven
+host debugger-symbol warnings and have zero simulation errors.
+
+Frozen source SHA-256:
+
+- Controller: `cb9ac8a36977cd0121f37c96eaea375cade9601dcebfd5a36653490f16a2947e`
+- Bench: `5264f07453b6f297583eaa1bcc0b688b1580bb53254fd7d33455d4b5ed14d194`
+- Macro: `b9705912c601f222f0db427c0db0d4b67c09cd75c8d7a80cf89de199cfd9b9d2`
+
+**Remaining integration gates:** the tagged pipeline is not the actual OSD,
+scaler, output DDR or PHY. Three-bit mode packing is a diagnostic contract,
+not a framework replacement. Real output blanking, atomic cfg/policy capture,
+source-bound CDC constraints/placement, stale/reset requests at every phase,
+PLL startup/loss, full extracted-path tests and synthesis/timing still need
+qualification. The controller is not in any board QIP/QSF or machine manifest;
+no RBF or ordinary behavior changed. Stopping a selected source blocks progress
+until its clock resumes; no physical stopped-clock/monitor behavior is claimed.
+
 ## Next gates
 
 1. Establish an actually supported mode-sensitive STA method or a narrow

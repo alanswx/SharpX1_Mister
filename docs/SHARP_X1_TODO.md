@@ -50,6 +50,12 @@ running/stopped-source native-model cases and independent waveform audits.
 The requested selector is not an active-clock acknowledgement; coordinated
 data selection/blanking, repeated requests, startup/reset, FPGA integration
 and physical output remain open. No board default or RBF changes yet.
+An unselected acknowledged handoff sequencer now passes twelve native-model
+tagged-data cases, including stopped-high/low sources, queued reversal and
+runtime reset. The raw-mode negative fails with verified exit 1. Actual
+framework/OSD/DDR integration, reset-at-each-phase, placement/timing and
+physical output remain required; this diagnostic is not an implemented
+board fix. See [the handoff evidence](HDMI_MODE_STATUS.md).
 Nine actual pending-transaction snapshots pass ninety byte-identical
 continuations; cold-start/clock guards remain tested. Fresh combined-Z
 pixels, current-source Quartus bundle/consumer timing and native/hardware
