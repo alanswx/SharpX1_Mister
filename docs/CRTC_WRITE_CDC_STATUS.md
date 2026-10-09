@@ -297,6 +297,57 @@ synchronizer placement remain separate open work. Overall reported setup
 still fails -12.003 ns; this bounded pass does not qualify the RBF or native
 Turbo/Z behavior.
 
+### Unselected packet-only constraint candidate passes completed-fit probe
+
+`scripts/constraints/crtc_packet_candidate.sdc` validates eighteen unique
+primary packet/capture keepers, a single transport instance, exact physical
+lookup identity, SYS/X3 clock names/periods, and each native source-bit route.
+Only after all checks does it apply nine individual max 23.28 ns/min 0 pairs.
+It neither cuts whole domains nor constrains request/ACK stages. This is a
+stricter one-VID-period physical budget than the protocol's minimum two-VID
+capture age. It is **not selected by any board QSF/SDC**.
+
+`test-crtc-packet-sdc` passes two valid profiles and 31 malformed profiles
+rejected before any constraint. `test-crtc-packet-probe-audit` covers primary
+and actual-replica ACK sources and rejects 22 malformed/missing/changed raw
+scope, physical-delay and native-log cases. Both targets are in CI; synthetic
+fixtures do not establish FPGA timing.
+
+The completed-fit probe preserves original constraints/RBF and analyzes both
+before and after applying the candidate. The first run's unmatched alternate
+ACK pin warning is rejected, not accepted as timing evidence. The corrected
+probe discovers the unique actual data pin before querying it and finishes
+zero errors/warnings at 21:46:08 UTC, log
+`/tmp/x1-crtc-packet-native-probe-exact-pin.log`. Its 128 retrieved reports
+under ignored `output_files/quartus-linux-6FBt6YWN/crtc-packet-exact-pin-probe/`
+pass independent auditing:
+
+- 144 constrained packet rows: minimum +1.120 ns; unchanged physical maximum
+  0.999 ns and identical nine source/target pairs at every corner.
+- 32 raw input rows remain byte-equivalent parsed timing summaries before/
+  after, minimum -9.071 ns. No input waiver, MTBF or placement pass is claimed.
+- Worst-reported global setup/hold across eight corners remain -12.003/
+  **-0.003 ns**, unchanged by this candidate. The original flow's +0.127 ns
+  hold summary was not an all-eight-corner acceptance result.
+
+The worst setup is HDMI OSD `hs_out -> hs` and related RGB/DE paths from the
+HDMI master to the `x1_video_mux` clock. Worst hold is HDMI OSD
+`rdout[11]~DUPLICATE -> d[11]` in the same direction. These require verified
+mode-aware output/data routing, not extending the packet constraint or
+excluding whole PLL masters. Source inspection shows the shared output
+selection expression `~vga_fb & direct_video` drives both clock choice and
+data choice, but that alone does not qualify native mode switching or justify
+an unconstrained crossing.
+
+Candidate SHA-256:
+`9bc5321bdb212c767fd13e2a4221b0a0b544dc9fb5bafc816f42959536b9f706`.
+Final probe SHA-256:
+`1818185f2222614c0f75f71034eb5f4a0f952191f16abdfa469a54494c339648`.
+Auditor SHA-256:
+`510dd031162b3314e9e8300027223832edb04e6ee78ee14d4acde7ccbf9c8c1f`.
+Fresh mapping/fitting with any selected candidate, full timing, mode-aware HDMI
+qualification, raw CDC treatment and hardware/native software remain open.
+
 ## Actual pending-transaction snapshot follow-up
 
 Read-only X3 runner JSON now exposes held packet, handshake phase and actual

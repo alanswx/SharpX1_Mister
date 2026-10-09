@@ -28,6 +28,11 @@ MPU replicas, and qualifies the local video reset source. Independent auditing
 passes 192 reports/43,056 synchronous rows (minimum +0.218 ns) and 144 held
 packet rows (maximum physical delay 0.999 ns). Raw request/ACK input timing,
 MTBF/placement and whole-core timing remain open; no qualified RBF is claimed.
+The unselected nine-pair packet candidate passes a completed-fit before/after
+probe: +1.120 ns constrained minimum, identical physical delay and unchanged
+raw input reports. Global eight-corner setup/hold remain -12.003/-0.003 ns;
+HDMI-OSD to video-selected output paths dominate. Mode-aware routing and a
+fresh selected-candidate fit remain next, not whole-domain exclusions.
 Nine actual pending-transaction snapshots pass ninety byte-identical
 continuations; cold-start/clock guards remain tested. Fresh combined-Z
 pixels, current-source Quartus bundle/consumer timing and native/hardware

@@ -1181,6 +1181,14 @@ test-crtc-write-report-audit:
 	python3 tests/test_crtc_write_report_audit.py
 .PHONY: test-crtc-write-report-audit
 
+test-crtc-packet-sdc:
+	tclsh tests/crtc_packet_sdc_tb.tcl
+.PHONY: test-crtc-packet-sdc
+
+test-crtc-packet-probe-audit:
+	python3 tests/test_crtc_packet_probe_audit.py
+.PHONY: test-crtc-packet-probe-audit
+
 $(HEADLESS_DIR)/crtc-machine/Vcrtc_machine_tb: tests/crtc_machine_tb.sv $(V_SRC)
 	$(V) --binary --timing --assert --top-module crtc_machine_tb --Mdir $(HEADLESS_DIR)/crtc-machine -j 4 tests/crtc_machine_tb.sv $(V_SRC) -Wno-fatal
 test-machine-crtc-write: $(HEADLESS_DIR)/crtc-machine/Vcrtc_machine_tb

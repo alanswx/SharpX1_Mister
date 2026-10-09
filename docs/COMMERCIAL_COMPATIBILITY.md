@@ -1,6 +1,6 @@
 # Private commercial-game bring-up
 
-## CRTC-source ordinary requalification in progress
+## CRTC-source ordinary requalification: all five pass
 
 Fresh collectors run sequentially from frozen ordinary fast runner
 `328b3b6b0ab12371838a7f610e012714398460ec5ed6b750b2dd2bd37d86f3e7`
@@ -16,8 +16,14 @@ repeatable RGB/RAM/reports, and movement `(30,40) -> (36,40)` and
 `(68,32) -> (67,32)` for the first two. Mappy moves `(129,84) -> (126,84)`;
 Galaga moves `(32,24) -> (40,24)` and separately passes active-enemy,
 firing/projectile travel and release/repeatability checks with return code zero.
-Shanghai is running. Logs are `/tmp/x1-crtc-native-TITLE.log`. The final full frozen-input
-audit is scheduled after all five finish, not yet complete.
+Shanghai also finishes zero: native cursor `(488,167) -> (544,160)` and
+matching-pair removal `0 -> 2`, with RGB/full dump/state/report repeatability.
+Logs are `/tmp/x1-crtc-native-TITLE.log`. The sequential job finishes zero;
+all 378 initial frozen-input manifest entries match after all five finish,
+log `/tmp/x1-crtc-games-inputs-final-audit.log`. A separate final check verifies
+all five terminal collector flags/native/control codes, Galaga's fire code,
+every recorded input hash, all native-prefix state hashes and zero original
+disk writes. All native reports retain baseline SYS=32 MHz, VID=28.571428 MHz.
 This runner predates the subsequent read-only X3 JSON/short-restore C++
 increment; ordinary machine RTL/layout is unchanged by that increment.
 These are bounded ordinary gameplay results, not X3/Z software or hardware.

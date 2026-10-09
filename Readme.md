@@ -26,6 +26,10 @@ acceptance remain open. Exact fitted CRTC inventory and independent
 eight-corner auditing now pass synchronous consumer and bounded held-packet
 paths. Raw request/ACK inputs and whole-core timing remain open; this is not
 a timing-qualified RBF.
+A separate unselected packet-only constraint passes completed-fit before/after
+auditing without changing raw input reports. Global setup/hold still fail
+at HDMI-OSD/video-selected output paths. All five fresh ordinary commercial
+gameplay collectors now pass again; this does not establish Turbo/Z gameplay.
 
 The experimental X3 [text-blink crossing](docs/VIDEO_BLINK_CDC_STATUS.md)
 now uses two video-domain samples. Delay-aware 40/80-column blink pixels and
