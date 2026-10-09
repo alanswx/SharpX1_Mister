@@ -15,6 +15,7 @@ module vsync_sys_tb;
     always @(posedge clk) early_sample<=raw_vs;
     assign clean_vs=raw_control ? raw_vs : early_control ? early_sample : synchronized_vs;
     bit cfg_ready=0, cfg_set=0, cfg_got=0;
+    bit vs_wait=0;
     bit vs_d0=0, vs_d1=0, vs_d2=0, vsd=0, vsd2=0;
     integer observed_rises=0, expected_rises=0;
     bit [1:0] reference_samples=0;
@@ -35,7 +36,10 @@ module vsync_sys_tb;
         vs_d0<=clean_vs;
         if(vs_d0==clean_vs) vs_d1<=vs_d0;
         vs_d2<=vs_d1;
-        if(!vs_d2 && vs_d1) observed_rises<=observed_rises+1;
+        if(!vs_d2 && vs_d1) begin
+            observed_rises<=observed_rises+1;
+            vs_wait<=0;
+        end
         if(!cfg_ready || !cfg_set) cfg_got<=cfg_set;
         else begin
             vsd<=clean_vs;
@@ -54,20 +58,24 @@ module vsync_sys_tb;
     initial begin
         settle(6);
         // First edge after a near-edge source transition cannot release it.
-        @(negedge clk); #(half_ps-1); raw_vs=1;
+        @(negedge clk); vs_wait=1; #(half_ps-1); raw_vs=1;
         @(posedge clk); #2;
         assert(!clean_vs) else $fatal(1,"first-stage leaked to consumer");
+        assert(vs_wait) else $fatal(1,"frame wait cleared before qualified edge");
         @(posedge clk); #2;
         assert(clean_vs) else $fatal(1,"second-stage failed release");
         expected_rises++;
-        settle(8); raw_vs=0; settle(8);
+        settle(8);
+        assert(!vs_wait) else $fatal(1,"qualified edge did not clear frame wait");
+        raw_vs=0; settle(8);
         // Wide source pulses; the helper intentionally does not queue short ones.
         for(integer phase=1;phase<=12;phase++) begin
-            cfg_ready=1; cfg_set=1;
+            cfg_ready=1; cfg_set=1; vs_wait=1;
             @(negedge source_clk); #(phase*3); raw_vs=1;
             expected_rises++;
             settle(10);
             assert(cfg_got) else $fatal(1,"enabled config did not observe VSYNC");
+            assert(!vs_wait) else $fatal(1,"frame wait missed source pulse");
             raw_vs=0; cfg_set=0; settle(10);
             assert(!cfg_got) else $fatal(1,"config disable failed clear");
             assert(observed_rises==expected_rises) else $fatal(1,"lost/duplicated frame wait event");
@@ -75,11 +83,13 @@ module vsync_sys_tb;
         cfg_ready=0; cfg_set=1; settle(3);
         assert(cfg_got) else $fatal(1,"not-ready config bypass changed");
         cfg_set=0; settle(4);
-        running=0; #(half_ps*4);
+        vs_wait=1; running=0; #(half_ps*4);
         raw_vs=1; #(half_ps*8);
         assert(!clean_vs) else $fatal(1,"stopped SYS clock changed VSYNC");
+        assert(vs_wait) else $fatal(1,"stopped clock cleared frame wait");
         running=1; settle(10); expected_rises++;
         assert(clean_vs && observed_rises==expected_rises) else $fatal(1,"stopped-clock restart lost level/event");
+        assert(!vs_wait) else $fatal(1,"restart did not release frame wait");
         $display("PASS: VSYNC two-stage SYS level, near edge, 12 source phases, frame filter/config gate and stopped-clock restart");
         $finish;
     end

@@ -24,7 +24,8 @@ The actual helper and mirrored existing consumer equations pass nine clock
 combinations: SYS half-periods 15,625/17,500/10,000 ps crossed with source
 half-periods 3,366/11,640/25,000 ps. Checks cover initialized low output,
 two-sample latency, output changes only on SYS edges, a transition 1 ps before
-an edge, twelve source phases, exact frame-event counts, configuration enable/
+an edge, twelve source phases, exact frame-event counts and actual mirrored
+frame-wait retention/clear behavior, configuration enable/
 disable/not-ready behavior and a stopped SYS clock with a held input level.
 Raw-input and one-stage negative controls both fail the fixture. CI selects
 the same target. This is not full `sys_top` simulation or metastability modeling.
