@@ -308,6 +308,33 @@ required. No machine RTL change or hardware/native-software claim.
 | Unknown-RAM-alias rejecting request SDC | `b2d5aa5752b13febd99284e835acd445420fe24196980f12fbc459bb686c2bbe` |
 | Fitted inventory/syntax helper | `6db2a0b73edede738f89137d5fa87e3e506415c5d7b11825c0120ebd9e5126a3` |
 
+### Reusable report audit
+
+`bash scripts/audit_pcg_timing_reports.sh REPORT_DIR FITTED_CPU_CAPTURE_COUNT`
+now independently audits 48 request and sixteen response setup/hold corner
+files. Supply the response count from the native fitted inventory, **not**
+from the reports being qualified. It requires all eight primary CPU bits and
+every supplied replica, exact same-bit response paths, source/destination
+clock direction, all eleven address destinations, all five control sources/
+35 known destinations, and all eight payload sources/192 distinct RAM data
+destinations (64 per plane). Control write enables must cover four per plane.
+It checks nonnegative numeric slack and physical data delay from column nine,
+not clock skew, against 23.28/31.25 ns request/response bounds. A missing file,
+wrong count/endpoint/clock, duplicate capture or failing bound fails closed.
+
+The auditor passes the preserved `32a3210` native reports (eight captures)
+collected in ignored `output_files/quartus-linux-EDi2XntO/pcg-audit-known-fixture/`.
+`test-pcg-report-audit` additionally passes generated 8/10/16-capture fixtures
+and rejects fifteen invalid report/count cases. These generated fixtures do
+not prove native replica timing. The new target is selected in CI. The
+auditor's fixed request inventory is the observed fitted profile, not a
+generic substitute for revisiting endpoint coverage on future architectures.
+
+The `67de103f105cafe31dfdb7e6e93ece1219728e5d` full flow is still live in
+`quartus-linux-5wJWPc6b`, log `/tmp/x1-quartus-67de103-pcg-replica-build.log`.
+Original reports/RBF must be preserved before supplemental analyses. No
+current-fit timing claim follows from the historical/generated audit passes.
+
 Audit source payload paths into RAM data/write controls, selected addresses
 and response selection separately; response-to-CPU is a distinct held bus.
 First-stage request/ACK synchronizers require their own treatment, with the
