@@ -613,6 +613,15 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     // bus ownership is advertised until those devices have their own tests.
     wire [7:0] sub_data;
     wire sub_tx_busy, sub_rx_busy, sub_int_n, clk1;
+    wire display_blink;
+    generate if (TURBO_VIDEO_MASTER) begin : x3_blink
+        x1_video_blink #(.SYNCHRONIZE(1)) video_blink (
+            .video_clk(clk_28636), .video_reset(video_reset),
+            .sub_blink(clk1), .display_blink(display_blink)
+        );
+    end else begin : compatible_blink
+        assign display_blink=clk1;
+    end endgenerate
     x1_sub #(.CLOCK_HZ(SINGLE_CLOCK ? MASTER_HZ : 32000000), .PS2_RECEIVE_ONLY(1), .IRQ_ACK_ONCE(TURBO)) subCPU (
         .I_reset(core_reset), .I_clk(clk_sys), .I_cs(sub_cs),
         .I_rd(io_read), .I_wr(io_write), .I_M1_n(m1),
@@ -892,7 +901,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         .I_PAL_CS(io_cycle && a[15:10] == 6'b000100 && !z_palette_selected),
         .I_TXT_CS(1'b0), .I_ATT_CS(1'b0), .I_KAN_CS(1'b0),
         .I_GRB_CS(1'b0), .I_GRR_CS(1'b0), .I_GRG_CS(1'b0),
-        .I_VCLK(clk_28636), .I_CLK1(clk1), .O_VQ(), .I_W40(TURBO_VIDEO_MASTER ? width_video : mode_c[6]),
+        .I_VCLK(clk_28636), .I_CLK1(display_blink), .O_VQ(), .I_W40(TURBO_VIDEO_MASTER ? width_video : mode_c[6]),
         .O_VA(vaddr), .O_GRAPHICS_RA(graphics_ra),
         .O_GRAPHICS_START(z_graphics_start),.O_GRAPHICS_LOAD(z_graphics_load),
         .O_CG_TRANSPARENT(z_cg_transparent),.O_GRAPHICS_DISP(z_graphics_disp),.O_CG_COLOR(z_cg_color),

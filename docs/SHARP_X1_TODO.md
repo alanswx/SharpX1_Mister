@@ -14,6 +14,15 @@ support before optional Turbo extensions.
 
 ## Active goal: items 1–6 and Turbo Z (October 6)
 
+The experimental X3 [blink crossing](VIDEO_BLINK_CDC_STATUS.md) now samples
+the real sub-CPU held level in the video domain. Four delay-aware blink pixel
+cases, helper reset/latency controls, snapshot rejection/continuation and
+connected combined-Z reset checks pass. All five ordinary commercial titles
+finish fresh bounded gameplay checks. Full baseline regression is still
+running; the older combined matrix is historical for this new RTL. Fresh
+FPGA fitting/timing, current combined pixels and native/physical gates remain
+required. This does not complete any broad work group.
+
 The experimental [SYS VSYNC increment](VSYNC_SYS_CDC_STATUS.md) adds two-stage
 sampling before frame-wait/configuration consumers. Nine local clock pairs
 pass; raw/one-stage controls fail. Ordinary revisions and other VSYNC domains
@@ -30,8 +39,11 @@ Actual early-map scope validation now passes in a hash-matching unfitted copy;
 the misleading ignored `-post_map` attempt is explicitly not counted. Only
 experimental Z selects the guarded source-to-stage-zero data input for a fresh
 fit. Setup, physical/native and all remaining feature gates remain open.
-The selected-scope `caf15d3` full flow is now running in a new frozen folder;
-its eventual timing/physical result is not inferred from the older probe.
+The selected-scope `caf15d3` full flow finishes zero in its new frozen folder.
+All 80 reported VSYNC synchronous rows pass; PCG and scaler-release audits
+also pass. Overall eight-corner setup/hold still fail −11.927/−0.985 ns.
+Its unqualified RBF predates the blink correction; no physical/native
+acceptance is inferred from either fit or simulation.
 The [expanded combined diagnostic matrix](TURBO_Z_COMBINED_STATUS.md#expanded-combined-diagnostic-matrix-started-not-yet-qualified)
 now schedules 120 cold/warm, identity/custom, bank/priority/text/reverse cases
 on the frozen ownership-corrected runner. Enumeration passes; actual execution

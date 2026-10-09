@@ -1,5 +1,25 @@
 # Private commercial-game bring-up
 
+## Post-blink ordinary v17 requalification
+
+All five fresh collectors terminate zero on ordinary fast runner
+`b1452906a5548333486d16007ba90bdc663382ee97980b545d4d8bdcf47a1915`.
+Xevious, Druaga, Mappy and Galaga pass unchanged release-bound movement,
+RGB/RAM/report repeatability and original-asset checks. Galaga also passes
+active-enemy/firing/projectile checks. Shanghai passes native cursor and
+matching-pair removal (`0` to `2`) with dump/state/report/RGB repeatability.
+No game bytes or old snapshots are patched or converted.
+
+The ignored frozen root is
+`verilator/obj_dir_headless/blink-baseline-games-Pu8Q0v/`. Runner, machine and
+test sources, keys and IPL were copied before all five launches. The original
+16-second native prefix runs as unchanged 8+8-second checkpoints. All 552
+entries in `/tmp/x1-blink-games-inputs.sha256` match again after completion;
+audit log `/tmp/x1-blink-games-inputs-final-audit.log`. Per-title collector
+logs are `/tmp/x1-blink-native-TITLE.log`. This is bounded ordinary fast-model
+gameplay, not new X3/Z gameplay, full-game completion or FPGA acceptance.
+The previous v17 evidence below remains source-bound historical evidence.
+
 ## Current v17 qualification: all five bounded gameplay gates pass
 
 Fresh [v17 native qualifications](BASELINE_V17_STATUS.md) all terminate zero

@@ -216,13 +216,47 @@ hash above binds the actual experiment, not the newly selected file hash.
 Fresh selected-QSF fitting, all-corner audits and physical/native gates remain
 required; no new qualified RBF follows from the reporting probe.
 
-## Selected-scope fresh flow (in flight)
+## Selected-scope fresh flow (completed, not timing-qualified)
 
 Source `caf15d36be941aa2a75710d27f3321a24d9ce64a` is pushed to alanswx and
 starts a frozen full flow on the idle authorized host, folder
 `output_files/quartus-linux-NvYV9Nk3`, local observation log
-`/tmp/x1-quartus-caf15d3-vsync-selected-build.log`. Build completion, fresh
-native inventories and all-corner paths are not yet claimed.
+`/tmp/x1-quartus-caf15d3-vsync-selected-build.log`. Full flow finishes zero
+at 19:46:32 UTC on October 9. Original full-flow artifacts are preserved under
+`completed-flow/` before any supplemental STA. Sequential native acceptance
+finishes zero at 19:59:46 UTC, log
+`/tmp/x1-quartus-caf15d3-native-acceptance.log`. The separate all-corner global
+report is preserved under `all-corner-global/`, not overwritten by sidecars;
+the latter are preserved under `acceptance/`.
+
+The actual fitted inventory contains exactly two VSYNC stages, stage-zero
+fanout only to stage one, and stage-one fanout only to `vs_d0`, `vs_d1`, `vsd`.
+This fit's stage-zero data pin is `|d` (the preceding fit used `|asdata`);
+native data-pin fanin is `hdmi_out_vs~_Duplicate_1`. The selected guard resolves
+that actual pin/source. The explicit excluded-input audit passes 80 synchronous
+rows with minimum +0.365 ns and sixteen valid excluded-input reports.
+
+Independent native PCG inventory has eight primary CPU captures and no capture
+or stage01 replicas. All 48 request/16 response corner reports pass with that
+inventory, not a count inferred from passing reports. Reported scaler release
+chains have 48 positive rows (minimum +0.224 ns); downstream release checks
+have 384 positive rows (minimum +0.504 ns). This is reset-release timing, not
+acceptance of the scaler's data crossings.
+
+All eight global corners still fail setup and hold: minima are **−11.927 ns**
+setup and **−0.985 ns** hold. Recovery/removal/minimum-pulse-width minima are
++3.754/+0.271/+0.529 ns respectively. The reported setup failures include
+HDMI-to-video-mux inactive branches; hold failures include real VID-to-HDMI
+scaler size/control crossings. Neither is masked by the VSYNC input scope.
+Remaining crossings, I/O, mode/switching contracts and physical/native
+acceptance are still required.
+
+RBF SHA-256:
+`5295ff91aecb355410aa859198d92fc8f8750ef36b902dc154223eae7c7fcb8e`.
+Input manifest SHA-256:
+`8b4d2c47eff8dead300e69ce2a8452a76469a75a9a8ef93313ee56d4e3ba86d9`.
+This is an **unqualified** experimental Z artifact and predates the
+[new machine blink synchronizer](VIDEO_BLINK_CDC_STATUS.md).
 
 For the selected fit, `audit_vsync_sys_reports.py --input-excluded` explicitly
 requires sixteen valid excluded-input reports while retaining all 80 positive

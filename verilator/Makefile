@@ -1134,6 +1134,17 @@ $(HEADLESS_DIR)/video-status/Vvideo_status_tb: tests/video_status_tb.sv ../rtl/x
 		-j 2 tests/video_status_tb.sv ../rtl/x1_video_status.sv -Wno-fatal
 .PHONY: test-video-status
 
+$(HEADLESS_DIR)/video-blink/Vvideo_blink_tb: tests/video_blink_tb.sv ../rtl/x1_video_blink.sv ../rtl/x1_reset_release.sv
+	$(V) --binary --timing --assert --top-module video_blink_tb --Mdir $(HEADLESS_DIR)/video-blink -j 4 tests/video_blink_tb.sv ../rtl/x1_video_blink.sv ../rtl/x1_reset_release.sv -Wno-fatal
+test-video-blink: $(HEADLESS_DIR)/video-blink/Vvideo_blink_tb
+	@for half in 15625 17500 11640 25000; do ./$(HEADLESS_DIR)/video-blink/Vvideo_blink_tb +HALF_PS=$$half || exit 1; done
+	@for control in RAW_CONTROL EARLY_CONTROL; do \
+	  if ./$(HEADLESS_DIR)/video-blink/Vvideo_blink_tb +$$control >$(HEADLESS_DIR)/video-blink/$$control.log 2>&1; then echo "FAIL: $$control passed"; exit 1; fi; \
+	  rg -q 'blink two-sample latency mismatch|blink changed away from video edge/reset|first blink stage leaked' $(HEADLESS_DIR)/video-blink/$$control.log || exit 1; \
+	  echo "PASS: blink $$control rejected"; \
+	done
+.PHONY: test-video-blink
+
 test-reset-release: $(HEADLESS_DIR)/reset-release/Vreset_release_tb
 	@for half in 3 7 31; do ./$(HEADLESS_DIR)/reset-release/Vreset_release_tb +VIDEO_HALF=$$half || exit 1; done
 	@for half in 15625 17500 11640 25000; do ./$(HEADLESS_DIR)/reset-release/Vreset_release_tb +VIDEO_HALF_PS=$$half || exit 1; done

@@ -18,6 +18,12 @@ the remaining physical and unimplemented-feature gates.
 
 ## Current status
 
+The experimental X3 [text-blink crossing](docs/VIDEO_BLINK_CDC_STATUS.md)
+now uses two video-domain samples. Delay-aware 40/80-column blink pixels and
+snapshot checks pass; ordinary profiles retain their direct path. Fresh
+five-title ordinary gameplay tests also pass. New-source fitting, the complete
+combined-Z matrix and physical/native acceptance remain open.
+
 An experimental-only [SYS VSYNC synchronizer](docs/VSYNC_SYS_CDC_STATUS.md)
 now passes nine local clock combinations and two failing-control checks.
 Ordinary revisions are unchanged. Fresh FPGA timing, separate HPS/measurement
