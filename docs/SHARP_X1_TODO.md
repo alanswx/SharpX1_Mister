@@ -33,6 +33,10 @@ probe: +1.120 ns constrained minimum, identical physical delay and unchanged
 raw input reports. Global eight-corner setup/hold remain -12.003/-0.003 ns;
 HDMI-OSD to video-selected output paths dominate. Mode-aware routing and a
 fresh selected-candidate fit remain next, not whole-domain exclusions.
+The [HDMI mode investigation](HDMI_MODE_STATUS.md) now passes 72 actual-source
+static-policy cases and confirms fitted cfg10/cfg12 selector routing. The
+conventional case-analysis call fails native Quartus; no mode timing or
+safe-switching pass is inferred from command presence or static simulation.
 Nine actual pending-transaction snapshots pass ninety byte-identical
 continuations; cold-start/clock guards remain tested. Fresh combined-Z
 pixels, current-source Quartus bundle/consumer timing and native/hardware

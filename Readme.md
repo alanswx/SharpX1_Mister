@@ -30,6 +30,9 @@ A separate unselected packet-only constraint passes completed-fit before/after
 auditing without changing raw input reports. Global setup/hold still fail
 at HDMI-OSD/video-selected output paths. All five fresh ordinary commercial
 gameplay collectors now pass again; this does not establish Turbo/Z gameplay.
+The [HDMI mode investigation](docs/HDMI_MODE_STATUS.md) now checks the actual
+inherited output policy in 72 static cases and records fitted selector routing.
+Mode-sensitive STA, safe switching and physical output remain open.
 
 The experimental X3 [text-blink crossing](docs/VIDEO_BLINK_CDC_STATUS.md)
 now uses two video-domain samples. Delay-aware 40/80-column blink pixels and

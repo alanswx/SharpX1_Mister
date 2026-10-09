@@ -1189,6 +1189,20 @@ test-crtc-packet-probe-audit:
 	python3 tests/test_crtc_packet_probe_audit.py
 .PHONY: test-crtc-packet-probe-audit
 
+$(HEADLESS_DIR)/hdmi-policy/positive.sv: tests/emit_hdmi_policy_fixture.py ../sys/sys_top.v
+	python3 tests/emit_hdmi_policy_fixture.py $@
+$(HEADLESS_DIR)/hdmi-policy/wrong-clock.sv: tests/emit_hdmi_policy_fixture.py ../sys/sys_top.v
+	python3 tests/emit_hdmi_policy_fixture.py $@ --wrong-clock
+$(HEADLESS_DIR)/hdmi-policy/positive/Vhdmi_policy_tb: tests/hdmi_policy_tb.sv $(HEADLESS_DIR)/hdmi-policy/positive.sv
+	$(V) --binary --timing --assert --top-module hdmi_policy_tb --Mdir $(HEADLESS_DIR)/hdmi-policy/positive -j 4 tests/hdmi_policy_tb.sv $(HEADLESS_DIR)/hdmi-policy/positive.sv -Wno-fatal
+$(HEADLESS_DIR)/hdmi-policy/wrong-clock/Vhdmi_policy_tb: tests/hdmi_policy_tb.sv $(HEADLESS_DIR)/hdmi-policy/wrong-clock.sv
+	$(V) --binary --timing --assert --top-module hdmi_policy_tb --Mdir $(HEADLESS_DIR)/hdmi-policy/wrong-clock -j 4 tests/hdmi_policy_tb.sv $(HEADLESS_DIR)/hdmi-policy/wrong-clock.sv -Wno-fatal
+test-hdmi-policy: $(HEADLESS_DIR)/hdmi-policy/positive/Vhdmi_policy_tb $(HEADLESS_DIR)/hdmi-policy/wrong-clock/Vhdmi_policy_tb
+	@for mode in 0 1 2 3 4 5 6 7; do for half in 3366 6250 10000; do for profile in 0 1 2; do ./$(HEADLESS_DIR)/hdmi-policy/positive/Vhdmi_policy_tb +MODE=$$mode +HDMI_HALF=$$half +PROFILE=$$profile || exit 1; done; done; done
+	@ulimit -c 0; if ./$(HEADLESS_DIR)/hdmi-policy/wrong-clock/Vhdmi_policy_tb +MODE=1 >$(HEADLESS_DIR)/hdmi-policy/wrong-clock.log 2>&1; then echo 'FAIL: wrong HDMI clock control passed'; exit 1; fi
+	@rg -q 'HDMI clock/data mode association failed' $(HEADLESS_DIR)/hdmi-policy/wrong-clock.log && echo 'PASS: wrong HDMI clock control rejected'
+.PHONY: test-hdmi-policy
+
 $(HEADLESS_DIR)/crtc-machine/Vcrtc_machine_tb: tests/crtc_machine_tb.sv $(V_SRC)
 	$(V) --binary --timing --assert --top-module crtc_machine_tb --Mdir $(HEADLESS_DIR)/crtc-machine -j 4 tests/crtc_machine_tb.sv $(V_SRC) -Wno-fatal
 test-machine-crtc-write: $(HEADLESS_DIR)/crtc-machine/Vcrtc_machine_tb
