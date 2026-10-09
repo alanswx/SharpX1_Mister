@@ -34,9 +34,15 @@ selection to the real CPU/JT51 fixture and exhausts bus-control isolation;
 the [shared FM CPU-bus increment](FM_MACHINE_STATUS.md) now passes generated
 IPL busy/status/WAIT, actual PPI DAM, real DMA and retained-reset checks at
 three clocks. Native IRQ/audio delivery and full FM hardware remain open.
+The standalone [signed PSG/mixer foundation](PSG_FM_MIX_STATUS.md) passes
+independent scalar DC/CE/reset/stereo/mono saturation checks; genuine mixed
+chip waveforms, machine delivery and analog calibration remain required.
 Current ordinary snapshots require v16; its full fast suite, direct snapshots
-and fresh five-game native qualification pass. The delay-aware baseline and
-source-bound Quartus refit remain running. Earlier v15 passes above remain
+and fresh five-game native qualification pass. The delay-aware baseline also
+passes (140 PASS reports). The `832766f` refit completes with positive reported
+Slow 1100 mV 100 C timing; supplemental corners and unconstrained I/O remain
+open. See [the current audit](FM_MACHINE_STATUS.md#completed-source-bound-refit).
+Earlier v15 passes above remain
 source-bound history, not acceptance of those new runners.
 
 The [DMA-build hardware feature matrix](HARDWARE_DMA_FEATURE_MATRIX_STATUS.md)

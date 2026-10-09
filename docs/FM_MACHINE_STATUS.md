@@ -5,6 +5,8 @@ parameter active only with `TURBO=1`. It connects the conservative decoder,
 original adapter and attributed genuine JT51 in `rtl/x1_fm_bus.sv`.
 Dependencies are in `rtl/machine.qip`. Existing C++/board profiles stay off.
 This is a CPU-bus increment, not completed native Turbo Z sound.
+The subsequent standalone [signed PSG/mixer foundation](PSG_FM_MIX_STATUS.md)
+qualifies DC removal and saturation but is not yet in the machine audio path.
 
 ## Implemented boundary
 
@@ -104,8 +106,8 @@ private state. Fresh direct ordinary snapshot/continuation/input/clock checks
 exit zero (`/tmp/x1-v16-snapshot.log`). No enabled-FM savable C++ profile exists.
 
 The full ordinary v16 fast suite terminates zero with 137 PASS reports
-(`/tmp/x1-v16-fast.log`). The delay-aware suite remains running separately
-in `/tmp/x1-v16-baseline.log`. Earlier ordinary v15
+(`/tmp/x1-v16-fast.log`). The delay-aware suite finishes zero with 140 PASS
+reports in `/tmp/x1-v16-baseline.log`. Earlier ordinary v15
 baseline finishes zero with 140 PASS reports in `/tmp/x1-sio-x1-baseline.log`;
 that runner is `f1af4f88...`, not current-source v16 acceptance.
 
@@ -119,7 +121,7 @@ An independent post-completion audit checks all collector flags/return codes,
 every native-prefix state hash, original/frozen input hashes and all six runner
 copies. Galaga firing also exits zero. See [commercial evidence](COMMERCIAL_COMPATIBILITY.md).
 The delay-aware baseline remains separate; do not reuse/convert older states.
-No new current-source Quartus fit, RBF or MiSTer load is claimed. Native
+The source-bound Quartus refit below completes; no MiSTer load is claimed. Native
 FM/audio/Z acceptance and work groups 1–6 remain incomplete.
 
 ## Explicit PPI C5 follow-up
@@ -136,9 +138,37 @@ the earlier hash/log remains historical. Machine RTL/runner/snapshot layout is
 unchanged by this fixture-only extension.
 
 An authorized source-frozen Quartus 17.0.2 refit of pushed
-`832766f9a81146c10511dfc85b1876b4d16aa857` is now running on misterubuntu
+`832766f9a81146c10511dfc85b1876b4d16aa857` completes on misterubuntu
 under `output_files/quartus-linux-c70iRYNK`;
 local log `/tmp/x1-quartus-832766f-turbo-single.log`. Host checkout was clean
 and no Quartus job was active before launch. This revision still disables
-FM/SIO/Z/X3/DMA/Kanji. No completed fit/timing/new RBF or enabled-FM physical
-acceptance is claimed from this live process. No MiSTer is accessed/loaded.
+FM/SIO/Z/X3/DMA/Kanji. No enabled-FM physical acceptance is claimed.
+No MiSTer is accessed/loaded.
+
+## Completed source-bound refit
+
+Quartus 17.0.2 Build 602 finishes successfully on October 9, 2026,
+13:08:41 UTC: zero errors, 157 warnings. Fit uses 20,403/41,910 ALMs,
+3,143,528 RAM bits, 393 M10Ks and 32 DSPs. New unused diagnostic FM
+outputs are not given invented IRQ wiring to suppress optimization warnings.
+
+Retrieved local RBF:
+`output_files/quartus-linux-c70iRYNK/source/output_files/sharpx1_turbo_single.rbf`.
+SHA-256 `eaca279a7c137dd6b9cef50a3da2fbb793b558eced3c3177ebb5b454352a3e1d`.
+It is byte-identical to the earlier feature-disabled artifact, not an
+enabled FM/SIO/Z build. The frozen source tree remains on the build host;
+reports, manifests and RBF are retrieved locally, not all source inputs.
+
+The reported STA covers **only Slow 1100 mV 100 C**: five summary tables,
+33 numeric rows, no negative slack/nonzero TNS. Minimum setup/hold/recovery/
+removal/pulse slacks are 0.729/0.185/4.078/0.805/1.122 ns.
+Three input ports/seven paths and 44 output ports/50 paths remain
+unconstrained. This is not full timing closure. The earlier artifact's
+eight-corner results are not transferred to this new source revision.
+Supplemental timing work is deferred while another project's Quartus job
+uses the shared build host; it is not interrupted.
+
+The post-build frozen input audit checks 376 entries: 375 match and only
+Quartus-rewritten `sharpx1.qpf` differs. Preserve that exception rather than
+claiming a fully matching manifest. Host checkout remains clean.
+Audit log: `/tmp/x1-quartus-832766f-post-input.log`.

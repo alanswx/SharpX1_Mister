@@ -34,8 +34,10 @@ remain enabled. Logs: `/tmp/x1-v16-{xevious,druaga,mappy,galaga,shanghai}.log`.
 This is bounded ordinary base-X1 fast-model gameplay, not full-game completion,
 delay-aware gameplay, native FM/SIO/Turbo Z, Arcus/Bastard Special or hardware
 acceptance. FM and SIO remain off in the ordinary runner. The full ordinary
-v16 fast suite and direct snapshot checks also pass; the delay-aware baseline
-and new source-bound Quartus refit remain separately in progress. Earlier
+v16 fast suite and direct snapshot checks also pass; the ordinary delay-aware
+baseline finishes with 140 PASS reports. The source-bound `832766f` Quartus
+refit also finishes, but does not establish hardware gameplay or full timing
+closure (see [audit](FM_MACHINE_STATUS.md#completed-source-bound-refit)). Earlier
 v15 evidence is retained below, not silently relabelled.
 
 ## Historical v15 qualification: all five bounded gameplay gates pass

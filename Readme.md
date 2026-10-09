@@ -372,14 +372,17 @@ The serial profile remains off in that ordinary game runner; generated enabled
 SIO diagnostics are qualified separately, not by those game results.
 The optional shared FM increment now requires v16. Its full ordinary fast suite,
 snapshot tests and [fresh five-game native qualification](docs/COMMERCIAL_COMPATIBILITY.md)
-pass. The delay-aware baseline and source-bound Quartus refit remain running.
+pass. The delay-aware baseline also passes (140 PASS reports), and the
+source-bound Quartus refit completes successfully.
 The v15 passes above remain historical. See [FM integration status](docs/FM_MACHINE_STATUS.md).
-The [latest fitted Turbo single-clock RBF](output_files/quartus-linux-WosvSRv1/source/output_files/sharpx1_turbo_single.rbf)
-now builds on Quartus 17.0.2 and passes all eight constrained timing corners;
-[source/hash and exclusions](docs/HARDWARE_126_STATUS.md) are recorded separately.
-It binds `0009dd1` and is byte-identical to the earlier `f013d02` artifact;
-the shared serial increment remains disabled in this board profile.
-See [the current refit audit](docs/SIO_MACHINE_STATUS.md#completed-source-bound-refit).
+The standalone [signed PSG conversion/mixer](docs/PSG_FM_MIX_STATUS.md)
+passes 2,236,486 scalar checks; genuine mixed-chip audio and machine output
+delivery remain unfinished. Default unsigned audio is unchanged.
+The [latest fitted Turbo single-clock RBF](output_files/quartus-linux-c70iRYNK/source/output_files/sharpx1_turbo_single.rbf)
+builds on Quartus 17.0.2, binding `832766f`. Its reported Slow 1100 mV
+100 C corner passes; supplemental eight-corner acceptance remains pending.
+It is byte-identical to the earlier `0009dd1` artifact, whose eight-corner
+results remain source-bound history. See [the current refit audit](docs/FM_MACHINE_STATUS.md#completed-source-bound-refit).
 It is not deployed or hardware-qualified and does not enable Z/X3/DMA/Kanji/SIO/FM.
 
 The headless simulator has been compiled with Verilator 5.044 on macOS.

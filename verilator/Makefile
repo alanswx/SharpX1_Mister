@@ -14,6 +14,13 @@ FM_MASTER_HZ ?= 32000000
 
 all: headless
 
+test-psg-mix: $(HEADLESS_DIR)/psg-mix/Vpsg_mix_tb
+	./$(HEADLESS_DIR)/psg-mix/Vpsg_mix_tb
+$(HEADLESS_DIR)/psg-mix/Vpsg_mix_tb: tests/psg_mix_tb.sv ../rtl/x1_psg_signed.sv ../rtl/x1_fm_mix.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module psg_mix_tb --Mdir $(@D) -j 4 tests/psg_mix_tb.sv ../rtl/x1_psg_signed.sv ../rtl/x1_fm_mix.sv
+.PHONY: test-psg-mix
+
 test-machine-fm: $(HEADLESS_DIR)/machine-fm/Vmachine_fm_tb $(HEADLESS_DIR)/machine-fm-disabled/Vmachine_fm_tb $(HEADLESS_DIR)/machine-fm-single-nominal/Vmachine_fm_tb $(HEADLESS_DIR)/machine-fm-single-board/Vmachine_fm_tb
 	./$(HEADLESS_DIR)/machine-fm/Vmachine_fm_tb
 	./$(HEADLESS_DIR)/machine-fm-single-nominal/Vmachine_fm_tb
