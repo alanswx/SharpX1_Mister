@@ -10,7 +10,9 @@
 // FPGA configuration initializes identity colors (Techknow printed 159-160).
 // Reset masks/flushes responses, never reinitializes palette RAM.
 `timescale 1ps/1ps
-module x1_z_palette_ram (
+// INTERNAL8 is the separate 8x12 store (Techknow printed 156/160/161).
+// Physical PA8/PA4/PA0 correspond to logical CPU index bits 11/7/3.
+module x1_z_palette_ram #(parameter INTERNAL8 = 0) (
     input wire cpu_clk, video_clk, cpu_reset, video_reset,
     input wire cpu_access, cpu_write,
     input wire [11:0] cpu_address,
@@ -23,15 +25,21 @@ module x1_z_palette_ram (
     output wire [11:0] display_rgb12,
     output wire display_valid
 );
-    reg [3:0] blue [0:4095], red [0:4095], green [0:4095];
+    localparam ADDRESS_BITS=INTERNAL8 ? 3 : 12;
+    localparam ENTRIES=1<<ADDRESS_BITS;
+    wire [ADDRESS_BITS-1:0] cpu_index=INTERNAL8 ?
+        ADDRESS_BITS'({cpu_address[11],cpu_address[7],cpu_address[3]}) : ADDRESS_BITS'(cpu_address);
+    wire [ADDRESS_BITS-1:0] display_index=INTERNAL8 ?
+        ADDRESS_BITS'({display_address[11],display_address[7],display_address[3]}) : ADDRESS_BITS'(display_address);
+    reg [3:0] blue [0:ENTRIES-1], red [0:ENTRIES-1], green [0:ENTRIES-1];
     // Constant configuration image, not a reset-time 4096-word clearing loop.
     // This must retain block-RAM inference and must not rerun on IPL reset.
     integer initial_address;
     initial begin
-        for(initial_address=0;initial_address<4096;initial_address=initial_address+1) begin
-            blue[initial_address]=4'(initial_address);
-            red[initial_address]=4'(initial_address>>4);
-            green[initial_address]=4'(initial_address>>8);
+        for(initial_address=0;initial_address<ENTRIES;initial_address=initial_address+1) begin
+            blue[initial_address]=INTERNAL8 ? {4{initial_address[0]}} : 4'(initial_address);
+            red[initial_address]=INTERNAL8 ? {4{initial_address[1]}} : 4'(initial_address>>4);
+            green[initial_address]=INTERNAL8 ? {4{initial_address[2]}} : 4'(initial_address>>8);
         end
     end
     reg [3:0] blue_cpu, red_cpu, green_cpu, blue_video, red_video, green_video;
@@ -41,19 +49,19 @@ module x1_z_palette_ram (
     // but the associated output is masked by the registered selection below.
     always @(posedge cpu_clk) begin
         if(accepted_write && cpu_component==0) begin
-            blue[cpu_address]<=cpu_nibble;blue_cpu<=cpu_nibble;
-        end else blue_cpu<=blue[cpu_address];
+            blue[cpu_index]<=cpu_nibble;blue_cpu<=cpu_nibble;
+        end else blue_cpu<=blue[cpu_index];
         if(accepted_write && cpu_component==1) begin
-            red[cpu_address]<=cpu_nibble;red_cpu<=cpu_nibble;
-        end else red_cpu<=red[cpu_address];
+            red[cpu_index]<=cpu_nibble;red_cpu<=cpu_nibble;
+        end else red_cpu<=red[cpu_index];
         if(accepted_write && cpu_component==2) begin
-            green[cpu_address]<=cpu_nibble;green_cpu<=cpu_nibble;
-        end else green_cpu<=green[cpu_address];
+            green[cpu_index]<=cpu_nibble;green_cpu<=cpu_nibble;
+        end else green_cpu<=green[cpu_index];
     end
     always @(posedge video_clk) begin
-        blue_video<=blue[display_address];
-        red_video<=red[display_address];
-        green_video<=green[display_address];
+        blue_video<=blue[display_index];
+        red_video<=red[display_index];
+        green_video<=green[display_index];
     end
     reg [1:0] component_latched=0;
     reg cpu_selected=0,display_selected=0;

@@ -229,6 +229,10 @@ wide/tall/selected-screen pixel and retained-reset checks under an explicitly
 provisional reduced-color policy. Native ASIC compatibility, internal/text
 palettes and other Z devices remain incomplete; ordinary board defaults do
 not enable these experiments.
+A further [internal-palette experiment](docs/TURBO_Z_INTERNAL8_STATUS.md)
+connects programmable 640x400/8 graphics. CPU-written identity/custom pixels,
+retained warm reset and custom cold cross-store isolation pass; native
+ASIC/priority and combined hardware gates remain open.
 A separate [FM foundation](docs/TURBO_Z_FM_STATUS.md) passes
 JT51 busy/timers, stereo notes, fractional enables and signed mixing at three
 master frequencies; CPU decode/IRQ, native sound and hardware remain open.
@@ -265,7 +269,9 @@ The transaction-bound correction passes standalone/CPU tests and requires
 fresh **v13** snapshots; earlier v12 snapshots and game qualifications remain
 historical. Fixed full-pixel/reset tests and the preceding complete default
 baseline suite pass. Fresh v13 commercial requalification and a source-bound
-Turbo single-clock Quartus refit are in progress; no new RBF is qualified yet.
+Turbo single-clock Quartus refit are recorded separately. The fresh source-9748410
+RBF now fits and passes all eight constrained timing corners; hardware deployment
+is pending. See [the source-bound artifact/evidence](docs/HARDWARE_126_STATUS.md).
 The subsequent [CPU/display pin audit](docs/TURBO_Z_PALETTE_CONTRACT.md#cpudisplay-pin-reconciliation-table-4-22)
 corrects a shared renderer/oracle significance error. Connected all-4096-index
 checks and corrected identity/custom retained-reset pixels pass. Earlier

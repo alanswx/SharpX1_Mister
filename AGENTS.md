@@ -81,6 +81,14 @@ selected-screen pixel pass. `test-machine-z-multimode` freezes the executable,
 oracle and emitter for its sixteen cases. `x1_cdc_snapshot.sv` now belongs
 to the shared machine manifest; do not also add it to wrapper source lists.
 
+`turbo-z-internal8` separately opts into 640x400 with an independent eight-entry
+palette and captured shifter store tag. See `docs/TURBO_Z_INTERNAL8_STATUS.md`.
+It is non-savable and not enabled by any board revision. Warm reset retains
+both palette memories; do not collapse internal entries onto external storage.
+`test-z-internal-palette` exhausts aliases/nibbles at nine profiles;
+`test-machine-z-internal8` freezes runner/oracle/emitter for four CPU/pixel cases.
+Neither establishes native ASIC WAIT, text palette or priority behavior.
+
 Snapshot format v13 rejects older states after transaction-bound DAM arming
 (v12 added the RGB12 output port; v11 added opt-in CPU/DMA bus and instrumentation;
 v09 added text-raster state;

@@ -44,6 +44,14 @@ $(HEADLESS_DIR)/z-palette-ram/Vz_palette_ram_tb: tests/z_palette_ram_tb.sv ../rt
 	$(V) --binary --timing --assert --top-module z_palette_ram_tb --Mdir $(HEADLESS_DIR)/z-palette-ram \
 	  -j 4 tests/z_palette_ram_tb.sv ../rtl/x1_z_palette_ram.sv
 .PHONY: test-z-palette-ram
+test-z-internal-palette: $(HEADLESS_DIR)/z-internal-palette/Vz_internal_palette_tb
+	@for half in 17500 11640 25000; do for rate in 1 4 7; do \
+	  ./$(HEADLESS_DIR)/z-internal-palette/Vz_internal_palette_tb +VIDEO_HALF_PS=$$half +CE_PERIOD=$$rate || exit 1; done; done
+$(HEADLESS_DIR)/z-internal-palette/Vz_internal_palette_tb: tests/z_internal_palette_tb.sv ../rtl/x1_z_palette_ram.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module z_internal_palette_tb --Mdir $(@D) \
+	  -j 4 tests/z_internal_palette_tb.sv ../rtl/x1_z_palette_ram.sv
+.PHONY: test-z-internal-palette
 
 test-z-palette-access: $(HEADLESS_DIR)/z-palette-access/Vz_palette_access_tb
 	@for half in 17500 11640 25000; do for rate in 1 4 7; do \
@@ -207,17 +215,34 @@ single-fast: obj_dir_single_fast/Vtop
 turbo: obj_dir_turbo/Vtop
 Z_VIDEO_DIR ?= obj_dir_v13_z_video
 Z_MULTIMODE ?= 0
+Z_INTERNAL8 ?= 0
 turbo-z-video: $(Z_VIDEO_DIR)/Vtop
 $(Z_VIDEO_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc --timing --assert --trace-fst --exe --build -j 4 --Mdir $(Z_VIDEO_DIR) --top-module top \
 	  -GTURBO=1 -GTURBO_VIDEO_MASTER=1 -GTURBO_Z_PALETTE_CPU=1 -GTURBO_Z_VIDEO=1 \
-	  -GTURBO_Z_MULTIMODE=$(Z_MULTIMODE) \
-	  -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_Z_PALETTE_CPU -DX1_Z_VIDEO $(if $(filter 1,$(Z_MULTIMODE)),-DX1_Z_MULTIMODE)" \
+	  -GTURBO_Z_MULTIMODE=$(Z_MULTIMODE) -GTURBO_Z_INTERNAL8=$(Z_INTERNAL8) \
+	  -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_Z_PALETTE_CPU -DX1_Z_VIDEO $(if $(filter 1,$(Z_MULTIMODE)),-DX1_Z_MULTIMODE) $(if $(filter 1,$(Z_INTERNAL8)),-DX1_Z_INTERNAL8)" \
 	  -MAKEFLAGS "OPT_FAST=-O3" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 .PHONY: turbo-z-video
 turbo-z-multimode:
 	$(MAKE) turbo-z-video Z_MULTIMODE=1 Z_VIDEO_DIR=obj_dir_v13_z_multimode
 .PHONY: turbo-z-multimode
+turbo-z-internal8:
+	$(MAKE) turbo-z-video Z_MULTIMODE=1 Z_INTERNAL8=1 Z_VIDEO_DIR=obj_dir_v13_z_internal8
+.PHONY: turbo-z-internal8
+test-machine-z-internal8: turbo-z-internal8
+	@run_root=$$(mktemp -d obj_dir_v13_z_internal8/internal-matrix-XXXXXX); \
+	  cp tests/test_machine_z_video.py tests/z80_fixture.py obj_dir_v13_z_internal8/Vtop $$run_root/ && \
+	  for palette in identity custom; do \
+	    palette_arg=; [ $$palette != custom ] || palette_arg=--custom; \
+	    for reset in cold warm; do \
+	      reset_arg=; [ $$reset != warm ] || reset_arg=--warm; \
+	      python3 $$run_root/test_machine_z_video.py $$run_root/Vtop \
+	        --mode internal8 $$palette_arg $$reset_arg \
+	        --output $$run_root/$$palette-$$reset || exit $$?; \
+	    done; \
+	  done
+.PHONY: test-machine-z-internal8
 test-machine-z-video: turbo-z-video
 	@run_root=$$(mktemp -d $(Z_VIDEO_DIR)/pixel-matrix-XXXXXX); \
 	  cp tests/test_machine_z_video.py tests/z80_fixture.py $$run_root/ && \

@@ -56,7 +56,7 @@ def fixture(custom=False, mode="full", screen=0):
                    0x78, 0xA9, 0xAA, 0x6F, 0x7E, 0xED, 0x79, 0x03,
                    0x78, 0xE6, 0x3F, 0xB1)
             p.jump(0xC2, label)
-    if custom:
+    if custom and mode != "internal8":
         out(0x1FD0, 0)
         out(0x1FB0, 0x80)
         out(0x1FC5, 0x80)
@@ -77,25 +77,70 @@ def fixture(custom=False, mode="full", screen=0):
             p.emit(0x2C, 0x7D, 0x0F, 0x0F, 0x0F, 0x0F, 0xE6, 0xF0,
                    0x5F, 0x25)
             p.jump(0xC2, outer)
+    if mode == "internal8":
+        # Write different external sentinels first, then prove internal writes
+        # and retained CPU selection cannot alias that separate palette.
+        out(0x1FD0, 0)
+        out(0x1FB0, 0x80)
+        out(0x1FC5, 0x80)
+        for color in range(8):
+            for component, base in enumerate((0x1000, 0x1100, 0x1200)):
+                port = base | ((color & 4) << 5) | ((color & 2) << 2)
+                out(port, ((color & 1) << 7) | ((color ^ component ^ 15) & 15))
+        # Separate internal memory: PA8/4/0 = CPU AB7/AB3/DB7.
+        # Read every component through the real Z80 bus, not RAM injection.
+        out(0x1A02, 0)
+        out(0x1FD0, 1)
+        out(0x1FB0, 0x80)
+        out(0x1FC5, 0x80)
+        for color in range(8):
+            for component, base in enumerate((0x1000, 0x1100, 0x1200)):
+                port = base | ((color & 4) << 5) | ((color & 2) << 2)
+                nibble = ((color * (3, 5, 7)[component] + (2, 1, 4)[component]) & 15) if custom else \
+                         (15 if color & (1 << component) else 0)
+                if custom:
+                    out(port, ((color & 1) << 7) | nibble)
+        out(0x1FC5, 0x88)
+        for color in range(8):
+            for component, base in enumerate((0x1000, 0x1100, 0x1200)):
+                port = base | ((color & 4) << 5) | ((color & 2) << 2)
+                nibble = ((color * (3, 5, 7)[component] + (2, 1, 4)[component]) & 15) if custom else \
+                         (15 if color & (1 << component) else 0)
+                out(port, (color & 1) << 7)
+                p.word(0x01, port)
+                p.emit(0xED, 0x78, 0xE6, 15, 0xFE, nibble)
+                p.jump(0xC2, "fail")
+        out(0x1A02, 0x40)
+        out(0x1FD0, 0)
+        for color in range(8):
+            for component, base in enumerate((0x1000, 0x1100, 0x1200)):
+                port = base | ((color & 4) << 5) | ((color & 2) << 2)
+                out(port, (color & 1) << 7)
+                p.word(0x01, port)
+                p.emit(0xED, 0x78, 0xE6, 15, 0xFE, (color ^ component ^ 15) & 15)
+                p.jump(0xC2, "fail")
     p.store(0xF040, 0xA5)
     p.label("retained")
-    columns = 80 if mode == "wide64" else 40
+    columns = 80 if mode in ("wide64", "internal8") else 40
     # Palette programming uses the supported full/40-column sequence first.
     # Reduced CPU access/bank controls are deliberately not inferred here.
     if columns == 80:
         out(0x1A02, 0)
-    out(0x1FD0, 1 if mode == "tall64" else screen << 3 if mode == "dual64" else 0)
+    out(0x1FD0, 1 if mode in ("tall64", "internal8") else screen << 3 if mode == "dual64" else 0)
     out(0x1FB0, 0x90 if mode == "dual64" else 0x80)
     registers = [55 if columns == 40 else 111, columns,
                  46 if columns == 40 else 92, 0x28, 31, 2, 25, 28, 0, 7,
                  0, 0, 0, 0, 0, 0]
-    if mode == "tall64":
+    if mode in ("tall64", "internal8"):
         registers[4:10] = [27, 0, 25, 26, 0, 15]
     for register, value in enumerate(registers):
         out(0x1800, register)
         out(0x1801, value)
     for i, byte in enumerate(b"ZVID"):
         p.store(0xF000 + i, byte)
+    p.emit(0x76)
+    p.label("fail")
+    p.store(0xF000, 0xEE)
     p.emit(0x76)
     code = p.finish()
     assert len(code) < 0x2000
@@ -104,13 +149,14 @@ def fixture(custom=False, mode="full", screen=0):
 
 
 def expected_pixel(x, y, custom=False, mode="full", screen=0):
-    columns = 80 if mode == "wide64" else 40
-    q = ((y // 2) % 8 if mode == "tall64" else y % 8) * 2048 + \
-        (y // (16 if mode == "tall64" else 8)) * columns + x // 8
+    columns = 80 if mode in ("wide64", "internal8") else 40
+    high = mode in ("tall64", "internal8")
+    q = ((y // 2) % 8 if high else y % 8) * 2048 + \
+        (y // (16 if high else 8)) * columns + x // 8
     sources = ((0, 0), (0, 0x400), (1, 0), (1, 0x400)) if mode == "full" else \
               ((0, 0), (1, 0)) if mode == "wide64" else \
               ((y & 1, 0), (y & 1, 0x400)) if mode == "tall64" else \
-              ((screen, 0), (screen, 0x400))
+              ((y & 1, 0),) if mode == "internal8" else ((screen, 0), (screen, 0x400))
     components = []
     for component, base in enumerate((0x4000, 0x8000, 0xC000)):
         nibble = 0
@@ -123,10 +169,13 @@ def expected_pixel(x, y, custom=False, mode="full", screen=0):
             # CPU/physical-PA table 4-22: source BD0/QHA0 is CPU DB7,
             # not DB4. All three component nibbles reverse the PA ordering.
             nibble |= (bool(value & (128 >> (x % 8))) *
-                       ((1 << (3 - lane)) if mode == "full" else (10, 5)[lane]))
+                       ((1 << (3 - lane)) if mode == "full" else 15 if mode == "internal8" else (10, 5)[lane]))
         components.append(nibble)
     blue, red, green = components
-    if custom:
+    if custom and mode == "internal8":
+        color = (bool(green) << 2) | (bool(red) << 1) | bool(blue)
+        blue, red, green = (color * 3 + 2) & 15, (color * 5 + 1) & 15, (color * 7 + 4) & 15
+    elif custom:
         blue, red, green = green ^ red ^ blue ^ 3, green ^ blue ^ 9, red ^ blue ^ 5
     return bytes((red * 17, green * 17, blue * 17))
 
@@ -137,7 +186,7 @@ def main():
     parser.add_argument("--output", type=pathlib.Path, required=True)
     parser.add_argument("--warm", action="store_true")
     parser.add_argument("--custom", action="store_true")
-    parser.add_argument("--mode", choices=("full", "dual64", "wide64", "tall64"), default="full")
+    parser.add_argument("--mode", choices=("full", "dual64", "wide64", "tall64", "internal8"), default="full")
     parser.add_argument("--screen", type=int, choices=(0, 1), default=0)
     parser.add_argument("--timeout", type=float, default=900)
     args = parser.parse_args()
@@ -172,6 +221,8 @@ def main():
     assert report["z_video_experiment"] and report["z_palette_cpu_experiment"], report
     if args.mode != "full":
         assert report["z_multimode_experiment"], report
+    if args.mode == "internal8":
+        assert report["z_internal8_experiment"], report
     assert report["intra_assignment_delays"] and report["turbo_video_master"], report
     assert report["sys_hz"] == 32000000 and report["video_hz"] == 42954540, report
     assert report["halted"] and report["peek"].startswith(b"ZVID".hex()), report
@@ -183,14 +234,15 @@ def main():
         # A correct final frame alone could hide a cold refill. Observe actual
         # reboot I/O: real CRTC/PPI reinitialization, no GRAM/text/palette writes.
         assert addresses.count(0x1800) == 16 and addresses.count(0x1801) == 16, addresses
-        assert addresses.count(0x1A03) == 1 and addresses.count(0x1A02) == (2 if args.mode == "wide64" else 1), addresses
+        assert addresses.count(0x1A03) == 1 and addresses.count(0x1A02) == (2 if args.mode in ("wide64", "internal8") else 1), addresses
         assert not any(a >= 0x2000 or 0x1000 <= a < 0x1300 for a in addresses), addresses[:60]
     tolerance = 31251
-    line_edges = 1792 if args.mode == "tall64" else 2688
-    for field, edges in (("hs_period_ps", line_edges), ("vs_period_ps", line_edges * (448 if args.mode == "tall64" else 258))):
+    high = args.mode in ("tall64", "internal8")
+    line_edges = 1792 if high else 2688
+    for field, edges in (("hs_period_ps", line_edges), ("vs_period_ps", line_edges * (448 if high else 258))):
         assert abs(report[field] - round(edges * 10**12 / 42954540)) <= tolerance, report
     header, dimensions, maximum, actual = frame.read_bytes().split(b"\n", 3)
-    width, height = (640 if args.mode == "wide64" else 320), (400 if args.mode == "tall64" else 200)
+    width, height = (640 if args.mode in ("wide64", "internal8") else 320), (400 if high else 200)
     assert (header, dimensions, maximum) == (b"P6", f"{width} {height}".encode(), b"255"), report
     expected = b"".join(expected_pixel(x, y, args.custom, args.mode, args.screen) for y in range(height) for x in range(width))
     (args.output / "expected.ppm").write_bytes(f"P6\n{width} {height}\n255\n".encode() + expected)

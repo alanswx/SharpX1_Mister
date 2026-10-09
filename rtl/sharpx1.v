@@ -1,6 +1,6 @@
 // Sharp X1 base-machine integration. Shared by MiSTer and simulation.
 // See docs/BASE_X1_CONTRACT.md for address-map sources and limitations.
-module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0, TURBO_DSW = 241, TURBO_DMA_RESTART_IRQ = 0, TURBO_Z_PALETTE_CPU = 0, TURBO_Z_VIDEO = 0, TURBO_Z_MULTIMODE = 0) (
+module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0, TURBO_DSW = 241, TURBO_DMA_RESTART_IRQ = 0, TURBO_Z_PALETTE_CPU = 0, TURBO_Z_VIDEO = 0, TURBO_Z_MULTIMODE = 0, TURBO_Z_INTERNAL8 = 0) (
     input clk_sys, clk_28636, reset,
     input pal, scandouble,
     input ioctl_download,
@@ -101,6 +101,8 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
             $error("Z video experiment requires palette CPU and enabled X3, not compensated single-clock timing");
         if(TURBO_Z_MULTIMODE && !TURBO_Z_VIDEO)
             $error("Z multi-mode experiment requires Z video");
+        if(TURBO_Z_INTERNAL8 && !TURBO_Z_MULTIMODE)
+            $error("Z internal eight-color experiment requires Z multi-mode");
         if (TURBO_DMA_IRQ && !(TURBO && TURBO_DMA))
             $error("TURBO_DMA_IRQ requires TURBO and TURBO_DMA");
         if (TURBO_DMA_RESTART_IRQ && !TURBO_DMA_IRQ)
@@ -152,7 +154,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     wire z_gram_read;
     wire [14:0] z_gram_address;
     wire [2:0] z_graphics_mode;
-    wire z_graphics_screen;
+    wire z_graphics_screen, z_graphics_internal;
     wire machine_wait_n=cg_wait_n && z_palette_wait_n;
     generate if(TURBO_Z_PALETTE_CPU) begin : z_palette_cpu
         // Explicit CPU-only full external-palette experiment. No Z signature,
@@ -175,7 +177,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
                     .destination_data(controls),.destination_valid(controls_valid));
                 wire [7:0] analog_mode=controls[23:16], scrn=controls[15:8];
                 wire width40=controls[0];
-                wire supported=(analog_mode==8'h80 && (!scrn[0] || (width40 && !scrn[1]))) ||
+                wire supported=(analog_mode==8'h80 && (!scrn[0] || (!scrn[1] && (width40 || TURBO_Z_INTERNAL8)))) ||
                                (analog_mode==8'h90 && width40 && !scrn[0]);
                 // Compare with timing-domain controls before admitting a
                 // character. Coherent payload is held during handshake; live
@@ -183,7 +185,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
                 assign z_video_enabled=enabled_video && controls_valid && supported &&
                     width40==width_video && scrn==turbo_scrn_video &&
                     !scrn[2] && !scrn[7] && controls[7:1]==0 && turbo_black_video==0;
-                assign z_graphics_mode=scrn[0] ? 3'd3 : !width40 ? 3'd2 :
+                assign z_graphics_mode=scrn[0] ? (width40 ? 3'd3 : 3'd4) : !width40 ? 3'd2 :
                                        analog_mode[4] ? 3'd1 : 3'd0;
                 assign z_graphics_screen=scrn[3];
             end else begin : full_only
@@ -206,8 +208,18 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
                     else control<=data_out;
                 end
             end
+        wire internal_cpu=TURBO_Z_INTERNAL8 && turbo_scrn[0] && !turbo_scrn[1] && !mode_c[6];
         wire enabled=mode==8'h80 && (control==8'h80 || control==8'h88)
-                     && !turbo_scrn[0] && mode_c[6];
+                     && ((!turbo_scrn[0] && mode_c[6]) || internal_cpu);
+        // Freeze store ownership at transaction acquisition, not on the
+        // later RAM edge. Data/selector remain frozen by the bus adapter.
+        reg selected_old=0, internal_owned=0;
+        always @(posedge clk_sys or posedge core_reset)
+            if(core_reset) begin selected_old<=0;internal_owned<=0;end
+            else begin
+                selected_old<=z_palette_selected;
+                if(z_palette_selected && !selected_old) internal_owned<=internal_cpu;
+            end
         wire ram_access,ram_write,ram_valid,read_valid;
         wire read_hold;
         wire [3:0] held_nibble;
@@ -245,15 +257,35 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         );
         // Full-colour experiment honors real ownership and uses the same
         // one-edge palette latency as the legacy registered RGB/blank decision.
+        wire [3:0] external_data,internal_data;
+        wire external_valid,internal_valid,external_display_valid,internal_display_valid;
+        wire [11:0] external_rgb,internal_rgb;
+        wire display_read=TURBO_Z_VIDEO && z_video_enabled && z_graphics_valid &&
+                          z_cg_transparent && z_graphics_disp && palette_display_allowed;
+        assign ram_data=internal_owned ? internal_data : external_data;
+        assign ram_valid=internal_owned ? internal_valid : external_valid;
+        assign z_palette_valid=external_display_valid || internal_display_valid;
+        assign z_palette_rgb12=internal_display_valid ? internal_rgb : external_rgb;
         x1_z_palette_ram store(
             .cpu_clk(clk_sys),.video_clk(clk_28636),.cpu_reset(core_reset),.video_reset(video_reset),
-            .cpu_access(ram_access),.cpu_write(ram_write),.cpu_address(ram_address),
+            .cpu_access(ram_access && !internal_owned),.cpu_write(ram_write),.cpu_address(ram_address),
             .cpu_component(ram_component),.cpu_nibble(ram_nibble),
-            .cpu_data(ram_data),.cpu_valid(ram_valid),
-            .display_read(TURBO_Z_VIDEO && z_video_enabled && z_graphics_valid &&
-                          z_cg_transparent && z_graphics_disp && palette_display_allowed),
-            .display_address(z_graphics_index),.display_rgb12(z_palette_rgb12),.display_valid(z_palette_valid)
+            .cpu_data(external_data),.cpu_valid(external_valid),
+            .display_read(display_read && !z_graphics_internal),
+            .display_address(z_graphics_index),.display_rgb12(external_rgb),.display_valid(external_display_valid)
         );
+        if(TURBO_Z_INTERNAL8) begin : internal_store
+            x1_z_palette_ram #(.INTERNAL8(1)) store(
+                .cpu_clk(clk_sys),.video_clk(clk_28636),.cpu_reset(core_reset),.video_reset(video_reset),
+                .cpu_access(ram_access && internal_owned),.cpu_write(ram_write),.cpu_address(ram_address),
+                .cpu_component(ram_component),.cpu_nibble(ram_nibble),
+                .cpu_data(internal_data),.cpu_valid(internal_valid),
+                .display_read(display_read && z_graphics_internal),
+                .display_address(z_graphics_index),.display_rgb12(internal_rgb),.display_valid(internal_display_valid));
+        end else begin : no_internal_store
+            assign internal_data=0;assign internal_valid=0;
+            assign internal_rgb=0;assign internal_display_valid=0;
+        end
         // Upper nibble is a provisional experimental value, NOT qualified
         // native pin behavior. CPU acceptance must mask to the lower nibble.
         assign z_palette_data=read_valid ? {4'd0,read_nibble} :
@@ -621,12 +653,13 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
             .character_start(z_graphics_start),.character_load(z_graphics_load),.pixel_step(ce_pix),
             .base_address(graphics_addr[13:0]),.read_enable(z_gram_read),.read_address(z_gram_address),
             .mode(z_graphics_mode),.screen(z_graphics_screen),.raster_odd(graphics_ra[0]),
-            .blue_q(grb_vid),.red_q(grr_vid),.green_q(grg_vid),
+            .blue_q(grb_vid),.red_q(grr_vid),.green_q(grg_vid),.internal_palette(z_graphics_internal),
             .palette_index(z_graphics_index),.index_valid(z_graphics_valid)
         );
     end else begin : no_z_graphics
         assign z_gram_read=0;assign z_gram_address=0;
         assign z_graphics_index=0;assign z_graphics_valid=0;
+        assign z_graphics_internal=0;
     end endgenerate
     x1_video_ram #(GRAM_AW) gram_b(clk_sys,gram_cpu_addr,data_out,io_write && ((a[15:14] == 1) ^ dam),grb_cpu,clk_28636,gram_video_addr,grb_vid);
     x1_video_ram #(GRAM_AW) gram_r(clk_sys,gram_cpu_addr,data_out,io_write && ((a[15:14] == 2) ^ dam),grr_cpu,clk_28636,gram_video_addr,grr_vid);

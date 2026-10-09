@@ -12,7 +12,21 @@ logs `/tmp/x1-v13-{galaga,mappy}-requalify.log`. Both invocations use
 boot and title-specific controller checks. Each invocation copies its runner
 and hashes originals; no private media or state is committed. The media is
 the release-bound Galaga `d0cdeb82…` and Mappy `297e89aa…` listed below.
-At this checkpoint both processes are live, not qualified. Complete all five
+Galaga and Mappy finish with exit zero, verifying controlled movement, actual
+RGB changes, RAM/report/frame repeatability and unchanged original inputs.
+Galaga additionally passes active-enemy native firing/projectile checks.
+Xevious also finishes with the same bounded movement/RGB/repeatability gates.
+Their `provenance.json` files each record `gameplay_verified: true`; screenshots,
+states and dumps remain ignored. These are source-9748410 fast-model tests,
+not acceptance of later internal8 edits, delay-aware native gameplay or hardware.
+Druaga also finishes with exit zero and `gameplay_verified: true`: controlled
+left movement, actual RGB change, repeatable RAM/frame/report and unchanged
+inputs. Log `/tmp/x1-v13-druaga-requalify.log`, output
+`verilator/obj_dir_v13_requalify/druaga-9748410/`. **Four v13 titles now pass
+bounded controls**. Shanghai's fresh native chain is still live on the same
+runner: `/tmp/x1-v13-shanghai-requalify.log`, output
+`verilator/obj_dir_v13_requalify/shanghai-9748410/`. It remains unqualified.
+Complete all five
 fresh v13 titles, exact controls/RGB/repeatability and unchanged-input checks
 before attributing historical five-title acceptance to the new state format.
 

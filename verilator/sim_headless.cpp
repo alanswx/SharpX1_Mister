@@ -930,7 +930,12 @@ int main(int argc, char **argv) {
 #else
         constexpr const char *z_multimode = "false";
 #endif
-        std::printf("{\"machine\":\"sharpx1\",\"turbo_foundation\":%s,\"turbo_video_master\":%s,\"turbo_dma\":%s,\"turbo_dma_irq\":%s,\"turbo_kanji\":%s,\"z_palette_cpu_experiment\":%s,\"z_video_experiment\":%s,\"z_multimode_experiment\":%s,\"intra_assignment_delays\":%s,\"sys_hz\":%llu,\"video_hz\":%llu,"
+#ifdef X1_Z_INTERNAL8
+        constexpr const char *z_internal8 = "true";
+#else
+        constexpr const char *z_internal8 = "false";
+#endif
+        std::printf("{\"machine\":\"sharpx1\",\"turbo_foundation\":%s,\"turbo_video_master\":%s,\"turbo_dma\":%s,\"turbo_dma_irq\":%s,\"turbo_kanji\":%s,\"z_palette_cpu_experiment\":%s,\"z_video_experiment\":%s,\"z_multimode_experiment\":%s,\"z_internal8_experiment\":%s,\"intra_assignment_delays\":%s,\"sys_hz\":%llu,\"video_hz\":%llu,"
                     "\"time_ps\":%llu,\"sys_edges\":%llu,\"video_edges\":%llu,"
                     "\"reset_edges\":%llu,\"cpu_enables\":%llu,\"delayed_sys_edges\":%llu,"
                     "\"hs_edges\":%llu,\"vs_edges\":%llu,\"hs_period_ps\":%llu,\"vs_period_ps\":%llu,\"video_hash\":\"%016llx\","
@@ -938,7 +943,7 @@ int main(int argc, char **argv) {
                     "\"ps2_bytes_sent\":%llu,\"disk_requests\":%llu,\"disk_writes\":%llu,\"frames\":%llu,\"frame_width\":%u,\"frame_height\":%u,\"frame_hash\":\"%016llx\","
                     "\"sub_pc\":%u,\"sub_address\":%u,\"sub_control\":%u,\"sub_running\":%s,\"sub_tx_busy\":%s,\"sub_rx_empty\":%s,"
                     "\"dma_grants\":%llu,\"dma_reads\":%llu,\"dma_writes\":%llu,\"cpu_fdc_data_reads\":%llu,\"cpu_fdc_data_writes\":%llu}\n",
-                    turbo_foundation, turbo_video_master, turbo_dma, turbo_dma_irq, turbo_kanji, z_palette_cpu, z_video, z_multimode, VM_TIMING ? "true" : "false",
+                    turbo_foundation, turbo_video_master, turbo_dma, turbo_dma_irq, turbo_kanji, z_palette_cpu, z_video, z_multimode, z_internal8, VM_TIMING ? "true" : "false",
                     (unsigned long long)sys_hz,
                     (unsigned long long)video_hz, (unsigned long long)context.time(), (unsigned long long)top.sys_edges,
                     (unsigned long long)top.video_edges, (unsigned long long)top.reset_edges,

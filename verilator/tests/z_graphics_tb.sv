@@ -5,7 +5,7 @@ module z_graphics_tb;
     reg [13:0] base=0;
     reg [2:0] mode=0;
     reg screen=0,odd=0;
-    wire read_enable,valid;
+    wire read_enable,valid,internal_palette;
     wire [14:0] address;
     wire [11:0] index;
     reg [7:0] b=0,r=0,g=0;
@@ -24,7 +24,7 @@ module z_graphics_tb;
         .character_start(start),.character_load(load),.pixel_step(step),
         .base_address(base),.read_enable(read_enable),.read_address(address),
         .mode(mode),.screen(screen),.raster_odd(odd),
-        .blue_q(b),.red_q(r),.green_q(g),.palette_index(index),.index_valid(valid));
+        .blue_q(b),.red_q(r),.green_q(g),.palette_index(index),.index_valid(valid),.internal_palette(internal_palette));
     task automatic tick;
         @(posedge clk);#1;@(negedge clk);
     endtask
@@ -46,6 +46,7 @@ module z_graphics_tb;
         end
         load=1;step=1;tick();load=0;step=0;
         assert(valid) else $fatal(1,"missing complete character");
+        assert(internal_palette==(accepted_mode==4)) else $fatal(1,"wrong captured palette store");
         for(integer pixel=0;pixel<8;pixel=pixel+1) begin
             expected=0;
             for(integer lane=0;lane<4;lane=lane+1) begin
@@ -64,6 +65,7 @@ module z_graphics_tb;
                 end
             end
             assert(index==expected) else $fatal(1,"index %h != %h at base %h pixel %0d",index,expected,a,pixel);
+            assert(internal_palette==(accepted_mode==4)) else $fatal(1,"live mode redirected palette store");
             if(disturb) begin
                 mode=mode==4 ? 0 : mode+3'd1;
                 screen=~screen;odd=~odd;base=base+14'h719;

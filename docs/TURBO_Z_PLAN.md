@@ -132,6 +132,11 @@ extra GRAM. The digital RGB output reduces analog multi-mode colors to eight
   Its sixteen-case cold/warm palette matrix is running. Internal 640x400/8,
   simultaneous screen composition and native ASIC/priority gates remain open;
   this does not close Z3.
+  A separate [internal8 extension](TURBO_Z_INTERNAL8_STATUS.md) now connects
+  programmable 640x400/8 with all-pixel identity/custom retained-reset checks
+  and custom cold cross-store isolation. Exhaustive aliases/nibbles and
+  captured palette-store tags pass. Full cold/warm isolation, native/composition
+  and hardware gates remain; diagnostic formats alone do not complete Z3.
   Verify MA wrap, screen-page capacity, priority/transparency and blackclip
   before/after palette stages; compare every active pixel and native HS/VS.
 - [ ] Z4: text-display/priority control `1FC0`, analog text colors, background

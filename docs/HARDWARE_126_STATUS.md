@@ -8,7 +8,7 @@ Kernel `6.18.38-MiSTer`, root OS Buildroot 2021.02.4.
 
 ## MGLs and native boot observations
 
-### Current-source refit in progress
+### Fresh source-bound refit, not yet deployed
 
 The authorized misterubuntu checkout was clean and idle, then fast-forwarded
 to pushed source `97484109c98f8d61691ff074dcfebfb104eb8178`. Quartus 17.0.2
@@ -18,11 +18,35 @@ preflight passes. A frozen `sharpx1_turbo_single` full-flow build started at
 Input-manifest SHA-256:
 `da17fc7815a4d96f64f12a0d8bae67b939aebf27bc10e9f8923c941318e575b2`.
 Local observation log `/tmp/x1-quartus-9748410-turbo-single.log`.
-The specific `quartus_sh`/`quartus_map` processes were observed live; no
-completion, fresh RBF, all-corner timing or deployment is claimed yet.
+Full flow finishes at `2026-10-09T06:21:13Z`, exit zero, 136 warnings. Fit:
+20,403 ALMs (49%), 393 RAM blocks (71%), 3,143,528 memory bits. The fresh
+[RBF](../output_files/quartus-linux-FnvQHrn8/sharpx1_turbo_single.rbf) is locally
+available, SHA-256
+`864fe5d299771b7f88155a7ada07beb9d93203483a37193c516a13d40419119e`.
+This source predates the subsequently added internal8 simulator experiment.
 This existing revision tests default-disabled Z behavior plus the new DAM
 transaction state; it does **not** enable X3, Z palettes/modes or DMA.
-No MiSTer was contacted or loaded during this refit launch.
+Supplemental path reporting and all-corner STA finish successfully. The first
+multicorner command analyzed only four models; its original report/log remain
+preserved. A subsequent explicit `--multicorner=on --all_corners=on` analyzes
+all eight supported models. The RBF hash is unchanged. Worst constrained
+slack: setup 0.514 ns, hold 0.064 ns, recovery 4.078 ns, removal 0.317 ns,
+minimum pulse width 1.122 ns. Zero unconstrained clocks; 3 input ports / 7
+input paths and 44 output ports / 50 output paths remain unconstrained.
+No constraints changed. This is not full CDC/external-I/O/hardware signoff.
+Local evidence: `output_files/quartus-linux-FnvQHrn8/`, including original
+four-model report and distinct `eight-corners.sta.rpt`/`all-corners-eight.log`.
+
+Post-build frozen-input checking returns 1: only `sharpx1.qpf` differs among
+366 inputs, as Quartus adds its revision/date. All other 365 inputs pass.
+Generated QPF hash:
+`2477ae0a7eb559d84647efab65ec028c51ea3a0566c4062de16abf09240d78cf`.
+The failed checksum audit is retained on the build host, not rewritten as pass.
+
+Read-only status checks find mister126 running our older `X1M_20261009T005633Z_01`
+test and mister14 running SharpMZ2500. Neither is loaded or interrupted;
+availability coordination is pending before deploying this RBF. No contact
+with reserved mister192.
 
 ### Earlier hardware observations
 

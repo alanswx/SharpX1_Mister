@@ -22,7 +22,7 @@ python3 tests/test_machine_z_video.py ./obj_dir_v13_z_multimode/Vtop \
 | AEN+C64 `90h`, low scan, 40 columns | Two sources from selected SCRN display bank | Selected 320x200/64 screen; simultaneous two-screen priority not implemented |
 | AEN `80h`, low scan, 80 columns | One source from each bank, contiguous 80-byte rows | 640x200/64 |
 | AEN `80h`, high scan / SCRN `01`, 40 columns | Two sources from alternating raster banks, 16-raster rows | 320x400/64 |
-| High scan, 80 columns | Not admitted by analog output | 640x400/8 still needs internal palette |
+| High scan, 80 columns | Not admitted by ordinary multi-mode profile | Separate [internal8 extension](TURBO_Z_INTERNAL8_STATUS.md) connects 640x400/8 |
 
 Unsupported controls fall back to digital video; this is not a general native
 ASIC register decoder. Expansion/underline/blackclip remain excluded.
