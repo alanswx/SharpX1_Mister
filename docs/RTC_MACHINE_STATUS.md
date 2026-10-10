@@ -52,6 +52,12 @@ An ordinary-clock keyboard repeat
 completes zero in `/tmp/x1-rtc-keyboard-x3-controls-baseline.log`, frozen
 `keyboard-qualified-r79o5t56/`: six positives and absent-key rejection pass,
 and an independent original/frozen 136-input and 13-asset audit passes.
+The ordinary-clock elapsed/warm collector repeat also completes zero in
+`/tmp/x1-rtc-runner-x3-controls-baseline.log`, frozen
+`obj_dir_v17_rtc/qualified-hus1mnof/`. Independent auditing verifies all 138
+current/frozen inputs, three assets, both native CPU results, four rejection
+logs and the unchanged state sentinel. The X3 option does not replace or
+silently reclock the ordinary profile.
 
 ## Short reset during actual RTC/keyboard polling
 

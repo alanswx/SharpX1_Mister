@@ -20,8 +20,9 @@ independent frozen-input auditing. Fresh protected Arcus/Bastard cold/repeat
 probes are now running at that clock profile, not yet accepted as gameplay.
 Ordinary-clock short reset during RTC/keyboard polling also passes three keys
 and a no-reset rejecting control, with two actual command boots and no asset
-reupload. Its X3 repeat also passes with independent auditing. The ordinary-clock RTC runner is repeating the shared
-collector after its argument-name repair. Pending runs are not completed gates.
+reupload. Its X3 repeat also passes with independent auditing. The ordinary-clock
+RTC runner's shared-collector repeat after the argument-name repair completes
+zero with independent 138-input auditing. Pending game runs are not completed gates.
 Fresh `ef4eb22` Quartus launch attempts remain blocked by
 actual competing MacPPC7300/DSPPC604 processes; the idle-host guard refuses
 launch, so no new X1 fit, RBF or hardware result exists from those attempts.
