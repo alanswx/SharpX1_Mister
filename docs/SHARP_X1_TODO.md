@@ -18,7 +18,10 @@ The `4cd18ed` handoff flow now terminates 3: synthesis, fitting and assembly
 pass, but final STA fails a same-file Tcl helper's global-inventory dependency.
 The helper now receives its inventory explicitly; global/procedure/namespace
 scope tests preserve all 29 pairs and reject eleven controls in each context.
-Native final scope/preservation/timing and PCG-WE qualification remain open;
+The repaired helper now passes a native same-fit diagnostic and independent
+384-report audit: 928 held-budget rows and 6,560 active/raw/mode rows preserved,
+848 inactive rows explicitly excluded. Global setup/hold is -9.918/+0.031 ns.
+Fresh full-flow timing and PCG-WE qualification remain open;
 the generated RBF is unqualified and not deployed. See
 [the failed-flow checkpoint](HDMI_MODE_STATUS.md#exact-whole-bank-earlypacked-contract-qualification).
 
@@ -29,7 +32,10 @@ serial body measures 106 bytes, the full diagnostic 212 bytes, still exceeding
 the inherited 22-byte free tail. Primary Sharp pages confirm software YEAR
 initialization, not native mailbox ordering or YEAR retention. Full firmware
 space/decoding, command integration, IRQ/carry/reset/power policies and native
-acceptance remain open. See [driver evidence](RTC_COMMAND_STATUS.md#counted-assembly-driver-execution-and-measured-space-requirement).
+acceptance remain open. An isolated non-overlapping extra-ROM prototype now
+passes exhaustive decoding and banked driver execution; it is not connected to
+the inherited firmware, shared machine or boards. See
+[driver evidence](RTC_COMMAND_STATUS.md#banked-rom-capacity-prototype-not-machine-integration).
 
 The RTC firmware rebuild dependency now has a tested restricted replacement
 assembler: the unchanged inherited source reproduces all 4,096 ROM bytes,

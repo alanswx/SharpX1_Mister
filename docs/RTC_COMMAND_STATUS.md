@@ -506,6 +506,36 @@ The PDFs remain unchanged/local/ignored; identities are recorded in
 unresolved. Do not replace the current byte-preservation contract with an
 assumed native date order or promote this counted driver to a machine RTC fix.
 
+### Banked ROM capacity prototype, not machine integration
+
+`rtl/x1_mr16_rom_decode.sv` defaults to the inherited memory aliases. Its
+separate extended mode selects ROM at 0000–0FFF and 4000–4FFF, RAM at
+1000–1FFF, and disables other memory aliases. This is a replacement-MR16
+experiment, not a native MCU or Z80 address-map claim. It is absent from the
+shared machine manifest and all board revisions; GPIO aliases are unaffected.
+
+`make -C verilator test-mr16-rom-decode` passes all 131,072 address/CS cases.
+`test-rtc-mr16-banked` executes the counted driver at 4000/400E/403A through
+real MR16 CALL/RET, stack and RAM at CE=1 and CE=1/32. Independent clock
+advancement with stopped controller CE and retained-controller warm reset pass.
+Wrong serial phase, CPU-gated ticking and dropped ROM bank-bit controls fail
+at their required phases. The original-layout compact driver also passes a
+fresh regression with the decoder disabled.
+
+Frozen banked evidence:
+`verilator/obj_dir_headless/rtc-mr16-banked-1/qualified-6o65jksw/`;
+log `/tmp/x1-rtc-mr16-banked-first.log`. Packed 8-KiB ROM SHA-256:
+`16924544b0487dc5e1dba1c240a7cda1d499052d5360b70aa7a81046af93196c`.
+Original-layout evidence:
+`verilator/obj_dir_headless/rtc-mr16-compact-1/qualified-du_n8fy8/`;
+log `/tmp/x1-rtc-mr16-compact-decode-regression.log`. Independent audits check
+unchanged before/after manifests, frozen source/executable hashes, both positive
+logs and all three required rejecting phases in each run.
+
+This proves a capacity/decode prototype, not compatibility of an extended
+inherited firmware image. Real mailbox callbacks, FDC/DMA coexistence,
+year/power policy and whole-machine elapsed-time acceptance remain open.
+
 ### Remaining integration order
 
 1. Finish tracing controller year storage and power retention; reconcile

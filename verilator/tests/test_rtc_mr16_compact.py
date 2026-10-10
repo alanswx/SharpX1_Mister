@@ -17,15 +17,19 @@ def digest(path):
 
 
 def main():
-    assert len(sys.argv) == 4, "expected retained CE=1, retained CE=32 and unretained CE=32 runners"
-    runners = [pathlib.Path(arg).resolve() for arg in sys.argv[1:]]
+    arguments = sys.argv[1:]
+    extended = bool(arguments and arguments[0] == "--extended")
+    if extended:
+        arguments = arguments[1:]
+    assert len(arguments) == (2 if extended else 3), "expected retained CE=1/32, and unretained CE=32 for legacy mode"
+    runners = [pathlib.Path(arg).resolve() for arg in arguments]
     folder = pathlib.Path(tempfile.mkdtemp(prefix="qualified-", dir=runners[0].parent))
     inputs = [ROOT / "scripts/assemble_mr16.py", pathlib.Path(__file__).resolve(),
               ROOT / "verilator/tests/fixtures/rtc_mr16_compact.asm",
               ROOT / "verilator/tests/rtc_mr16_compact_tb.sv"]
     inputs += [ROOT / "rtl" / name for name in (
         "mr16core.v", "mr16_x1.v", "x1_rtc_clock_enable.sv", "x1_cz880_rtc.sv",
-        "x1_upd1990_counter.sv", "x1_upd1990_calendar.sv")]
+        "x1_upd1990_counter.sv", "x1_upd1990_calendar.sv", "x1_mr16_rom_decode.sv")]
     inputs += [ROOT / "verilator/Makefile", *runners]
     before = {str(path): digest(path) for path in inputs}
     for i, path in enumerate(inputs):
@@ -36,23 +40,40 @@ def main():
         shutil.copy2(runner, frozen)
         frozen_runners.append(frozen)
     rom = folder / "driver.mem"
-    subprocess.run([sys.executable, str(ROOT / "scripts/assemble_mr16.py"), str(inputs[2]),
-                    "--output-mem-new", str(rom)], check=True)
-    image, symbols, _ = assemble(inputs[2])
+    if extended:
+        original = inputs[2].read_text()
+        assert original.count("\nrtc_mode:\n") == 1, "ambiguous driver relocation anchor"
+        program = folder / "banked.asm"
+        program.write_text(original.replace("\nrtc_mode:\n", "\n    org 4000h\nrtc_mode:\n"))
+        flat_image, symbols, _ = assemble(program, rom_size=20480)
+        # Pack only the two permitted 4-KiB CPU regions, not RAM or holes.
+        image = flat_image[:4096] + flat_image[16384:20480]
+        assert len(image) == 8192 and symbols["rtc_mode"] == 0x4000 and symbols["code_end"] == 0x4070
+        with rom.open("x") as output:
+            output.writelines(f"{int.from_bytes(image[i:i+2], 'little'):04x}\n" for i in range(0, len(image), 2))
+    else:
+        program = inputs[2]
+        subprocess.run([sys.executable, str(ROOT / "scripts/assemble_mr16.py"), str(program),
+                        "--output-mem-new", str(rom)], check=True)
+        image, symbols, _ = assemble(program)
     widths = {"mode": symbols["rtc_write40"] - symbols["rtc_mode"],
               "write40": symbols["rtc_read40"] - symbols["rtc_write40"],
               "read40": symbols["driver_end"] - symbols["rtc_read40"]}
     assert widths == {"mode": 14, "write40": 44, "read40": 48}, widths
-    assert symbols["code_end"] == 212, "compact fixture ROM budget changed"
+    if not extended:
+        assert symbols["code_end"] == 212, "compact fixture ROM budget changed"
     manifest = {"source_hashes": before, "rom_mem_sha256": digest(rom),
                 "rom_image_sha256": hashlib.sha256(image).hexdigest(),
-                "serial_routine_bytes": widths, "fixture_bytes": symbols["code_end"],
+                "serial_routine_bytes": widths, "code_end": symbols["code_end"],
+                "extended": extended, "linked_source_sha256": digest(program),
+                "packed_rom_bytes": len(image),
                 "scope": "replacement-MR16 counted driver only; no shared-machine/year/IRQ/native MCU acceptance"}
     (folder / "manifest-before.json").write_text(json.dumps(manifest, indent=2) + "\n")
     cases = [("retained-ce1", 0, [], None), ("retained-ce32", 1, [], None),
              ("wrong-t1", 1, ["+NEGATIVE_T1"], "packed readback mismatch"),
-             ("cpu-gated-crystal", 1, ["+NEGATIVE_CLOCK"], "stopped-controller mismatch"),
-             ("unretained-ce32", 2, [], "program mismatch")]
+             ("cpu-gated-crystal", 1, ["+NEGATIVE_CLOCK"], "stopped-controller mismatch")]
+    cases += [("rom-bank-alias", 1, ["+NEGATIVE_BANK"], "program mismatch")] if extended else [
+        ("unretained-ce32", 2, [], "program mismatch")]
     for label, index, flags, expected_failure in cases:
         result = subprocess.run([str(frozen_runners[index]), f"+ROM={rom}", *flags],
                                 capture_output=True, text=True, cwd=folder)
@@ -64,12 +85,13 @@ def main():
         print(f"PASS: {label} {'executes driver' if expected_failure is None else 'rejected at required phase by unchanged oracle'}", flush=True)
     assert before == {str(path): digest(path) for path in inputs}, "source/runner changed during qualification"
     assert manifest["rom_mem_sha256"] == digest(rom), "assembled diagnostic changed during qualification"
+    assert manifest["linked_source_sha256"] == digest(program), "linked source changed during qualification"
     for i, path in enumerate(inputs):
         assert digest(folder / f"input-{i}-{path.name}") == before[str(path)], "frozen input changed"
     for i, path in enumerate(runners):
         assert digest(frozen_runners[i]) == before[str(path)], "frozen executable changed"
     (folder / "manifest-after.json").write_text(json.dumps(manifest, indent=2) + "\n")
-    print(f"PASS: compact serial routines total {sum(widths.values())} bytes; complete fixture 212 bytes; frozen provenance {folder}")
+    print(f"PASS: compact serial routines total {sum(widths.values())} bytes; {'banked at 4000-4FFF' if extended else 'complete fixture 212 bytes'}; frozen provenance {folder}")
 
 
 if __name__ == "__main__":

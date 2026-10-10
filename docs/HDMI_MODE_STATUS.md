@@ -1005,6 +1005,37 @@ four invalid source/artifact controls. Those synthetic checks are not native
 timing evidence. The candidate remains absent from every QSF/SDC include;
 fresh fitting, controller/clock-pin and physical qualification remain open.
 
+## Fresh fitted profile and native helper-context diagnostic
+
+Completed-fit discovery on the `4cd18ed` snapshot identifies a third exact
+prefetch profile: ASDATA on `hdmi_dv_hs`, `hdmi_dv_de`, and data bits 0, 6, 17;
+the other nineteen prefetch inputs use D. The output-bank inventory is unchanged.
+The inactive candidate accepts only three complete observed signatures, never
+independent per-bit alternatives. Local checks pass all three exact 77-cut lists,
+twenty original negative controls per profile and 2,045 invalid mixed signatures.
+
+The first native context probe rejects the previously unknown profile before
+applying cuts. A second probe fails on a reporter Tcl `else` syntax error;
+both failed diagnostics are retained and are not acceptance evidence.
+The corrected v3 diagnostic completes with zero errors/warnings and an
+independent 384-report audit. BEFORE loads the original held helper globally
+for diagnostic comparison and explicitly omits inactive cuts; AFTER uses
+native `read_sdc` with the repaired inventory argument and third-profile cuts.
+This does not retroactively make the original failed full STA successful.
+
+Across eight corners/setup/hold, 928 held-budget rows and 6,560 active/raw/mode
+rows are unchanged; 848 inactive rows are explicitly EXCLUDED, not timing passes.
+Global setup/hold remains **-9.918/+0.031 ns**. All eleven source/original-artifact
+hashes match before/after; the original unqualified RBF remains
+`38a779e9e6e72ea80d8d19087b32978e705b192b14573f180248496b027fb8ee`.
+
+Evidence: `/tmp/x1-held-sdc-native-context-d02ee67-v3.log` and ignored
+`output_files/held-sdc-context-d02ee67-v3/reports/`.
+Reporter: `scripts/quartus_held_sdc_context_probe.tcl`; independent auditor:
+`scripts/audit_held_sdc_context_probe.py`. Fresh source-bound full flow,
+PCG-WE timing, CDC/MTBF/I/O and physical switching remain required. No new
+MiSTer deployment or timing-qualified RBF is claimed.
+
 ## Current-fit gate/witness and inactive-bank discovery
 
 The existing read-only controller inventory repeats on the preserved

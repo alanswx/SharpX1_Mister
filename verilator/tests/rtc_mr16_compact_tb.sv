@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 // Original compact assembled-driver execution, not shared-machine RTC support.
 `timescale 1ps/1ps
-module rtc_mr16_compact_tb #(parameter CE_DIVISOR=1, RETAIN_RESPONSE=1);
+module rtc_mr16_compact_tb #(parameter CE_DIVISOR=1, RETAIN_RESPONSE=1, EXTENDED_ROM=0);
     bit clk=0,reset=1,power_reset=1,running=1,ready=0;
     longint unsigned cycles=0;
     wire ce=running && cycles%CE_DIVISOR==0;
@@ -10,8 +10,12 @@ module rtc_mr16_compact_tb #(parameter CE_DIVISOR=1, RETAIN_RESPONSE=1);
     wire write_enable,memory_cs,t1,oscillator_ce;
     wire [39:0] calendar;
     wire valid;
-    bit bad_t1=0,bad_clock=0;
-    logic [15:0] rom[2048],ram[2048];
+    bit bad_t1=0,bad_clock=0,bad_bank=0;
+    logic [15:0] rom[4096],ram[2048];
+    wire rom_cs,ram_cs;
+    wire [11:0] rom_address;
+    x1_mr16_rom_decode #(.EXTENDED(EXTENDED_ROM)) decoder(.address(address),
+        .memory_cs(memory_cs),.rom_cs(rom_cs),.ram_cs(ram_cs),.rom_word_address(rom_address));
     bit [2:0] stores=0;
     integer stack_writes=0,stack_reads=0;
     string rom_path;
@@ -31,8 +35,9 @@ module rtc_mr16_compact_tb #(parameter CE_DIVISOR=1, RETAIN_RESPONSE=1);
         .O_I4(),.O_I5(),.O_I6(),.O_I7(),.O_I8(),.O_I9(),.O_IA(),.O_IB(),
         .I_INT(4'd0),.O_ACK());
     always @(posedge clk) begin
-        memory_data <= address[12] ? ram[address[11:1]] : rom[address[11:1]];
-        if(!reset && memory_cs && write_enable && address[12]) begin
+        memory_data <= ram_cs ? ram[address[11:1]] : rom_cs ?
+            rom[bad_bank ? {1'b0,rom_address[10:0]} : rom_address] : 16'hffff;
+        if(!reset && ram_cs && write_enable) begin
             ram[address[11:1]] <= write_data;
             if(address>=16'h1020 && address<=16'h1024)
                 stores[(int'(address)-32'h00001020)/2] <= 1'b1;
@@ -46,8 +51,10 @@ module rtc_mr16_compact_tb #(parameter CE_DIVISOR=1, RETAIN_RESPONSE=1);
     initial begin
         bad_t1=$test$plusargs("NEGATIVE_T1");
         bad_clock=$test$plusargs("NEGATIVE_CLOCK");
+        bad_bank=$test$plusargs("NEGATIVE_BANK");
         assert($value$plusargs("ROM=%s",rom_path)) else $fatal(1,"compact MR16 missing assembled ROM");
-        for(integer i=0;i<2048;i++) begin rom[i]=16'h3f00;ram[i]=0;end
+        for(integer i=0;i<4096;i++) rom[i]=16'h3f00;
+        for(integer i=0;i<2048;i++) ram[i]=0;
         $readmemh(rom_path,rom);
         assert(rom[0]==16'h0010) else $fatal(1,"compact MR16 reset vector mismatch");
         repeat(8) step();power_reset=0;reset=0;
@@ -72,7 +79,7 @@ module rtc_mr16_compact_tb #(parameter CE_DIVISOR=1, RETAIN_RESPONSE=1);
             else $fatal(1,"compact MR16 RTC packed readback mismatch %h %h %h",ram[16],ram[17],ram[18]);
         assert(stack_writes>=8 && stack_reads>=8)
             else $fatal(1,"compact MR16 stack call/return coverage mismatch %0d %0d",stack_writes,stack_reads);
-        $display("PASS: compact assembled real MR16 CE=%0d retain=%0d actual calls/stack/packed RAM, retained-controller reset, two seconds independent of stopped CE; machine/year/IRQ separate",CE_DIVISOR,RETAIN_RESPONSE);
+        $display("PASS: compact assembled real MR16 CE=%0d retain=%0d extended=%0d actual calls/stack/packed RAM, retained-controller reset, two seconds independent of stopped CE; machine/year/IRQ separate",CE_DIVISOR,RETAIN_RESPONSE,EXTENDED_ROM);
         $finish;
     end
 endmodule

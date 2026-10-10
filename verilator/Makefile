@@ -1710,7 +1710,7 @@ test-mr16-assembler:
 	python3 ../scripts/assemble_mr16.py ../bios/reference/fw_subcpu/x1sub.asm --check-rom ../rtl/sub_rom.v
 .PHONY: test-mr16-assembler
 
-RTC_COMPACT_SOURCES = tests/rtc_mr16_compact_tb.sv ../rtl/mr16core.v ../rtl/mr16_x1.v ../rtl/x1_rtc_clock_enable.sv ../rtl/x1_cz880_rtc.sv ../rtl/x1_upd1990_counter.sv ../rtl/x1_upd1990_calendar.sv
+RTC_COMPACT_SOURCES = tests/rtc_mr16_compact_tb.sv ../rtl/mr16core.v ../rtl/mr16_x1.v ../rtl/x1_rtc_clock_enable.sv ../rtl/x1_cz880_rtc.sv ../rtl/x1_upd1990_counter.sv ../rtl/x1_upd1990_calendar.sv ../rtl/x1_mr16_rom_decode.sv
 test-rtc-mr16-compact: $(HEADLESS_DIR)/rtc-mr16-compact-1/Vrtc_mr16_compact_tb $(HEADLESS_DIR)/rtc-mr16-compact-32/Vrtc_mr16_compact_tb $(HEADLESS_DIR)/rtc-mr16-compact-unretained/Vrtc_mr16_compact_tb
 	ulimit -c 0; python3 tests/test_rtc_mr16_compact.py $^
 $(HEADLESS_DIR)/rtc-mr16-compact-%/Vrtc_mr16_compact_tb: $(RTC_COMPACT_SOURCES) Makefile
@@ -1722,6 +1722,22 @@ $(HEADLESS_DIR)/rtc-mr16-compact-unretained/Vrtc_mr16_compact_tb: $(RTC_COMPACT_
 	$(V) --binary --timing --assert --top-module rtc_mr16_compact_tb --Mdir $(@D) \
 	  -GCE_DIVISOR=32 -GRETAIN_RESPONSE=0 -j 4 $(RTC_COMPACT_SOURCES) -Wno-fatal
 .PHONY: test-rtc-mr16-compact
+
+test-mr16-rom-decode: $(HEADLESS_DIR)/mr16-rom-decode/Vmr16_rom_decode_tb
+	./$<
+$(HEADLESS_DIR)/mr16-rom-decode/Vmr16_rom_decode_tb: tests/mr16_rom_decode_tb.sv ../rtl/x1_mr16_rom_decode.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module mr16_rom_decode_tb --Mdir $(@D) \
+	  -j 4 tests/mr16_rom_decode_tb.sv ../rtl/x1_mr16_rom_decode.sv
+.PHONY: test-mr16-rom-decode
+
+test-rtc-mr16-banked: test-mr16-rom-decode $(HEADLESS_DIR)/rtc-mr16-banked-1/Vrtc_mr16_compact_tb $(HEADLESS_DIR)/rtc-mr16-banked-32/Vrtc_mr16_compact_tb
+	ulimit -c 0; python3 tests/test_rtc_mr16_compact.py --extended $(filter %/Vrtc_mr16_compact_tb,$^)
+$(HEADLESS_DIR)/rtc-mr16-banked-%/Vrtc_mr16_compact_tb: $(RTC_COMPACT_SOURCES) Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module rtc_mr16_compact_tb --Mdir $(@D) \
+	  -GCE_DIVISOR=$* -GRETAIN_RESPONSE=1 -GEXTENDED_ROM=1 -j 4 $(RTC_COMPACT_SOURCES) -Wno-fatal
+.PHONY: test-rtc-mr16-banked
 
 test: headless test-rgb12 test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner test-d88-crc test-d88-metadata test-cpu-busreq
 	python3 tests/test_joystick_schedule.py ./$(HEADLESS_EXE)
