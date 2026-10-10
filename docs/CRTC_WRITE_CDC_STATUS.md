@@ -96,8 +96,19 @@ all seven requested feature flags and nominal clock checks before the first
 pixel case. Runner SHA-256:
 `46ecba0cc7d69c80480b012856e585b19984f89d02f734363cd498100b92e1d9`.
 The runner, oracle, emitter, scheduler, font reference and RTL copies are
-frozen; scheduler checks input hashes before/after each case. Started is not
-completed. Fresh combined-Z pixels,
+frozen; scheduler checks input hashes before/after each case. This run now
+terminates zero with **120/120** original diagnostic cases. Independent final
+auditing confirms ordered case/completion identity, before/after input equality,
+all four frozen executable/oracle/emitter/font hashes, all 120 exact actual/
+expected PPM comparisons, and actual SYS/video frequencies plus all seven
+feature/delay flags. Oracle SHA-256:
+`1e03a9ecd39af3f049ef924db059c5bd5827c10879e479a593181da517009117`;
+emitter `8dcc3c61cf7127ef36e374f8926ac6face79f36e588506cc5c39f0c9e1fc5ee2`;
+ANK reference `68aa689abd81c1a620980b5318b669b292a72d4877916ec43dc2461d713c831b`.
+This qualifies the frozen CRTC-era executable, **not** the later PCG local-reset
+repair or current HEAD. Its 120-case replacement under
+`z-pcg-local-reset-combined/qualified-inputs-Eqh95G/all-120/` remains running.
+Fresh post-repair combined-Z pixels,
 commercial/native Turbo software, physical reset/input/audio and current-source
 Quartus fitting/timing remain required. Commit `72b77c4` has started a frozen
 `sharpx1_turbo_z_video` build on idle `misterubuntu`, under

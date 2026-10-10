@@ -320,6 +320,12 @@ now schedules 120 cold/warm, identity/custom, bank/priority/text/reverse cases
 on the frozen ownership-corrected runner. Enumeration passes; actual execution
 has started, not completed. Native Z and hardware gates remain separate.
 
+October 9 continuation: the later frozen CRTC-era 120-case matrix now finishes
+zero, with independent ordered-case/input-hash/exact-pixel/actual-profile
+checks for every case. See `CRTC_WRITE_CDC_STATUS.md`. It predates the local
+PCG-reset repair; that fresh 120-case matrix is still running. Do not promote
+the completed historical executable to current-source or native Z acceptance.
+
 The shared-SIO increment now requalifies all five commercial titles from fresh v15
 native boot: Druaga, Xevious, Mappy and Galaga movement, Galaga firing, and
 Shanghai cursor/matching-pair removal. Exact RGB/dump/state/report and private

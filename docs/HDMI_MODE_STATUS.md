@@ -1171,6 +1171,57 @@ experimental build selection, not fitted timing or physical acceptance.
 A fresh exact-source full flow must reprove keeper/pin packing and stage/
 active timing; previous fitted topology is not automatically inherited.
 
+## Source-bound fit failure and stage-safe discovery (October 9)
+
+The fresh `db2dc8c` handoff attempt in
+`quartus-linux-H1XpgcbN/source` completes synthesis but terminates three at
+the inactive-data candidate's strict pin guard. Prefetch bit 0 exposes `|d`
+instead of the earlier fit's `|asdata`; constraints are not loaded successfully.
+No new RBF/timing/PCG qualification is established. Log:
+`/tmp/x1-quartus-db2dc8c-handoff-retry.log`.
+
+New reporting-only `scripts/quartus_hdmi_mapped_data_inventory.tcl` enumerates
+targets, synchronous drivers and physical pins **without SDC or exceptions**.
+The preserved failed build's genuine mapped discovery completes zero with
+51 keepers and 77 D/ASDATA pins. Its seven previously ASDATA-only prefetch
+keepers now use D: bits 0/1/10/12/15/16/21. Historical `ce2eba8` fitted
+discovery also completes zero with 51 keepers/77 data pins and the original
+seven-ASDATA layout. These counts are inventory, not timing acceptance or
+permission to accept arbitrary pin packing.
+
+An attempted `-post_map` query of that completed historical database emits
+Critical Warning 332199: the option is ignored after fitting. That transcript
+is **not mapped evidence** and cannot establish a same-stage comparison.
+The tightened script now rejects a mapped request when the fitter summary
+is Successful, and rejects fitted requests without a successful summary.
+Both wrong-stage controls terminate three at their precise guards; correct
+mapped/fitted modes complete zero. Any ignored-option warning must still
+invalidate a reported mapped stage. Five ordinary PLL warnings in the failed
+build's discovery are retained, not suppressed or confused with timing passes.
+
+Current script SHA-256:
+`d431a2f6ad4ed0b51341e53da50156c4c60fc79509226a6332d3070c67bae180`.
+Logs: `/tmp/x1-hdmi-mapped-db2dc8c-discovery-v3.log`,
+`/tmp/x1-hdmi-fitted-ce2eba8-discovery-v3.log`, and
+`/tmp/x1-hdmi-{ce2eba8,db2dc8c}-wrong-stage-negative-v3.log`.
+The controller/machine/QSF source hashes in both snapshots remain consistent
+with their input manifests, and the historical RBF remains
+`6388008ee87bb1b5cff9b6ff108fc0d9cf1d84e45299e8336db2298ad212cb8d`.
+No candidate SDC or board setting has been relaxed or changed.
+
+A matched synthesis-only copy of the old source is now running in a new
+ignored snapshot, `hdmi-synthesis-stage-u9a2sxvJ/source`, with no original DB
+copied. Its first direct `quartus_map` attempt failed before synthesis because
+it skips the normal flow's generated `build_id.v` hook. The exact historical
+generated header was then copied (SHA-256
+`1129592d58d7243fb463315e148909ab7b4035ce090d35bdd499dee7f26e2824`),
+and the retry started after another idle-host check. It is needed to obtain
+honest early-netlist evidence rather than relabeling the historical fit.
+Logs: `/tmp/x1-hdmi-ce2eba8-fresh-synthesis-stage.log` and
+`/tmp/x1-hdmi-ce2eba8-fresh-synthesis-stage-with-id.log`. Mapping completion,
+stage discovery, any revised exact pin contract and before/after active/raw
+scope auditing remain required before another selected full build.
+
 ## Next gates
 
 ### Unselected csync first-stage proposal
