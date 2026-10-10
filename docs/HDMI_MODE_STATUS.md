@@ -1173,6 +1173,27 @@ active timing; previous fitted topology is not automatically inherited.
 
 ## Next gates
 
+### Unselected csync first-stage proposal
+
+`scripts/constraints/hdmi_csync_input_candidate.sdc` now prepares four narrow
+registered-source/first-stage exclusions for the coherent policy bridge:
+epoch to VID, held csync to VID, completed epoch to SYS, and consumed csync
+echo to SYS. Exact scalar identities, unreviewed replicas, registered data
+drivers and first-stage-only fanouts are guarded for every triple before any
+proposed exclusion is issued. Stage transfers, native HS, CE captures,
+return-policy consumers and other crossings remain timed. No QSF selects it.
+
+The earlier `ce2eba8` native csync inventory already proves the corresponding
+four drivers/fanouts and 912 bounded stage/consumer rows for that fit, but
+does not qualify these new exception semantics. The new CI-integrated scope
+test passes four exact proposed cuts and 44 invalid identity/replica/driver/
+fanout controls, including faults in later triples refusing every cut.
+Log `/tmp/x1-csync-input-scope.log`; candidate SHA-256
+`7ee95fffde5d3599758f605d76a0d5fc369700f59195fa81e8f8a583029ba022`.
+Native before/after source/artifact auditing, unchanged synchronous/active
+paths, placement/MTBF and fresh fitting remain required before selection.
+This is preparation, not raw-input timing or physical acceptance.
+
 1. Establish an actually supported mode-sensitive STA method or a narrow
    output-routing proposal; validate all active data/sync paths in both clock
    selections and preserve unrelated master-clock crossings. Do not substitute

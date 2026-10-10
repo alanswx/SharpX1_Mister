@@ -118,6 +118,12 @@ keepers, exact raw/local-reset sources and 64 corner reports. Its mocked
 scope/negative regression passes in CI's target; no native timing pass is
 claimed. Execute and independently audit it on the next completed fit.
 
+A separate unselected csync input proposal now guards exactly four registered
+source-to-first-stage pairs. Its scope tests pass 44 invalid cases without
+partial cuts and keep every QSF unchanged. Native before/after preservation,
+placement/MTBF and fresh fitting remain required; stage/consumer timing is
+not excluded. See `HDMI_MODE_STATUS.md` for the bounded scope and provenance.
+
 Fresh extracted native-policy runs now check 396 held-mode changes while
 blanked with a closed output clock, including synthetic delayed-policy cases.
 Minimum quiet time is 96,873 ps, above the three-control-period requirement;
