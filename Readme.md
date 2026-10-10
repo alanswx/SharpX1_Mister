@@ -119,8 +119,10 @@ The fresh full ordinary delay-aware regression also finishes zero with 143
 PASS reports and an unchanged runner hash; Turbo/Z native and hardware
 acceptance remain separate. See [baseline evidence](docs/BASELINE_V17_STATUS.md).
 The fresh fast/snapshot/SDL suite also passes (140 reports); eighteen logged
-video cases match the delay-aware run. Fresh five-title native-boot gameplay
-collectors are running, not completed; optional Turbo/Z gates remain open.
+video cases match the delay-aware run. All five fresh ordinary native-boot
+gameplay collectors now finish zero, with thirty native-prefix state hashes
+and all 646 frozen inputs independently checked. Optional Turbo/Z and
+hardware gates remain open; see [the current game evidence](docs/BASELINE_V17_STATUS.md#fresh-five-title-launch-after-local-reset-repair).
 
 Its isolated real-PLL controller maps/fits; a fitted-feedback audit led to an
 explicit falling-edge closure witness. Current native cases pass, while raw

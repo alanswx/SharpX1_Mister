@@ -138,6 +138,14 @@ reports match the fresh delay-aware run. Five new release-bound native-boot
 commercial collectors are now running from a checked frozen input tree;
 they are started, not yet gameplay passes. See `BASELINE_V17_STATUS.md`.
 
+Those five current-source collectors subsequently all terminate zero.
+Independent inspection verifies thirty native-prefix reports/state hashes,
+all original media/ROM/key hashes, six identical executable hashes, successful
+control results and Galaga's separate firing result. The full 646-entry frozen
+manifest still matches after completion. This closes the fresh ordinary
+five-title requalification gate, not Turbo/Z gameplay, whole-game completion
+or any physical/timing gate. See `BASELINE_V17_STATUS.md` for exact scope.
+
 Fresh extracted native-policy runs now check 396 held-mode changes while
 blanked with a closed output clock, including synthetic delayed-policy cases.
 Minimum quiet time is 96,873 ps, above the three-control-period requirement;

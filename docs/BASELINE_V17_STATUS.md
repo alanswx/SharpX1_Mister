@@ -118,3 +118,28 @@ is used. Logs: `/tmp/x1-pcg-reset-games-{xevious,druaga,mappy,galaga,shanghai}.l
 Started is not gameplay acceptance. Earlier five-title passes remain
 historical for their frozen runners; these new results, full input checks,
 Turbo/Z native software and hardware gates remain separate.
+
+### Completed current-source five-title qualification
+
+All five collectors subsequently finish with observed exit zero. Independent
+inspection checks their final `gameplay_verified`/`unchanged_inputs` flags,
+zero control return codes, original asset hashes and all six root/per-title
+executable hashes against `88bb30c8...f45ac69`. All **30** native-prefix saved
+state hashes and actual stdout JSON reports match the recorded evidence:
+Xevious 4, Druaga 5, Mappy 6, Galaga 10 and Shanghai 5. Each prefix has ordinary
+profile flags, SYS=32 MHz/VID=28,571,428 Hz, no disk writes, no injected RAM,
+and an exact predecessor-state chain starting from the ioctl-loaded IPL.
+The complete **646-entry** frozen input manifest passes after all runs:
+`/tmp/x1-pcg-reset-games-final-inputs.log`.
+
+Xevious right moves `(30,40)` to `(36,40)`; Druaga left `(68,32)` to `(67,32)`;
+Mappy left `(129,84)` to `(126,84)`; Galaga right `(32,24)` to `(40,24)`.
+Galaga additionally has an active enemy wave, successful separate fire check
+and projectile travel `(33,12)` to `(33,8)`. Shanghai moves the native cursor
+`(488,167)` to `(544,160)` and removes the selected matching pair (`0` to `2`).
+The original control helpers enforce RGB/RAM/state/report repeatability and
+unchanged assets; all terminal PASS lines are inspected. These are bounded
+ordinary fast-model gameplay checks on freshly native-booted states, not
+delay-aware commercial gameplay, full-game completion, Turbo/Z software,
+Quartus timing or physical MiSTer acceptance. Private states/media remain
+ignored and are neither converted nor bundled.
