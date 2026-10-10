@@ -176,10 +176,31 @@ completed suite. A rerun adds only an explicit 16,000,000-reference-cycle
 (500-ms) case budget, keeping the default 8,000,000 unchanged and every payload/
 status assertion intact. The same frozen runner hash is
 `c244826e3f9da196276431ceb4e3ce7b7f8a1d0d849b4e8af977c99c27ca76cc`.
-The formerly failing deleted-16 case now passes; the broader rerun is still
-active in `/tmp/x1-machine-fdc-timing-cpu1m-disk-16m.log`. This is evidence of
-an insufficient original window for that case, not a relaxed byte deadline
-or full enabled-profile acceptance.
+The full rerun now finishes exit zero with 40 PASS reports (including its final
+summary) in `/tmp/x1-machine-fdc-timing-cpu1m-disk-16m.log`. This includes the
+formerly failing deleted-16 case, variable/multiple-sector/deleted reads,
+warm reset, side/READ ADDRESS/CRC/RNF/density/status isolation, protected and
+cross-block writes/readback, metadata/remount and dump CRC cases. Original
+media hashes and every payload/status assertion remain unchanged. This is
+actual CPU/SD coverage at the explicit 1-MHz experimental rate, not DMA,
+native MB8877A failure-edge/mechanical timing or board acceptance.
+
+The first connected-source ordinary delay-aware `make test` stops at the
+intentional runner-coverage assertion: its 31-recipe inventory excludes the
+new 32nd FDC recipe. Preserve `/tmp/x1-fdc-machine-connected-default-timing.log`;
+it is not a completed regression or an RTL failure. The reviewed fixture now
+requires exactly 32 recipes and explicit FDC rate/DMA flags and isolated
+default paths. The actual nested-object isolation check passes with the same
+matched parent-reuse negative in `/tmp/x1-fdc-machine-isolation-32.log`.
+A stronger four-profile expanded-Make-command gate now passes ten exact
+mutation rejections: missing `-B`, aliased directories/Mdir, conflicting or
+mismatched RTL/C++ rate/DMA flags. It checks every CFLAGS group and four
+distinct expanded directories, not a literal-name count. It is connected to
+`test-runner-build-isolation`; the combined actual-object/dry-run gate finishes
+zero in `/tmp/x1-fdc-machine-isolation-expanded.log`. This proves configuration
+and object isolation, not four actual machine compilations. The full ordinary
+delay-aware rerun remains active in
+`/tmp/x1-fdc-machine-connected-default-timing-repaired.log`.
 
 ## Remaining acceptance
 

@@ -5,6 +5,7 @@ import argparse
 import re
 import subprocess
 import tempfile
+import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 lines = (ROOT / 'Makefile').read_text().splitlines()
@@ -20,7 +21,18 @@ for line in lines:
     if '$(V_SRC) sim_headless.cpp' in command:
         recipes.append(command)
     command = ''
-assert len(recipes) == 31, 'runner recipe coverage changed; review new profiles'
+assert len(recipes) == 32, 'runner recipe coverage changed; review new profiles'
+# The new opt-in FDC recipe must not borrow a different rate/DMA model or
+# report a C++ profile that disagrees with its elaborated RTL parameters.
+fdc_recipes = [command for command in recipes if '-GTURBO_FDC_TIMING=1' in command]
+assert len(fdc_recipes) == 1, 'fixed FDC profile recipe missing/duplicated'
+fdc_recipe = fdc_recipes[0]
+for required in ('-GFDC_CLOCK_HZ=$(FDC_CLOCK_HZ)', '-GTURBO_DMA=$(FDC_TIMING_DMA)',
+                 '-DX1_FDC_TIMING_EXPERIMENT', '-DX1_FDC_CLOCK_HZ=$(FDC_CLOCK_HZ)',
+                 '$(if $(filter 1,$(FDC_TIMING_DMA)),-DX1_TURBO_DMA,)'):
+    assert required in fdc_recipe, 'fixed FDC RTL/C++ profile flag mismatch: ' + required
+assert 'FDC_TIMING_DIR ?= obj_dir_v17_fdc_timing_$(FDC_CLOCK_HZ)_dma$(FDC_TIMING_DMA)' in lines, \
+    'fixed FDC default output must isolate rate and DMA'
 for command in recipes:
     flags = re.findall(r'-MAKEFLAGS "([^"]*)"', command)
     assert len(flags) == 1 and '-B' in flags[0].split(), 'runner must have one preserved make-flags group with -B'
@@ -81,3 +93,5 @@ assert hashes == {str(path): hashlib.sha256(pathlib.Path(path).read_bytes()).hex
 print('PASS actual nested-Mdir isolation: forced child reports own CPP/RTL profile, parent objects/binary unchanged')
 print('MATCHED unforced build isolation negative: ' + unforced if unforced != '2 23' else 'NOTE upstream already isolates unforced child; no borrowed-object negative claimed')
 print('Evidence:', folder)
+subprocess.run([sys.executable, str(ROOT / 'tests/test_fdc_runner_profile.py')],
+               check=True)

@@ -315,3 +315,54 @@ external MacPPC7300 Quartus flow still active (shell PID 2167630, STA PID
 No new native/compile process launches. A fresh committed-source full flow
 remains required before this candidate can produce another accepted build;
 no new RBF is loaded.
+
+### Fresh 5afb059 source-bound launch
+
+The host subsequently becomes idle. Exact
+`5afb059b1a337ea92e3e9ff0cae147d83f40aadf` passes its 96 native reset cases,
+six normal and six synthetic-skew policy cases, all terminal exit zero.
+Main reads the raw completed footers/terminal records and compares native
+source/runtime manifests unchanged. Normal still reports 5,030 exact output
+checks, 204 first-edge holds and 10,273 native-HS checks. Synthetic skew is
+not fitted routing. Native driver-log SHA-256:
+
+- Reset: `e30a11a3602352c9377266d82f960c6eda7da2ce0ba47c746957eee8f48b5411`.
+- Normal: `5b351ebb83abaea0e991cb16e261dd10baf93eb674013a24667c16e6b2f8fe8e`.
+- Skew: `0e9cd53cf9545537ce7b36c43f5306cd594a5db8d0114d5f7c81525ccb1acf59`.
+
+Copied raw native evidence:
+`/tmp/x1-5afb059-launch-IImk4zK8/native-evidence`.
+At 13:39:31 UTC a fresh full flow launches; Main independently confirms actual
+`quartus_sh` PID 2184809 and launcher/helper PIDs 2181234/2183512 still live
+after 1m45s. Frozen source on misterubuntu:
+`/home/alans/mister/SharpX1_Mister/output_files/handoff-5afb059-Ndprcpjw/worktree/output_files/quartus-linux-cMkR0ufo/source`.
+Input-manifest SHA-256:
+`412ea068363ecaad0a5529ad257688bfb306e7f690e2edd4412e60a36e459f5e`.
+Build log: `/tmp/x1-quartus-5afb059-handoff-fdFR0A2O.log`.
+No concurrent job is interrupted and the primary checkout is preserved.
+Final fit/constraints/timing/MTBF/I/O acceptance remains pending; no MiSTer
+is contacted or loaded for this launch.
+
+The flow subsequently terminates **exit 3 at 13:47:46 UTC**, elapsed 8m14s.
+Map, fit and assembly pass; final STA rejects **VSYNC fanout identity changed**
+while loading `vsync_sys_input_candidate.sdc`. Later handoff/held/inactive-data
+guards are not reached, so this result says nothing about the new sixth-bank
+guard on this fit. Partial setup/hold are -20.005/-15.025 ns with incomplete
+constraints and no calculated MTBF, not final timing acceptance. The shell
+reports 10 errors/166 warnings; two additional synthesis warnings name unused
+`timing_write_value` and `timing_cancel`. The disabled FDC bridge remains dead
+in this board profile; warnings are recorded, not suppressed.
+
+All 1,171 tracked source hashes match. 414 of 415 snapshot inputs match; only
+generated QPF metadata changes. The five original output artifacts and 511
+database files are frozen before diagnostic tools; the original database
+archive remains under the remote `terminal-audit-Aj6KQl1O` directory.
+Copied terminal evidence:
+`/tmp/x1-5afb059-launch-IImk4zK8/terminal-evidence`.
+Outer-log SHA-256:
+`a6d9d85fd93fe259f6eae2fbcfb51ed59f4478a765fe007a70fcc9630c16e1d0`.
+Assembled **unaccepted** RBF SHA-256:
+`a02f8a92b1f64d7d640e97832bdd17600054ea57f99096d6b2485d92b873f6b5`.
+No deployment follows. An external MacPPC mapper is active at 13:51:14 UTC,
+so reporting-only, no-SDC VSYNC/HPS topology inspection waits for an idle host.
+No first-stage/consumer identity guard is relaxed without that evidence.

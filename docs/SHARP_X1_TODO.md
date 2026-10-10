@@ -17,34 +17,42 @@ support before optional Turbo extensions.
 The standalone fixed FDC byte-slot scheduler now passes twelve enable/density
 profiles, 96 start phases, 181 consumed boundaries, physical 1/2-MHz interval checks and a
 wrong-boundary rejecting control. It is
-not yet connected to the controller; arrival-driven read/write holding
-registers, native FDCCLK and deadline/CPU/DMA/host-ACK qualification remain.
+now connected through the default-off WD/shared-machine experiment below;
+the standalone gate alone does not qualify native FDCCLK, CPU/DMA deadlines
+or host-ACK integration.
 See `FDC_BYTE_SLOT_STATUS.md`; this is not native disk timing acceptance.
 The separate bus helper now passes 260 read/write transactions each, held
-response/reselection/reset checks and three rejecting mutations. Real CPU/DMA,
-DR/DSR and SD integration remain open; see `FDC_BUS_EVENTS_STATUS.md`.
-The unconnected fixed-slot DR/DSR prototype now passes 34 payload cases at
+response/reselection/reset checks and three rejecting mutations. These are
+standalone prerequisites; connected CPU/DMA/SD scope is recorded below. See
+`FDC_BUS_EVENTS_STATUS.md`.
+The standalone internal-DR fixed-slot prototype passes 34 payload cases at
 each nominal 1/2-MHz rate and five rejecting controls, including the repaired
 DRQ-low final-tail service bug. Its qualified internal holding
-register is not yet the WD physical DR; shared-register ownership, held SYS
-completion, actual raw-bus/SD/CPU/DMA and hardware gates remain open. See
+register is not the WD physical DR; the external-DR bridge below separately
+qualifies connected ownership/completion/raw-bus/SD/CPU behavior. DMA/native
+and hardware gates remain open. See
 `FDC_STREAM_ADAPTER_STATUS.md`.
 Its external physical-DR/raw-bus gate now passes both rates and three rejecting
 controls; the actual-stream completion lease covers every controller CE phase,
 stopped enables, cancellation, exchange and illegal overwrite. WD/SD/actual
-CPU/DMA and source-bound hardware integration remain open. The prerequisite
+CPU integration is now qualified separately below; DMA and source-bound
+hardware integration remain open. The prerequisite
 targets are scheduled in CI, not yet a hosted acceptance result.
 
 The default-off WD/SD bridge now passes four nominal-rate/address profiles,
 408 counted cases and nine matched rejecting controls. The new opt-in
 `turbo-fdc-timing` shared-machine candidate builds, but actual CPU/DMA transfer
-qualification remains open; ordinary profiles stay disabled. An explicit
+qualification is advancing: the complete 1-MHz actual-CPU disk suite passes
+40 reports, while real DMA/cancellation/native timing gates remain open.
+Ordinary profiles stay disabled. An explicit
 inactive clock-input tie repairs an otherwise
 changed default saved-state layout: all eight base/Turbo generated headers/
 serializers match c744767 and the ordinary 144-gate fast/snapshot regression
 passes. Actual CPU/DMA, native clock/initial-gap/drive and hardware gates remain
-open; see `FDC_STRICT_TIMING_STATUS.md`. The fresh ordinary delay-aware baseline
-also finishes with exit zero and 149 PASS reports; it does not enable the bridge.
+open; see `FDC_STRICT_TIMING_STATUS.md`. The earlier ordinary delay-aware baseline
+finishes with exit zero and 149 PASS reports. The fresh connected-source rerun
+remains active after fixing its intentional 31-to-32 recipe-coverage guard;
+neither ordinary profile enables the bridge.
 
 The separate HD-media experiment connects the selector to selected-volume
 metadata and passes actual CPU wrong-class RNF/correct-class read/write/readback
@@ -76,7 +84,9 @@ remain open. See `HDMI_MEASUREMENT_CDC_STATUS.md`.
 The replication-prevention fit now has an exact same-fit sixth-bank constraint
 qualification: 384 reports preserve active/raw/mode rows and all eleven bound
 files match. Global setup remains negative; a fresh committed-source full flow
-and hardware acceptance are still required. The scope only permits whole
+and hardware acceptance are still required. The subsequent `5afb059` flow stops
+at the VSYNC-fanout identity guard; reporting-only topology discovery must precede
+any scope change. The scope only permits whole
 observed banks, not arbitrary per-bit packing.
 The new opcode window passes actual CPU/full-bus oracle and native one-second
 cold/repeat checks. Protected Arcus 32-second cold/repeats now finish with

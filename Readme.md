@@ -19,22 +19,25 @@ the remaining physical and unimplemented-feature gates.
 ## Current status
 
 The standalone [FDC byte-slot scheduler](docs/FDC_BYTE_SLOT_STATUS.md) passes
-exact enable-boundary and rejecting-negative checks. Enabled machine integration,
-native clock routing and actual read/write deadlines remain open.
+exact enable-boundary and rejecting-negative checks. It is now connected through
+the opt-in WD/shared-machine experiment below; native clock routing, DMA and
+native read/write deadline acceptance remain open.
 Its separate [bus-capture prerequisite](docs/FDC_BUS_EVENTS_STATUS.md) passes
-held-response/one-event checks and three rejecting controls; it is not yet
-connected to the machine.
+held-response/one-event checks and three rejecting controls. Its connected
+qualification is tracked with the opt-in WD bridge below.
 The [fixed-slot stream prototype](docs/FDC_STREAM_ADAPTER_STATUS.md) also
 passes missed-byte/held-response/reset tests at nominal 1/2 MHz. Separate
 shared-DR/raw-bus and held-completion gates also pass. The default-off
 [WD/SD integration](docs/FDC_STRICT_TIMING_STATUS.md) now passes 408 counted
-standalone cases and nine rejecting controls. Actual CPU/DMA and native timing
-qualification remain open; a non-savable `turbo-fdc-timing` shared-machine
-candidate now builds at explicit 1/2-MHz enables, but no board enables it.
+standalone cases and nine rejecting controls. The non-savable `turbo-fdc-timing`
+shared-machine candidate builds at explicit 1/2-MHz enables and its actual-CPU
+1-MHz disk suite now passes 40 reports, including writes/readback and metadata.
+DMA/native timing qualification remains open; no board enables it.
 Ordinary generated state and
-the 144-gate fast/snapshot regression remain intact. The ordinary delay-aware
-regression also finishes successfully with 149 PASS reports; neither enables
-the experimental bridge.
+the fresh 144-gate fast/snapshot regression remain intact. The earlier ordinary
+delay-aware regression passes 149 reports; the fresh connected-source rerun is
+still active after updating the intentional runner-recipe inventory guard.
+These ordinary regressions do not enable the experimental bridge.
 
 The separate non-savable `turbo-hd-media` experiment now connects capacity
 selection to D88 medium matching. Original CPU cases pass wrong-class RNF
@@ -66,7 +69,9 @@ reset/policy checks. Its new fit is rejected by a whole-prefetch pin-profile
 guard. Same-fit discovery/preservation now qualifies that exact sixth bank,
 with active/raw/mode timing rows unchanged; global setup still fails.
 Strict SDC guards remain intact and a fresh full flow/timing/hardware acceptance
-are still required. Historical
+are still required. The latest `5afb059` fit instead stops at the VSYNC-fanout
+identity guard before reaching the later data guards; reporting-only discovery
+is next. Its assembled RBF is not accepted or deployed. Historical
 fit-integrity tests require Git history to bind their original source commits.
 
 The separate [RTC/X3/DMA/Kanji/FM profile](docs/RTC_DMA_KANJI_FM_STATUS.md)
