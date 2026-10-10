@@ -43,3 +43,14 @@ Setup/preflight does not prove successful fitting or timing closure. Inspect
 all timing corners, unconstrained paths, warnings and source/RBF identities
 before offering a tester build. Hardware acceptance remains pending; the
 MiSTer reservation takes precedence over any automated deployment workflow.
+
+October 9 follow-up: after a read-only process check found no Quartus jobs,
+the clean X1 checkout was fast-forwarded from `e97a4ba` to
+`db2dc8cd091065597e5128d8a4ae0fb2c7296eaf`. The handoff revision's native 17.0.2
+preflight succeeded, but `--build` terminated one at its competing-process
+guard: another `DSPPC604_check_core` flow started in the availability/update
+window. A subsequent live process check confirmed `quartus_sh` PID 1569435
+and its mapper, while the X1 checkout remained clean. No X1 snapshot/fit was
+started and no timing/RBF acceptance is inferred from this attempt. Log:
+`/tmp/x1-quartus-db2dc8c-handoff.log`. Preserve other users' jobs; a coordinated
+slot and fresh current-source fit are still required for the PCG-reset repair.
