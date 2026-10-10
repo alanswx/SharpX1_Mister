@@ -140,3 +140,30 @@ The agent records three terminal-zero probes, unchanged fourteen original
 source/artifact hash pairs and 409 snapshot inputs. Main reads the exact
 pin/driver logs independently. Driver-log SHA-256:
 `99343dce92bc33cf77898a3e2a41a318ffcf4319f571407b3ee423f4bca1d191`.
+
+### Same-fit control inventory follow-up
+
+An idle-host reporting-only follow-up finishes at 11:29:11 UTC, native exit
+zero. Main independently reads the exact control log, checks its SHA-256 and
+compares the fourteen before/after artifact hashes and provenance manifests;
+both pairs are identical. The agent's frozen-input audit separately records
+409 unchanged snapshot inputs. Local evidence:
+`/tmp/x1-aa05dd2-topology.Eu3NqBQI/control-aa05dd2-kanIjW7N`.
+Native log SHA-256:
+`038305a7ebf672b6215765a467e775fd69bb63e1af63284157c3838a8b506e7d`.
+
+Both fitted FF atoms expose the same noninverted CLK and SDATA drivers;
+SLOAD is constant VCC with no inversion. ENA/CLRN/SCLR have no represented
+atom port (query returns -1), not a claim that physical resources do not
+exist. Both atoms have power-up zero, power-up-don't-care disabled and an
+inverted registered Q, in ARRIAV_FF/LAB mode. PRN/ALDN queries are unsupported,
+not evidence of absent controls. Eight warnings concern unavailable pointer
+metadata; the supported control queries complete successfully.
+
+The primary reports DATAIN-promoted-to-ADATASDATA=1 and router-created=0;
+the duplicate reports 0 and 1 respectively. Matching represented controls
+and startup strengthens the ideal sequential-equivalence evidence but does
+not prove physical hazard freedom, timing or MTBF. Installed primitive edge
+semantics and a fail-closed replica guard remain under review. No SDC change,
+new cut, full-flow acceptance or hardware loading follows this inventory;
+the original replica refusal remains intact.

@@ -23,9 +23,10 @@ mechanics, format and software/hardware acceptance remain open. See
 
 The default-off HD capacity latch now passes exhaustive full-port decode and
 real CPU IN/OUT/alias/FM/drive/DAM/retained-IPL reset checks with a rejecting
-disabled-profile control. Ordinary state remains unchanged. Class-to-medium,
-byte-rate and mechanical consumers are still missing, so this is CPU storage,
-not native 2HD support. See `HD_CAPACITY_CPU_STATUS.md`.
+disabled-profile control. Ordinary state remains unchanged. The separate
+HD-media profile now adds class-to-medium matching; byte-rate and mechanical
+consumers remain missing. The latch alone is CPU storage, not native 2HD
+support. See `HD_CAPACITY_CPU_STATUS.md`.
 
 The separate wide-D88 storage profile now passes actual CPU high-address and
 sector-index-4,003 read/write/readback, default admission/snapshot negatives,

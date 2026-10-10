@@ -25,9 +25,10 @@ state remains unchanged. Native byte-rate/mechanical/format and hardware gates
 remain open. See [the current scope](docs/HD_MEDIA_STATUS.md).
 
 The default-off `TURBO_HD_SELECT` CPU-storage experiment passes exhaustive
-capacity-port decoding and actual CPU cold/warm checks. It does not yet connect
-the selected class to byte rate, medium matching or drive mechanics; no board
-or C++ runner enables it. See [the exact scope](docs/HD_CAPACITY_CPU_STATUS.md).
+capacity-port decoding and actual CPU cold/warm checks. Alone it does not
+connect the selected class to byte rate, medium matching or drive mechanics.
+The separate HD-media runner above adds medium matching; no board enables
+either experiment. See [the exact scope](docs/HD_CAPACITY_CPU_STATUS.md).
 
 The separate non-savable `turbo-wide-d88` runner now passes actual CPU
 read/write/readback above 1 MiB and at sector index 4,003. Ordinary address/

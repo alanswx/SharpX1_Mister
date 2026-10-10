@@ -21,9 +21,9 @@ controller assets to make such a mismatched build execute.
 
 ## Repair
 
-All twenty-nine shared C++ runner recipes now pass internal make **`-B`**
-when Verilator is invoked. Twenty-eight recipes are changed; the existing
-Z-video recipe already supplied it. GNU make rebuilds each required object
+All thirty-one current shared C++ runner recipes pass internal make **`-B`**
+when Verilator is invoked. The initial repair covered twenty-nine; the later
+wide-D88 and HD-media recipes preserve the same flag. GNU make rebuilds each required object
 locally rather than accepting an up-to-date parent object/executable found
 through VPATH. Existing optimization/profile flags remain unchanged. Outer
 repository make remains incremental: it does not invoke Verilator when its
@@ -71,9 +71,23 @@ The preceding whole-target case remains in
 `verilator/obj_dir_headless/runner-isolation-fp47rbkb/`.
 Earlier fixture attempts assumed the wrong-profile child would always create
 a binary, then looked for GNU make's message only on stdout. Their failures
-remain recorded; the final check requires the exact successful-build/no-local-
+remain recorded; that historical check required the exact successful-build/no-local-
 artifact/message combination across stdout/stderr for that negative subtype.
 Timeout/compile failure cannot count as the matched isolation negative.
+
+The HD-media final recheck exposes a third log variant: an unforced child
+rebuilds some intermediates, silently borrows the parent executable, and
+prints neither no-work message. The earlier message-dependent assertion
+fails in `/tmp/x1-hd-media-isolation-final.log`; this is a checker failure,
+not a forced-child isolation pass. A direct GNU make query reports
+`../Visolation` up to date. The checker now records a successful dry-run
+target query and requires that exact parent-target resolution, plus the
+parent's actual CPP=1/RTL=17 output, when the child artifact is absent.
+The forced positive and unchanged-parent hashes remain mandatory.
+The repaired recheck passes all 31 recipe checks and the actual nested
+positive/borrowed-parent negative, terminal zero in
+`/tmp/x1-hd-media-isolation-resolved-target.log`; evidence remains under
+`verilator/obj_dir_headless/runner-isolation-e7mzoeo8/`.
 
 The default delay-aware headless rebuild/200,000-cycle smoke also completes
 zero with every optional feature off and expected 32-MHz SYS/28.571428-MHz

@@ -51,8 +51,19 @@ def build(directory, profile, code, force):
     assert result.returncode == 0, (directory, result.stderr)
     executable = directory / 'Visolation'
     if not executable.exists():
-        assert not force and "Nothing to be done" in result.stdout + result.stderr, ('missing local executable', directory)
+        assert not force, ('missing forced local executable', directory)
         assert (parent / 'Visolation').is_file()
+        # A partially rebuilt child can silently borrow the whole parent
+        # target. Query make's resolved target instead of relying on the
+        # original build having printed a no-work message.
+        query = subprocess.run(
+            ['make', '-C', str(directory), '-f', 'Visolation.mk', '--debug=b',
+             '-n', 'Visolation'], capture_output=True, text=True, timeout=30)
+        (directory / 'target-query.log').write_text(query.stdout + query.stderr)
+        assert query.returncode == 0, ('target query failed', directory, query.stderr)
+        assert re.search(r"['`]\.\./Visolation' is up to date\.",
+                         query.stdout + query.stderr), ('unproven parent target reuse', directory)
+        assert subprocess.check_output([str(parent / 'Visolation')], text=True).strip() == '1 17'
         return 'borrowed parent executable; no child artifact'
     return subprocess.check_output([str(executable)], text=True).strip()
 
