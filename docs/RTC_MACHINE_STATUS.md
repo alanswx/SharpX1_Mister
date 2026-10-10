@@ -36,8 +36,12 @@ fixtures/oracles, explicitly require the X3 JSON identity/frequency and freeze
 their own inputs. The ordinary `rtc` target remains unchanged. The new build
 and missing/short/save/restore rejection controls pass; the runtime rejects an
 ordinary 28.571428-MHz override before execution. Elapsed/warm and X3 keyboard
-qualification is still running, so no game, RGB, native or hardware acceptance
-is implied. Log: `/tmp/x1-rtc-x3-first.log`. An ordinary-clock keyboard repeat
+qualification remains incomplete, so no game, RGB, native or hardware acceptance
+is implied. The first collector terminates after elapsed execution with a Python
+argument-name collision: its negative-control loop overwrote the parsed options.
+The collector now uses a distinct negative-argument variable; no RTL, CPU fixture
+or result oracle is changed. Failed log: `/tmp/x1-rtc-x3-first.log`; corrected
+repeat: `/tmp/x1-rtc-x3-corrected.log`. An ordinary-clock keyboard repeat
 completes zero in `/tmp/x1-rtc-keyboard-x3-controls-baseline.log`, frozen
 `keyboard-qualified-r79o5t56/`: six positives and absent-key rejection pass,
 and an independent original/frozen 136-input and 13-asset audit passes.

@@ -49,8 +49,8 @@ def main():
                ('short',['--rtc-controller',str(short)],'exactly 8192'),
                ('save',['--save-state',str(sentinel)],'RTC experiment is non-savable'),
                ('restore',['--restore-state',str(sentinel)],'RTC experiment is non-savable')]
-    for name,args,marker in negatives:
-        result=subprocess.run([str(frozen),*args],capture_output=True,text=True,cwd=folder)
+    for name,negative_args,marker in negatives:
+        result=subprocess.run([str(frozen),*negative_args],capture_output=True,text=True,cwd=folder)
         output=result.stdout+result.stderr;(folder/f'{name}.log').write_text(output)
         assert result.returncode!=0 and marker in output,(folder,output)
         assert sentinel.read_bytes()==b'original sentinel, not an RTL state'
