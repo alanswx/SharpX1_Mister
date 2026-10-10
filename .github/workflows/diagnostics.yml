@@ -70,7 +70,7 @@ jobs:
           for target in \
             test-hps-hdmi-measure test-hps-video-cdc test-opcode-window test-runner-build-isolation test-vsync-consumer-replication \
             test-machine-fdc-timing-media test-machine-fdc-timing-boundary \
-            test-machine-fdc-timing-metadata \
+            test-machine-fdc-timing-metadata test-machine-fdc-timing-status \
             test-fdc-byte-slots test-fdc-bus-events test-fdc-stream-adapter test-fdc-stream-external-dr test-fdc-completion \
             test-fdc-strict-timing test-fdc-strict-legacy test-machine-fdc-default-state test-machine-fdc-timing \
             test-sio-decode test-sio-clock-select test-sio-edge-clock test-sio-ctc-clock \
@@ -118,6 +118,9 @@ jobs:
             # Full low-address split-metadata/readback plus owned CRC reset;
             # high-media scans and the selected larger matrix stay separate.
             if [ "${target}" = test-machine-fdc-timing-metadata ]; then limit_s=900; fi
+            # Real CPU/DMA normal/deleted writes, rescans and whole-medium
+            # status preservation in co-block and split metadata layouts.
+            if [ "${target}" = test-machine-fdc-timing-status ]; then limit_s=600; fi
             # This fixture retains its full 65,537-byte/wrap cases at all CEs;
             # allow its unoptimized build/run extra time, not fewer cycles.
             if [ "${target}" = test-dma ]; then limit_s=600; fi

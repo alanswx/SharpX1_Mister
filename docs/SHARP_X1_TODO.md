@@ -50,7 +50,9 @@ cached-stream reselection and pending-completion reset/remount. A further
 24-case fixture qualifies actual consumer-CE, pending-store and prefill mount
 cancellation with uncancelled controls/five negatives. Split metadata/owned
 publication/high-address tests add 18 selected positives and three mutants.
-Remaining combinations, active non-B0 status, native final-serialization timing and hardware gates
+Active status-`10` preservation adds eight selected co-block/split normal/deleted
+write/rescan cases and four exact mutants. Other status policies, remaining
+combinations, native final-serialization timing and hardware gates
 remain open.
 Ordinary profiles stay disabled. A fixed-clock native CROSS Chase cold
 movement/repeat also passes: identical

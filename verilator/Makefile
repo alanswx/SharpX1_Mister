@@ -99,6 +99,15 @@ test-machine-fdc-timing-metadata-negative:
 	@for fault in crc-edit split-next early-cache; do \
 	  python3 -B tests/test_machine_fdc_timing_metadata.py --machine-sha $(FDC_TIMING_MACHINE_SHA) --drive 0 --negative $$fault || exit $$?; done
 .PHONY: test-machine-fdc-timing-metadata test-machine-fdc-timing-metadata-selected test-machine-fdc-timing-metadata-negative
+test-machine-fdc-timing-status:
+	python3 -B tests/test_machine_fdc_timing_status.py --machine-sha $(FDC_TIMING_MACHINE_SHA)
+	python3 -B tests/test_machine_fdc_timing_status.py --machine-sha $(FDC_TIMING_MACHINE_SHA) --layout split --rate 2000000 --width 24
+test-machine-fdc-timing-status-full: test-machine-fdc-timing-status
+	python3 -B tests/test_machine_fdc_timing_status.py --machine-sha $(FDC_TIMING_MACHINE_SHA) --layout split
+	python3 -B tests/test_machine_fdc_timing_status.py --machine-sha $(FDC_TIMING_MACHINE_SHA) --rate 2000000 --width 24
+	python3 -B tests/test_machine_fdc_timing_status.py --machine-sha $(FDC_TIMING_MACHINE_SHA) --negative clear-all
+	python3 -B tests/test_machine_fdc_timing_status.py --machine-sha $(FDC_TIMING_MACHINE_SHA) --rate 2000000 --width 24 --negative clear-all
+.PHONY: test-machine-fdc-timing-status test-machine-fdc-timing-status-full
 HD_MEDIA_DIR ?= obj_dir_v17_hd_media
 turbo-hd-media: $(HD_MEDIA_DIR)/Vtop
 $(HD_MEDIA_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)

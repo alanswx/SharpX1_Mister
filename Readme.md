@@ -40,6 +40,9 @@ cached-stream reselection and pending-completion reset/remount. A further
 with uncancelled controls and five rejecting mutations. Split metadata/owned
 publication/high-address tests now pass 18 selected positives and three mutants;
 further combinations and native timing gates stay open. No board enables it.
+Active D88 status-`10` preservation now also passes eight normal/deleted-write
+and rescan cases plus four exact rejecting mutants; this is container handling,
+not native status/pin acceptance.
 Ordinary generated state and
 the fresh 144-gate fast/snapshot regression remain intact. The fresh ordinary
 delay-aware rerun also passes all 149 reports after updating the intentional

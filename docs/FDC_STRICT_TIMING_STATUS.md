@@ -444,14 +444,69 @@ The original four-second high scan/remount budget failed at stage40; the final
 scanner-aware allowance changes duration, not byte cadence, prefill or payload
 assertions. Later witness/check additions are recorded rather than represented
 as a budget-only source change. Inherited 61/66 warnings remain; no new fixture/
-helper warnings are claimed. Active non-B0 status, further high/rate/cancellation
+helper warnings are claimed. Further high/rate/cancellation
 combinations and native/hardware timing remain open.
+
+## Active non-B0 status preservation
+
+A separate original public-machine fixture now covers an active sector whose
+D88 byte 8 is `10`, rather than the preceding fixture's repairable `B0`.
+This is the controller's current **container policy**, not a claim that D88
+`10` is a physical MB8877 status encoding. No production RTL is changed.
+The generated ioctl IPL uses real Z80/DMA commands and DATA transfers, with
+no forced Ready, private RAM writes or injected chip enables.
+
+Both drives pass at 1-MHz/20-bit and 2-MHz/24-bit profiles, each with co-block
+and split mark/status layouts: eight selected positives. SYS is 32 MHz and
+VID is 28.571428 MHz, with an initial reset and original generated assets.
+Each case accepts 5,120 DATA reads and 2,048 writes: initial deleted read,
+normal write/read/rescan/read and deleted write/read/rescan/read. CPU checks
+payloads, deleted status and guard bytes. Byte 8 remains `10` throughout.
+An independent publication ledger checks every SD output byte and both entire
+media images, including the unselected drive. No observed output is copied
+into the expected ledger.
+
+For header offset 1008, payload begins at 1024: each write publishes two
+payload blocks and one changed-mark block (`3/3` normal/deleted), with three
+planned reads each. Header offset 1016 splits mark/status at 1023/1024;
+payload starts at 1032. Each write publishes three payload blocks and one
+changed-mark block (`4/4`), with five planned reads. Reading the status block
+does not authorize an additional status-only publication when byte 8 is
+unchanged. Request identity remains stable through ACK and its tail;
+metadata cache commit must follow owned ACK drain.
+
+The matched frozen-vendor mutation changes only the status-edit expression
+to unconditional zero. Both drives at both rates reject it at the actual
+published status byte: `active nonB0 status changed in publication stage=20
+offset=1016`. These are four exact negative rejections, not compile failures,
+CPU failure fallbacks or timeouts. The source-freezing driver checks the
+qualified older fixtures, manifest/order, generated IPLs and executable hashes.
+Fixture SHA-256:
+`740529b26d2614e60efc0927b0fbc50177ab4d62a5d7833aaa5cc69174bddb4b`;
+driver SHA-256:
+`d03e53ebd27cbf0580f733bdc6186f8b8bb23c6c5a1b44890e4fea20e7abd295`.
+Frozen folders use `x1-fdc-status-machine-` with suffixes `ylgt6nx2`,
+`g61mk2oy`, `yqh8tu4_`, `jt19p8rx`, `9g61cqdk` and `ch113h2r`.
+Main independently verifies all 702 frozen/live source entries, executable/
+ROM hashes, order uniqueness and twelve child terminal records. Inherited
+61/66 machine warnings remain under `-Wno-fatal`; no new fixture warning is
+identified, not a blanket lint-clean claim.
+
+`test-machine-fdc-timing-status` runs four bounded cases; `-status-full` adds
+the other four positives and all four negative rejections. The bounded target
+is scheduled in CI; hosted acceptance is not established. Main's fresh Make
+rerun completes zero with four cases (session 77549), and a fresh drive-A
+clear-all negative completes zero after the exact rejection (41841).
+Logs: `/tmp/x1-fdc-status-main-make-20261010.log` and
+`/tmp/x1-fdc-status-main-negative-20261010.log`. This closes the selected active-`10` preservation
+gate, not arbitrary dump-status policy, cancelled writes, high-address status
+combinations, native timing or hardware acceptance.
 
 ## Remaining acceptance
 
 Add final serialization/native boundary-tie qualification, pending CPU
 reselection phase qualification, remaining metadata/high-address combinations,
-active non-B0 status preservation, READY/Type-IV and native clock/firmware/hardware
+other active non-B0 status policies, READY/Type-IV and native clock/firmware/hardware
 qualification. The new cached and pending cases do not cover every
 idle-transport stream phase. Recheck ordinary state after any further
 manifest/profile connection; preserve measured scope rather than inferring it
