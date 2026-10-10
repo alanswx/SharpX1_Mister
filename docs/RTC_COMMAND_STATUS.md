@@ -223,13 +223,62 @@ only 22 bytes in its 4-KiB ROM. Its AASM 3.71/MR16 toolchain and a verified
 storage/driver solution are integration dependencies, not permission to insert
 a hidden main-CPU port or overwrite work RAM to make the test pass.
 
+### Nominal SYS-derived crystal-event producer
+
+Original `rtl/x1_rtc_clock_enable.sv` now produces a synchronous 32.768-kHz
+event enable from the declared SYS frequency. It does not create another clock
+domain. A bounded phase accumulator supplies exactly `floor(N*32768/CLOCK_HZ)`
+events in N post-configuration-reset edges, with individual event intervals
+rounded to whole SYS edges. There is no CPU/MR16 enable or warm-reset input.
+Power/configuration reset clears phase; stopped FPGA time and crystal tolerance
+are not modeled. Frequency/phase match to physical hardware is still separate.
+
+`make -C verilator test-rtc-clock-enable test-cz880-rtc test-upd1990-counter
+test-upd1990-calendar` terminates zero without warning suppressions. The new
+test programs the serial chip solely through P1 pins while the producer is
+held in configuration reset, then releases the source and compares every
+elapsed edge with independent absolute rational event deadlines. A separate
+counter initialized through its qualified load interface must match the serial
+consumer's calendar, phase and tick on every measured edge. Each profile runs
+two nominal seconds plus 17 SYS edges from December 31, weekday 6, 23:59:59:
+the final calendar is January 1, weekday 0, 00:00:01, without inventing a year.
+
+| Declared SYS Hz | Measured edges | Crystal events |
+| --- | --- | --- |
+| 32,000,000 | 64,000,017 | 65,536 |
+| 28,571,428 | 57,142,873 | 65,536 |
+| 28,636,364 | 57,272,745 | 65,536 |
+| 65,536 | 131,089 | 65,544 |
+| 32,768 | 65,553 | 65,553 |
+
+The last two profiles check the high event-density boundaries, including one
+event per SYS edge. Wrong declared frequency and host-gated consumer events
+both fail the unchanged oracle. Power reset clears the source and invalidates
+the calendar. Earlier serial/calendar/counter and negative-control targets all
+pass again. The fixture time scale is arbitrary: frequency claims describe
+declared elapsed-edge ratios, not the simulator's picosecond time scale.
+Log: `/tmp/x1-rtc-clock-enable-final.log`. Source SHA-256:
+`b96460a0de2e92a8ad281c3d0017c5f41f488b7a4a0cc882aacb79b137916ffe`;
+fixture:
+`e43725e9fbcabfff9f5d18ff59de83e1d1148279717c97e5288dd712b71d5fea`.
+The first fixture attempt had width warnings; the next had the month/weekday
+nibbles swapped in its expected January value. Both failed logs are retained;
+the oracle was corrected from the primary packed-field contract, not by
+loosening assertions. The final five-profile run above is the acceptance evidence.
+
+The producer and connected test are still standalone, not added to any machine
+manifest, profile or snapshot layout. Thus the machine's EC..EF elapsed-time
+acceptance remains failing until a verified controller driver connects them.
+These tests do not establish host-time initialization, battery persistence,
+native pin phase, FPGA fitting or hardware RTC acceptance.
+
 ### Remaining integration order
 
 1. Finish tracing controller year storage and power retention; reconcile
    EC/EE host byte order with primary X1 command documentation. Keep native
    pin-chip behavior distinct from host command emulation.
-2. Connect the tested backend to a deterministic running clock with an explicit initialization/retention
-   contract. Keep clock advancement independent of CPU HALT, stopped enables
+2. Connect the tested producer/serial chip through a verified controller driver,
+   with an explicit initialization/retention contract. Keep clock advancement independent of CPU HALT, stopped enables
    and MR16 mailbox activity; do not derive battery persistence from RAM alone.
 3. Require the unchanged elapsed-time test to pass in fast and delay-aware
    profiles, then add carry/short-month/year-policy, manual leap correction,

@@ -165,6 +165,9 @@ the machine's clock producer and serial/MCU integration are still missing.
 A standalone CZ-880 P1/T1 serial frontend now passes 137,050 edge checks and
 three wrong-pin controls. Its documented pin mapping is not yet connected to
 the replacement controller; machine elapsed-time acceptance still fails.
+A nominal SYS-clock enable source now passes five frequency profiles with
+connected serial/calendar consumers. No additional clock domain is introduced;
+controller integration and physical clock/persistence remain open.
 The standalone [SIO clock-event adapter](docs/SIO_EDGE_CLOCK_STATUS.md) now
 preserves serial edges and sampled RX data across enable gaps; independent
 queue tests and real CTC/SIO diagnostics pass. Shared event routing is opt-in;

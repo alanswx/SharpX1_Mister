@@ -1655,6 +1655,22 @@ $(HEADLESS_DIR)/cz880-rtc/Vcz880_rtc_tb: tests/cz880_rtc_tb.sv ../rtl/x1_cz880_r
 	  -j 4 tests/cz880_rtc_tb.sv ../rtl/x1_cz880_rtc.sv ../rtl/x1_upd1990_counter.sv ../rtl/x1_upd1990_calendar.sv
 .PHONY: test-cz880-rtc
 
+test-rtc-clock-enable: $(HEADLESS_DIR)/rtc-clock-enable/Vrtc_clock_enable_tb
+	./$(HEADLESS_DIR)/rtc-clock-enable/Vrtc_clock_enable_tb
+	@for fault in RATE CPU; do \
+	  negative_log=$$(mktemp $(HEADLESS_DIR)/rtc-clock-enable/negative-XXXXXX); \
+	  if (ulimit -c 0; ./$(HEADLESS_DIR)/rtc-clock-enable/Vrtc_clock_enable_tb +NEGATIVE_$$fault) >$$negative_log 2>&1; then \
+	    echo "FAIL: RTC enable negative $$fault accepted"; exit 1; \
+	  fi; \
+	  rg -q 'RTC enable .* mismatch' $$negative_log || { echo 'FAIL: unexpected RTC enable negative failure'; exit 1; }; \
+	  echo "PASS: unchanged RTC enable oracle rejects $$fault fault"; \
+	done
+$(HEADLESS_DIR)/rtc-clock-enable/Vrtc_clock_enable_tb: tests/rtc_clock_enable_tb.sv ../rtl/x1_rtc_clock_enable.sv ../rtl/x1_cz880_rtc.sv ../rtl/x1_upd1990_counter.sv ../rtl/x1_upd1990_calendar.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module rtc_clock_enable_tb --Mdir $(@D) \
+	  -j 4 tests/rtc_clock_enable_tb.sv ../rtl/x1_rtc_clock_enable.sv ../rtl/x1_cz880_rtc.sv ../rtl/x1_upd1990_counter.sv ../rtl/x1_upd1990_calendar.sv
+.PHONY: test-rtc-clock-enable
+
 test: headless test-rgb12 test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner test-d88-crc test-d88-metadata test-cpu-busreq
 	python3 tests/test_joystick_schedule.py ./$(HEADLESS_EXE)
 	python3 tests/test_key_script.py ./$(HEADLESS_EXE) $(VIDEO_TEST_FLAGS)

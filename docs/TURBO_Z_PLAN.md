@@ -211,6 +211,9 @@ extra GRAM. The digital RGB output reduces analog multi-mode colors to eight
   grounded; see the RTC investigation for the full pin table. Clock production,
   controller driver/ROM budget, native year/retention and actual elapsed-time
   command acceptance remain open. No existing profile enables the new helpers.
+  A SYS-derived crystal-event enable is now tested with actual serial consumers
+  at five rates; it is not a separate clock domain or battery-time model.
+  Controller integration and unchanged real-CPU acceptance are still required.
   The [SIO wiring audit](SIO_MACHINE_WIRING_AUDIT.md) now identifies native
   mouse-related B controls and A clock selection through DTRB; complete
   event-preserving clocks, pin/protocol input, machine decode and shared

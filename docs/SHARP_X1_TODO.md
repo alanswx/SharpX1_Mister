@@ -1290,6 +1290,10 @@ capability profile. The existing `TURBO=1` build is not Turbo Z support.
   grounded on CZ-880. Connect a crystal-event producer and verified controller
   driver (the inherited MR16 ROM has only 22 bytes free), then require unchanged
   real-CPU elapsed-time acceptance. Serial unit tests do not close Z7.
+  The standalone SYS-derived 32.768-kHz enable producer now passes five
+  frequency profiles with connected serial/calendar consumers, including
+  midnight/December carry and wrong-rate/host-gating controls. Machine driver,
+  initialization/retention, native phase, snapshots and physical gates remain open.
 - [ ] Research/implement capture quantization/inversion, mosaic, chroma key,
   extra scroll and superimpose/telopper, with a deterministic test video source.
   Primary encodings and a standalone decoder now pass exhaustive local checks;
