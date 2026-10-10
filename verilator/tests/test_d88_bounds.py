@@ -28,6 +28,21 @@ def changed(offset, value, fmt="<I"):
     return image
 
 
+def padded_volume(size):
+    image = volume()
+    assert size >= len(image)
+    image.extend(bytes(size - len(image)))
+    struct.pack_into("<I", image, 28, size)
+    return image
+
+
+def padded_container(size):
+    chunk = 1 << 19
+    whole, tail = divmod(size, chunk)
+    assert not tail or tail >= len(volume())
+    return padded_volume(chunk)*whole + (padded_volume(tail) if tail else b'')
+
+
 cases = [
     ("mixed sizes", volume(), None),
     ("concatenated volumes", volume() + volume(), None),
@@ -53,15 +68,40 @@ short_first = changed(32, len(volume()) - 8)
 struct.pack_into("<I", short_first, 36, 0)
 cases.append(("truncated first sector header", short_first,
               "invalid D88: truncated first sector header"))
+# The runtime selects volume zero, not the total concatenated-container size.
+limit = 1 << 20
+capacity_error = "unsupported D88: selected volume exceeds 20-bit controller address space"
+cases.extend([
+    ("selected volume below address limit", padded_volume(limit-1), None),
+    ("selected volume at address limit", padded_volume(limit), capacity_error),
+    ("selected volume above address limit", padded_volume(limit+1), capacity_error),
+    ("large selected 2HD-sized container", padded_volume(1280000), capacity_error),
+    ("total container exceeds limit, selected volume fits", padded_volume(600000)+padded_volume(600000), None),
+    ("unselected trailing volume exceeds limit", volume()+padded_volume(limit+1), None),
+    ("container below machine size interface limit", padded_container((1 << 24)-1), None),
+    ("container at machine size interface limit", padded_container(1 << 24),
+     "unsupported D88: container exceeds 24-bit machine size interface"),
+])
+corrupt_large = padded_volume(limit)
+struct.pack_into("<I", corrupt_large, 32, 687)
+cases.append(("corrupt large volume remains structurally invalid", corrupt_large,
+              "invalid D88: track offset"))
 with tempfile.TemporaryDirectory(prefix="x1-d88-bounds-") as temporary:
     for index, (label, data, error) in enumerate(cases):
         source = pathlib.Path(temporary) / f"case{index}.d88"
         source.write_bytes(data)
         before = source.read_bytes()
-        result = subprocess.run([exe, "--cycles", "2000", "--disk", str(source)],
+        copy = source.with_suffix('.copy.d88')
+        frame = source.with_suffix('.ppm')
+        dump = source.with_suffix('.dump')
+        outputs = (["--disk-output", str(copy), "--frame", str(frame), "--dump", str(dump)]
+                   if error else [])
+        result = subprocess.run([exe, "--cycles", "2000", "--disk", str(source), *outputs],
                                 capture_output=True, text=True, timeout=20)
         if error:
             assert result.returncode != 0 and error in result.stderr, (label, result.stdout, result.stderr)
+            assert not copy.exists() and not frame.exists(), 'rejected media created outputs'
+            assert not list(dump.parent.glob(dump.name+'.*')), 'rejected media created dumps'
         else:
             assert result.returncode == 0, (label, result.stderr)
         assert source.read_bytes() == before, label

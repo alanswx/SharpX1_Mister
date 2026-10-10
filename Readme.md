@@ -18,6 +18,12 @@ the remaining physical and unimplemented-feature gates.
 
 ## Current status
 
+Large concatenated D88 files now mount when their selected first volume fits
+the controller's address space. Host/scanner and real Z80 read/write checks
+pass, preserving all trailing volumes. Selected volumes still must be below
+1 MiB; this is not 2HD support or new hardware acceptance. See
+[disk evidence](docs/DISK_STATUS.md#concatenated-container-admission-repair).
+
 The default-off [Turbo Z effect CPU prototype](docs/TURBO_Z_EFFECT_CPU_STATUS.md)
 now passes actual Z80 position/mosaic/chroma/scroll register storage and
 AEN/DAM/neighbor/warm-reset tests. Native read/reset policies remain provisional;

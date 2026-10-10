@@ -1279,6 +1279,11 @@ Preserve each frozen runner; do not rebuild historical v05.
   the missed-handshake regression with CE stopped in the transport fixture.
 - [x] Add simulator D88 structural preflight and original malformed-media CLI
   tests; reject unsupported scanner layouts separately from corrupt images.
+- [x] Repair host/RTL total-container rejection for a reachable selected volume:
+  27 protected CLI cases, direct scanner and old-RTL rejecting control pass;
+  real CPU read/write/readback preserves all trailing generated volumes.
+  Selected volumes remain below 1 MiB and containers below 16 MiB; no wider
+  2HD, native disk-set or hardware acceptance. Full baseline repeat is running.
 - [x] Add strict D88-only bounds/rejection to shared RTL; bypass host preflight
   in direct scanner tests covering header/table/count/payload errors, index
   overflow, selected-volume bounds, eject/replacement and scanner/controller

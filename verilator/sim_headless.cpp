@@ -291,7 +291,9 @@ int main(int argc, char **argv) {
         if (disk_output && disk_b_output && std::filesystem::weakly_canonical(disk_output)
             == std::filesystem::weakly_canonical(disk_b_output))
             throw std::runtime_error("drive outputs must be different paths");
-        if (disk.size() > 1048575 || disk_b.size() > 1048575) throw std::runtime_error("disk exceeds current FDC addressing");
+        // D88 preflight checks the selected volume's addressing limit after
+        // structural validation. A concatenated container may be larger than
+        // that limit without making volume zero unreachable.
         if (disk_path) validate_d88(disk);
         if (disk_b_path) validate_d88(disk_b);
         uint64_t disk_fingerprint = 14695981039346656037ULL;

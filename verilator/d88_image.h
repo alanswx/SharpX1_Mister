@@ -56,6 +56,14 @@ inline void validate_d88(const std::vector<uint8_t>& bytes) {
                 cursor += 16 + length;
             }
         }
+        // Diagnose structural corruption first. The active controller selects
+        // volume zero and rejects its declared size at/above 1 MiB. A larger
+        // valid disk is unsupported, not a masked smaller mount. Total
+        // concatenated-container size is not the selected-volume size.
+        if (base == 0 && size >= (size_t(1) << 20))
+            unsupported("selected volume exceeds 20-bit controller address space");
         base += size;
     }
+    if (bytes.size() >= (size_t(1) << 24))
+        unsupported("container exceeds 24-bit machine size interface");
 }

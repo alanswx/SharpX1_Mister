@@ -558,7 +558,10 @@ always @(posedge clk_sys) begin
 		   (D88_ONLY && mount_pending && !img_mounted && transport_idle)) begin
 			mount_pending <= 0;
 			if(EDSK) begin
-				scan_active<= !D88_ONLY || (img_size_id >= 24'h2b0 && img_size_id < 24'h100000);
+				// Container size is not the selected volume's size. Keep the
+				// 20-bit selected-header/extent guards below, but permit a
+				// larger concatenated file whose selected volume is reachable.
+				scan_active<= !D88_ONLY || img_size_id >= 24'h2b0;
 				scan_addr  <= 0;
 				scan_state <= 0;
 				scan_wr    <= 0;

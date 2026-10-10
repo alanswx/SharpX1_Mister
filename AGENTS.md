@@ -198,6 +198,9 @@ writes. Freeze/hash each runner before a long test, not after another build
 may have replaced it. Older frozen game qualifications remain historical.
 Simulator disk writes require `--disk-output NEW_COPY`; private originals and
 snapshots remain ignored. See `docs/DISK_STATUS.md` for tested and missing cases.
+For D88, distinguish total container size (24-bit machine interface) from the
+selected volume's sub-1-MiB 20-bit addressing limit. Do not restore the old
+total-file 1-MiB rejection or advertise larger selected-volume/2HD support.
 `TURBO_DMA=1` / `turbo-dma` is a separate, opt-in shared-machine DMA subset,
 not enabled by ordinary Turbo/X3 or board revisions. See `docs/DMA_MACHINE_STATUS.md`.
 `TURBO_DMA_RESTART_IRQ=1` additionally requires `TURBO_DMA_IRQ=1`. Its independent

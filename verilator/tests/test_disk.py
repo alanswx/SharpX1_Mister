@@ -11,6 +11,9 @@ import tempfile
 from z80_fixture import Program
 
 exe = str(pathlib.Path(sys.argv[1]).resolve())
+large_container_only = sys.argv[2:] == ["--large-container-only"]
+if sys.argv[2:] and not large_container_only:
+    raise SystemExit("usage: test_disk.py RUNNER [--large-container-only]")
 
 
 def media(protected=False, crc=0, mixed=False, deleted=0):
@@ -236,6 +239,27 @@ with tempfile.TemporaryDirectory(prefix="x1-disk-") as directory:
     crc = binascii.crc_hqx(bytes((0xA1, 0xA1, 0xA1, 0xFE)) + identifier[:4], 0xFFFF)
     assert identifier[4:] == crc.to_bytes(2, "big"), identifier.hex()
     assert report["disk_writes"] == 0
+    # Total container size exceeds 20-bit addressing; selected volume zero
+    # remains exactly the same. Native CPU reads/writes must not touch later
+    # volumes, rather than merely accepting the host's initial mount call.
+    large_container = data * ((1048576 // len(data)) + 1)
+    large_report, large_ram, _ = run(basic(), large_container, "large-container-basic")
+    assert large_report["disk_writes"] == 0
+    for address, sector in ((0x9000, (0, 0, 1)), (0x9100, (0, 1, 3)),
+                            (0x9200, (1, 1, 2)), (0x9300, (0, 1, 4)),
+                            (0x9500, (0, 1, 1)), (0x9600, (0, 1, 1))):
+        assert large_ram[address:address + 256] == sectors[sector][1], (address, sector)
+    _, large_ram, large_output = run(writer(number=1), large_container,
+                                    "large-container-write", True)
+    expected_large = bytearray(large_container)
+    first_offset, _ = sectors[0, 0, 1]
+    pattern = bytes(i ^ 0x5A for i in range(256))
+    expected_large[first_offset:first_offset+256] = pattern
+    assert large_output.read_bytes() == expected_large, 'write damaged trailing volumes/header'
+    assert large_ram[0x9900:0x9A00] == pattern
+    if large_container_only:
+        print("PASS: real CPU selected-volume reads/write/readback in large concatenated D88; whole trailing media unchanged")
+        raise SystemExit(0)
     # D88 byte 7 (not dump-error byte 8) carries a deleted data mark.
     # Both conventional 0x10 and other nonzero marks match the format reader.
     for mark in (0x10, 0x01):

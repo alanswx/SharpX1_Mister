@@ -99,12 +99,18 @@ module d88_scanner_tb;
              13: image[702]=127;
              14: le32(36,840);
              15: begin le32(32,968); image[972]=1; end
-             16: size=24'h100000;
+             16: begin size=24'h100000; le32(28,32'h100000); end
             endcase
             mount_image(); finish_scan(c==0,$sformatf("case %0d",c));
         end
         // First volume's boundary, not the concatenated container's boundary.
         valid_image(); size=1952; mount_image(); finish_scan(1,"concatenated first volume");
+        // Total file exceeds the address space, but the selected first
+        // volume and every published data address remain below its boundary.
+        valid_image(); size=24'd1200000; mount_image();
+        finish_scan(1,"large concatenated container, reachable first volume");
+        assert(dut.edsk_size==2 && dut.d88_end==976)
+            else $fatal(1,"large container changed selected volume/index");
         // Counts above the inherited FM-7 cap of 32 must not truncate silently.
         valid_image(); size=688+33*144; le32(28,int'(size));
         for(int j=0;j<33;j++) begin

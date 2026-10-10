@@ -72,6 +72,47 @@ of safe eject/replacement or every scanner/host timing phase.
 
 ## Simulator media preflight
 
+### Concatenated-container admission repair
+
+The runner and strict RTL mount gate previously rejected the **total file**
+at 1 MiB, even when its selected first volume was reachable. Both now separate
+container size from selected-volume extent. Host preflight validates every
+volume structurally; selected volume zero must remain below 1 MiB and the
+whole file below the machine's 24-bit size-interface limit (16 MiB). Oversized
+selected volumes remain unsupported, not silently masked into smaller disks.
+This does not widen the sector index or implement 2HD density/timing.
+
+`test_d88_bounds.py` passes 27 original/generated CLI cases, including exact
+20-/24-bit boundaries, a larger reachable container, an unselected large
+trailing volume and malformed oversized media. Rejected images leave sources
+unchanged and create no requested disk copy, frame or dump. Passing log:
+`/tmp/x1-d88-container-protected-cli.log`. The first extension failed at the
+old caller's total-file check; `/tmp/x1-d88-capacity-cli.log` preserves that
+failure, rather than claiming the helper alone fixed admission.
+
+`test-d88-scanner` passes the existing direct-host matrix plus a 1,200,000-byte
+container with a reachable 976-byte first volume: two index entries and the
+exact selected end are required. An oversized selected header still rejects.
+Log: `/tmp/x1-d88-container-scanner-build.log`. Rebuilding the **same current
+fixture** against unchanged pre-fix RTL fails its large-container assertion,
+log `/tmp/x1-d88-old-container-gate-negative.log`; old source SHA-256
+`cfb85c62f69a1378f99d53d6dc84049be985ceb525e76da31d4d3e6561a48de6`.
+
+From `verilator/`,
+`python3 tests/test_disk.py obj_dir_headless/Vtop --large-container-only`
+also completes zero. Its unchanged actual Z80 basic/read/write programs run
+on a 1,049,568-byte container of 58 generated volumes, selecting the first
+18,096-byte volume. Six payload reads and a 256-byte write/readback are required;
+every byte of the exported whole container is compared, including all trailing
+volumes and headers. Original media hashes remain unchanged. SYS 32 MHz / VID
+28.571428 MHz, delay-aware, 8,000,000 reference cycles per case. Log:
+`/tmp/x1-d88-large-container-machine.log`; frozen runner SHA-256
+`0772cf0ef66675efc8abfc6c1b602617d934067bd195845e66ce3f5c4ecf206c`.
+The ordinary full suite is still running in
+`/tmp/x1-d88-container-baseline-suite.log`. Native game, new-RBF and physical
+large-container acceptance remain open; earlier frozen RTC/X3 game probes
+predate this RTL repair and are not current-source qualification.
+
 The subsequent [partial CPU-sector reset qualification](CPU_PARTIAL_DISK_RESET_STATUS.md)
 passes 24 A/B read/write held/short cases at 1/64/255 bytes with live FM and the opt-in DMA
 reset guard, but zero DMA transfers. Both whole images remain unchanged before
@@ -165,7 +206,8 @@ per-sector density, format/write-track, hardware malformed-image rejection,
 replacement during writes/all parser phases, permanent stalled-host recovery,
 native multi-disk continuity and Turbo 2HD/2DD remain unvalidated or incomplete. Pending-sector SD
 abort/reset is covered by the focused synthetic fixture, not hardware fault injection.
-Image addressing is limited to less than 1 MiB. Synthetic CRC flags do not
+Selected-volume addressing is limited to less than 1 MiB; larger concatenated
+containers do not widen it. Synthetic CRC flags do not
 establish exact MB8877 behavior on bad ID/data fields. Do not mark the broad
 storage milestone complete from these tests or a successful FPGA compile.
 
