@@ -134,10 +134,17 @@ acceptance. Retained reset, native save/load and representative graphics tests
 remain required.
 
 `make -C verilator test-basic-native-probe` exercises the collector using
-temporary synthetic files and a fake executable. Seven test methods/twelve
+temporary synthetic files and a fake executable. Eight test methods/fourteen
 scenarios cover repeat observations, pre-output runner/media refusal, changed
 payload/report/input/runner rejection, disk-write refusal and retained
-nonzero/timeout evidence. The direct local unittest run completes zero.
+nonzero/timeout evidence. Changed or disappearing inputs now retain a `failed`
+phase and explicit integrity/read-error evidence, never a stale `repeatable`
+phase. The prior collector already refused a PASS/returned nonzero on changed
+bytes; this repairs its terminal reporting and missing-file evidence. Existing
+native results retain their original frozen collector and source hashes.
+The direct local unittest run completes zero; an initial new fixture failure
+from macOS `/var` versus `/private/var` spelling was corrected by normalizing
+the disposable root, not weakening the integrity comparison.
 This asset-free target is scheduled in CI; no hosted result is claimed.
 
 ## Required acceptance

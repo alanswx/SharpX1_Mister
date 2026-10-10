@@ -75,8 +75,27 @@ def main():
         evidence.update(phase='failed', error=repr(error))
         raise
     finally:
-        evidence['unchanged_inputs'] = all(digest(Path(p)) == h for p, h in inputs.items())
-        evidence['unchanged_runner'] = digest(frozen) == args.runner_sha
+        # Preserve terminal failure evidence even if an input disappears. A
+        # changed asset must not leave a misleading "repeatable" phase behind.
+        evidence['unchanged_inputs'] = True
+        read_errors = {}
+        for path, sha in inputs.items():
+            try:
+                unchanged = digest(Path(path)) == sha
+            except OSError as error:
+                unchanged = False
+                read_errors[path] = repr(error)
+            evidence['unchanged_inputs'] &= unchanged
+        try:
+            evidence['unchanged_runner'] = digest(frozen) == args.runner_sha
+        except OSError as error:
+            evidence['unchanged_runner'] = False
+            read_errors[str(frozen)] = repr(error)
+        if read_errors:
+            evidence['input_read_errors'] = read_errors
+        if not (evidence['unchanged_inputs'] and evidence['unchanged_runner']):
+            evidence['phase'] = 'failed'
+            evidence.setdefault('error', "AssertionError('probe inputs changed')")
         (output / 'evidence.json').write_text(json.dumps(evidence, indent=2) + '\n')
     assert evidence['unchanged_inputs'] and evidence['unchanged_runner'], 'probe inputs changed'
     print('PASS native BASIC probe repeats; screen/commands require separate acceptance', flush=True)

@@ -44,6 +44,9 @@ if mode == 'timeout' and repeat:
 if mode.startswith('mutate-') and repeat:
     target = Path(sys.argv[0]) if mode == 'mutate-runner' else Path(option('--' + mode[7:]))
     target.write_bytes(target.read_bytes() + b'\nsynthetic mutation\n')
+if mode.startswith('delete-') and repeat:
+    target = Path(sys.argv[0]) if mode == 'delete-runner' else Path(option('--' + mode[7:]))
+    target.unlink()  # Disposable synthetic fixtures only.
 report = {'disk_writes': 0, 'cycles': int(option('--cycles')), 'observed': 12}
 if mode == 'report-difference' and repeat:
     report['observed'] = 13
@@ -61,7 +64,7 @@ class BasicNativeProbeTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix='basic-probe-test-')
         self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()
         self.exe = self.root / 'fake-runner'
         self.exe.write_text('#!' + sys.executable + '\n' + FAKE)
         self.exe.chmod(0o700)
@@ -200,6 +203,8 @@ class BasicNativeProbeTests(unittest.TestCase):
                 self.assertNotIn('PASS', result.stdout)
                 self.assertIn('probe inputs changed', result.stderr)
                 evidence = self.evidence()
+                self.assertEqual(evidence['phase'], 'failed')
+                self.assertIn('probe inputs changed', evidence['error'])
                 if mode == 'mutate-runner':
                     self.assertFalse(evidence['unchanged_runner'])
                     self.assertTrue(evidence['unchanged_inputs'])
@@ -214,6 +219,26 @@ class BasicNativeProbeTests(unittest.TestCase):
                 # Restore only disposable synthetic inputs for the next case.
                 self.disk.write_bytes(self.originals[self.disk])
                 self.keys.write_bytes(self.originals[self.keys])
+
+    def test_disappearing_input_or_frozen_runner_preserves_failure(self):
+        for mode in ('delete-keys', 'delete-runner'):
+            with self.subTest(mode=mode):
+                self.output = self.root / mode
+                result = self.run_probe(mode)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertNotIn('PASS', result.stdout)
+                evidence = self.evidence()
+                self.assertEqual(evidence['phase'], 'failed')
+                self.assertIn('probe inputs changed', evidence['error'])
+                missing = self.output / 'Vtop' if mode == 'delete-runner' else self.keys
+                self.assertFalse(missing.exists())
+                self.assertEqual(set(evidence['input_read_errors']), {str(missing)})
+                self.assertEqual(len(evidence['runs']), 2)
+                self.assertEqual(evidence['unchanged_inputs'], mode == 'delete-runner')
+                self.assertEqual(evidence['unchanged_runner'], mode != 'delete-runner')
+                self.assert_preserved_runs()
+                self.keys.write_bytes(self.originals[self.keys])
+                self.assert_originals_unchanged()
 
 
 if __name__ == '__main__':
