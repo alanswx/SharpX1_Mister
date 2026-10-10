@@ -536,6 +536,76 @@ This proves a capacity/decode prototype, not compatibility of an extended
 inherited firmware image. Real mailbox callbacks, FDC/DMA coexistence,
 year/power policy and whole-machine elapsed-time acceptance remain open.
 
+### Source-linked inherited callbacks and sparse-reset response
+
+`scripts/build_mr16_rtc_firmware.py` derives a local 8-KiB image by rebuilding
+the inherited source and adding original callbacks from
+`verilator/tests/fixtures/rtc_mr16_host_extension.asm`. Exactly five low-bank
+words are redirected in source: reset and EC/ED/EE/EF entry pointers. All old
+symbol addresses, IRQ vectors, command arguments, keyboard and FDC/DMA code
+remain byte-identical to the chosen ordinary/receive-only image. The original
+converter's zero padding is preserved; no ROM instruction bytes are patched
+to bypass execution. Link tests independently compare every low-bank byte
+for both profiles and check the extension end at 4180 and scratch RAM at 1156.
+All inherited assets/notices remain unchanged; ignored derived ROMs and frozen
+copies are not redistribution-cleared.
+
+The callbacks call actual inherited `host_r`/`host_w`. EC preserves live time
+while replacing day/month-week and storing the inherited software YEAR byte;
+EE preserves live date while replacing time. ED/EF snapshot the serial chip
+into the inherited byte-order RAM buffers. r4/r5 are preserved. The new reset
+entry releases Time Set without using an uninitialized stack, then enters the
+unchanged reset routine. YEAR still clears with its RAM, not a claimed native
+or battery-backed policy; no year carry/leap logic is inferred.
+
+`test-rtc-mr16-firmware-control` and `test-rtc-mr16-firmware` now complete zero
+at CE=1 and CE=1/32. The control boots the unchanged receive-only firmware and
+checks E7/E8, without RTC callbacks. The extended run programs
+`31 C6 99` / `12 34 56` through EC/EE, reads them through ED/EF, stops controller
+CE for 64,000,000 nominal 32-MHz SYS events, and requires EF `12 34 58`.
+Warm reset retains the chip's clock/date, reboots actual inherited firmware,
+and requires ED `31 C6 00` (the explicitly inherited software-year reset).
+Initial/warm controller reset is eight SYS edges; chip power reset occurs
+only at initial configuration.
+
+The first sparse run fails before receiving EC. The unchanged E7/E8 control
+also fails before receiving E7. Observation-only bus traces show the reset
+vector response is lost while CE is stopped after reset release. In the
+default-off `RETAIN_RESPONSE` experiment, reset now holds the settled raw
+response valid until the first CE. Ordinary instantiations still leave this
+experiment disabled. The bounded host also waits for GPIO ACK tails to drain;
+immediate back-to-back transfers during stretched ACK and real Z80 transport
+are not qualified. Earlier failed logs remain retained:
+`/tmp/x1-rtc-mr16-full-firmware-first.log`,
+`/tmp/x1-rtc-firmware-original-control.log` and
+`/tmp/x1-rtc-firmware-reset-response-trial.log`.
+
+Successful frozen control/extension runs respectively:
+`verilator/obj_dir_headless/rtc-mr16-firmware-1/qualified-ja883aku/` and
+`verilator/obj_dir_headless/rtc-mr16-firmware-1/qualified-yc1wdp__/`;
+log `/tmp/x1-rtc-firmware-reset-response-drained-host.log`.
+The collector checks original/frozen source and runner hashes before/after.
+The extension image SHA-256 is
+`bb8254c9b83a61184dcc58fa938129ea909977e08047c14fb1582bcf9859522b`.
+Independent auditing checks all 36 original/frozen inputs, copied executables,
+ROM MEM, identical before/after manifests and all four actual PASS logs.
+Fresh original/banked compact-driver regressions pass both positives and all
+three rejecting phases each; the 572-word driver still passes CE=1/2/3/17/32,
+with its unretained negative rejected. Log:
+`/tmp/x1-rtc-mr16-reset-response-regression.log`; frozen compact/banked runs:
+`qualified-2ghy85tv` / `qualified-tzptcjxn` in their respective build directories.
+The default delay-aware shared machine rebuild also passes actual E7/E8/PS2
+and all six cold/steady Caps/Shift polling cases with `RETAIN_RESPONSE=0`.
+Logs: `/tmp/x1-rtc-default-headless-build.log`,
+`/tmp/x1-rtc-default-subcpu.log`, `/tmp/x1-rtc-default-keyboard.log`.
+
+This is a replacement memory/mailbox fixture, not `x1_sub` or the shared
+machine. Timer interrupts are disabled (`I_TMRG=0`), PS/2 input is idle and
+external IRQ inputs are inactive. Keeping FDC/DMA bytes does not qualify their
+execution/coexistence. No existing simulator/board revision loads this image;
+no machine snapshots, native elapsed-time acceptance, short/in-flight reset,
+host clock synchronization, power/battery storage or physical gates are closed.
+
 ### Remaining integration order
 
 1. Finish tracing controller year storage and power retention; reconcile

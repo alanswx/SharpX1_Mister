@@ -1739,6 +1739,23 @@ $(HEADLESS_DIR)/rtc-mr16-banked-%/Vrtc_mr16_compact_tb: $(RTC_COMPACT_SOURCES) M
 	  -GCE_DIVISOR=$* -GRETAIN_RESPONSE=1 -GEXTENDED_ROM=1 -j 4 $(RTC_COMPACT_SOURCES) -Wno-fatal
 .PHONY: test-rtc-mr16-banked
 
+RTC_FIRMWARE_SOURCES = tests/rtc_mr16_firmware_tb.sv $(filter-out tests/rtc_mr16_compact_tb.sv,$(RTC_COMPACT_SOURCES))
+test-rtc-mr16-firmware: $(HEADLESS_DIR)/rtc-mr16-firmware-1/Vrtc_mr16_firmware_tb $(HEADLESS_DIR)/rtc-mr16-firmware-32/Vrtc_mr16_firmware_tb
+	ulimit -c 0; python3 tests/test_rtc_mr16_firmware.py $^
+$(HEADLESS_DIR)/rtc-mr16-firmware-%/Vrtc_mr16_firmware_tb: $(RTC_FIRMWARE_SOURCES) Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module rtc_mr16_firmware_tb --Mdir $(@D) \
+	  -GCE_DIVISOR=$* -j 4 $(RTC_FIRMWARE_SOURCES) -Wno-fatal
+.PHONY: test-rtc-mr16-firmware
+
+test-mr16-rtc-firmware-link:
+	python3 tests/test_mr16_rtc_firmware_link.py
+.PHONY: test-mr16-rtc-firmware-link
+
+test-rtc-mr16-firmware-control: $(HEADLESS_DIR)/rtc-mr16-firmware-1/Vrtc_mr16_firmware_tb $(HEADLESS_DIR)/rtc-mr16-firmware-32/Vrtc_mr16_firmware_tb
+	ulimit -c 0; python3 tests/test_rtc_mr16_firmware.py --control $^
+.PHONY: test-rtc-mr16-firmware-control
+
 test: headless test-rgb12 test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner test-d88-crc test-d88-metadata test-cpu-busreq
 	python3 tests/test_joystick_schedule.py ./$(HEADLESS_EXE)
 	python3 tests/test_key_script.py ./$(HEADLESS_EXE) $(VIDEO_TEST_FLAGS)

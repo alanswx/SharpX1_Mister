@@ -28,6 +28,11 @@ retained-controller reset checks at full/sparse enables. Their 106-byte body
 does not fit the 22-byte free tail; full firmware integration remains open.
 An isolated extra-ROM decoder now passes exhaustive address checks and actual
 banked MR16 driver execution. It is not connected to the shared machine or boards.
+Source-linked inherited firmware now boots and executes its real EC..EF
+mailbox routines with the new callbacks at CE=1/32, including elapsed seconds
+and retained-clock warm reset. A reset-vector retention repair is confined to
+the opt-in response experiment. Actual Z80/sub-CPU integration, native year/
+power policy and interrupt/FDC/DMA coexistence remain open.
 
 The experimental handoff revision's early/fitted HDMI pin guard now accepts
 three exact observed whole-bank profiles, not arbitrary per-bit alternatives.

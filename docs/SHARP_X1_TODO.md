@@ -36,6 +36,14 @@ acceptance remain open. An isolated non-overlapping extra-ROM prototype now
 passes exhaustive decoding and banked driver execution; it is not connected to
 the inherited firmware, shared machine or boards. See
 [driver evidence](RTC_COMMAND_STATUS.md#banked-rom-capacity-prototype-not-machine-integration).
+The next source-linked full inherited firmware now executes EC/ED/EE/EF at
+CE=1 and CE=1/32 in a replacement mailbox/memory fixture. Elapsed seconds and
+retained-clock/software-year warm reset pass. The opt-in response experiment
+now retains the settled reset-vector response until its first enabled edge;
+both unchanged-firmware and extended-firmware startup pass. No ordinary
+machine/board enables this firmware or experimental response path. Real Z80
+mailbox timing, IRQ/FDC/DMA coexistence, short/in-flight resets, year/power and
+native acceptance still prevent closing RTC/Z7.
 
 The RTC firmware rebuild dependency now has a tested restricted replacement
 assembler: the unchanged inherited source reproduces all 4,096 ROM bytes,

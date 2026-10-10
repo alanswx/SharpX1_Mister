@@ -241,8 +241,11 @@ generate if (RETAIN_RESPONSE) begin : response_retention
   always @(posedge I_CLK) begin
     if (I_RESET) begin
       previous_ce <= 1'b0;
-      held_valid <= 1'b0;
-      held_data <= 16'd0;
+      // Reset holds the native core's address at its vector. Preserve the
+      // settled synchronous response until the first enabled edge: otherwise
+      // a sparse CE can lose it after reset releases the combinational bus.
+      held_valid <= 1'b1;
+      held_data <= raw_d_in;
     end else begin
       previous_ce <= I_CLKEN;
       if (I_CLKEN) held_valid <= 1'b0;
