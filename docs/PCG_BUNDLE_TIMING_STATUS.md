@@ -149,6 +149,26 @@ cases, thirteen invalid report/scope controls and four invalid provenance
 controls (`/tmp/x1-pcg-reset-inventory-audit.log`). These controls are not native
 STA, physical source-route removal or timing closure evidence.
 
+Fresh X3 `test-crtc-pending-snapshot` also completes zero on the local-reset
+repair (`/tmp/x1-pcg-reset-crtc-pending-snapshot.log`). It freezes the actual
+revision-3 runner, SHA-256
+`96ed44b94f921e627b3562e9b31aaf3200d47ae340ce39b3009c97da027754db`,
+and the unchanged oracle before testing nine genuine CPU pending states:
+request in flight, captured before CRTC consumption, and consumed before
+source ACK, at three instruction paddings. All 90 continuations match the
+uninterrupted serialized states byte-for-byte; saved originals remain
+unchanged, and the completed program retains the final R5/R9 values. No
+state conversion, forced chip state or native software/hardware pass follows.
+
+The fresh full ordinary delay-aware suite is running separately as
+`make -C verilator test HEADLESS_DIR=obj_dir_headless/pcg-reset-baseline`,
+log `/tmp/x1-pcg-reset-full-baseline.log`; runner SHA-256
+`dd6d2f5c1f00dee4372765c2a0d8b210ceda8ba3853c74578cca6e1b3fda6439`.
+It has reached its video matrix, not final acceptance. The clean build-host
+checkout is now at `8034078` with the reporting tools present; preflight
+passes (`/tmp/x1-quartus-8034078-preflight.log`), but no flow is started while
+other users' active Quartus jobs occupy the host.
+
 ### Stopped-clock reset cancellation follow-up
 
 The strengthened `test-turbo-pcg-native-windows` completes zero in

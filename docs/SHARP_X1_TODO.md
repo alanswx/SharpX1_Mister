@@ -123,6 +123,11 @@ source-to-first-stage pairs. Its scope tests pass 44 invalid cases without
 partial cuts and keep every QSF unchanged. Native before/after preservation,
 placement/MTBF and fresh fitting remain required; stage/consumer timing is
 not excluded. See `HDMI_MODE_STATUS.md` for the bounded scope and provenance.
+Fresh revision-3 X3 pending-CRTC snapshots now pass nine real CPU states and
+90 byte-identical continuations with unmodified originals. The separate full
+ordinary delay-aware suite is running, not completed; fresh fitting is still
+waiting for an idle build host. These checks do not complete the broader
+Turbo/Z native or physical acceptance gates.
 
 Fresh extracted native-policy runs now check 396 held-mode changes while
 blanked with a closed output clock, including synthetic delayed-policy cases.
