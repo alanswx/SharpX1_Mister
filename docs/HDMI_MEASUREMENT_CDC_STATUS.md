@@ -421,6 +421,30 @@ Frozen source:
 `/home/alans/mister/SharpX1_Mister/output_files/handoff-9cc1141-ENfxtIwd/worktree/output_files/quartus-linux-58JhGiQL/source`.
 Input-manifest SHA-256:
 `6ad47ea2a3b5504f8184dbe9e38c8047c79cfcc6a9a23d49c87fc12912c6f23f`.
-Live driver log: `/tmp/x1-quartus-9cc1141-handoff-i3oFPnDY.log`.
+Driver log on misterubuntu: `/tmp/x1-quartus-9cc1141-handoff-i3oFPnDY.log`.
 No terminal fit/constraints/timing result is claimed yet. Other jobs, the
 primary checkout and historical fits are preserved; no MiSTer is loaded.
+
+The flow subsequently terminates **exit 3 at 14:44:51 UTC**, elapsed 8m20s.
+Main independently reads the actual remote terminal record and completed log.
+Fitter and assembler complete zero; final STA rejects
+**unreviewed whole-prefetch D/ASDATA profile; repeat discovery**. The strict
+VSYNC input guard now passes: two canonical stages, stage0 feeding only stage1,
+and stage1 feeding exactly `vs_d0`, `vs_d1`, `vsd`, without the extra replica.
+This qualifies the narrow replication repair on this fit, not HPS topology,
+physical control equivalence or timing closure. Partial setup/hold are
+**-9.677/-2.623 ns** under incomplete SDC loading; shell totals are 10 errors/
+166 warnings. No accepted RBF or deployment follows.
+
+Main also reads the native completed pass footers and actual terminal records,
+then compares source/runtime manifests unchanged. Normal retains 10,273 native
+HS checks and 204 blank/closed-clock checks; skew records 13,143/192.
+Both scope statements retain the extracted-policy-only limitation.
+Worker preservation verifies all 1,175 tracked source files unchanged (not the
+earlier fit's 1,171), and 414/415 snapshot inputs unchanged except generated QPF
+metadata. Original database archive SHA-256:
+`0690160a2d583ec26620c4ce0262ec3fb521cad1f4d9905e1d06b90238142ee6`.
+At 14:47:25 UTC an external MacPPC flow/mapper is active, so reporting-only,
+no-SDC whole-bank inventory does not launch. Preserve this fit and re-audit
+the newly observed complete bank; no selected SDC or historical binding changes
+are authorized by this rejection alone.

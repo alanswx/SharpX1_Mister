@@ -77,11 +77,13 @@ reset/policy checks. Its new fit is rejected by a whole-prefetch pin-profile
 guard. Same-fit discovery/preservation now qualifies that exact sixth bank,
 with active/raw/mode timing rows unchanged; global setup still fails.
 Strict SDC guards remain intact and a fresh full flow/timing/hardware acceptance
-are still required. The latest `5afb059` fit instead stops at the VSYNC-fanout
+are still required. The `5afb059` fit instead stops at the VSYNC-fanout
 identity guard before reaching the later data guards. Reporting-only discovery
 identifies an extra `vs_d1` consumer replica; a narrowly scoped experimental
-replication-prevention candidate passes source/interface checks, not a new fit.
-Its assembled RBF is not accepted or deployed. Historical
+replication-prevention candidate passes source/interface checks. The fresh
+`9cc1141` fit now passes that strict VSYNC guard, then stops at a new whole-
+prefetch pin profile. Incomplete-constraint timing is not accepted; reporting-
+only inventory is next. Its assembled RBF is not accepted or deployed. Historical
 fit-integrity tests require Git history to bind their original source commits.
 
 The separate [RTC/X3/DMA/Kanji/FM profile](docs/RTC_DMA_KANJI_FM_STATUS.md)
