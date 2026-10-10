@@ -106,3 +106,13 @@ The requested fresh `aa05dd2` full flow is not launched at the first host
 check, 10:30:32 UTC: DSPPC604 Quartus shell/fitter PIDs 2001830/2002631 are
 active. No source snapshot or probe is created and no competitor disturbed.
 This is a busy-host observation, not a compilation failure or timing pass.
+
+The next idle-host check permits launch at 10:35:07 UTC. The source-bound
+`aa05dd2` flow finishes synthesis, fitting and assembly, then exits 3 at
+10:43:50 UTC: the existing handoff input guard rejects the fitted
+`completed_generation~DUPLICATE` source replica. This is not acceptance of
+the new measurement synchronizer or reset repair, nor completed constrained
+timing. Reporting-only inspection must establish the actual replica's
+fan-in/fan-out before any constraint change. See
+[the build record](DMA_BOARD_BUILD_STATUS.md#october-10-current-source-build-gate)
+for frozen inputs and the unaccepted artifact hash.

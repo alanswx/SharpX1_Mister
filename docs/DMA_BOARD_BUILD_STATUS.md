@@ -2,6 +2,25 @@
 
 ## October 10 current-source build gate
 
+Latest follow-up: the frozen `aa05dd2f7bbedc2491f2de9eeb72624002dd3e4a`
+handoff revision starts on the idle host at 10:35:07 UTC and finishes at
+10:43:50 UTC, **exit 3**. Synthesis, fitting and assembly finish; the agent's
+terminal report records 20,596 ALMs, 34,009 registers and 393 RAM blocks.
+Final STA refuses `completed_generation~DUPLICATE` as an unreviewed source
+replica before loading the held/inactive constraints. The partial setup/hold
+numbers (-21.246/-15.799 ns) are therefore **not** a completed constrained
+audit. No timing guard is broadened and no hardware deployment is performed.
+The unaccepted RBF SHA-256 is
+`7461c9454ace92c6708c5a4f7fe779805a8493e4df5ac6fe10ed3441f308ff09`.
+Frozen source root is
+`output_files/quartus-linux-I30pZ0zU/source` on the build host; input-manifest
+SHA-256 is
+`f4d50a76350604f5ce2aa33814486b5d0acfbfd08c0ba4abc2c1fab441245fc1`.
+The agent reports all 410 checkout inputs match that manifest, with only
+generated QPF rewriting in the snapshot. Reporting-only fitted replica
+inspection and independent artifact review remain follow-up gates; this build
+does not contain the subsequent experimental wide-D88 changes.
+
 The latest guarded idle-host check permits a fresh Quartus 17.0.2 full flow
 at 08:02:29 UTC, source `3c6242e771446dc11843cc8f4b7d4c58430b8f17`.
 This is the separate `sharpx1_turbo_z_handoff` revision, **not** a rebuild or

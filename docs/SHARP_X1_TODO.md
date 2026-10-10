@@ -1520,6 +1520,10 @@ capability profile. The existing `TURBO=1` build is not Turbo Z support.
 - [ ] Implement Z text priority, transparency, blackclip and output rules.
 - [ ] Integrate standard stereo YM2151 FM, CTC/IRQ and PSG mixing.
 - [ ] Qualify switchable dual 2HD/2D drives and native HD software.
+  See [the primary-documentation-derived HD plan](TURBO_HD_DISK_PLAN.md):
+  widen byte addressing and the sector index, implement distinct IN capacity
+  selection, qualify FDCCLK/byte timing and resolve native drive RPM. The
+  in-progress non-savable wide-D88 experiment alone is not native 2HD support.
 - [ ] Add second-level Kanji, mouse/serial and RTC/control-processor behavior.
   Current RTC evidence supersedes the historical driver-only checkpoints below:
   the default-off shared RTC profile passes real Z80 EC..EF elapsed time,
