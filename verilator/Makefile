@@ -1705,6 +1705,11 @@ $(HEADLESS_DIR)/rtc-mr16-unretained-32/Vrtc_mr16_driver_tb: tests/rtc_mr16_drive
 	  -GCE_DIVISOR=32 -GRETAIN_RESPONSE=0 -j 4 tests/rtc_mr16_driver_tb.sv ../rtl/mr16core.v ../rtl/mr16_x1.v ../rtl/x1_rtc_clock_enable.sv ../rtl/x1_cz880_rtc.sv ../rtl/x1_upd1990_counter.sv ../rtl/x1_upd1990_calendar.sv -Wno-fatal
 .PHONY: test-rtc-mr16-retained
 
+test-mr16-assembler:
+	python3 tests/test_mr16_assembler.py
+	python3 ../scripts/assemble_mr16.py ../bios/reference/fw_subcpu/x1sub.asm --check-rom ../rtl/sub_rom.v
+.PHONY: test-mr16-assembler
+
 test: headless test-rgb12 test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner test-d88-crc test-d88-metadata test-cpu-busreq
 	python3 tests/test_joystick_schedule.py ./$(HEADLESS_EXE)
 	python3 tests/test_key_script.py ./$(HEADLESS_EXE) $(VIDEO_TEST_FLAGS)

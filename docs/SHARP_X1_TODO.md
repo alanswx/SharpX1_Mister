@@ -14,6 +14,14 @@ support before optional Turbo extensions.
 
 ## Active goal: items 1–6 and Turbo Z (October 6)
 
+The RTC firmware rebuild dependency now has a tested restricted replacement
+assembler: the unchanged inherited source reproduces all 4,096 ROM bytes,
+independently checked against saved checksum-valid HEX/BIN and literal RTL.
+It preserves inherited macro quirks rather than silently fixing their machine
+behavior. Only 22 bytes remain free; a compact real serial driver and verified
+space/decoding solution are still required. EC..EF time advancement remains
+unfixed. See [source-rebuild evidence](RTC_COMMAND_STATUS.md#reproducible-restricted-source-rebuild-not-an-rtc-fix).
+
 The early/fitted HDMI pin-contract repair now qualifies two exact whole-bank
 profiles, with all 126 intermediate patterns rejected before cuts. Native
 mapped guard loading passes; a separate historical-fit eight-corner audit

@@ -355,6 +355,59 @@ its explicit controller/memory configuration, not native RTC or whole-machine
 compatibility. The real-CPU EC..EF clock test remains unfixed; controller
 driver/ROM-budget integration is still the next machine-level dependency.
 
+### Reproducible restricted source rebuild, not an RTC fix
+
+The local/sibling tool survey found the inherited `a.bat` recipe and saved
+HEX/BIN/listing, but no usable AASM 3.71 executable. The inherited macro
+requires multipass immediate sizing. A new original restricted assembler,
+`scripts/assemble_mr16.py`, implements the syntax actually used by this source,
+with bounded layout convergence, strict final validation and no default file
+writes. It is **not** an AASM implementation or a qualification of arbitrary
+MR16 firmware. Its encoding references are the unchanged `MR16.MAC` and
+`mr16core.v`; inherited notices and unresolved distribution limits remain.
+
+`make -C verilator test-mr16-assembler` terminates zero. Six test groups cover
+an independent checksum-valid Intel HEX reconstruction, exact saved binary
+and 4,096-byte source parity, twelve literal encoding vectors, relocated
+forward labels and separate code/data segments, conditional/comment handling,
+seventeen rejecting syntax/range/overlap controls, and recursive-include
+rejection. The CLI independently compares all 2,048 literal words in active
+`rtl/sub_rom.v`. No firmware or active machine path is changed.
+Log: `/tmp/x1-mr16-assembler-tests-first.log`.
+
+The rebuilt image SHA-256 is
+`2d9c9745e0a1a09d98c0e14ace627c03cd39d71ceb21e3fef5957e7a62428c01`.
+It has `code_end=0FEA` and data end `1156`, leaving **22 bytes / 11 words**
+in the existing ROM. The saved HEX has 255 valid data records and 4,071
+explicit bytes through `0FE8`. Internal holes `0F6D` and `0FAB` are filled
+with FF by the saved HEX-to-BIN path; the converter pads after its last byte
+with zero. Treating every hole as zero would fail parity. The receive-only
+ROM override remains separate and unchanged.
+
+Initial parity attempts are retained as failures: Latin-1 `splitlines()`
+misread a Shift-JIS comment byte as NEL; missing `.if` handling then failed
+closed. The subsequent nine-byte mismatch exposed two inherited macro quirks
+and the fill policy, rather than justification to patch the reference ROM.
+The absolute JCS alias uses table index 16 without masking; prefixed
+`_MEM_DISP11` places register fields differently from unprefixed LDM/STM.
+The assembler reproduces those **historical bytes**, including STW `7100`,
+`7101`, `7102`; it does not claim these implement the intended native memory
+operations on the active MR16 CPU. Correcting either would be a separate
+functional change requiring execution evidence. RTC driver development should
+use qualified instructions, not infer working STW from artifact parity.
+
+Assembler SHA-256:
+`5f225a64639ed3c1626d55f8069a6a5f35e6a8aabade724884340bec5e8bc8fc`;
+test SHA-256:
+`ce80e2249568ff605157466eab5af18cc219f45c46a864b710e360388e8bd8ad`.
+Original ASM, macro, HEX, listing and active ROM hashes remain unchanged.
+This removes the missing executable dependency for reproducing this exact
+source, but not the compact-driver/ROM-space, year/retention, real mailbox,
+warm-reset, native software or hardware acceptance gates. In particular,
+removing FDC/DMA support is not an acceptable space shortcut; an extended
+replacement-controller ROM would require non-overlapping decoding and its
+own explicit profile rather than aliasing work RAM at `1000`.
+
 ### Remaining integration order
 
 1. Finish tracing controller year storage and power retention; reconcile

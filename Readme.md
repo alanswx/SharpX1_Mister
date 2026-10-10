@@ -18,6 +18,12 @@ the remaining physical and unimplemented-feature gates.
 
 ## Current status
 
+The RTC investigation now includes a restricted MR16 assembler that reproduces
+all 4,096 inherited ROM bytes from source. This enables firmware work without
+the missing AASM executable, but is not an RTC fix or a general AASM replacement;
+the compact driver and ROM-space solution remain open. See
+[firmware evidence](docs/RTC_COMMAND_STATUS.md#reproducible-restricted-source-rebuild-not-an-rtc-fix).
+
 The experimental handoff revision's early/fitted HDMI pin guard now accepts
 two exact observed whole-bank profiles, not arbitrary per-bit alternatives.
 Native mapped guard loading and historical-fit active-path preservation pass;
