@@ -104,6 +104,11 @@ RTC2/RTC3 stores and keyboard translations. Frozen evidence is
 The executable SHA-256 is
 `eeb70f1a1ccac785c29edc2a0f8fc506a66c6ba35310615c57a9b6175eaa265e`.
 Native game/font, broader device coexistence and hardware gates remain open.
+Fresh protected native Kanji probes now complete their first cold executions:
+Arcus has a readable disk-error dialog and actual DMA programming with DMA
+disabled; Bastard remains at title. Repeats and combined DMA/ROM ownership
+qualification remain open; see `COMMERCIAL_COMPATIBILITY.md`. These are not
+native gameplay or complete font acceptance.
 
 From `verilator/`, `python3 tests/test_rtc_kanji_pixels.py
 obj_dir_v17_rtc_x3_kanji/Vtop` independently freezes the executable, shared

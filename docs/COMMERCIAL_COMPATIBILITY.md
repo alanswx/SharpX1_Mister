@@ -567,6 +567,19 @@ hardware-qualified. Logs are `/tmp/x1-arcus-rtc-x3-kanji-late-start-16s.log`
 and `/tmp/x1-bastard-rtc-x3-kanji-late-start-16s.log`. These pending trials do
 not prove native glyphs, playability, release disk order or Turbo Z support.
 
+The first combined-Kanji cold executions now complete all sixteen seconds;
+their repeats remain running. Actual PNG conversions are visually inspected
+and strictly match 256,000/128,000 PPM pixels. Arcus's dialog becomes legible
+and reports a disk-read error (frame hash `c532ccc7df38c9da`); Bastard retains
+the same title (`82968a99a28dbd3d`). Both JSON reports identify RTC, Kanji and
+nominal X3, fifteen real PS/2 bytes, zero disk writes and DMA disabled.
+Arcus's 7.5–9-second bus window contains sixteen actual OUTs to `1F80`,
+including reset/program/load/enable commands after the Enter. This exposes a
+missing DMA capability in this particular renderer/controller combination,
+not proof of the sole cause of native failure. The current shared-machine
+DMA+Kanji guard remains: qualify combined ownership/WAIT/reset before enabling
+the combination, not simply deleting the guard. No game or RAM is patched.
+
 ## Arcus and Bastard Special: private native probes
 
 These additional titles are locally supplied archives, outside the top-32
