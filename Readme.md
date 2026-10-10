@@ -93,6 +93,9 @@ independent 320-report audit pass the exact topology and 912 synchronous
 stage/consumer rows (+19.594/+0.230 ns minimum setup/hold). Raw crossings and
 global setup still fail; this is not timing closure or a qualified tester RBF.
 See [the fitted evidence](docs/HDMI_MODE_STATUS.md#single-sample-fit-and-native-all-corner-inventory).
+An unselected 29-pair held-output-mux proposal now passes independent native
+before/after auditing while preserving other mode/raw-input timing. Global
+setup still fails -12.149 ns; no new RBF or hardware acceptance is inferred.
 
 Its isolated real-PLL controller maps/fits; a fitted-feedback audit led to an
 explicit falling-edge closure witness. Current native cases pass, while raw

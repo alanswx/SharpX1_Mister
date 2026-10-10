@@ -21,6 +21,7 @@ new = root / "sharpx1_turbo_z_handoff.qsf"
 controller = (root / "rtl/x1_hdmi_clock_handoff.sv").read_text()
 assert re.findall(r'\(\*\s*dont_replicate\s*\*\)\s*reg\s+([^;]+);', controller) == ["gate_request = 0"], "replication prevention must stay on the single gate-enable source"
 for path in root.glob("*.qsf"):
+    assert ("SDC_FILE", "scripts/constraints/hdmi_held_mode_candidate.sdc") not in assignments(path), "unqualified held-mux proposal became board-selected"
     if path != new:
         assert not any(key == "VERILOG_MACRO" and "X1_HDMI_HANDOFF_EXPERIMENT" in value
                        for key, value in assignments(path)), "ordinary revision enabled handoff"

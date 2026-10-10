@@ -950,6 +950,61 @@ output-pipeline assertion (`/tmp/x1-hdmi-mode-closure-raw-negative-v1.log`).
 It does **not** reach or independently validate the newer closure assertion.
 Full upstream/DDR/PHY, fitted timing and physical mode switches remain open.
 
+## Held-output-mux delay-budget proposal (unselected)
+
+Fresh full held-mode discovery on the `ce2eba8` fit completes zero, with
+original artifact hashes unchanged. Independent auditing covers **1,936 rows**
+and 95 source/endpoint/clock combinations at eight corners; minimum setup/hold
+is **-18.327/+0.813 ns**. Each corner/check has 121 rows: 29 for each selected
+output clock alias, 62 SYS-control paths and one raw csync input. The latter
+now ends at `dv_csync_meta`, not the native HS consumer. Log:
+`/tmp/x1-handoff-mode-inventory-ce2eba8-v1.log`; local ignored report copy:
+`output_files/hdmi-csync-board-ce2eba8/handoff-mode-inventory-v1/`.
+
+`scripts/constraints/hdmi_held_mode_candidate.sdc` is an **unselected**
+29-pair proposal for held-mode D routes: bit 0 to the 24 first-stage RGB bits
+and HS/VS/DE; bits 1 and 2 to HS only. It guards exact scalar/replica identities,
+three clock identities/periods, and the actual synchronous D-input drivers
+before applying any constraint. It does not constrain mux clock-selection
+pins, raw synchronizers, output DDR/I/O or ordinary pixel-data transfers.
+
+The first 8 ns/0 ns proposal fails the independent positive-slack audit: setup
+reaches -0.474 ns and hold -1.394 ns. Installed Quartus 17 help confirms max/
+min delay includes clock latency and provides no `-datapath_only` option;
+`/tmp/x1-hdmi-delay-help-v1.log` records the exact tool help. The failed probe
+is preserved at `held-mode-probe-v1`, with candidate SHA-256
+`3f8a7b3e2e7ec27191348f7a78fa521381f4c8b3297f36a1d850f4cdbb7fdda2`.
+It is not counted as a passing test or silently overwritten.
+
+The revised proposal derives its budget from the controller's stopped-clock
+windows, not ordinary SYS/output phase relationships. Publication is at
+least three CTRL periods after the last output transition and at least five
+periods before the first reopening edge in the native bench. Use one CTRL
+period (**31.25 ns**) for the setup relationship and **-31.25 ns** for hold,
+inside those verified pre/post quiet windows. A negative minimum relationship
+is not a negative physical data delay: the destination clock is closed while
+the bundle changes. This is a functional contract awaiting physical clock-
+selection/closure qualification, not a blanket CDC exception.
+
+The revised read-only native probe completes zero and independent auditing
+passes **192 reports**, **928 budgeted rows** with minimum setup/hold
+**+22.776/+29.856 ns**, and exact bound relationships. All physical route/data
+delays match; **1,008 other mode rows and 64 raw-input rows are unchanged**.
+Global after-probe setup/hold remains **-12.149/+0.009 ns**. The setup leader
+is HDMI-domain csync/OSD data reaching the video-selected output alias; these
+inactive-branch/data-sensitization paths need separate analysis, not held-mode
+exceptions. No original STA/RBF is changed and no new RBF is built by the probe.
+
+Candidate SHA-256:
+`71889e04b0f6dc073f8139988418662edf755b0f45a10bb5fa61235a5b5b1763`.
+Native log: `/tmp/x1-held-mode-probe-ce2eba8-v2.log`; local copies:
+`output_files/hdmi-csync-board-ce2eba8/held-mode-probe-v2/`.
+`make -C verilator test-hdmi-handoff-input-sdc` now also runs eleven invalid
+candidate-scope/clock/route controls, nineteen invalid report controls and
+four invalid source/artifact controls. Those synthetic checks are not native
+timing evidence. The candidate remains absent from every QSF/SDC include;
+fresh fitting, controller/clock-pin and physical qualification remain open.
+
 ## Next gates
 
 1. Establish an actually supported mode-sensitive STA method or a narrow

@@ -63,6 +63,16 @@ The replication repair is verified on this fit, but the RBF remains timing-
 unqualified and no physical gate is completed. Original artifacts remain
 unchanged; see `HDMI_MODE_STATUS.md` for source/hash/provenance and exact scope.
 
+The fresh full held-mode discovery audits 1,936 rows. A separate, unselected
+29-pair held-output-mux delay proposal now passes a native before/after probe:
+928 budgeted rows (+22.776/+29.856 ns minimum setup/hold), 1,008 other mode rows
+and 64 raw input rows unchanged. Its earlier 8 ns/0 ns proposal failed and
+remains preserved. The revised relationships derive from tested pre/post
+closed-clock windows and installed Quartus latency semantics. Global setup
+still fails -12.149 ns at inactive HDMI-to-video-selected data paths; no
+ordinary clock-domain cuts or new board selection is made. Qualify clock
+selection/closure and inactive data-branch sensitization before acceptance.
+
 Fresh extracted native-policy runs now check 396 held-mode changes while
 blanked with a closed output clock, including synthetic delayed-policy cases.
 Minimum quiet time is 96,873 ps, above the three-control-period requirement;
