@@ -1390,6 +1390,7 @@ test-hdmi-handoff-input-sdc:
 	tclsh tests/hdmi_held_mode_sdc_tb.tcl
 	python3 tests/test_hdmi_held_mode_probe.py
 	python3 tests/test_held_sdc_context_048.py
+	python3 tests/test_held_sdc_context_3c.py
 	tclsh tests/hdmi_handoff_input_sdc_tb.tcl
 	python3 tests/test_hdmi_handoff_input_probe.py
 .PHONY: test-hdmi-handoff-input-sdc

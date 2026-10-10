@@ -14,6 +14,35 @@ from audit_hdmi_held_mode_probe import KEYS
 CORNERS = [(model, str(t)) for model in ("slow", "fast") for t in (-40, 0, 85, 100)]
 PACKED = {"hdmi_dv_hs", "hdmi_dv_de", "hdmi_dv_data[0]", "hdmi_dv_data[6]", "hdmi_dv_data[17]"}
 PACKED048 = {"hdmi_dv_hs", "hdmi_dv_de"} | {f"hdmi_dv_data[{i}]" for i in (3, 12, 13, 16, 17)}
+PACKED3C = {"hdmi_dv_hs", "hdmi_dv_vs"} | {f"hdmi_dv_data[{i}]" for i in (6, 13, 16)}
+
+
+def audit_sources_3c(log, root):
+    """Exact 3c6242e original fit and cef2210 diagnostic inputs, not any RBF."""
+    names = ["rtl/x1_hdmi_clock_handoff.sv", "sys/sys_top.v",
+             "scripts/constraints/hdmi_held_mode_candidate.sdc"]
+    staged = ["hdmi_held_mode_candidate.sdc", "hdmi_inactive_data_candidate.sdc",
+              "quartus_held_sdc_context_probe.tcl"]
+    names += ["../held-context-3c6242e-v1/" + name for name in staged]
+    names += [f"output_files/sharpx1_turbo_z_handoff.{ext}"
+              for ext in ("fit.rpt", "fit.summary", "sta.rpt", "sta.summary", "rbf")]
+    expected = [
+        "47ca9d7da65df077b8a3b20012a2ede6a98d638756fbc6a746c9b20c71f7f58a",
+        "583dd6f99967b8fc10df7f83ae92e6206f7c0874c51985669609831fcb800630",
+        "e4266eaa455e0603b0df5e2a8439bfb69b36e98956d431808c7e73acf1f3d5e1",
+        "e4266eaa455e0603b0df5e2a8439bfb69b36e98956d431808c7e73acf1f3d5e1",
+        "b9525e32811c49d1cb3144eae46c8dcb32c73f03ce7f375ecf17429ff88d2cb5",
+        "980d9cb7523d6b556af0a2f65ba693b85374244b30e20634ff79ac96885cb37f",
+        "1f1c32f1bbd0720cb30f6ef3424abde76c6b1ddc7998e54d7ff1d0ddbfd657e8",
+        "f2e9648892464210ff30e08dc26d78eb1ac96a7c099a7805517dbda3e5811212",
+        "1eb0fcc7ab73052e2541eb7fa6b1a325b29fc5d2933c1b60c8dfb9a81fcd6f2f",
+        "e64eacd636a2543bcbd1c8fa95f50d2ae979a281dfea1a799662f9a6da07ad49",
+        "7f6a2009cbebe2caa34fec785bd39a19da0ba58e4f970f2ca80b9f0384d5a993"]
+    hashes = re.findall(r"^([0-9a-f]{64})  (\S+)$", log.read_text(), re.M)
+    assert hashes == list(zip(expected, names)) * 2, "wrong/reordered/changed 3c fit or cef diagnostic provenance"
+    paths = names[:3] + ["scripts/constraints/" + name for name in staged[:2]]
+    paths += ["scripts/" + staged[2]]
+    assert [hashlib.sha256((root / name).read_bytes()).hexdigest() for name in paths] == expected[:6], "3c source/proposal binding changed"
 
 
 def audit_sources_048(log, root):
@@ -61,8 +90,8 @@ def audit_sources(log, root):
 
 
 def audit(directory, log, profile="fitted4cd"):
-    assert profile in ("fitted4cd", "fitted048"), "unqualified context profile"
-    packed = PACKED if profile == "fitted4cd" else PACKED048
+    assert profile in ("fitted4cd", "fitted048", "fitted3c"), "unqualified context profile"
+    packed = {"fitted4cd": PACKED, "fitted048": PACKED048, "fitted3c": PACKED3C}[profile]
     text = log.read_text()
     assert text.count("TimeQuest Timing Analyzer was successful. 0 errors, 0 warnings") == 1, "native flow incomplete/warned"
     assert not re.search(r"^\s*(?:Error|Warning|Critical Warning)\b", text, re.M), "native diagnostic warning/error"
@@ -129,10 +158,15 @@ if __name__ == "__main__":
     parser.add_argument("directory", type=pathlib.Path)
     parser.add_argument("--native-log", type=pathlib.Path, required=True)
     parser.add_argument("--source-root", type=pathlib.Path, required=True)
-    parser.add_argument("--fit-048d996", action="store_true", help="require the separate exact 048d996 fit/proposal binding")
+    fit = parser.add_mutually_exclusive_group()
+    fit.add_argument("--fit-048d996", action="store_true", help="require the separate exact 048d996 fit/proposal binding")
+    fit.add_argument("--fit-3c6242e", action="store_true", help="require exact 3c6242e fit and cef2210 diagnostic inputs")
     args = parser.parse_args()
-    if args.fit_048d996:
+    if args.fit_3c6242e:
+        audit_sources_3c(args.native_log, args.source_root)
+    elif args.fit_048d996:
         audit_sources_048(args.native_log, args.source_root)
     else:
         audit_sources(args.native_log, args.source_root)
-    audit(args.directory, args.native_log, "fitted048" if args.fit_048d996 else "fitted4cd")
+    audit(args.directory, args.native_log,
+          "fitted3c" if args.fit_3c6242e else "fitted048" if args.fit_048d996 else "fitted4cd")

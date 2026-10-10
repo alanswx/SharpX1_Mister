@@ -20,6 +20,11 @@ whole-bank pattern is added; five scoped positives and 16,379 mixed-profile
 rejections pass. Native same-fit active/raw path preservation remains next,
 not timing closure or an accepted RBF. See `HDMI_MODE_STATUS.md`.
 
+A separate exact 3c6242e/cef2210 auditor binding now passes 384-report
+synthetic integrity and rejecting provenance/source/preservation controls.
+The connected SDC tests complete zero. Native same-fit launch is refused
+while another project's synthesis is active; no native timing pass is inferred.
+
 Current Arcus follow-up distinguishes the combined 16-second CPU state
 (0AA0 output loop, interrupts enabled) from the historical 0EA0 interrupt
 handler. The collector now compares read-only video/CTC/opcode observations;

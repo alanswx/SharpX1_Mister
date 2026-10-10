@@ -179,3 +179,9 @@ scope controls and 16,379 mixed-pattern rejections pass locally. See
 [exact evidence and remaining gates](HDMI_MODE_STATUS.md#fifth-fitted-profile-discovery-and-guarded-scope-complete).
 This does not qualify the DMA board or a new RBF: same-fit preservation,
 full-flow constrained timing and hardware remain open. No MiSTer is loaded.
+
+The new `--fit-3c6242e` auditor separately binds all eleven original/staged
+hashes and the exact pin profile. Its synthetic 384-report/preservation and
+36 provenance/actual-source rejecting checks pass alongside historical gates.
+The native same-fit attempt at 09:33:45 UTC is not launched because another
+project's actual synthesis is active; no new native timing result is claimed.

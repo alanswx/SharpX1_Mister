@@ -52,6 +52,26 @@ This is inventory and guarded-scope evidence only. Native same-fit
 active/raw/mode path preservation, full-flow timing, PCG-WE, CDC/MTBF/I/O
 and physical acceptance remain open. No failed-flow RBF is promoted.
 
+The separate auditor CLI `--fit-3c6242e` now requires the exact original
+fit/reports/RBF and `cef2210` diagnostic inputs: all eleven ordered hashes
+must match twice, and all six source/staged entries are rehashed against the
+supplied source root. This does not reuse the historical 4cd/048 binding or
+accept a different proposal merely because its own log says it is unchanged.
+Its expected stage is `../held-context-3c6242e-v1/`; any other path is rejected.
+CLI fit choices are mutually exclusive. The same-fit report audit requires
+`fitted3c` and its exact 77 pins; active/raw/mode rows must remain identical,
+and negative global slack is reported as open, not silently passed.
+
+Synthetic checks pass the 384-report positive, 26 provenance rejections,
+ten changed/missing actual-source rejections and fourteen scope/preservation
+rejections. The connected SDC target, including the historical 048 binding,
+completes zero in `/tmp/x1-hdmi-fifth-bound-auditor-connected.log`.
+These are auditor integrity gates, **not native reports**. The next native
+launch is refused by a single authoritative idle check at 09:33:45 UTC:
+MacPPC7300 Quartus shell PID 1945921 and synthesis PID 1945954 are active.
+No stage is created, probe launched or competing process disturbed in that
+attempt; native same-fit preservation remains required.
+
 ## Actual inherited policy
 
 `sys/sys_top.v` uses the same `~vga_fb & direct_video` expression for the
