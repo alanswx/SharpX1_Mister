@@ -809,6 +809,14 @@ these extracted lanes do not qualify full upstream OSD/DDR/PHY or native ASIC
 behavior. Fresh fitting is still required for the changed framework hash
 `c95e80d3d59e5eba621bb09c5785b95c9c47cadd506712c386ccbddd5004c19e`.
 
+The verified checkpoint is pushed as `00cabd4`. The clean host checkout starts
+a new full flow in `output_files/quartus-linux-Cx5S48qo/source`, exact commit
+`00cabd4ff750038555944c15d2edfd8eeccf8f9c`; log
+`/tmp/x1-quartus-00cabd4-z-csync-echo.log`. Live mapping is confirmed (PID
+1328818). Final new synchronizer/echo scope, fitted consumer timing, all-corner
+global checks, MTBF/I/O and hardware acceptance are still unproven. No MiSTer
+has been loaded and no previous RBF is relabelled as this framework revision.
+
 ## Next gates
 
 1. Establish an actually supported mode-sensitive STA method or a narrow
