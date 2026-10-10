@@ -12,6 +12,12 @@ module hdmi_handoff_policy_tb;
     wire hdmi_hs_osd=hdmi_data_osd[0],hdmi_vs_osd=hdmi_data_osd[1],hdmi_de_osd=hdmi_data_osd[2];
     wire hdmi_cs_osd=~hdmi_data_osd[0];
     wire fixture_clk,fixture_blank,fixture_busy;
+    wire fixture_csync,fixture_native_hs;
+    wire vga_hs_osd=dv_data[3],vga_cs_osd=~dv_data[3];
+    // Preserve unknowns in delayed-input startup; a two-state oracle would
+    // incorrectly coerce the diagnostic wire's initial X to a valid zero.
+    logic native_hs_first=0,native_hs_second=0,native_hs_third=0;
+    int native_hs_checks=0,native_edges=0;
     wire [2:0] fixture_mode;
     wire hs,vs,de;
     wire [23:0] data_out;
@@ -25,6 +31,19 @@ module hdmi_handoff_policy_tb;
     initial begin #2; forever #(hdmi_half) clk_hdmi=~clk_hdmi; end
     always @(negedge clk_vid) dv_data<=dv_data+1'b1;
     always @(negedge clk_hdmi) hdmi_data_osd<=hdmi_data_osd+1'b1;
+    always @(posedge clk_vid) begin
+        native_hs_third=native_hs_second;
+        native_hs_second=native_hs_first;
+        if(ce_pix) native_hs_first=fixture_csync ? vga_cs_osd : vga_hs_osd;
+        native_edges++;
+        #1;
+        if(native_edges>4) begin
+            assert(fixture_native_hs===native_hs_third) else $fatal(1,"actual native HS CE/pipeline mismatch");
+            if(!fixture_blank && fixture_mode[0])
+                assert(fixture_csync===fixture_mode[2]) else $fatal(1,"video unblanked before consumed csync policy matches");
+            native_hs_checks++;
+        end
+    end
     // Fixed 32 MHz CTRL in this fixture: five complete SETTLE cycles precede
     // gate reopening. Verify the held bundle BEFORE its first output sample,
     // not just after the ten-edge blank flush. This is a functional contract,
@@ -73,6 +92,12 @@ module hdmi_handoff_policy_tb;
         assert(fixture_busy && fixture_blank) else $fatal(1,"aborted DV epoch reused stale readiness");
         ce_pix=1;
         wait(!fixture_busy && !fixture_blank && fixture_mode==3'b011);
+        // A new csync request must not acknowledge an old consumed policy.
+        @(negedge clk_control); ce_pix=0; csync_en=1;
+        #2000000;
+        assert(fixture_busy && fixture_blank) else $fatal(1,"new csync reused old CE policy acknowledgement");
+        ce_pix=1;
+        wait(!fixture_busy && !fixture_blank && fixture_mode==3'b111);
         repeat(3) begin
             for(int test_mode=0;test_mode<8;test_mode++) begin
                 bit [2:0] expected_mode;
@@ -91,9 +116,11 @@ module hdmi_handoff_policy_tb;
         end
         assert(checked>=480) else $fatal(1,"missing actual-policy coverage");
         assert(held_mode_checks>=20) else $fatal(1,"missing held-mode first-edge coverage");
+        assert(native_hs_checks>=100) else $fatal(1,"missing native HS coverage");
         qualification_complete=1;
         $display("PASS: actual HDMI handoff policy video_half=%0d hdmi_half=%0d checks=%0d",video_half,hdmi_half,checked);
         $display("MODE_HOLD_CHECKS=%0d MINIMUM_MODE_HOLD_PS=%0d",held_mode_checks,minimum_mode_hold);
+        $display("NATIVE_HS_CHECKS=%0d",native_hs_checks);
         $finish;
     end
     initial begin #100000000; $fatal(1,"actual-policy timeout"); end

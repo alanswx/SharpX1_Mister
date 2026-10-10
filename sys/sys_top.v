@@ -1174,16 +1174,36 @@ reg        dv_hs, dv_vs, dv_de;
 // Follow the SAME ce_pix capture and three VID registers as native DV HS.
 // No fixed output-edge count substitutes for an actual pixel-enable capture.
 wire hdmi_video_policy_epoch;
+wire [2:0] hdmi_held_mode;
+// Synchronize the request token and single policy bit before the native HS
+// consumer. Echo the policy actually consumed at CE, not a free-running sample.
+// Independent first-stage settling cannot make a torn token/policy pair ready:
+// CTRL requires BOTH the epoch and applied policy to match its held request.
+reg dv_epoch_meta=0,dv_epoch_sample=0;
+reg dv_csync_meta=0,dv_csync_sample=0;
 reg dv_policy_first=0,dv_policy_second=0,dv_policy_completed=0;
+reg dv_csync_first=0,dv_csync_second=0,dv_csync_completed=0;
 always @(posedge clk_vid) begin
-    if(ce_pix) dv_policy_first <= hdmi_video_policy_epoch;
+    dv_epoch_meta <= hdmi_video_policy_epoch;
+    dv_epoch_sample <= dv_epoch_meta;
+    dv_csync_meta <= hdmi_held_mode[2];
+    dv_csync_sample <= dv_csync_meta;
+    if(ce_pix) begin
+        dv_policy_first <= dv_epoch_sample;
+        dv_csync_first <= dv_csync_sample;
+    end
     dv_policy_second <= dv_policy_first;
     dv_policy_completed <= dv_policy_second;
+    dv_csync_second <= dv_csync_first;
+    dv_csync_completed <= dv_csync_second;
 end
 reg dv_policy_meta=0,dv_policy_sample=0;
+reg dv_csync_echo_meta=0,dv_csync_echo_sample=0;
 always @(posedge clk_sys) begin
     dv_policy_meta <= dv_policy_completed;
     dv_policy_sample <= dv_policy_meta;
+    dv_csync_echo_meta <= dv_csync_completed;
+    dv_csync_echo_sample <= dv_csync_echo_meta;
 end
 `endif
 always @(posedge clk_vid) begin
@@ -1230,10 +1250,9 @@ always @(posedge clk_vid) begin
 end
 
 wire hdmi_tx_clk;
-wire [2:0] hdmi_held_mode;
 wire hdmi_transition_blank;
 `ifdef X1_HDMI_HANDOFF_EXPERIMENT
-assign hdmi_policy_csync = hdmi_held_mode[2];
+assign hdmi_policy_csync = dv_csync_sample;
 `else
 assign hdmi_policy_csync = csync_en;
 `endif
@@ -1243,7 +1262,8 @@ x1_hdmi_clock_handoff hdmi_handoff(
     .clk_control(clk_sys), .clk_video(clk_vid), .clk_hdmi(hdmi_clk_out),
     .reset_request(reset_req),
     .requested_mode({csync_en,direct_video,~vga_fb & direct_video}),
-    .video_policy_ready(dv_policy_sample == hdmi_video_policy_epoch),
+    .video_policy_ready((dv_policy_sample == hdmi_video_policy_epoch) &&
+                       (dv_csync_echo_sample == hdmi_held_mode[2])),
     .clk_output(hdmi_tx_clk), .active_mode(hdmi_held_mode),
     .output_blank(hdmi_transition_blank), .busy(),
     .video_policy_epoch(hdmi_video_policy_epoch)

@@ -750,6 +750,65 @@ The clean build checkout now launches a fresh **`8685be0`** full flow in
 the fitter is confirmed live (PID 1312593). Final replica guards, fit/STA/RBF
 and hardware are still unproven. Earlier frozen outputs remain untouched.
 
+That `8685be0` flow subsequently finishes **zero** on October 9 at
+23:58:56 UTC, elapsed 8m26s, with 162 warnings. Unlike the preceding attempt,
+its selected six-input scope does not reject a fitted gate-request replica.
+The flow summary minima are setup **-18.201 ns**, hold **+0.251 ns**,
+recovery **+4.019 ns**, removal **+0.825 ns**, pulse width **+0.529 ns**.
+These are the flow summary, not a new independent eight-corner audit.
+STA warns that timing is unmet and design MTBF cannot be calculated.
+The unqualified RBF SHA256 is
+`321b84f044d43756593b74d106e8a8934ce3847d6e1334d537ba421d0739f1ec`.
+Manifest/summary copies live under ignored
+`output_files/hdmi-handoff-noreplicate-8685be0/`. It predates the following
+framework change and has not been loaded on a MiSTer.
+
+## CE-consumed native csync acknowledgement
+
+Only `X1_HDMI_HANDOFF_EXPERIMENT` now synchronizes the epoch and held csync
+bit through two native-VID stages. Native `dv_hs1` consumes the sampled bit,
+not the raw SYS bit. At the same real `ce_pix` capture, an echo records that
+consumed policy and follows the same three VID registers as native HS.
+Two CTRL samples return it alongside the epoch; readiness requires both to
+match the held request. A stopped CE cannot fabricate that consumed-policy
+acknowledgement. Ordinary board revisions retain their original csync path.
+No new SDC exceptions are added; new stage/echo/raw-input and whole-board
+timing, placement/MTBF and physical gates remain required.
+
+The source-bound emitter now extracts the actual CE-qualified native HS
+assignments, with guards on their original placement, in addition to the
+output registers/token handshake. The bench checks the HS pipeline, retained
+HS during stopped CE, correct policy before video unblank, and a new csync
+request while CE is stopped. The frozen emitter/framework/fixture/controller/
+bench/macro hashes are verified before/after and against current local inputs
+by `scripts/audit_hdmi_handoff_policy_runs.py`. The reusable runner is:
+
+```sh
+bash scripts/run_hdmi_handoff_policy_native.sh MODEL_BIN ABI5_DEPENDENCIES normal
+bash scripts/run_hdmi_handoff_policy_native.sh MODEL_BIN ABI5_DEPENDENCIES skew
+```
+
+Normal native six-profile qualification completes zero:
+`/tmp/x1-hdmi-csync-echo-native-v5.log`, scratch evidence
+`/tmp/x1-hdmi-csync-qual-wyZBRcaG/output_files/hdmi-native-policy-cUSwVecS`.
+It passes **5,030 exact output words**, **204 first-edge hold checks** (minimum
+169,799 ps), and **10,273 extracted native HS checks**. The explicitly
+diagnostic 3-us csync transport-delay profile also completes all six:
+`/tmp/x1-hdmi-csync-skew-native-v3.log`, `hdmi-native-policy-vYpcQ7TY`, with
+**5,032 words**, **192 holds** (minimum 170,013 ps), **13,143 HS checks**.
+The same skew with consumed-policy echo removed exits **1** at the intended
+"video unblanked before consumed csync policy matches" assertion, with
+`POLICY_COMPLETION=0`; log
+`/tmp/x1-hdmi-csync-skew-noecho-negative-v3.log`. Earlier declaration-order
+compile failures and a two-state-oracle startup-X failure are not counted.
+Both final positive/negative fixtures use the same four-state oracle.
+Synthetic source/extraction/audit controls and the ordinary 72-case static
+policy/wrong-clock negative pass; no assertions are weakened to accept an
+incorrect consumed policy. The diagnostic delay is **not routed delay**, and
+these extracted lanes do not qualify full upstream OSD/DDR/PHY or native ASIC
+behavior. Fresh fitting is still required for the changed framework hash
+`c95e80d3d59e5eba621bb09c5785b95c9c47cadd506712c386ccbddd5004c19e`.
+
 ## Next gates
 
 1. Establish an actually supported mode-sensitive STA method or a narrow

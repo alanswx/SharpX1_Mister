@@ -9,7 +9,12 @@ parser.add_argument("output", type=pathlib.Path)
 parser.add_argument("--wrong-clock", action="store_true", help="intentional negative control")
 parser.add_argument("--native-handoff", action="store_true", help="extract experimental native clock/handoff block too")
 parser.add_argument("--raw-policy", action="store_true", help="native negative: bypass held data selectors")
+parser.add_argument("--csync-skew-ps", type=int, default=0, help="diagnostic-only policy transport delay; not routed hardware timing")
+parser.add_argument("--without-csync-echo", action="store_true", help="negative control: acknowledge epoch without consumed-policy echo")
 args = parser.parse_args()
+assert args.csync_skew_ps >= 0
+if args.csync_skew_ps or args.without_csync_echo:
+    assert args.native_handoff, "csync controls require native handoff"
 root = pathlib.Path(__file__).resolve().parents[2]
 raw = (root / "sys/sys_top.v").read_bytes()
 source = raw.decode()
@@ -40,6 +45,7 @@ text += "input wire dv_hs,dv_vs,dv_de,hdmi_cs_osd,hdmi_hs_osd,hdmi_vs_osd,hdmi_d
 if args.native_handoff:
     assert not args.wrong_clock, "native controller is not an ideal wrong-clock fixture"
     text += "input wire clk_control,reset_request,ce_pix, output wire [2:0] fixture_mode, output wire fixture_blank,fixture_busy,\n"
+    text += "input wire vga_hs_osd,vga_cs_osd, output wire fixture_csync, output reg fixture_native_hs,\n"
 text += "output wire HDMI_TX_HS,HDMI_TX_VS,HDMI_TX_DE, output wire [23:0] HDMI_TX_D, output wire fixture_clk);\n"
 text += "timeunit 1ps; timeprecision 1ps;\n"
 if args.native_handoff:
@@ -48,12 +54,41 @@ if args.native_handoff:
     native = source[begin:stop]
     assert native.count("x1_hdmi_clock_handoff hdmi_handoff(") == 1
     native = native.replace(".busy()", ".busy(fixture_busy)")
+    if args.without_csync_echo:
+        ready = ".video_policy_ready((dv_policy_sample == hdmi_video_policy_epoch) &&\n                       (dv_csync_echo_sample == hdmi_held_mode[2]))"
+        assert native.count(ready) == 1, "ambiguous consumed-policy ready gate"
+        native = native.replace(ready, ".video_policy_ready(dv_policy_sample == hdmi_video_policy_epoch)")
     text = "`define X1_HDMI_HANDOFF_EXPERIMENT\n" + text
     text += "wire clk_sys=clk_control, hdmi_clk_out=clk_hdmi, reset_req=reset_request;\nwire hdmi_policy_csync;\n"
     token_start = source.index("// Follow the SAME ce_pix")
     token_stop = source.index("`endif", token_start)
-    text += source[token_start:token_stop] + "\n"
+    token_block = source[token_start:token_stop]
+    if args.csync_skew_ps:
+        capture = "dv_csync_meta <= hdmi_held_mode[2];"
+        assert token_block.count(capture) == 1, "ambiguous csync crossing"
+        token_block = token_block.replace(capture, "dv_csync_meta <= diagnostic_delayed_csync;")
+        token_block = "wire diagnostic_delayed_csync;\n" + token_block
+        token_block += f"\n// Diagnostic delay only; no physical-delay acceptance.\nassign #{args.csync_skew_ps} diagnostic_delayed_csync = hdmi_held_mode[2];\n"
+    text += token_block + "\n"
     text += native + "\nassign fixture_clk=hdmi_tx_clk;\nassign fixture_mode=hdmi_held_mode;\nassign fixture_blank=hdmi_transition_blank;\n"
+    # Extract actual CE-qualified native HS assignments; other DV counters
+    # and data remain outside this diagnostic's qualification scope.
+    hs_lines = []
+    for lhs in ("dv_hs1", "dv_hs2", "dv_hs"):
+        matches = re.findall(rf"^\s*{lhs}\s*<=\s*[^;]+;", source, re.M)
+        assert len(matches) == 1, "ambiguous native HS assignment"
+        hs_lines.append(matches[0].strip())
+    assert hs_lines == ["dv_hs1 <= hdmi_policy_csync ? vga_cs_osd : vga_hs_osd;",
+                        "dv_hs2 <= dv_hs1;", "dv_hs  <= dv_hs2;"]
+    dv_start = source.index("always @(posedge clk_vid) begin\n\treg [23:0] dv_d1, dv_d2;")
+    dv_block = source[dv_start:source.index("\nwire hdmi_tx_clk;", dv_start)]
+    ce_begin = dv_block.index("\tif(ce_pix) begin")
+    ce_end = dv_block.index("\n\tend\n\n\tdv_d1")
+    assert ce_begin < dv_block.index(hs_lines[0]) < ce_end, "native HS CE placement changed"
+    assert dv_block.index(hs_lines[1]) > ce_end and dv_block.index(hs_lines[2]) > ce_end
+    text += "assign fixture_csync=hdmi_policy_csync;\nreg dv_hs1,dv_hs2;\nalways @(posedge clk_vid) begin\n"
+    text += "if(ce_pix) " + hs_lines[0] + "\n" + hs_lines[1] + "\n"
+    text += hs_lines[2].replace("dv_hs ", "fixture_native_hs ") + "\nend\n"
 else:
     text += f"wire hdmi_tx_clk = ({selectors[0]}) ? {clocks};\nassign fixture_clk=hdmi_tx_clk;\n"
 text += policy + "\nendmodule\n"

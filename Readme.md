@@ -77,6 +77,12 @@ qualification now repeats all 96 reset profiles and six actual-policy
 profiles (4,994 exact words and 198 first-edge holds) on this new controller
 hash. The fresh source-bound full flow is fitting; replica scope and timing
 are not yet accepted. No MiSTer is loaded.
+That flow now completes zero but still fails setup (-18.201 ns); no design
+MTBF is calculated. A newer experimental-only csync path acknowledges the
+policy actually consumed by native HS. Six normal and six delayed-policy
+native profiles pass, and the matching no-echo control fails as intended.
+Ordinary static policy tests still pass; new source-bound fitting and physical
+acceptance remain required. No old RBF qualifies this newer framework.
 Its isolated real-PLL controller maps/fits; a fitted-feedback audit led to an
 explicit falling-edge closure witness. Current native cases pass, while raw
 crossings, full-board timing and physical switching remain open. All 96 bounded

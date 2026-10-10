@@ -35,6 +35,14 @@ zero; independent current-source/hash audits pass (4,994 exact words and
 198 first-edge holds). Eleven invalid policy-evidence controls pass in CI's
 audit target. The source-bound `8685be0` full flow is fitting in a new snapshot;
 final replica scope/timing and hardware are still open, not inherited passes.
+The `8685be0` flow subsequently completes zero but still fails setup -18.201
+ns (flow summary, not an independent eight-corner audit); MTBF is not calculated.
+The newer experimental-only csync/epoch bridge now echoes the policy consumed
+at real CE. Six normal profiles pass 5,030 words/10,273 native HS checks; six
+synthetic delayed-policy profiles pass, and the matched epoch-only control
+fails early-unblank. Ordinary static policy checks still pass. Fresh stage/
+echo/raw-input timing and physical qualification remain open for this newer
+framework; it is not a completed Turbo Z work group or a qualified RBF.
 
 The experimental [coherent CRTC transport](CRTC_WRITE_CDC_STATUS.md) now
 passes four helper clock ratios, three real-CPU clock ratios, five owned-DMA
