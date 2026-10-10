@@ -2,7 +2,7 @@
 
 October 9, 2026. This qualifies digital handshake timing in the shared
 `rtl/x1_pcg_access.v` module, not a new constraint or hardware pin contract.
-Production RTL is unchanged (SHA-256
+At the original bundle-window checkpoint, production RTL was unchanged (SHA-256
 `578e37ddba614e1c8c68734c1e08d337b75215e4abf424a19eff6deea84fb767`).
 Source-bound FPGA PCG setup failures remain recorded in
 [Z fit evidence](TURBO_Z_OWNER_RESET_STATUS.md).
@@ -61,6 +61,51 @@ No new warnings/suppressions are introduced by the timing observations.
 | Turbo, including native-rate extension | `fce93833625dcd2e9448fa862bb1b4a0f79a763446f47afd3d95186f055bf564` |
 
 ## Remaining constraints/acceptance
+
+### Local-reset write-permission repair
+
+The follow-up removes the redundant raw CPU `!reset` qualifier from
+`access_write`. With `SEPARATE_VIDEO_RESET=0`, `video_reset_active` is already
+CPU reset, so ordinary base/single behavior is unchanged. With separate
+reset, the caller must supply asynchronous assertion together with CPU
+reset and destination-clock release. Every current separate-reset caller
+uses `x1_reset_release`; independent uncoordinated reset inputs are not a
+supported cancellation contract. The existing VID stage and frozen write/
+plane payload still qualify exactly one RAM write per accepted transaction.
+No timing exception, reset register, or payload/ACK protocol is added.
+
+This addresses the direct combinational CPU-reset-to-VID-WE source route
+identified in the joint HDMI probe. Only fresh fitting and exact RAM-WE
+fan-in/timing inspection can establish that the physical route is removed;
+reset recovery, payload timing, raw synchronizers and whole-core timing still
+require their separate gates. No older RBF qualifies the repair.
+
+X3 snapshot identity adds bit 38 (revision 3), leaving ordinary v17 and the
+other device identity bits unchanged. An actual frozen previous X3 runner,
+SHA-256 `da47f228c34a9d095fcccc47398ea114d3fee2dc35cd01dcb40d2d20ac33f5c2`,
+generates an unmodified state rejected before deserialization by the new
+runner. Fresh continuation, same-rate base/Turbo rejection and asset-upload
+rejection pass (`/tmp/x1-pcg-reset-prior-state-rejection.log` and
+`/tmp/x1-pcg-local-reset-snapshot.log`). No snapshot bytes were converted.
+The earlier frozen combined-Z matrix is historical source evidence and
+continues independently; its results cannot qualify this newer machine.
+
+Repair RTL SHA-256:
+`05a0f8434dc5097fd3ba7cf2b71e912c94e3ae97f40626c0fe08f858e2c9919b`.
+
+Fresh checks finish zero on this repair:
+
+- All twelve Turbo helper profiles pass the stopped-stage cancellations and
+  16,397 transactions each. Base/helper dependencies also pass.
+- Three connected Kanji ROM/WAIT profiles pass 131,082 transactions each;
+  six real-Z80 Kanji profiles pass 2,579 IN/INI checks per cold/warm run.
+  Log: `/tmp/x1-pcg-local-reset-tests.log`.
+- Shared-machine real-CPU PCG checks pass at both ordinary 28,571,428 Hz
+  and X3 42,954,540 Hz video, with loaded/unloaded ANK16 and retained-asset
+  warm reset. Log: `/tmp/x1-pcg-local-reset-real-cpu.log`.
+- Request/response/reset constraint scope tests and experimental Z wrapper
+  lint pass (`/tmp/x1-pcg-reset-scope-wrapper.log`). Lint uses the PLL stand-in,
+  retains inherited warnings, and is not Quartus or hardware validation.
 
 ### Stopped-clock reset cancellation follow-up
 

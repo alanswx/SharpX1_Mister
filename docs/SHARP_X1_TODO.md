@@ -106,6 +106,14 @@ Machine RTL is unchanged. This strengthens the cancellation prerequisite,
 not the fitted reset-to-write-enable path or a hardware/timing acceptance
 gate. See `PCG_BUNDLE_TIMING_STATUS.md` for exact counts and fixture hash.
 
+The next source repair removes raw CPU-reset qualification of PCG RAM writes
+in favor of the existing local VID reset. Ordinary reset behavior is unchanged;
+separate-reset callers require coordinated asynchronous assertion. Fresh X3
+snapshot continuation and rejection of an actual previous-runner state pass
+with distinct revision-3 identity (bit 38). Fresh fitted RAM-WE source/timing
+and the full current-machine video matrix remain required; older frozen
+matrix results are historical, not qualification of the new source.
+
 Fresh extracted native-policy runs now check 396 held-mode changes while
 blanked with a closed output clock, including synthetic delayed-policy cases.
 Minimum quiet time is 96,873 ps, above the three-control-period requirement;

@@ -111,6 +111,10 @@ at PCG download/reset write gating; ordinary boards remain unchanged.
 Twelve PCG helper profiles now additionally pass accepted-stage cancellation
 with stopped VID and earlier CPU reset release, without stale writes on
 restart. This is reset-test coverage, not a timing-path fix or hardware pass.
+The subsequent source repair uses the existing local video reset alone for
+PCG write permission, retaining ordinary reset behavior. Fresh X3 continuation
+and actual old-state rejection pass with revision-3 snapshot identity; fitted
+write-enable timing and current-machine pixels/hardware remain unqualified.
 
 Its isolated real-PLL controller maps/fits; a fitted-feedback audit led to an
 explicit falling-edge closure witness. Current native cases pass, while raw

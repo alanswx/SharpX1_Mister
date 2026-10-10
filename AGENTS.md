@@ -125,7 +125,10 @@ See `docs/TURBO_Z_PAIRED_VIDEO_STATUS.md` for current composition and running
 pixel gates. This diagnostic does not qualify rendered pixels or hardware CDC placement.
 
 Snapshot format v17 rejects older states after the signed shared FM audio
-interface/state increment (v16 added the FM bus; v15 the shared serial interface)
+interface/state increment (v16 added the FM bus; v15 the shared serial interface).
+X3 additionally requires revision 3 (identity bit 38) after
+the local-reset-only PCG RAM write-permission repair; regenerate older X3
+states from boot, never convert them. Ordinary v17 remains unchanged.
 (v14 exposed raw glyph color)
 (v13 added transaction-bound DAM arming)
 (v12 added the RGB12 output port; v11 added opt-in CPU/DMA bus and instrumentation;

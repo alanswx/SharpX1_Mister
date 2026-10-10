@@ -43,11 +43,12 @@ with tempfile.TemporaryDirectory(prefix="x1-x3-snapshot-") as directory:
         execute(previous,["--cycles","10000","--ram",str(program),"--save-state",str(previous_state)])
         old_magic = struct.unpack_from("<Q", previous_state.read_bytes(), 16)[0]
         new_magic = struct.unpack_from("<Q", state.read_bytes(), 16)[0]
-        assert old_magic ^ new_magic in (1 << 62, (1 << 62) | (1 << 63)), "previous runner is not a matching pre-CRTC/pre-blink v17 X3 profile"
+        assert old_magic ^ new_magic in (1 << 38, (1 << 38) | (1 << 62),
+                                        (1 << 38) | (1 << 62) | (1 << 63)), "previous runner is not a matching pre-PCG-reset/pre-CRTC/pre-blink v17 X3 profile"
         rejected = subprocess.run([turbo,"--cycles","10000","--restore-state",str(previous_state)],
                                   capture_output=True,text=True,timeout=180)
         assert rejected.returncode == 2 and "snapshot version, video clock or disk fingerprint mismatch" in rejected.stderr, rejected.stderr
-        print("PASS: actual unmodified pre-CRTC/pre-blink v17 X3 state rejected before deserialization; no conversion")
+        print("PASS: actual unmodified pre-PCG-reset/pre-CRTC/pre-blink v17 X3 state rejected before deserialization; no conversion")
     font = root / "font16.bin"
     font.write_bytes(bytes(4096))
     invalid = subprocess.run([turbo,"--cycles","10000","--restore-state",str(state),

@@ -32,6 +32,9 @@ module x1_pcg_access #(parameter SEPARATE_VIDEO_RESET = 0, KANJI_SUPPORT = 0) (
     output reg [16:0] kanji_cpu_addr,
     output kanji_cpu_read
 );
+    // With separate reset, the caller must asynchronously assert video_reset
+    // with CPU reset and release it only on VID (x1_reset_release in X3).
+    // RAM write permission belongs to that local reset, not raw SYS reset.
     wire video_reset_active = SEPARATE_VIDEO_RESET ? video_reset : reset;
     reg request, busy, done, ack;
     reg [1:0] plane;
@@ -48,7 +51,7 @@ module x1_pcg_access #(parameter SEPARATE_VIDEO_RESET = 0, KANJI_SUPPORT = 0) (
     assign access_data = payload;
     assign kanji_cpu_read = !reset && busy && kanji_request && !kanji_absent && !write_request;
     // One video edge writes exactly one byte. ANK ROM writes are ignored.
-    assign access_write = !reset && !video_reset_active && stage == 1 && write_request && !unsupported_request
+    assign access_write = !video_reset_active && stage == 1 && write_request && !unsupported_request
                         ? (plane == 1 ? 3'b001 : plane == 2 ? 3'b010
                            : plane == 3 ? 3'b100 : 3'b000) : 3'b000;
 
