@@ -32,6 +32,12 @@ Another project's active Quartus flow currently prevents a new full build;
 no competing process or occupied MiSTer is disturbed. See
 [the exact scope and logs](HDMI_MODE_STATUS.md#exact-whole-bank-earlypacked-contract-qualification).
 
+That host wait has now ended: a fresh source-bound `4cd18ed` handoff flow
+starts in `quartus-linux-9YrpMbWH/source` after actual idle/clean checks and
+manifest comparisons. Synthesis is confirmed live; fitting, all-corner
+timing, new PCG-WE inventory, CDC/MTBF and physical gates are not yet accepted.
+The previous failed snapshot and historical RBF remain unchanged.
+
 Held-mode follow-up: complete fitted discovery independently audits 1,584
 rows across eight corners and finds the separate native-VID `dv_hs1` csync
 consumer (-7.247 ns setup), alongside selected-output and SYS consumers.

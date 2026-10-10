@@ -29,6 +29,8 @@ two exact observed whole-bank profiles, not arbitrary per-bit alternatives.
 Native mapped guard loading and historical-fit active-path preservation pass;
 fresh fitting and timing/hardware acceptance remain open. See
 [scope and evidence](docs/HDMI_MODE_STATUS.md#exact-whole-bank-earlypacked-contract-qualification).
+The new `4cd18ed` source-bound handoff flow is now synthesizing on
+`misterubuntu`; a started build is not a timing-qualified RBF.
 
 For a blank screen on first launch, see [IPL loading](docs/IPL_LOADING.md):
 the RBF does not bundle the boot ROM. Load a matching raw `.rom` through

@@ -1276,6 +1276,19 @@ packing profile must fail and be rediscovered, not silently admitted. The
 build-host availability check found another project's active Quartus flow;
 no new full build was launched or competing process interrupted.
 
+The competing flows later ended. After an actual idle-process check and
+clean-checkout fast-forward, the guarded helper launched a new full flow at
+`2026-10-10T04:36:33Z`, source
+`4cd18ed4ac170240e3af0394bf57f41dcc18df35`, revision
+`sharpx1_turbo_z_handoff`, Quartus 17.0.2 Build 602. Immutable snapshot:
+`/home/alans/mister/SharpX1_Mister/output_files/quartus-linux-9YrpMbWH/source`.
+Input-manifest SHA-256:
+`5d7fa6f158af6c4f75e943ca50b2201ff4daa19c70bd37e6fbb2ee743dfeaf25`.
+The source-before/source-after/snapshot comparisons pass before launch;
+actual `quartus_sh`/`quartus_map` processes confirm synthesis is live.
+Log: `/tmp/x1-quartus-4cd18ed-handoff.log`. This is a started flow, not
+synthesis/fitting/timing acceptance or a new tester RBF. No MiSTer is loaded.
+
 ## Next gates
 
 ### Unselected csync first-stage proposal
