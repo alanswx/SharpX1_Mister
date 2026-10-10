@@ -203,6 +203,9 @@ extra GRAM. The digital RGB output reduces analog multi-mode colors to eight
   delay-aware execution; default acceptance correctly rejects it and an
   independent elapsed-delay probe passes. The manufacturer's actual calendar
   contract must guide implementation, not MAME's host-time approximation.
+  A separate original next-second backend now passes 351,748 arithmetic/
+  invalid-state cases and three negative controls. It is not connected to
+  firmware/RTC storage or an oscillator and does not fix the stalled clock.
   The [SIO wiring audit](SIO_MACHINE_WIRING_AUDIT.md) now identifies native
   mouse-related B controls and A clock selection through DTRB; complete
   event-preserving clocks, pin/protocol input, machine decode and shared

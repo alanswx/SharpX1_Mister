@@ -84,10 +84,49 @@ the current defect and a rejecting acceptance test, not a fixed RTC.
 
 ## Implementation and acceptance sequence
 
+### Implemented calendar backend, not a clock fix
+
+The new original `rtl/x1_upd1990_calendar.sv` implements the valid packed
+calendar's next-second arithmetic. It has no oscillator, register storage,
+serial commands, year field, MCU memory interception, board port or capability
+signature. It is not in `machine.qip` or any board/runner profile, and does
+not modify the frozen games/matrices. Invalid inputs retain their bytes with
+`state_valid=false`; this explicit caller contract is not measured invalid-data
+silicon behavior. `month_wrapped` is a helper result, not an invented RTC pin.
+
+`make -C verilator test-upd1990-calendar` terminates zero without warning
+suppressions. Its independent integer-time/table oracle checks **351,748**
+cases: every second at four boundary profiles, every ordinary date plus
+manually set February 29 at every weekday (midnight and midday), and all
+independently invalid byte aliases. Three matched candidate mutations fail
+the unchanged oracle: naive hexadecimal seconds, automatic February 29, and
+ignoring invalid-state permission. The test asserts its full case count.
+Log: `/tmp/x1-upd1990-calendar-final.log`. RTL SHA-256:
+`a4f2ade6c2c1b8de7bfeed4e738faf8f6743bb09f79ba7e4a050869996315188`;
+fixture:
+`d8106eb631eac0b54797e23a23973676090e60441392b4b21c27086b793a9dd7`.
+CI now schedules the asset-free target; hosted results remain separate.
+The real-CPU elapsed-time test is still failing: this backend is necessary
+calendar behavior, not a connected running or battery-backed clock.
+
+The existing local MAME generic device `src/devices/machine/upd1990a.cpp`
+is now inspected separately from the X1 driver's host-time callback, not
+executed or downloaded anew. SHA-256:
+`3c12ef633ee513eec80682a5ae4ca318ac62f5943334a6cbc79b3f4dc448b3fb`.
+Its inherited RTC interface defaults to no automatic leap support, corroborating
+that boundary; the X1 driver does not instantiate this generic chip device.
+The generic implementation shares a latched command variable across group
+operations and resets TP on Register Hold, whereas primary group retention
+needs separate qualification. Its divider-reset comment/implementation also
+differs from the primary numbered-stage description. Do not copy those
+details, untested test-mode behavior or uPD4990 extensions as native acceptance.
+
+### Remaining integration order
+
 1. Trace CZ-880 RTC/control-processor serial nets and year storage; reconcile
    EC/EE host byte order with primary X1 command documentation. Keep native
    pin-chip behavior distinct from host command emulation.
-2. Add a deterministic running clock with an explicit initialization/retention
+2. Connect the tested backend to a deterministic running clock with an explicit initialization/retention
    contract. Keep clock advancement independent of CPU HALT, stopped enables
    and MR16 mailbox activity; do not derive battery persistence from RAM alone.
 3. Require the unchanged elapsed-time test to pass in fast and delay-aware

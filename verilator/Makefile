@@ -1606,6 +1606,23 @@ test-commercial-cold-plan:
 	python3 tests/test_commercial_cold_plan.py
 .PHONY: test-commercial-cold-plan
 
+test-upd1990-calendar: $(HEADLESS_DIR)/upd1990-calendar/Vupd1990_calendar_tb
+	./$(HEADLESS_DIR)/upd1990-calendar/Vupd1990_calendar_tb
+	@for fault in BCD LEAP INVALID; do \
+	  negative_log=$$(mktemp $(HEADLESS_DIR)/upd1990-calendar/negative-XXXXXX); \
+	  if (ulimit -c 0; ./$(HEADLESS_DIR)/upd1990-calendar/Vupd1990_calendar_tb +NEGATIVE_$$fault) >$$negative_log 2>&1; then \
+	    echo "FAIL: calendar negative $$fault accepted"; exit 1; \
+	  fi; \
+	  case $$fault in INVALID) message='invalid calendar contract violated';; *) message='calendar step mismatch';; esac; \
+	  rg -q "$$message" $$negative_log || { echo 'FAIL: unexpected calendar negative failure'; exit 1; }; \
+	  echo "PASS: unchanged calendar oracle rejects $$fault fault"; \
+	done
+$(HEADLESS_DIR)/upd1990-calendar/Vupd1990_calendar_tb: tests/upd1990_calendar_tb.sv ../rtl/x1_upd1990_calendar.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module upd1990_calendar_tb --Mdir $(@D) \
+	  -j 4 tests/upd1990_calendar_tb.sv ../rtl/x1_upd1990_calendar.sv
+.PHONY: test-upd1990-calendar
+
 test: headless test-rgb12 test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner test-d88-crc test-d88-metadata test-cpu-busreq
 	python3 tests/test_joystick_schedule.py ./$(HEADLESS_EXE)
 	python3 tests/test_key_script.py ./$(HEADLESS_EXE) $(VIDEO_TEST_FLAGS)

@@ -1270,6 +1270,9 @@ capability profile. The existing `TURBO=1` build is not Turbo Z support.
   NEC reference is retained locally. No running/battery-backed RTC is implemented
   by this investigation; delay-aware/probe/default-rejection checks now finish
   and independently confirm the defect without falsely accepting an RTC.
+  A new native-calendar arithmetic backend passes exhaustive seconds/date/
+  weekday and invalid-alias checks; oscillator, serial command/MCU integration,
+  year handling and persistence remain open, so elapsed-time acceptance still fails.
 - [ ] Research/implement capture quantization/inversion, mosaic, chroma key,
   extra scroll and superimpose/telopper, with a deterministic test video source.
   Primary encodings and a standalone decoder now pass exhaustive local checks;
