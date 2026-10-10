@@ -63,6 +63,9 @@ test-fdc-default-state:
 test-fdc-capacity-class:
 	python3 tests/test_fdc_capacity_class.py --vendor-sha 2affa0bd8a6bf504247dd917a86902508c1efb8f5e6143f2e90706f438a6b75a
 .PHONY: test-fdc-capacity-class
+test-fdc-byte-slots:
+	python3 tests/test_fdc_byte_slots.py
+.PHONY: test-fdc-byte-slots
 .PHONY: test-fdc-address-width test-fdc-default-state
 test-machine-hd-capacity: $(HEADLESS_DIR)/hd-capacity/Vhd_capacity_machine_tb $(HEADLESS_DIR)/hd-capacity-disabled/Vhd_capacity_machine_tb
 	./$(HEADLESS_DIR)/hd-capacity/Vhd_capacity_machine_tb

@@ -18,6 +18,10 @@ the remaining physical and unimplemented-feature gates.
 
 ## Current status
 
+The standalone [FDC byte-slot scheduler](docs/FDC_BYTE_SLOT_STATUS.md) passes
+exact enable-boundary and rejecting-negative checks. Controller integration,
+native clock routing and actual read/write deadlines remain open.
+
 The separate non-savable `turbo-hd-media` experiment now connects capacity
 selection to D88 medium matching. Original CPU cases pass wrong-class RNF
 and correct-class read/write/readback for 2D/2DD/2HD headers; ordinary generated

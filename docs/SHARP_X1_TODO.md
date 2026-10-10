@@ -14,6 +14,13 @@ support before optional Turbo extensions.
 
 ## Active goal: items 1–6 and Turbo Z (October 6)
 
+The standalone fixed FDC byte-slot scheduler now passes twelve enable/density
+profiles, 96 start phases, 181 consumed boundaries, physical 1/2-MHz interval checks and a
+wrong-boundary rejecting control. It is
+not yet connected to the controller; arrival-driven read/write holding
+registers, native FDCCLK and deadline/CPU/DMA/host-ACK qualification remain.
+See `FDC_BYTE_SLOT_STATUS.md`; this is not native disk timing acceptance.
+
 The separate HD-media experiment connects the selector to selected-volume
 metadata and passes actual CPU wrong-class RNF/correct-class read/write/readback
 for 00/10/20 headers, plus 140 standalone enabled/disabled/divider cases and
