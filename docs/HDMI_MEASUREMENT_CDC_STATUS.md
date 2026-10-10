@@ -167,3 +167,16 @@ not prove physical hazard freedom, timing or MTBF. Installed primitive edge
 semantics and a fail-closed replica guard remain under review. No SDC change,
 new cut, full-flow acceptance or hardware loading follows this inventory;
 the original replica refusal remains intact.
+
+The documented reporting-only post-fit Verilog export is attempted once when
+the host is idle, 12:21:52–12:21:54 UTC, against the exact frozen aa05 database.
+`write_atom_netlist -verilog` crashes in Fusion name conversion; native exit 2,
+no `post-fit.vo` generated. Main reads the stack/terminal result and verifies
+native-log SHA-256 `2076156f9eeca7479ff13702c4869ff1fd24035ec0002aa1a9f05d5a4419ae3e`.
+Main compares the fourteen artifact/source before/after manifests unchanged;
+the agent additionally records 512 database and four provenance pairs unchanged,
+and 409 frozen inputs verified. Preserved evidence:
+`/tmp/x1-aa05dd2-topology.Eu3NqBQI/atom-export-aa05dd2-vMWSeF6r`.
+This tool failure supplies no omitted-control/promotion semantics. A documented
+ASCII ATM reporting alternative is under investigation; the guard remains closed.
+No SDC, new timing cut, full-flow acceptance or MiSTer loading follows the crash.

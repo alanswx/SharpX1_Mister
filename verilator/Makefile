@@ -72,6 +72,12 @@ test-fdc-bus-events:
 test-fdc-stream-adapter:
 	python3 tests/test_fdc_stream_adapter.py
 .PHONY: test-fdc-stream-adapter
+test-fdc-completion:
+	python3 tests/test_fdc_completion.py
+.PHONY: test-fdc-completion
+test-fdc-stream-external-dr:
+	python3 tests/test_fdc_stream_external_dr.py
+.PHONY: test-fdc-stream-external-dr
 .PHONY: test-fdc-address-width test-fdc-default-state
 test-machine-hd-capacity: $(HEADLESS_DIR)/hd-capacity/Vhd_capacity_machine_tb $(HEADLESS_DIR)/hd-capacity-disabled/Vhd_capacity_machine_tb
 	./$(HEADLESS_DIR)/hd-capacity/Vhd_capacity_machine_tb

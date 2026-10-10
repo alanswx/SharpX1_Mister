@@ -25,8 +25,9 @@ Its separate [bus-capture prerequisite](docs/FDC_BUS_EVENTS_STATUS.md) passes
 held-response/one-event checks and three rejecting controls; it is not yet
 connected to the machine.
 The [fixed-slot stream prototype](docs/FDC_STREAM_ADAPTER_STATUS.md) also
-passes missed-byte/held-response/reset tests at nominal 1/2 MHz. It still
-needs shared physical-DR, WD/SD and actual CPU/DMA integration.
+passes missed-byte/held-response/reset tests at nominal 1/2 MHz. Separate
+shared-DR/raw-bus and held-completion gates also pass. WD/SD and
+actual CPU/DMA integration remain open; no board enables these helpers.
 
 The separate non-savable `turbo-hd-media` experiment now connects capacity
 selection to D88 medium matching. Original CPU cases pass wrong-class RNF

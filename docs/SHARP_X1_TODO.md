@@ -29,6 +29,11 @@ DRQ-low final-tail service bug. Its qualified internal holding
 register is not yet the WD physical DR; shared-register ownership, held SYS
 completion, actual raw-bus/SD/CPU/DMA and hardware gates remain open. See
 `FDC_STREAM_ADAPTER_STATUS.md`.
+Its external physical-DR/raw-bus gate now passes both rates and three rejecting
+controls; the actual-stream completion lease covers every controller CE phase,
+stopped enables, cancellation, exchange and illegal overwrite. WD/SD/actual
+CPU/DMA and source-bound hardware integration remain open. The prerequisite
+targets are scheduled in CI, not yet a hosted acceptance result.
 
 The separate HD-media experiment connects the selector to selected-volume
 metadata and passes actual CPU wrong-class RNF/correct-class read/write/readback

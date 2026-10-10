@@ -85,10 +85,11 @@ all five matched negatives. Actual Make target log:
 The preceding four-negative repair run also completes zero in
 `/tmp/x1-fdc-stream-tail-request-fixed.log`.
 
-This current source additionally introduces default-off `EXTERNAL_DR=1`,
+That checkpoint additionally introduces default-off `EXTERNAL_DR=1`,
 caller-owned physical DR and same-edge read-load intent/value. **The gate above
-does not enable or qualify that mode.** Shared-DR/raw-bus acceptance is still
-in progress; no WD/machine/manifest/board connection follows these results.
+does not enable or qualify that mode.** Shared-DR/raw-bus acceptance was then
+in progress; the separate gate below now covers it. No WD/machine/manifest/board
+connection follows these results.
 The internal-mode tail rule is request servicing, not permission to discard
 native CPU DATA stores: the future physical DR owner must retain those stores
 independently, including DRQ-low writes. Current frozen hashes:
@@ -98,6 +99,79 @@ independently, including DRQ-low writes. Current frozen hashes:
 | Stream prototype | `50a4007b51f9fd28bf804d5b50d42b51cea201b87b6fd76d20013da11c469372` |
 | Stream fixture | `1b0d238a4352bf4dddb506cd75c9e2fbd8d61930821b26b21ca70be121e2a9fb` |
 | Frozen checker | `2cfbe5bfb3d1add50351003112756e6548ddedbde0f1d0af4ee6f6018c0c6e98` |
+
+### Shared physical DR with actual raw bus strobes
+
+`make -C verilator test-fdc-stream-external-dr` now completes zero in Main's
+independent frozen run, `/tmp/x1-fdc-external-dr-main.log`. Frozen sources,
+commands and logs:
+`/var/folders/sv/859j7h856t5gzg1kv3nnqdj40000gn/T/x1-fdc-external-dr-yqni676c`.
+Main also independently reads and hashes the agent's earlier `aea9434z` gate.
+Current source hashes match both manifests.
+
+Both nominal 1/2-MHz rates pass 32 counted payload scenarios plus targeted
+raw-bus cases: 7,711 read arrivals, 5,766 DSR loads, 7,694 acknowledgements,
+5,761 DATA stores and one explicit arrival/store tie per rate. A single fixture
+SYS process owns physical DR. Actual held strobes go through the bus helper;
+all-register acceptance is filtered for DATA before stream service. Idle and
+non-DRQ stores update DR independently of validity; initial missing prefill
+cannot use an old nonzero DR, and underrun zero affects DSR without altering DR.
+Same-edge accepted DIN bypasses the old DR at both initial and periodic loads.
+DR, DRQ and generation are checked after every edge. Responses survive stream
+completion, new command and stream-only reset while the raw bus remains held.
+
+Private-DR, late-arrival intent and stale-DIN mutations all fail the same oracle
+at their required diagnostics. The first agent run, preserved under
+`x1-fdc-external-dr-j4a7966e`, fails overall because stale-DIN initially escapes:
+it lacks simultaneous accepted-store/load coverage. The expanded fixture fixes
+that test gap; it does not relax a production assertion. Independent review
+finds no blocking issue under the stated digital contract. Read-arrival-over-
+store priority and unsolicited-store replacement are fixture policies, not
+measured native bus collisions. This still instantiates no actual CPU, WD
+controller, SD scanner or board.
+
+Fixture/checker SHA-256:
+`208cadb9bbe1909f04a353f67c03c377391eab08901d6e302c6dfcbf69b0a830` /
+`44d1fcf9a22a047a309ae2bf878edf21abb52d9389da8e115f49353303696427`.
+Adapter stays `50a4007b...`; slot/bus hashes stay as previously recorded.
+
+### Actual-stream completion held for a slower consumer
+
+Original `rtl/x1_fdc_completion.sv` holds SYS-produced completion, loss and
+initial-abort result until consumption. Cancel/reset wins; completion wins
+consume to permit an exchange. `taken` qualifies consumption with valid and
+no cancel/reset, preventing a controller from applying the old visible lease
+on a cancelling edge. Results remain stored after consumption but are invalid.
+One outstanding completion is required; its simulation assertion rejects
+overwrite, not a claim of synthesizable backpressure or command-ID protection.
+Stop/restart the producer and cancel its lease together on context replacement.
+SD ACK ownership is not part of this cancellation interface.
+
+`make -C verilator test-fdc-completion` completes zero in
+`/tmp/x1-fdc-completion-consumer-final.log`, with frozen inputs/logs under
+`/var/folders/sv/859j7h856t5gzg1kv3nnqdj40000gn/T/x1-fdc-completion-6n8cvj8i`.
+The actual stream producer drives 48 transfers/64 phase-matrix captures;
+separate read and write masks cover all eight slower-controller CE phases at
+both rates. Results survive 73 stopped-consumer SYS edges and are consumed
+once. Additional actual-producer tests qualify pending/not-yet-captured cancel,
+cancel+consume suppression, old-result/new-completion exchange and reset at a
+source event. A real posedge consumer makes 50 accepted consumptions.
+Two unconsumed actual aborts reject the one-outstanding contract. Pulse-only,
+drop-loss and ignore-cancel mutations fail the per-edge unchanged oracle.
+Current default-warning builds are clean; the earlier original completion
+gate remains in `/tmp/x1-fdc-completion-frozen.log`.
+
+| Source | SHA-256 |
+| --- | --- |
+| Completion lease | `f1b0507dbf5557a90545336c1ed1e63f2a6501a713cff94ac3e905304928c929` |
+| Actual-stream fixture | `7851a999ef15947394505e3b3d132e94b4c22d510446de611dd3d7c29bed524e` |
+| Frozen checker | `1b23eece616a159e1d516e6e69b62b4c89d5f27354e07add41f1d01e88e2940b` |
+
+This is a same-SYS/enable handshake, not CDC, WD/SD integration, reset-drain
+ownership or hardware acceptance. These five asset-free FDC prerequisite
+targets are now scheduled in CI; no hosted success is claimed yet.
+
+### Still-required machine integration
 
 - Keep `wdreg_data` the single physical DR under its existing process owner.
   Separate DR contents from request validity/generation and serialized DSR.
