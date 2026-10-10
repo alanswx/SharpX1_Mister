@@ -91,7 +91,7 @@ jobs:
             test-z-effect-control \
             test-z-effect-registers \
             test-machine-z-effects \
-            test-z-adc-pinmap \
+            test-z-adc-pinmap test-z-line-buffer \
             test-joystick-schedule \
             test-commercial-cold-plan \
             test-upd1990-calendar \

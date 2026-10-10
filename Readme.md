@@ -47,6 +47,10 @@ remain open. The [line-buffer audit](docs/TURBO_Z_LINE_BUFFER_STATUS.md)
 also records the newly retrieved NEC capture-memory reference and remaining
 implementation gates, not a functioning digitizer.
 
+The standalone Turbo Z line-buffer prototype now passes two independent-clock
+storage/replay/reset profiles and a wrong-cycle DIN negative. It is outside
+the machine; ADC/IC58/GRAM capture and hardware remain unimplemented or unqualified.
+
 Large concatenated D88 files now mount when their selected first volume fits
 the controller's address space. Host/scanner and real Z80 read/write checks
 pass, preserving all trailing volumes. Selected volumes still must be below

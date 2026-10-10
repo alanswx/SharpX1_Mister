@@ -64,6 +64,11 @@ DMA pixel/keyboard cases from active FDC/clock transfers and native games.
 frames, including late bus source/destination checks. A terminal WAIT read is
 not a completed response: its exclusion requires exact final timestamp/current
 address/one-extra-read evidence. Keep completed payload and RGB assertions exact.
+`test-z-line-buffer` qualifies only standalone uPD41101 digital storage cycles.
+DIN belongs to the ending WCK edge, not the admission edge; reset does not
+clear memory. `output_owned` is not pixel validity. Keep it outside
+`machine.qip` until native board control/packing/clock and GRAM ownership are
+qualified; unwritten/colliding/expired data and analog access delays remain open.
 Upload START changes font readiness and must honor `ioctl_wait`, not only WR.
 The pending DMA read counter counts the strobe start before WAIT completes.
 

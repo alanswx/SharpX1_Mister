@@ -790,6 +790,20 @@ test-machine-dma-kanji-payload-negative: $(HEADLESS_DIR)/dma-kanji-machine/Vdma_
 	@grep -q 'CPU payload/restart mismatch marker=ee' $(HEADLESS_DIR)/dma-kanji-machine/payload-negative.log
 	@echo 'PASS actual CPU rejects one corrupted uploaded Kanji byte'
 .PHONY: test-machine-dma-kanji-payload-negative
+
+test-z-line-buffer: $(HEADLESS_DIR)/z-line-buffer/Vz_line_buffer_tb $(HEADLESS_DIR)/z-line-buffer-phase/Vz_line_buffer_tb
+	./$(HEADLESS_DIR)/z-line-buffer/Vz_line_buffer_tb
+	./$(HEADLESS_DIR)/z-line-buffer-phase/Vz_line_buffer_tb
+	@if ./$(HEADLESS_DIR)/z-line-buffer/Vz_line_buffer_tb +FAULT=1 > $(HEADLESS_DIR)/z-line-buffer/negative.log 2>&1; then echo 'FAIL: beginning-cycle DIN accepted'; exit 1; fi
+	@grep -q 'line-buffer ending-edge/reset/wrap byte oracle' $(HEADLESS_DIR)/z-line-buffer/negative.log
+	@echo 'PASS line-buffer rejects beginning-cycle DIN counterfactual'
+$(HEADLESS_DIR)/z-line-buffer/Vz_line_buffer_tb: ../rtl/x1_z_line_buffer.sv tests/z_line_buffer_tb.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module z_line_buffer_tb --Mdir $(@D) -j 4 ../rtl/x1_z_line_buffer.sv tests/z_line_buffer_tb.sv
+$(HEADLESS_DIR)/z-line-buffer-phase/Vz_line_buffer_tb: ../rtl/x1_z_line_buffer.sv tests/z_line_buffer_tb.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module z_line_buffer_tb --Mdir $(@D) -j 4 -GW_HALF=51000 -GR_HALF=73000 -GR_PHASE=17000 ../rtl/x1_z_line_buffer.sv tests/z_line_buffer_tb.sv
+.PHONY: test-z-line-buffer
 test-machine-kanji-loader: $(HEADLESS_DIR)/kanji-machine-reset/Vkanji_machine_reset_tb
 	@for kind in 0 1 2 3 4 5 6 7 8; do ./$(HEADLESS_DIR)/kanji-machine-reset/Vkanji_machine_reset_tb +LOADER_KIND=$$kind || exit 1; done
 .PHONY: test-machine-kanji-loader

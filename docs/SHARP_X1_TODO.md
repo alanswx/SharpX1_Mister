@@ -30,7 +30,7 @@ hardware qualification is inferred. These do not close full device coexistence.
 The ordinary regression/headless/DMA-wrapper-lint sequence started after the
 upload-start repair now completes zero; the current 200,000-cycle ordinary
 smoke also passes. This preserves baseline behavior, not full Turbo Z/native
-game/timing acceptance. Active, repeating Kanji DMA during rendered frames is
+game/timing acceptance. Active, repeating Kanji DMA during rendered frames
 now passes all ten pixel cases with ongoing late-run transfers and actual CPU
 payload checks: independent 1,536,000 pixels and 18,549 bus pairs match. A
 one-byte uploaded-font corruption is rejected. Earlier combined pixel gates
@@ -47,6 +47,12 @@ and disabled/dual-select/earlier-layout negative checks; see
 `TURBO_Z_KANJI_STORAGE_STATUS.md`. It does not add machine level-2 storage or
 resolve the external-memory/ASIC/native-font gates. Capture line-buffer
 research is separately recorded in `TURBO_Z_LINE_BUFFER_STATUS.md`.
+
+The following standalone uPD41101 digital storage-cycle prototype passes two
+clock/phase profiles, all 910 locations/256 byte values, ending-edge DIN,
+pending/stop/disable/reset replay and an unchanged-oracle negative. It remains
+outside the machine. Native delays/retention, IC58 control/packing, ADC/GRAM
+ownership and rendered effects/hardware still prevent completing Z8.
 
 The full default D88-container regression completes zero. Correct-clock
 Arcus/Bastard cold/repeat probes also complete with identical protected media
