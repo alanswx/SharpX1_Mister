@@ -20,6 +20,9 @@ wrong-boundary rejecting control. It is
 not yet connected to the controller; arrival-driven read/write holding
 registers, native FDCCLK and deadline/CPU/DMA/host-ACK qualification remain.
 See `FDC_BYTE_SLOT_STATUS.md`; this is not native disk timing acceptance.
+The separate bus helper now passes 260 read/write transactions each, held
+response/reselection/reset checks and three rejecting mutations. Real CPU/DMA,
+DR/DSR and SD integration remain open; see `FDC_BUS_EVENTS_STATUS.md`.
 
 The separate HD-media experiment connects the selector to selected-volume
 metadata and passes actual CPU wrong-class RNF/correct-class read/write/readback
