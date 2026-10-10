@@ -64,6 +64,53 @@ hosted results are separate from this local pass.
 
 ## Implementation still required
 
+### Capture sequencing follow-up (printed 171–174)
+
+The existing local `X1_Techknow_Screen_Display.pdf` (SHA-256
+`70b6f88f7d775ab5ee7a9c289958eb7ef09e4b86e4ca0a02eed3e231b0804a78`)
+was visually read at PDF 63/67–70 by the reviewer, with Main independently
+reading 63/67–70. This is a published programming reference, not a Sharp-authored
+ASIC timing specification. It settles additional functional sequencing:
+
+- Capture is low-resolution/200-line only, requiring multicolor/capture bits
+  and superimpose setup. Shared graphics VRAM needs actual capture ownership.
+- Quantization/mosaic precede the 910-word FIFO. Horizontal mosaic controls
+  the input dot clock; vertical mosaic controls line-memory write permission
+  using `CHsync`. FIFO read/write controls are independent.
+- Digitization is synchronized with the display dot clock; this does not
+  specify a rising sampling edge or QA's divider. Superimpose may periodically
+  pause the CRTC clock for phase correction.
+- Buffering displaces capture downward one line. Recommended `1FC1` corrections
+  are **40 decimal** for 40 columns and **48 decimal** for 80 columns, not hex.
+- Capture inversion is bitwise after FIFO read, immediately before GRAM write.
+- Chroma key acts on each component's **bit0**, ignoring its other bits.
+  This rules out guessing a full-nibble RGB comparator, but does not yet bind
+  that component bit to a particular core source/physical palette pin or settle
+  normal/inverse-key placement relative to capture and superimpose output.
+
+Printed 172 also gives a concrete quantization table in its own `D3..D0`
+symbols. Preserve those labels; do not silently substitute a numeric MSB/LSB
+policy or truncate a core RGB nibble. The published three-bit entry repeats
+`D1`, not an inferred generic rounding bit:
+
+| Output symbol | 4-bit | 3-bit | 2-bit | 1-bit |
+| --- | --- | --- | --- | --- |
+| D3 | D3 | D1 | D1 | D0 |
+| D2 | D2 | D2 | D0 | D0 |
+| D1 | D1 | D1 | D1 | D0 |
+| D0 | D0 | D0 | D0 | D0 |
+
+Binding these symbols to MB40576 D1..D4, IC58 stage-1/stage-2 nets, line-buffer
+DIN/DOUT indices and logical/physical GRAM/palette components remains a separate
+pin audit. The table is now retrieved; a missing symbol binding must not be
+presented as a missing table or filled in from an emulator with no capture.
+
+Ignored renders: `/tmp/x1-techknow-capture-review.t1WegK/`. No private asset,
+new chip clock, capture consumer, GRAM write or keyed pixel is implemented by
+this audit. Still resolve QA/ADC/WCK/RCK phases, position origin/direction,
+reduced-bit packing, key source and line-buffer retention during vertical
+mosaic before claiming connected capture acceptance.
+
 The [manufacturer line-buffer follow-up](TURBO_Z_LINE_BUFFER_STATUS.md) now
 retains the NEC device reference and exact chip-model acceptance sequence.
 This changes the future buffer contract, not the current machine: no capture

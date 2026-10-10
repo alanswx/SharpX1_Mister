@@ -37,8 +37,9 @@ transport/reset cases and three rejecting controls. CPU2M coverage is deliberate
 loss plus DMA recovery. A separate 24-case public-port fixture now adds
 cached-stream reselection and pending-completion reset/remount. A further
 24-case fixture qualifies consumer-CE, pending-store and prefill cancellation
-with uncancelled controls and five rejecting mutations; metadata,
-high-address and native timing gates stay open. No board enables it.
+with uncancelled controls and five rejecting mutations. Split metadata/owned
+publication/high-address tests now pass 18 selected positives and three mutants;
+further combinations and native timing gates stay open. No board enables it.
 Ordinary generated state and
 the fresh 144-gate fast/snapshot regression remain intact. The fresh ordinary
 delay-aware rerun also passes all 149 reports after updating the intentional

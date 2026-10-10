@@ -448,3 +448,18 @@ At 14:47:25 UTC an external MacPPC flow/mapper is active, so reporting-only,
 no-SDC whole-bank inventory does not launch. Preserve this fit and re-audit
 the newly observed complete bank; no selected SDC or historical binding changes
 are authorized by this rejection alone.
+
+Main subsequently checks the copied originals' actual bytes against all five
+artifact hashes, including the unaccepted RBF
+`069c84661bdf0cb85da64db3d2f3b9fe203778122fa57cf83bc4d35effcb6b41`.
+Local audit:
+`/tmp/x1-9cc1141-native-review-FsqicTKn/worktree/output_files/quartus-linux-58JhGiQL/terminal-audit-00Uhg6mG`.
+All 1,175 native-source manifest entries match the immutable `9cc1141` Git
+blobs and before/after manifests match byte-for-byte. The compiled snapshot
+manifest is a distinct 415-file subset: 414 match Git, while generated QPF
+metadata differs. An initial Main comparison assumed that subset was the full
+manifest and rejected at QPF; inspecting the actual full native manifest
+resolves the audit assumption without changing source, artifacts or allowances.
+Reporting-only inventory still waits for an idle host; at 15:11:58 UTC a new
+external MacPPC mapper is active. No native database inspection is run during
+that observation, and no rebuilt or deployed artifact is inferred.

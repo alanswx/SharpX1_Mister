@@ -259,8 +259,14 @@ consumer-CE/public-mount collision, pending final store and armed prefill,
 with uncancelled controls and five matched mutations. Never substitute reset
 for that CE collision: it can remove the divider event. Pending CPU reselection
 remains source-derived phase analysis, not an executed case. Native final
-serialization boundaries, metadata/high-address/native
-and hardware gates remain open. `turbo-fdc-timing` is non-savable,
+serialization boundaries and native/hardware acceptance remain open.
+`test-machine-fdc-timing-metadata` / `-metadata-selected` / `-metadata-negative`
+add selected split mark/CRC ownership and high-address/admission checks. Treat
+published blocks as drained, not rolled back; never derive the publication
+ledger from observed DUT data. The high20 witness must finish scanning and
+observe real CPU NOTREADY before low-media recovery. Further combinations,
+active non-B0 dump status and native/hardware gates remain open.
+`turbo-fdc-timing` is non-savable,
 with isolated directories per `FDC_CLOCK_HZ=1000000/2000000` and `FDC_TIMING_DMA`.
 It requires Turbo/SYS32, rejects single-clock/other rates, and does not infer
 the rate from capacity. No board enables it. Explicit synchronous `fdc_ce`

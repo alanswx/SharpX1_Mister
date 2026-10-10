@@ -48,8 +48,9 @@ transport/reset cases plus three rejecting controls; CPU2M deliberately tests
 loss and DMA recovery. A separate 24-case public-port fixture now adds
 cached-stream reselection and pending-completion reset/remount. A further
 24-case fixture qualifies actual consumer-CE, pending-store and prefill mount
-cancellation with uncancelled controls/five negatives. Metadata/high-address/
-native final-serialization timing and hardware gates
+cancellation with uncancelled controls/five negatives. Split metadata/owned
+publication/high-address tests add 18 selected positives and three mutants.
+Remaining combinations, active non-B0 status, native final-serialization timing and hardware gates
 remain open.
 Ordinary profiles stay disabled. A fixed-clock native CROSS Chase cold
 movement/repeat also passes: identical

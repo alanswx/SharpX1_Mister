@@ -389,11 +389,69 @@ captured at phase1 and consumed at phase4, while a newly issued phase4 CPU
 OUT is sampled at phase5. This is not an executed impossibility proof; the
 public mount cases must not be labeled CPU-reselection coverage.
 
+## Split metadata, owned publication and high-address media
+
+The original `fdc_timing_metadata_machine_tb.sv` / Python driver now qualify
+18 distinct selected positives and three matched mutants on unchanged machine/
+vendor RTL. This is not the exhaustive rate/drive/address/edge product.
+SV SHA-256 `72846361e157aef89b64f36263f09773542fa15bd618669d21af8c9ef32b1cfa`;
+driver `9ecca42496612479b8e355e509ec49f8de47db54fbf0769d72f50c7e6d56a455`.
+Generated original media and IPL use public CPU/DMA/ioctl/SD interfaces only.
+
+The 1024-byte payload begins at header+16 and spans three SD blocks. Header
+1016 puts deleted mark/status at 1023/1024; high header `(1<<20)+504` puts
+them at 1049087/1049088, in separate blocks. Initial mark `10` / status `B0`
+produce actual CPU status `28`. Normal writes clear the mark and repair only
+the modeled `B0` status; deleted writes set mark `10`. Real payload/status
+readback, both remounts, buffer guards, independent planned publications and
+both complete media/padding are checked. These are D88 conventions, not Sharp
+wire encodings or arbitrary dump-status qualification.
+
+Selected cancellation requires the original published block to drain with
+held drive/LBA/buffer and rejects later unpublished writes. Payload-first
+pre-ACK reset (1M/20), payload-middle byte128 reset (2M/24), payload-final
+ACK-tail mount (2M/24) and CRC byte128 reset (1M/20) pass on both drives.
+High24 mark-publication mount passes on A. Width20 high rejection passes on
+A/B at 1M, plus 2M/B rejection followed by low-medium mark-publication reset.
+Admission is non-vacuous: selected scanning must finish with `d88_bad`, and a
+genuine accepted CPU STATUS read must report NOTREADY before low-media remount.
+No high payload DATA or SD write may escape the rejected profile.
+
+Uncancelled low-media cases pass both drives at 1M/20 and 2M/24. Final-source
+high24 uncancelled A/B also pass at 1M: each performs 5,120 DATA reads, 2,048
+writes and `5/4` planned publications, with 6,190/6,191 SD requests.
+Session 71184 terminates zero; frozen `x1-fdc-metadata-machine-y02yj1k3`, log
+`/tmp/x1-fdc-metadata-final-high24-both-20261010.log`.
+The earlier uncancelled high24 `6a9_fdql` predates admission-witness strengthening
+and remains separately bound, not relabeled as final-source evidence.
+
+Independent review verifies the initial 12 folders: 1,380 source comparisons,
+18 byte-exact regenerated IPLs, all executable hashes and terminal records
+(15 positives/three exact mutants). B0-repair omission fails at offset1024;
+missing split continuation fails publication count before CPU readback;
+early cache update fails during owned ACK. No compile failure or timeout counts.
+Main's bounded Make target completes zero with six fresh cases, and its negative
+target completes zero after all three expected assertions: sessions 41652/73577,
+logs `/tmp/x1-fdc-metadata-main-make.log` / `-negatives.log`. Separate Main low/
+high-admission reruns also complete zero (86210/93344). Main checks all nine
+fresh/final folders' 1,035 source entries, 15 ROM hashes, executable hashes and
+terminal records with only explicitly mutated inputs differing.
+
+`test-machine-fdc-timing-metadata` is the bounded low-media target scheduled in
+CI; `-metadata-selected` adds the larger selected address/cancellation matrix;
+`-metadata-negative` runs the three mutants. No hosted result is claimed.
+The original four-second high scan/remount budget failed at stage40; the final
+scanner-aware allowance changes duration, not byte cadence, prefill or payload
+assertions. Later witness/check additions are recorded rather than represented
+as a budget-only source change. Inherited 61/66 warnings remain; no new fixture/
+helper warnings are claimed. Active non-B0 status, further high/rate/cancellation
+combinations and native/hardware timing remain open.
+
 ## Remaining acceptance
 
 Add final serialization/native boundary-tie qualification, pending CPU
-reselection phase qualification, metadata/CRC ACK phases,
-high-address media, READY/Type-IV and native clock/firmware/hardware
+reselection phase qualification, remaining metadata/high-address combinations,
+active non-B0 status preservation, READY/Type-IV and native clock/firmware/hardware
 qualification. The new cached and pending cases do not cover every
 idle-transport stream phase. Recheck ordinary state after any further
 manifest/profile connection; preserve measured scope rather than inferring it

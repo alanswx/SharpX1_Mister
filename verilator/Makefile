@@ -82,6 +82,23 @@ test-machine-fdc-timing-boundary-full: test-machine-fdc-timing-boundary
 	@for fault in consumer-taken final-store prefill-stop last-byte ledger; do \
 	  python3 -B tests/test_machine_fdc_timing_boundary.py --machine-sha $(FDC_TIMING_MACHINE_SHA) --negative $$fault || exit $$?; done
 .PHONY: test-machine-fdc-timing-boundary test-machine-fdc-timing-boundary-full
+test-machine-fdc-timing-metadata:
+	python3 -B tests/test_machine_fdc_timing_metadata.py --machine-sha $(FDC_TIMING_MACHINE_SHA)
+	python3 -B tests/test_machine_fdc_timing_metadata.py --machine-sha $(FDC_TIMING_MACHINE_SHA) --rate 2000000 --width 24
+	python3 -B tests/test_machine_fdc_timing_metadata.py --machine-sha $(FDC_TIMING_MACHINE_SHA) --cancel-block 4 --cancel-point 1 --cancel-kind reset
+# Selected matrix, not the exhaustive rate/drive/address/block/edge product.
+test-machine-fdc-timing-metadata-selected: test-machine-fdc-timing-metadata
+	python3 -B tests/test_machine_fdc_timing_metadata.py --machine-sha $(FDC_TIMING_MACHINE_SHA) --high --width 20
+	python3 -B tests/test_machine_fdc_timing_metadata.py --machine-sha $(FDC_TIMING_MACHINE_SHA) --high --width 20 --rate 2000000 --drive 1 --cancel-block 3 --cancel-point 1 --cancel-kind reset
+	python3 -B tests/test_machine_fdc_timing_metadata.py --machine-sha $(FDC_TIMING_MACHINE_SHA) --high --width 24
+	python3 -B tests/test_machine_fdc_timing_metadata.py --machine-sha $(FDC_TIMING_MACHINE_SHA) --high --width 24 --drive 0 --cancel-block 3 --cancel-point 1 --cancel-kind mount
+	python3 -B tests/test_machine_fdc_timing_metadata.py --machine-sha $(FDC_TIMING_MACHINE_SHA) --cancel-block 0 --cancel-point 0 --cancel-kind reset
+	python3 -B tests/test_machine_fdc_timing_metadata.py --machine-sha $(FDC_TIMING_MACHINE_SHA) --rate 2000000 --width 24 --cancel-block 1 --cancel-point 1 --cancel-kind reset
+	python3 -B tests/test_machine_fdc_timing_metadata.py --machine-sha $(FDC_TIMING_MACHINE_SHA) --rate 2000000 --width 24 --cancel-block 2 --cancel-point 2 --cancel-kind mount
+test-machine-fdc-timing-metadata-negative:
+	@for fault in crc-edit split-next early-cache; do \
+	  python3 -B tests/test_machine_fdc_timing_metadata.py --machine-sha $(FDC_TIMING_MACHINE_SHA) --drive 0 --negative $$fault || exit $$?; done
+.PHONY: test-machine-fdc-timing-metadata test-machine-fdc-timing-metadata-selected test-machine-fdc-timing-metadata-negative
 HD_MEDIA_DIR ?= obj_dir_v17_hd_media
 turbo-hd-media: $(HD_MEDIA_DIR)/Vtop
 $(HD_MEDIA_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
