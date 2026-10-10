@@ -1,6 +1,6 @@
 // Sharp X1 base-machine integration. Shared by MiSTer and simulation.
 // See docs/BASE_X1_CONTRACT.md for address-map sources and limitations.
-module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0, TURBO_DSW = 241, TURBO_DMA_RESTART_IRQ = 0, TURBO_Z_PALETTE_CPU = 0, TURBO_Z_VIDEO = 0, TURBO_Z_MULTIMODE = 0, TURBO_Z_INTERNAL8 = 0, TURBO_Z_TEXT_CPU = 0, TURBO_SIO = 0, TURBO_FM_CPU = 0, RTC_ENABLE = 0, TURBO_Z_EFFECT_CPU = 0) (
+module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0, TURBO_DSW = 241, TURBO_DMA_RESTART_IRQ = 0, TURBO_Z_PALETTE_CPU = 0, TURBO_Z_VIDEO = 0, TURBO_Z_MULTIMODE = 0, TURBO_Z_INTERNAL8 = 0, TURBO_Z_TEXT_CPU = 0, TURBO_SIO = 0, TURBO_FM_CPU = 0, RTC_ENABLE = 0, TURBO_Z_EFFECT_CPU = 0, TURBO_DMA_KANJI_EXPERIMENT = 0) (
     input clk_sys, clk_28636, reset,
     input pal, scandouble,
     input ioctl_download,
@@ -119,8 +119,10 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
             $error("TURBO_DMA_IRQ requires TURBO and TURBO_DMA");
         if (TURBO_DMA_RESTART_IRQ && !TURBO_DMA_IRQ)
             $error("TURBO_DMA_RESTART_IRQ requires the explicit DMA IRQ profile");
-        if (TURBO_KANJI && (!TURBO || TURBO_DMA))
-            $error("TURBO_KANJI requires TURBO; combined DMA profile is not qualified");
+        if (TURBO_KANJI && (!TURBO || (TURBO_DMA && !TURBO_DMA_KANJI_EXPERIMENT)))
+            $error("TURBO_KANJI requires TURBO; DMA additionally requires explicit bus qualification profile");
+        if (TURBO_DMA_KANJI_EXPERIMENT && !(TURBO && TURBO_DMA && TURBO_KANJI && TURBO_VIDEO_MASTER))
+            $error("DMA/Kanji qualification requires Turbo, DMA, Kanji and X3 video");
         if (TURBO_KANJI_RENDER && !TURBO_KANJI)
             $error("TURBO_KANJI_RENDER requires the explicit physical Kanji ROM profile");
         if (TURBO && (TURBO_DSW < 0 || TURBO_DSW > 255))
@@ -858,7 +860,9 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         x1_kanji_rom rom (
             .cpu_clk(clk_sys), .video_clk(clk_28636),
             .cpu_reset(core_reset), .video_reset(video_reset),
-            .upload(ioctl_download && ioctl_index == 5),
+            // Upload START also mutates readiness. Block it during an owned
+            // reset drain, not just byte writes, or pending reads lose valid.
+            .upload(ioctl_download && !ioctl_wait && ioctl_index == 5),
             .load(ioctl_wr && !ioctl_wait && ioctl_index == 5),
             .load_address(ioctl_addr), .load_data(ioctl_dout),
             .cpu_read(kanji_cpu_read), .cpu_address(kanji_cpu_addr),

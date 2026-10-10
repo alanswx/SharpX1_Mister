@@ -556,7 +556,7 @@ actual host mailbox. Bastard makes no `1900` accesses in this bounded window.
 Neither observation establishes why the software stays at dialog/title.
 Combined RTC/X3/Kanji elapsed/reset/keyboard and
 ten synthetic pixel diagnostics now pass with independent auditing; see
-`RTC_MACHINE_STATUS.md`. Fresh sixteen-second cold/repeat trials are running
+`RTC_MACHINE_STATUS.md`. Fresh sixteen-second cold/repeat trials now finish
 under `obj_dir_v17_rtc_x3_kanji/special-probes/`, directories
 `arcus-model40-kanji-late-start-16s/` and
 `bastard-model40-kanji-late-start-16s/`. They use the qualified frozen combined
@@ -564,11 +564,12 @@ runner (including the D88 container repair), explicit controller/IPL/ANK and
 the private model40 physical Kanji candidate after checking its provenance
 SHA-256. The candidate's native chip identity/order remains inferred, not
 hardware-qualified. Logs are `/tmp/x1-arcus-rtc-x3-kanji-late-start-16s.log`
-and `/tmp/x1-bastard-rtc-x3-kanji-late-start-16s.log`. These pending trials do
+and `/tmp/x1-bastard-rtc-x3-kanji-late-start-16s.log`. These bounded trials do
 not prove native glyphs, playability, release disk order or Turbo Z support.
 
-The first combined-Kanji cold executions now complete all sixteen seconds;
-their repeats remain running. Actual PNG conversions are visually inspected
+Both combined-Kanji cold/repeat pairs now complete all sixteen seconds with
+independently checked identical reports, seven artifacts per run, executable
+and every protected input hash. Actual PNG conversions are visually inspected
 and strictly match 256,000/128,000 PPM pixels. Arcus's dialog becomes legible
 and reports a disk-read error (frame hash `c532ccc7df38c9da`); Bastard retains
 the same title (`82968a99a28dbd3d`). Both JSON reports identify RTC, Kanji and
@@ -577,8 +578,11 @@ Arcus's 7.5–9-second bus window contains sixteen actual OUTs to `1F80`,
 including reset/program/load/enable commands after the Enter. This exposes a
 missing DMA capability in this particular renderer/controller combination,
 not proof of the sole cause of native failure. The current shared-machine
-DMA+Kanji guard remains: qualify combined ownership/WAIT/reset before enabling
-the combination, not simply deleting the guard. No game or RAM is patched.
+DMA+Kanji guard remains for ordinary runners and boards. The subsequent
+separate SV qualification profile passes eight real-CPU ownership/WAIT/reset
+cases and repairs blocked font upload START; see `DMA_KANJI_MACHINE_STATUS.md`.
+It does not yet qualify native renderer/RTC/FDC coexistence or gameplay.
+No game or RAM is patched.
 
 ## Arcus and Bastard Special: private native probes
 

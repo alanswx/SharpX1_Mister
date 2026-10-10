@@ -53,6 +53,12 @@ machine profile. Its local ROM format interleaves half at A0 and differs from
 the existing four-chip half-major loader. See `TURBO_Z_KANJI_STORAGE_STATUS.md`;
 do not silently accept earlier raw dumps or truncate glyph exports for it.
 
+`TURBO_DMA_KANJI_EXPERIMENT` is an SV-only, default-off shared-bus qualification
+profile. Use `test-machine-dma-kanji`; see `docs/DMA_KANJI_MACHINE_STATUS.md`.
+It does not enable ordinary runners/boards or define a combined snapshot model.
+Upload START changes font readiness and must honor `ioctl_wait`, not only WR.
+The pending DMA read counter counts the strobe start before WAIT completes.
+
 From the repository root:
 
 ```sh

@@ -13,6 +13,18 @@ Remote frozen root is `output_files/quartus-linux-VlAoOluh/source` on
 See [build identity and gates](DMA_BOARD_BUILD_STATUS.md#october-10-current-source-build-gate).
 No new timing-qualified RBF or MiSTer acceptance is inferred.
 
+Terminal auditing reports synthesis/fitting/assembly completion and verifies
+all 408 checkout inputs against the frozen manifest. Quartus changes only
+the snapshot's QPF metadata/revision; its retained diff is in remote
+`terminal-audit-jdL8ZB45`. Direct readback of the fitted summary confirms
+20,605 ALMs, 393/553 RAM blocks and four PLLs. Direct artifact hashing confirms
+the **unaccepted** RBF SHA-256
+`7f6a2009cbebe2caa34fec785bd39a19da0ba58e4f970f2ca80b9f0384d5a993`.
+The partial STA summary reports setup/hold -10.317/-2.636 ns, but final
+constraint loading failed: these numbers are not a completed constrained
+timing audit. The reporting-only fitted inventory was deferred after actual
+MacPPC7300/DSPPC604 fitters were observed; no job was killed or guard broadened.
+
 ## Actual inherited policy
 
 `sys/sys_top.v` uses the same `~vga_fb & direct_video` expression for the

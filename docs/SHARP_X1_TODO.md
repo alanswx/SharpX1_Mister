@@ -14,6 +14,12 @@ support before optional Turbo extensions.
 
 ## Active goal: items 1–6 and Turbo Z (October 6)
 
+The separate DMA/Kanji shared-bus diagnostic passes eight loaded/absent-font
+CPU payload/owned-reset cases, stopped SYS/VID and a default-profile rejecting
+control. It fixes upload START bypassing `ioctl_wait` during reset drain.
+Combined renderer/RTC/FDC/native and hardware gates remain; see
+`DMA_KANJI_MACHINE_STATUS.md`. It does not complete groups 1–6 or Turbo Z.
+
 The post-PCG-reset combined Z matrix now completes all 120 cases with
 independent regeneration of 8,960,000 pixels and all CPU programs. Its 135
 RTL/seven support copies match `d2df8a1`; this is a source-bound historical
@@ -34,7 +40,9 @@ real mailbox receives Enter. A new isolated RTC+X3+Kanji build passes ten synthe
 CPU/pixel cases with independently audited 1,536,000 pixels; combined calendar
 elapsed/reset and six-key/absent-key gates also complete with independent
 138/136-input auditing. Fresh protected native probes with the private
-model40 physical-font candidate are running, not gameplay acceptance.
+model40 physical-font candidate now finish cold/repeat with independently
+audited identical inputs/reports/seven artifacts each. Arcus shows a readable
+disk-error dialog; Bastard stays at its title. Neither is gameplay acceptance.
 These are separate gates, not native Turbo Z
 or a complete Kanji/serial/disk/hardware milestone.
 
@@ -43,7 +51,7 @@ elapsed-time, retained-IPL reset and six-key/absent-key qualification, with
 independent frozen-input auditing. Its original protected Arcus/Bastard
 cold/repeat probes finish deterministically but are not gameplay acceptance;
 the late-input follow-ups also finish without gameplay acceptance, while
-combined-Kanji native trials remain running.
+combined-Kanji native trials also finish deterministically without gameplay.
 Ordinary-clock short reset during RTC/keyboard polling also passes three keys
 and a no-reset rejecting control, with two actual command boots and no asset
 reupload. Its X3 repeat also passes with independent auditing. The ordinary-clock

@@ -14,7 +14,14 @@ local log `/tmp/x1-quartus-3c6242e-handoff-local.XhSvnjgI`. The full flow now
 terminates **exit 3** at 08:15:43 UTC: final STA rejects an unreviewed
 whole-prefetch D/ASDATA profile. Fitting precedes this failure; the guard is
 not loosened and there is no full-flow timing or hardware acceptance.
-Native fitted-profile discovery and immutable artifact auditing are pending.
+The terminal source/artifact audit completes: all 408 checkout inputs match
+the frozen manifest; only generated QPF metadata/revision differ in the build
+snapshot. Direct fitted-summary readback confirms 20,605 ALMs and 393 RAM
+blocks. The unaccepted RBF SHA-256 is
+`7f6a2009cbebe2caa34fec785bd39a19da0ba58e4f970f2ca80b9f0384d5a993`.
+Partial STA setup/hold is -10.317/-2.636 ns, not a completed constrained audit.
+Native fitted-profile discovery remains pending because other actual fitters
+occupy the host; no guard is broadened or failed artifact deployed.
 The C++ RTC/X3/Kanji profile
 does not enable those devices in this board revision. Older outputs and
 other cores/media are preserved; no MiSTer is loaded or reset.

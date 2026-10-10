@@ -18,6 +18,12 @@ the remaining physical and unimplemented-feature gates.
 
 ## Current status
 
+The separate [DMA/Kanji bus diagnostic](docs/DMA_KANJI_MACHINE_STATUS.md)
+now passes eight real-CPU ownership/payload/reset cases and its rejecting
+default-profile control. It fixes a blocked upload-start invalidating a live
+font during reset drain. Renderer/RTC/FDC/native-game and hardware coexistence
+remain open; no ordinary runner or board enables the combination.
+
 The frozen post-PCG-reset [combined Z matrix](docs/TURBO_Z_COMBINED_STATUS.md)
 now passes all 120 cases and 8,960,000 independently regenerated RGB pixels.
 Its source binding is `d2df8a1`, not current RTC/D88/native/hardware acceptance.

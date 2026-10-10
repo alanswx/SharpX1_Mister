@@ -747,6 +747,28 @@ $(HEADLESS_DIR)/kanji-machine-reset/Vkanji_machine_reset_tb: $(V_SRC) tests/kanj
 	$(V) --binary --timing --assert --top-module kanji_machine_reset_tb --Mdir $(HEADLESS_DIR)/kanji-machine-reset \
 		-j 4 $(V_SRC) tests/kanji_machine_reset_tb.sv -Wno-fatal
 .PHONY: test-machine-kanji-reset
+
+test-machine-dma-kanji: $(HEADLESS_DIR)/dma-kanji-machine/Vdma_kanji_machine_tb test-machine-dma-kanji-guard test-machine-dma-kanji-payload-negative
+	@for kind in 0 1 2 3; do for asset in loaded absent; do if [ $$asset = absent ]; then extra=+absent; else extra=; fi; ./$(HEADLESS_DIR)/dma-kanji-machine/Vdma_kanji_machine_tb +RESET_KIND=$$kind $$extra || exit 1; done; done
+$(HEADLESS_DIR)/dma-kanji-machine/Vdma_kanji_machine_tb: $(V_SRC) tests/dma_kanji_machine_tb.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module dma_kanji_machine_tb --Mdir $(HEADLESS_DIR)/dma-kanji-machine \
+		-j 4 $(V_SRC) tests/dma_kanji_machine_tb.sv -Wno-fatal
+.PHONY: test-machine-dma-kanji
+test-machine-dma-kanji-guard: $(HEADLESS_DIR)/dma-kanji-guard/Vdma_kanji_machine_tb
+	@if ./$(HEADLESS_DIR)/dma-kanji-guard/Vdma_kanji_machine_tb > $(HEADLESS_DIR)/dma-kanji-guard/negative.log 2>&1; then echo 'FAIL: unqualified DMA/Kanji combination accepted'; exit 1; fi
+	@grep -q 'DMA additionally requires explicit bus qualification profile' $(HEADLESS_DIR)/dma-kanji-guard/negative.log
+	@echo 'PASS default DMA/Kanji guard rejects unqualified combination'
+$(HEADLESS_DIR)/dma-kanji-guard/Vdma_kanji_machine_tb: $(V_SRC) tests/dma_kanji_machine_tb.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module dma_kanji_machine_tb --Mdir $(HEADLESS_DIR)/dma-kanji-guard \
+		-GQUALIFY=0 -j 4 $(V_SRC) tests/dma_kanji_machine_tb.sv -Wno-fatal
+.PHONY: test-machine-dma-kanji-guard
+test-machine-dma-kanji-payload-negative: $(HEADLESS_DIR)/dma-kanji-machine/Vdma_kanji_machine_tb
+	@if ./$(HEADLESS_DIR)/dma-kanji-machine/Vdma_kanji_machine_tb +corrupt-font > $(HEADLESS_DIR)/dma-kanji-machine/payload-negative.log 2>&1; then echo 'FAIL: corrupt font payload accepted'; exit 1; fi
+	@grep -q 'CPU payload/restart mismatch marker=ee' $(HEADLESS_DIR)/dma-kanji-machine/payload-negative.log
+	@echo 'PASS actual CPU rejects one corrupted uploaded Kanji byte'
+.PHONY: test-machine-dma-kanji-payload-negative
 test-machine-kanji-loader: $(HEADLESS_DIR)/kanji-machine-reset/Vkanji_machine_reset_tb
 	@for kind in 0 1 2 3 4 5 6 7 8; do ./$(HEADLESS_DIR)/kanji-machine-reset/Vkanji_machine_reset_tb +LOADER_KIND=$$kind || exit 1; done
 .PHONY: test-machine-kanji-loader
