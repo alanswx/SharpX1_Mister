@@ -124,6 +124,39 @@ bench/Makefile after the earlier elapsed-time and sub-controller qualifications;
 those earlier frozen runs remain checkpoint-bound evidence, not current hash
 matches for these changed files.
 
+## Public ioctl admission and rejecting controls
+
+`make -C verilator test-machine-rtc-transport` passes the delay-aware shared
+machine at SYS 32 MHz / VID 28.571428 MHz, using its actual public ioctl inputs.
+All 8,192 source-derived firmware bytes are uploaded while reset, then all
+4,096 stored words are observed after each attempted overwrite. It rejects
+high-address aliases at both image ends for bits 13–24, address `1FFFFFF`,
+the wrong index, absent download/write strobes and running-machine writes.
+Clock-storage loss is rejected for every wrong payload byte, every individual
+nonzero address bit, absent strobes, wrong index and running-machine traffic.
+The legal index-7 token does reset the oscillator phase while held reset.
+In total **314 inadmissible transactions** pass the retention oracles.
+
+Two required controls send legal traffic: an admitted firmware overwrite fails
+the unchanged image-integrity oracle, and an admitted storage-loss token fails
+the unchanged nonzero clock-phase oracle. These are actual writes, not forced
+internal state. No game, CPU command or native clock policy is qualified by
+this short transport test; partial valid images remain the host's responsibility.
+Owned-DMA backpressure/drain is explicitly not covered.
+
+Terminal-zero log: `/tmp/x1-machine-rtc-transport-first.log`; ignored evidence:
+`verilator/obj_dir_headless/machine-rtc-transport/qualified-k1_r22eq/`.
+Independent auditing verifies 130 original inputs and frozen copies, the
+copied executable, emitted firmware memory, identical before/after manifests
+and all three actual logs. Inherited machine warnings remain; no suppression
+was added to hide a new transport warning. This adds a Makefile target after
+the earlier qualifications, whose unchanged frozen checkpoints remain valid.
+After the separate HDMI provenance test's Makefile addition, the transport
+test repeats zero against current inputs in
+`verilator/obj_dir_headless/machine-rtc-transport/qualified-uz4c7cx7/`, log
+`/tmp/x1-machine-rtc-transport-current.log`. Independent auditing again verifies
+all 130 current/frozen inputs, executable/MEM and before/after manifests.
+
 ## Default regression and remaining gates
 
 The RTC-disabled delay-aware build passes actual E7/E8/PS2 and six cold/steady

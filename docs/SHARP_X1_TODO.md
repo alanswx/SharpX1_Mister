@@ -19,6 +19,10 @@ terminates 3 at the strict final-STA whole-prefetch D/ASDATA profile guard.
 The unreviewed fitted profile is not whitelisted. Reporting-only discovery
 was deferred after an actual host check found another project's active fit;
 no competing process or MiSTer was disturbed. See the HDMI status for binding.
+Subsequent idle-host fitted discovery now passes with unchanged original
+artifacts. Its exact fourth profile passes four scoped positives, eighty
+invalid-scope controls and 8,188 mixed-profile rejections; native same-fit
+active-path preservation and a fresh full flow remain required before acceptance.
 
 The `4cd18ed` handoff flow now terminates 3: synthesis, fitting and assembly
 pass, but final STA fails a same-file Tcl helper's global-inventory dependency.
@@ -62,6 +66,10 @@ without asset reupload: seconds advance 57 to 59 during a two-second reset,
 and inherited software YEAR clears. Explicit clock-storage loss fails the same
 retention oracle. This bounded idle/HALT gate does not qualify in-flight or
 owned-DMA reset, native YEAR, or an enabled board revision.
+Public ioctl admission now also passes 314 rejected firmware/clock transactions,
+with complete image readback and two legal-traffic rejecting controls. All
+high address bits, invalid clock payloads and active uploads are covered at
+32 MHz; malformed partial-image boot and owned-DMA backpressure remain open.
 
 The RTC firmware rebuild dependency now has a tested restricted replacement
 assembler: the unchanged inherited source reproduces all 4,096 ROM bytes,

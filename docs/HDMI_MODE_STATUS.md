@@ -1382,6 +1382,36 @@ whole-bank scope independently, preserve active paths, then run a fresh flow.
 The initial launch's idle check is best-effort, not a host-wide reservation;
 another project started afterward. Never stop its job to obtain evidence.
 
+The next idle-host check succeeds: reporting-only fitted discovery completes
+zero with zero warnings/errors at 06:14:56–06:15:00 UTC. Independent review of
+the raw log proves 51 exact keepers, 205 unique pins, 77 D/ASDATA pins and
+one matching `dv_*` driver per prefetch keeper. The seven ASDATA prefetch
+keepers are `hdmi_dv_hs`, `hdmi_dv_de` and data bits **3,12,13,16,17**;
+all other 17 prefetch keepers use D. Output pin scope remains unchanged.
+Prefetch bits 4/8/20 remain absent; no target replicas appear. OSD/csync source
+replicas are reported separately, not treated as target keepers.
+
+Evidence: `/tmp/x1-hdmi-fitted-048d996.Txc7ofMH/`; raw log SHA-256
+`6ea35ae397a3394083ba8f1973caf43c1e95b02224a3a3f79b8f736e77e650df`.
+All **20** original source/artifact hashes agree before/after (the manifest
+also records three additional reporter/build/input hashes). No SDC was loaded.
+The local candidate now accepts this fourth **complete observed profile**,
+not independent D-or-ASDATA choices. Four mocked positives require exactly
+77 scoped DATA cuts; twenty invalid scopes per profile and all **8,188**
+unreviewed combinations over thirteen changing keepers refuse every cut.
+Log `/tmp/x1-hdmi-four-profile-scope.log` terminates zero. Native same-fit
+active/raw/mode preservation is the next gate; this is not timing closure,
+fresh full-flow acceptance or permission to deploy the failed-flow RBF.
+The connected `test-hdmi-handoff-input-sdc` target also completes zero
+(`/tmp/x1-hdmi-four-profile-connected.log`). A separate strict `--fit-048d996`
+auditor binding now requires this preserved fit's five exact artifact hashes,
+the corrected original held-SDC hash and exact ordered before/after provenance.
+It leaves the historical default binding unchanged and requires `fitted048`
+with exactly 77 DATA cuts; synthetic provenance positive and 26 rejecting
+controls pass. This prepares independent review, not native preservation.
+The same-fit task stops at 06:19:03 UTC because another project's Quartus map
+is active; no probe directory or competing flow is created.
+
 ## Next gates
 
 ### Unselected csync first-stage proposal

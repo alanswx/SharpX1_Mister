@@ -40,9 +40,11 @@ retained-clock reset at three frequencies. Ordinary profiles stay disabled;
 An actual retained-IPL Z80 reboot also passes after two seconds of ordinary
 reset without asset reupload, with a rejecting storage-loss control. Native
 year/power, short/in-flight reset/DMA and hardware acceptance remain open.
+Public ioctl admission also passes 314 rejected transactions and legal-traffic
+negative controls; it does not validate partial firmware or owned-DMA uploads.
 
 The experimental handoff revision's early/fitted HDMI pin guard now accepts
-three exact observed whole-bank profiles, not arbitrary per-bit alternatives.
+four exact observed whole-bank profiles, not arbitrary per-bit alternatives.
 Native mapped guard loading and historical-fit active-path preservation pass;
 fresh fitting and timing/hardware acceptance remain open. See
 [scope and evidence](docs/HDMI_MODE_STATUS.md#exact-whole-bank-earlypacked-contract-qualification).
@@ -54,7 +56,8 @@ independent scope/path-preservation auditing, but global setup still fails
 Its generated RBF is unqualified and has not been deployed.
 The fresh `048d996` handoff flow also fits and assembles, but final STA refuses
 a newly fitted whole-bank D/ASDATA pin profile. Its guard stays strict; native
-inventory and a separately qualified scope repair are required before retry.
+inventory now identifies that exact fourth profile, and mocked scope/negative
+checks pass. Native active-path preservation is still required before retry.
 No newly accepted hardware build is implied.
 
 For a blank screen on first launch, see [IPL loading](docs/IPL_LOADING.md):

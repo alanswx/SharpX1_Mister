@@ -1275,6 +1275,7 @@ test-hdmi-handoff-input-sdc:
 	python3 tests/test_hdmi_inactive_data_probe.py
 	tclsh tests/hdmi_held_mode_sdc_tb.tcl
 	python3 tests/test_hdmi_held_mode_probe.py
+	python3 tests/test_held_sdc_context_048.py
 	tclsh tests/hdmi_handoff_input_sdc_tb.tcl
 	python3 tests/test_hdmi_handoff_input_probe.py
 .PHONY: test-hdmi-handoff-input-sdc
@@ -1781,6 +1782,14 @@ $(HEADLESS_DIR)/machine-rtc-reset/Vmachine_rtc_tb: tests/machine_rtc_tb.sv $(MAC
 	$(V) --binary --timing --assert --top-module machine_rtc_tb --Mdir $(@D) \
 	  -GRTC_ENABLED=1 -GRESET_TEST=1 -j 4 tests/machine_rtc_tb.sv $(MACHINE_SRC) -Wno-fatal
 .PHONY: test-machine-rtc-reset
+
+test-machine-rtc-transport: $(HEADLESS_DIR)/machine-rtc-transport/Vmachine_rtc_transport_tb
+	ulimit -c 0; python3 tests/test_machine_rtc_transport.py $<
+$(HEADLESS_DIR)/machine-rtc-transport/Vmachine_rtc_transport_tb: tests/machine_rtc_transport_tb.sv $(MACHINE_SRC) $(MACHINE_MANIFEST) Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module machine_rtc_transport_tb --Mdir $(@D) \
+	  -j 4 tests/machine_rtc_transport_tb.sv $(MACHINE_SRC) -Wno-fatal
+.PHONY: test-machine-rtc-transport
 
 test: headless test-rgb12 test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner test-d88-crc test-d88-metadata test-cpu-busreq
 	python3 tests/test_joystick_schedule.py ./$(HEADLESS_EXE)
