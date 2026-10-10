@@ -32,11 +32,15 @@ shared-DR/raw-bus and held-completion gates also pass. The default-off
 standalone cases and nine rejecting controls. The non-savable `turbo-fdc-timing`
 shared-machine candidate builds at explicit 1/2-MHz enables and its actual-CPU
 1-MHz disk suite now passes 40 reports, including writes/readback and metadata.
-DMA/native timing qualification remains open; no board enables it.
+The original shared-machine matrix also qualifies 128 CPU/DMA cases, 28 owned-
+transport/reset cases and three rejecting controls. CPU2M coverage is deliberate
+loss plus DMA recovery; native timing and remaining cancellation phases stay
+open. No board enables it.
 Ordinary generated state and
-the fresh 144-gate fast/snapshot regression remain intact. The earlier ordinary
-delay-aware regression passes 149 reports; the fresh connected-source rerun is
-still active after updating the intentional runner-recipe inventory guard.
+the fresh 144-gate fast/snapshot regression remain intact. The fresh ordinary
+delay-aware rerun also passes all 149 reports after updating the intentional
+runner-recipe inventory guard. Native CROSS Chase reaches a real game screen
+through the 1-MHz candidate; its new movement/repeatability gates remain open.
 These ordinary regressions do not enable the experimental bridge.
 
 The separate non-savable `turbo-hd-media` experiment now connects capacity

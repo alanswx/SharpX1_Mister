@@ -247,8 +247,12 @@ may have replaced it. Older frozen game qualifications remain historical.
 Simulator disk writes require `--disk-output NEW_COPY`; private originals and
 snapshots remain ignored. See `docs/DISK_STATUS.md` for tested and missing cases.
 Vendor `STRICT_D88_TIMING=1` is a separate default-off SD/register experiment.
-`TURBO_FDC_TIMING=1` now opts into its shared-machine connection; actual CPU/DMA
-transfer qualification is still required. `turbo-fdc-timing` is non-savable,
+`TURBO_FDC_TIMING=1` opts into its shared-machine connection. Use
+`test-machine-fdc-timing` / `test-machine-fdc-timing-full`: 128 CPU/DMA cases,
+28 owned-transport/reset cases and three rejecting controls are qualified.
+CPU1M polling succeeds; CPU2M tests deliberate loss plus DMA recovery, not
+general successful polling. Cached-stream/pending-completion/metadata/native
+and hardware gates remain open. `turbo-fdc-timing` is non-savable,
 with isolated directories per `FDC_CLOCK_HZ=1000000/2000000` and `FDC_TIMING_DMA`.
 It requires Turbo/SYS32, rejects single-clock/other rates, and does not infer
 the rate from capacity. No board enables it. Explicit synchronous `fdc_ce`

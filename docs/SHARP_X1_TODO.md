@@ -43,7 +43,10 @@ The default-off WD/SD bridge now passes four nominal-rate/address profiles,
 408 counted cases and nine matched rejecting controls. The new opt-in
 `turbo-fdc-timing` shared-machine candidate builds, but actual CPU/DMA transfer
 qualification is advancing: the complete 1-MHz actual-CPU disk suite passes
-40 reports, while real DMA/cancellation/native timing gates remain open.
+40 reports. The separate original matrix now passes 128 CPU/DMA and 28 owned-
+transport/reset cases plus three rejecting controls; CPU2M deliberately tests
+loss and DMA recovery. Cached-stream/pending-completion/metadata/native timing
+and hardware gates remain open.
 Ordinary profiles stay disabled. An explicit
 inactive clock-input tie repairs an otherwise
 changed default saved-state layout: all eight base/Turbo generated headers/
@@ -51,7 +54,7 @@ serializers match c744767 and the ordinary 144-gate fast/snapshot regression
 passes. Actual CPU/DMA, native clock/initial-gap/drive and hardware gates remain
 open; see `FDC_STRICT_TIMING_STATUS.md`. The earlier ordinary delay-aware baseline
 finishes with exit zero and 149 PASS reports. The fresh connected-source rerun
-remains active after fixing its intentional 31-to-32 recipe-coverage guard;
+also finishes zero with 149 reports after fixing its intentional 31-to-32 guard;
 neither ordinary profile enables the bridge.
 
 The separate HD-media experiment connects the selector to selected-volume

@@ -199,15 +199,89 @@ distinct expanded directories, not a literal-name count. It is connected to
 `test-runner-build-isolation`; the combined actual-object/dry-run gate finishes
 zero in `/tmp/x1-fdc-machine-isolation-expanded.log`. This proves configuration
 and object isolation, not four actual machine compilations. The full ordinary
-delay-aware rerun remains active in
-`/tmp/x1-fdc-machine-connected-default-timing-repaired.log`.
+delay-aware rerun now finishes exit zero with 149 PASS reports in
+`/tmp/x1-fdc-machine-connected-default-timing-repaired.log`; runner SHA-256
+`005a6902deb46051706e6b49cbc3e0ae86d9fa8d4a4c2fe5dc4075f4436fcfbd`.
+The expanded four-profile gate is also qualified separately as above.
+
+## Native software boot through the candidate
+
+The frozen 1-MHz CPU runner (`c244826e...ca76cc`, full hash above) completes a
+15-second native CROSS Chase run through ioctl-loaded checked-in IPL and the
+existing authorized read-only disk. SYS=32 MHz, video=28,571,428 Hz, reset spans
+4,159 SYS edges, IPL download=4,095 bytes; the run services 763 SD requests and
+no writes. Standard startup PS/2 input sends 24 bytes; actual RGB captures 926
+frames at 320x200. Main verifies release-specific RAM player `(22,14,1)` and
+the real text-RAM `*` at that coordinate, then visually inspects the PNG.
+This is a native game-screen boot, not movement/repeatability acceptance or a
+commercial-game count. A separate cold run with late I/J input is still active.
+
+Ignored evidence: `output_files/fdc-native-cross-7Ri8Vj/`, including inputs,
+log, RAM/text dumps and original PPM/converted PNG. All four before/after input
+hashes match; originals and snapshots are not changed or committed.
+PNG SHA-256 `e5abb689da1426e7fce294fbfa1c520beef31c2778ed5a5dcd19f657ac760755`;
+PPM SHA-256 `9befdf3c3984765778a143e58f138b06938e4ce53a1e1e3a7ebe2e739fc74d07`.
+
+## Actual CPU/DMA fixed-clock qualification
+
+The new original public-port fixture qualifies 128 full cases across nominal
+1/2 MHz and width20/24, plus 28 cancellation/reset cases and three exact
+rejecting controls. All nine driver exits zero are recorded from the worker's
+actual tool sessions in `/tmp/x1-fdc-machine-handoff.ZF0PCz/HANDOFF.md`; no
+separate outer-driver log was retained. Independent review verifies all 999
+source comparisons, all 159 regenerated IPLs, nine executable hashes and
+exact per-case result/negative markers in the retained logs. Main then runs a
+fresh four-case 1-MHz A/B CPU/DMA gate, terminal exit zero including final
+integrity checks, in `/tmp/x1-fdc-machine-main-fresh.log` and frozen directory
+`/var/folders/sv/859j7h856t5gzg1kv3nnqdj40000gn/T/x1-machine-fdc-timing-lwrbesna`.
+Main's new bounded Make target subsequently finishes exit zero on both 1M/20
+and 2M/24 (eight cases total), including final frozen/live source checks;
+log `/tmp/x1-fdc-machine-bounded-target.log`. The bounded target is scheduled
+in CI; no hosted result is claimed from that scheduling edit.
+
+Stable fixture/checker hashes:
+
+- Fixture: `65225d5356ee3670f2a820b8fa5e111d87588331500018d28a1b09d2c8d9928e`.
+- Checker: `8f74ef25baab3ebc60ba25336c111de961970b673862680cfb6826957952acf7`.
+- Shared machine: `fa81ec13a3266c8dada97715b5cfaaa5b31f64c7674c01c5fca04312c7a84f67`.
+
+`test-machine-fdc-timing` is the bounded two-profile gate;
+`test-machine-fdc-timing-full` runs all nine qualifications. Each freezes the
+actual manifest sources, fixture, checker and emitter; original IPLs are
+generated from the frozen emitter, uploaded through ioctl, and self-check RAM
+using genuine CPU instructions. Hierarchy is observation only. No forced
+state/grants/Ready, private firmware, fake IRQ or external CPU bus is used.
+Negatives reject disabled timing, wrong clock, and Ready tied active at their
+specific assertions, not compilation errors or timeouts. Only the actual
+mutated source is checked against its alternate recorded hash.
+
+Sizes128/256/512/1024, A/B and byte/continuous/burst DMA check exact DATA counts,
+bus pairs, guards, DRQ removal and real request/ACK ownership entry/release.
+Independent host oracles check each published 512-byte store and both complete
+media images. Payload starts at 1032; 1024 bytes span three SD blocks. Width24
+cases here still use low addresses, not >1-MiB media. Serial arrivals/DSR loads
+advance every 32 independent chip events, never on CPU service. CPU1M uses
+polling transfers; CPU2M deliberately misses a read, checks sticky lost-data
+and recovers with DMA. This is not general successful CPU polling at 2 MHz
+or proof that every optimized CPU loop is impossible.
+
+Cancellation covers active-drive mount, CPU reselection and reset during
+ACK-owned read/write payload traffic on A/B, preserving published LBA/drive/
+buffer through drainage. Owned-DMA reset observes stopped CPU/upload wait,
+exactly one already-started pair retirement, release and native-IPL recovery.
+Idle BUSRQ-high/BUSACK-low ownership tails remain legal. CPU1M/128 observed
+DRQ-to-accepted-DATA maxima are 16.09375/17.84375 us (read/write), from SYS
+observations, not native pin timing or silicon failure-edge measurements.
+Earlier failed fixtures and changed assertions remain documented in the handoff.
 
 ## Remaining acceptance
 
-Freeze/hash the exact enabled shared-machine runner and execute actual
-CPU transfers at both explicit rates. Add real DMA ownership/DRQ/deadline and
-owned-reset transport checks separately; do not infer them from register tasks.
-Regenerate/check ordinary state again after any manifest/profile connection.
+Add cached-stream reselection, pending-completion cancellation, metadata/CRC
+ACK phases, high-address media, READY/Type-IV and native clock/firmware/hardware
+qualification. The current reset/selection cases exercise owned host traffic,
+not all idle-transport stream phases. Recheck ordinary state after any further
+manifest/profile connection; preserve measured scope rather than inferring it
+from standalone register tasks or generated machine diagnostics.
 
 The Sharp ASIC capacity-to-MIN contract and contradictory physical MIN pin
 maps, native initial/final/IRQ timing, recovered RCLK, BUSY mode changes,
