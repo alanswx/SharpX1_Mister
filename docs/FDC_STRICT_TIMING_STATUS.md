@@ -139,6 +139,16 @@ and serializers against c744767. They are byte-identical; each profile retains
 This qualifies generated state after the helper-manifest connection, not
 runtime restore or enabled transfer behavior.
 
+The connected-source ordinary headless build and 200,000-reference-cycle smoke
+complete zero. Its fresh default fast/snapshot regression also finishes exit
+zero with all 144 PASS markers in `/tmp/x1-fdc-machine-connected-default-fast.log`;
+runner SHA-256
+`b75923cfecb0658479c8e325bee054447469d6f06896f5d27d7b4cb175db8609`.
+No enabled bridge profile is exercised by this default regression. Invalid
+4-MHz FDC rate execution reaches the explicit profile fatal, an invalid DMA
+setting is rejected before building, and the snapshot rejection creates no
+state file. These are separate guard checks, not enabled transfer acceptance.
+
 Independent inspection finds the existing media glue asserts `changing` before
 updating the active drive, so the vendor cancellation suppresses serial stores,
 arrivals and completion consumption while the old SD ACK owner drains. Coupled

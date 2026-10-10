@@ -307,5 +307,11 @@ preservation negatives. Historical 048/3c bindings remain separate. Main's
 independent staged six-profile test completes zero, including 120 scope negatives
 and 131,066 mixed-bank rejections before any cut; log
 `/tmp/x1-16fa-independent-scope-test.log`. The selected production-scope rerun
-and a fresh committed-source full flow remain required before this candidate
-can produce another accepted build; no new RBF is loaded.
+also completes exit zero with the same 131,066 rejections in
+`/tmp/x1-16fa-context-proposal-bvlZLxdA/production-scope.log`.
+Checkpoint `5afb059` is pushed. A fresh host check at 13:35:47 UTC finds an
+external MacPPC7300 Quartus flow still active (shell PID 2167630, STA PID
+2179435), so the idle guard stops before fetching or creating a worktree.
+No new native/compile process launches. A fresh committed-source full flow
+remains required before this candidate can produce another accepted build;
+no new RBF is loaded.
