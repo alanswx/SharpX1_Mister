@@ -1,8 +1,63 @@
 # Cassette bring-up status
 
-October 10: the shared machine still has no connected cassette playback,
-recording, transport or APSS. PPI PB1 remains constant; PC0 has no recorder
-consumer. Firmware E9/EA/EB command storage is not a working deck.
+October 10: the default-off `CASSETTE_ENABLE` shared-machine profile now connects
+a read-only SYS-timed waveform transport, executed MR16 setters/live E9/EA/EB
+responses and PPI PB1. Six generated-IPL machine cases pass an independent
+rerun. Ordinary runners and all board revisions remain cassette-disabled;
+the TAP parser is not yet connected to a native runner. Native tape loading,
+recording, speed control and APSS remain open. PC0 has no recorder consumer.
+
+## Connected read-only diagnostic checkpoint
+
+Run `make -C verilator test-machine-cassette` for all six cases and three
+controls; the standalone prerequisites are `test-cassette-transport` and
+`test-mr16-cassette-firmware`. CI scheduling is not a hosted acceptance result.
+
+`rtl/x1_cassette_transport.sv` consumes prebuffered, SYS-synchronous held samples,
+not decoded tape bytes. Eleven standalone cases cover nominal/actual clock
+frequencies, pause/resume, final-sample duration, underflow, reset and command
+priority, with exact rejecting controls. A missing sample stops playback with
+sticky underflow; it never silently stretches time. Only EJECT/STOP/PLAY are
+implemented; other requests leave the running transport unchanged.
+
+The source-derived 8-KiB controller is uploaded through index 6 during drained
+reset. Its extension commits low/high OP5 stores at startup, E9 and BREAK;
+the machine edge detector accepts each once despite held stores. EA/EB read
+the applied deck state through the real firmware/mailbox. Index 7 remains
+RTC-only, and RTC+cassette is explicitly rejected because OP5 conflicts.
+The inherited firmware/ordinary profile is not replaced.
+
+The restricted builder also repairs the packed-ASCII comparison only in this
+extension: the caller supplies ASCII in the upper byte, while the inherited
+BREAK comparison expects an unpacked `03`. Static checks cover all 65,536
+packed words. Actual PS/2 Ctrl+C subsequently stops the deck; plain C does not.
+F12 make/release first disables the inherited joystick mode, which otherwise
+consumes C/A before ASCII processing. The tested PB0 route is held BREAK,
+**not** a qualified native read-cleared cassette-STOP pulse.
+
+Independent delay-aware execution of `test_machine_cassette.py --run` finishes
+zero in frozen folder `x1-machine-cassette-e0b0j0oo`. Its six original CPU cases
+cover transport/PPI low and high levels, Ctrl+C/release/subsequent A, plain C,
+retained-media warm reset, empty media and an actual mount/PLAY commit tie.
+The independent slot ledger checks 4,000 physical 32-MHz SYS edges per sample;
+the complete-waveform cases accept exactly 256 samples. Executed commits are
+exactly 8/3/3/5/4/9. Timer ACK rising edges are execution witnesses, not inferred
+handler counts. No hierarchy writes, forced state, private IPL or host mailbox
+responses are used. Three controls reject missing ASCII normalization, a
+disabled deck and RTC+cassette. Synthetic diagnostics do not prove native loading.
+
+Qualified sources SHA-256:
+
+- Transport: `1767eba3eee4a4b06f148733afdfe57c624c669ef0215944afaf2cd9f64266b2`
+- Builder: `34b1d68ba0fb44034d9215d4bc6e343ec33afe27fbda4508324fdeb5d17e5361`
+- Machine fixture: `30784d00420cc3d23b1735cb9f10843a89cf93e7aa9c689545512e5869bca750`
+- Collector: `78aa3908b7d56ddcd3d6d2949e7d1a81f915781c83bbbbbbe73e4340c645544d`
+
+All eight actual ordinary base/Turbo generated headers/serializers compare
+byte-identical to `d2c2d5f`, with no added warnings. The existing RTC elapsed,
+retained-reset, transport and DMA-reset diagnostics finish their immutable
+evidence checks after integration. Wrapper DMA lint passes an interface check,
+not Quartus or hardware acceptance. No existing RBF enables cassette.
 
 ## Bounded TAP prerequisite
 
@@ -53,15 +108,15 @@ an independent modern-header waveform vector and unsupported-format-zero check.
 
 1. Connect the qualified format-1/old-header parser; retain explicit unsupported
    policies for other formats/rates until their vectors and timing are tested.
-2. Implement SYS-timed sampling independent of CPU/MR16 enables, bounded host
+2. Qualify native use of the implemented SYS-timed sampling, bounded host
    buffering, pause/resume/EOF and reset policy. Connect actual waveform levels
    to PPI PB1; do not deliver decoded bytes directly to CPU memory.
-3. Make the real MR16 firmware execute transport setters at startup, E9 and
+3. Extend qualification of the implemented real MR16 setters at startup, E9 and
    BREAK, and serve live EA/EB responses through its existing mailbox. Preserve
    host flag/clear semantics. The proposed cassette-only OP5 allocation conflicts
    with RTC; reject that combination until a proper shared interface exists.
-4. Reuse extended firmware upload without changing ordinary/RTC behavior; index
-   6 currently belongs to RTC firmware and index 7 must remain RTC-only. New
+4. Connect a separate non-savable native runner using the qualified extended
+   upload without changing ordinary/RTC behavior; index 7 remains RTC-only. New
    interfaces need explicit snapshot identity/compatibility design, not state
    byte conversion. Initial playback experiments should be non-savable.
 5. Corroborate sensor encoding and command policies. Local MAME describes EB
@@ -111,4 +166,5 @@ snapshot v17 if generated declarations/checksums/serializer order compare
 unchanged. Neither new ports nor a new profile bit alone prove compatibility.
 RTC+cassette remains unsupported until the conflicting OP5 interface is resolved;
 index-6 uploaded-controller factoring must leave RTC/index-7 behavior intact.
-These hooks and connected acceptance remain work in progress.
+The connected diagnostic above qualifies these hooks only in its stated scope;
+native loading and broader coexistence acceptance remain work in progress.

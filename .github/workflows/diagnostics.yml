@@ -71,6 +71,7 @@ jobs:
             test-hps-hdmi-measure test-hps-video-cdc test-opcode-window test-runner-build-isolation test-vsync-consumer-replication \
             test-machine-fdc-timing-media test-machine-fdc-timing-boundary \
             test-machine-fdc-timing-metadata test-machine-fdc-timing-status test-basic-native-probe test-basic-print42-oracle test-tap-image \
+            test-cassette-transport test-mr16-cassette-firmware test-machine-cassette \
             test-fdc-byte-slots test-fdc-bus-events test-fdc-stream-adapter test-fdc-stream-external-dr test-fdc-completion \
             test-fdc-strict-timing test-fdc-strict-legacy test-machine-fdc-default-state test-machine-fdc-timing \
             test-sio-decode test-sio-clock-select test-sio-edge-clock test-sio-ctc-clock \

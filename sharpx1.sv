@@ -406,6 +406,10 @@ sharpx1 #(.SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ), .TURBO(TURBO_FOUND
 	.sio_rxd(2'b11),.sio_cts_n(2'b11),.sio_dcd_n(2'b11),
 	.sio_txd(),.sio_rts_n(),.sio_dtr_n(),
 	.joya_n(joya_n), .joyb_n(joyb_n),
+	// No board revision enables the provisional cassette/controller profile.
+	.tape_mount(1'b0), .tape_present(1'b0), .tape_empty(1'b0),
+	.tape_sample_valid(1'b0), .tape_sample_level(1'b0), .tape_sample_last(1'b0),
+	.tape_sample_ready(), .tape_underflow(), .tape_mode(), .tape_sensor(),
 	.disk_ready(media_present[0]), .img_mounted(img_mounted[0]),
 	.disk_wp(!status[1] || media_readonly[0]), .img_size(media_size[0]),
 	.disk_ready_b(media_present[1]), .img_mounted_b(img_mounted[1]),

@@ -79,9 +79,10 @@
 ****************************************************************************/
 // Preserve the inherited bidirectional profile by default. The shared MiSTer
 // machine explicitly selects receive-only because O_PS2CT/DT are disconnected.
-module x1_sub #(parameter CLOCK_HZ = 32000000, PS2_RECEIVE_ONLY = 0, IRQ_ACK_ONCE = 0, RTC_ENABLE = 0)(
+module x1_sub #(parameter CLOCK_HZ = 32000000, PS2_RECEIVE_ONLY = 0, IRQ_ACK_ONCE = 0, RTC_ENABLE = 0, CASSETTE_ENABLE = 0)(
   I_reset,
   I_rtc_power_reset,
+  I_cassette_mode, I_cassette_sensor, O_cassette_command,
   I_clk,  // 32MHz
 // MAIN-SUB communication port
   I_cs,
@@ -149,6 +150,9 @@ input I_reset;
 // Configuration/clock-storage loss, NOT the machine's warm reset. Existing
 // profiles keep RTC_ENABLE=0 and tie this inactive. No battery time is modeled.
 input I_rtc_power_reset;
+input [1:0] I_cassette_mode;
+input [7:0] I_cassette_sensor;
+output [8:0] O_cassette_command;
 input I_clk;
 
 input [12:0] I_fa;
@@ -257,6 +261,11 @@ always @(posedge I_clk)
 wire [15:0] rtc_rdata;
 wire [7:0] rtc_firmware_data;
 wire rtc_t1;
+// Both experiments use the same packed index-6 controller protocol. Keep the
+// existing RTC hierarchy and serial device entirely unchanged; OP5 is exclusive.
+generate if (RTC_ENABLE && CASSETTE_ENABLE) begin : conflicting_controller_gpio
+  initial $fatal(1,"RTC and cassette controller GPIO profiles are exclusive");
+end endgenerate
 generate if (RTC_ENABLE) begin : experimental_rtc
   wire decoded_ram;
   wire [11:0] rom_word;
@@ -290,6 +299,28 @@ generate if (RTC_ENABLE) begin : experimental_rtc
     .oscillator_ce(oscillator_ce),.cs(1'b1),.mcu_p1(OP5[7:0]),.mcu_t1(rtc_t1),
     .data_out_sink(),.current_state(),.state_valid(),.shift_state(),.register_mode(),
     .divider_phase(),.second_tick(),.calendar_advanced(),.month_wrapped());
+end else if (CASSETTE_ENABLE) begin : experimental_cassette
+  wire decoded_ram;
+  wire [11:0] rom_word;
+  x1_mr16_rom_decode #(.EXTENDED(1)) decoder(.address(sub_addr),.memory_cs(mem_cs),
+    .rom_cs(pgm_cs),.ram_cs(decoded_ram),.rom_word_address(rom_word));
+  assign wram_cs = decoded_ram && !sub_addr[11];
+  reg selected_ram;
+  reg [15:0] cassette_program[0:4095];
+  reg [15:0] cpu_program_data;
+  reg [7:0] firmware_read;
+  always @(posedge I_clk) begin
+    selected_ram <= wram_cs;
+    cpu_program_data <= cassette_program[rom_word];
+    firmware_read <= I_fa[0] ? cassette_program[I_fa[12:1]][15:8] : cassette_program[I_fa[12:1]][7:0];
+    if (I_reset && I_fcs && I_wr) begin
+      if (I_fa[0]) cassette_program[I_fa[12:1]][15:8] <= I_D;
+      else cassette_program[I_fa[12:1]][7:0] <= I_D;
+    end
+  end
+  assign rtc_rdata = msel ? cpu_program_data : selected_ram ? wram_data : 16'hffff;
+  assign rtc_firmware_data = firmware_read;
+  assign rtc_t1 = 1'b0;
 end else begin : ordinary_rtc_disabled
   assign pgm_cs = mem_cs & ~sub_addr[12];
   assign wram_cs = mem_cs & sub_addr[12];
@@ -297,11 +328,11 @@ end else begin : ordinary_rtc_disabled
   assign rtc_firmware_data = 8'hff;
   assign rtc_t1 = 1'b0;
 end endgenerate
-assign rdata = RTC_ENABLE ? rtc_rdata : msel ? pgm_data : wram_data;
+assign rdata = (RTC_ENABLE || CASSETTE_ENABLE) ? rtc_rdata : msel ? pgm_data : wram_data;
 
 assign scpu_wait_n = ~(~O_DMA_BUSRQ_n && I_DMA_BUSAK_n);
 
-mr16_x1 #(.CLOCK_HZ(CLOCK_HZ), .RETAIN_RESPONSE(RTC_ENABLE)) sub_cpu
+mr16_x1 #(.CLOCK_HZ(CLOCK_HZ), .RETAIN_RESPONSE(RTC_ENABLE || CASSETTE_ENABLE)) sub_cpu
 (
   .I_RESET(I_reset),.I_CLK(I_clk),.I_CLKEN(scpu_wait_n),
 // Address Bus
@@ -441,7 +472,9 @@ wire main_re;   // HOST CPU Read Enable
 // HOST <-> SUB handshake
 assign hrd_set = IA4;
 assign hwd_clr = IA5;
-assign IP1     = {10'h00,rtc_t1,O_clk1,irq_en,O_KEY_BRK_n,hwd_full & ~main_we,hrd_full | main_re};
+assign IP1     = {CASSETTE_ENABLE ? {I_cassette_sensor,I_cassette_mode} : 10'h00,
+    rtc_t1,O_clk1,irq_en,O_KEY_BRK_n,hwd_full & ~main_we,hrd_full | main_re};
+assign O_cassette_command = CASSETTE_ENABLE ? OP5[8:0] : 9'd0;
 assign O_KEY_BRK_n = OP1[2];
 assign irq_en      = OP1[3];
 assign O_clk1      = OP1[4];
@@ -789,9 +822,9 @@ end
 /////////////////////////////////////
 `ifdef SUB_ROM
 // SPM1 > FDC Status > FDC reg / HOST RD
-assign O_D   = RTC_ENABLE && I_fcs ? rtc_firmware_data :
+assign O_D   = (RTC_ENABLE || CASSETTE_ENABLE) && I_fcs ? rtc_firmware_data :
   (sub_ivec_cycle | ~fd_sts_cs) ? h_wram_rd[7:0] : fd_sts;
-assign O_DOE = h_wram_cs | (RTC_ENABLE && I_fcs);
+assign O_DOE = h_wram_cs | ((RTC_ENABLE || CASSETTE_ENABLE) && I_fcs);
 `else
 assign O_D   =
    fcs_pgm       ? f_dr :

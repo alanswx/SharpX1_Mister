@@ -1689,7 +1689,7 @@ test-basic-print42-oracle:
 	python3 -B tests/test_basic_print42_oracle.py
 .PHONY: test-basic-print42-oracle
 
-# Asset-free bounded waveform parser only; no connected cassette transport.
+# Asset-free bounded waveform parser only; this target does not load a tape.
 test-tap-image: $(HEADLESS_DIR)/tap-image/test_x1_tap_image
 	./$(HEADLESS_DIR)/tap-image/test_x1_tap_image
 
@@ -1698,6 +1698,23 @@ $(HEADLESS_DIR)/tap-image/test_x1_tap_image: x1_tap_image.h tests/test_x1_tap_im
 	$(CXX) -std=c++20 -Wall -Wextra -Werror tests/test_x1_tap_image.cpp -o $@
 
 .PHONY: test-tap-image
+
+# These prerequisites do not establish connected firmware/CPU tape loading.
+test-cassette-transport:
+	ulimit -c 0; python3 -B tests/test_cassette_transport.py
+.PHONY: test-cassette-transport
+
+test-mr16-cassette-firmware:
+	python3 -B tests/test_mr16_cassette_firmware.py
+.PHONY: test-mr16-cassette-firmware
+
+# Original IPL/public MR16 upload only; not native tape loading or board acceptance.
+test-machine-cassette:
+	ulimit -c 0; python3 -B tests/test_machine_cassette.py --run
+	ulimit -c 0; python3 -B tests/test_machine_cassette.py --run --negative missing-normalization
+	ulimit -c 0; python3 -B tests/test_machine_cassette.py --run --negative disabled
+	ulimit -c 0; python3 -B tests/test_machine_cassette.py --run --negative rtc-combo
+.PHONY: test-machine-cassette
 
 test-hps-video-cdc: $(HEADLESS_DIR)/hps-video-cdc/Vhps_video_cdc_tb
 	./$(HEADLESS_DIR)/hps-video-cdc/Vhps_video_cdc_tb

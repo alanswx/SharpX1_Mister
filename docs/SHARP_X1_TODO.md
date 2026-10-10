@@ -1451,9 +1451,11 @@ Preserve each frozen runner; do not rebuild historical v05.
   against hardware; test PCG raster images and Turbo high-speed addressing.
 - [ ] Complete cassette transport and baud/timing behavior.
   The bounded TAP parser now passes 356 synthetic and sanitizer checks; it is
-  not connected to the machine. Format-1 fixed-rate samples are corroborated
-  by a second emulator. Other formats/rates, real firmware
-  transport/status, PPI input and native loading remain open. See
+  not yet connected to a native runner. Format-1 fixed-rate samples are
+  corroborated by a second emulator. The default-off shared-machine read-only
+  transport passes six actual CPU/MR16/PPI cases and three rejecting controls,
+  including BREAK, EOF and retained-media reset. Native loading, other
+  formats/rates, recording, APSS and board acceptance remain open. See
   [cassette status and connected gates](CASSETTE_STATUS.md).
 - [x] Connect PSG audio output and verify deterministic 1 kHz WAV waveform.
 - [ ] Verify noise, envelopes, full music and hardware audio/clock behavior.

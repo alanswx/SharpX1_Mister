@@ -1,7 +1,7 @@
 // Sharp X1 base-machine integration. Shared by MiSTer and simulation.
 // See docs/BASE_X1_CONTRACT.md for address-map sources and limitations.
 module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0, TURBO_DSW = 241, TURBO_DMA_RESTART_IRQ = 0, TURBO_Z_PALETTE_CPU = 0, TURBO_Z_VIDEO = 0, TURBO_Z_MULTIMODE = 0, TURBO_Z_INTERNAL8 = 0, TURBO_Z_TEXT_CPU = 0, TURBO_SIO = 0, TURBO_FM_CPU = 0, RTC_ENABLE = 0, TURBO_Z_EFFECT_CPU = 0, TURBO_DMA_KANJI_EXPERIMENT = 0, D88_ADDRESS_BITS = 20, TURBO_HD_SELECT = 0, TURBO_HD_MEDIA = 0,
-    TURBO_FDC_TIMING = 0, FDC_CLOCK_HZ = 1000000) (
+    TURBO_FDC_TIMING = 0, FDC_CLOCK_HZ = 1000000, CASSETTE_ENABLE = 0) (
     input clk_sys, clk_28636, reset,
     input pal, scandouble,
     input ioctl_download,
@@ -17,6 +17,11 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     input [1:0] sio_rxd, sio_cts_n, sio_dcd_n,
     output [1:0] sio_txd, sio_rts_n, sio_dtr_n,
     input [7:0] joya_n, joyb_n,
+    // SYS-synchronous experimental read-only waveform stream; not decoded bytes.
+    input tape_mount, tape_present, tape_empty,
+    input tape_sample_valid, tape_sample_level, tape_sample_last,
+    output tape_sample_ready, tape_underflow,
+    output [7:0] tape_mode, tape_sensor,
     input disk_ready, img_mounted, disk_wp,
     input [23:0] img_size,
     input disk_ready_b, img_mounted_b, disk_wp_b,
@@ -655,6 +660,34 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     // bus ownership is advertised until those devices have their own tests.
     wire [7:0] sub_data;
     wire sub_tx_busy, sub_rx_busy, sub_int_n, clk1;
+    wire sub_break;
+    wire [8:0] cassette_command;
+    wire cassette_waveform;
+    generate if (CASSETTE_ENABLE) begin : cassette_deck
+        if (RTC_ENABLE) initial $fatal(1,"RTC and cassette controller GPIO profiles are exclusive");
+        reg commit_previous = 0;
+        always @(posedge clk_sys)
+            if (core_reset) commit_previous <= 0;
+            else commit_previous <= cassette_command[8];
+        // Executed firmware commits low then high. Held MR16 GPIO stores must
+        // produce one deck command, never one command per SYS or controller CE.
+        wire command_valid = !core_reset && cassette_command[8] && !commit_previous;
+        x1_cassette_transport #(.SYS_HZ(SINGLE_CLOCK ? MASTER_HZ : 32000000)) transport (
+            .clk_sys(clk_sys), .reset(core_reset),
+            .mount(tape_mount), .present(tape_present), .empty(tape_empty),
+            .cmd_valid(command_valid), .cmd(cassette_command[7:0]),
+            .sample_valid(tape_sample_valid), .sample_level(tape_sample_level),
+            .sample_last(tape_sample_last), .sample_ready(tape_sample_ready),
+            .waveform(cassette_waveform), .applied_mode(tape_mode),
+            .sensor(tape_sensor), .underflow(tape_underflow)
+        );
+    end else begin : cassette_disabled
+        assign tape_sample_ready = 0;
+        assign tape_underflow = 0;
+        assign tape_mode = 0;
+        assign tape_sensor = 0;
+        assign cassette_waveform = 0;
+    end endgenerate
     wire display_blink;
     generate if (TURBO_VIDEO_MASTER) begin : x3_blink
         x1_video_blink #(.SYNCHRONIZE(1)) video_blink (
@@ -668,12 +701,14 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     // controller image. Index 7/address 0/value 1 explicitly denotes simulated
     // configuration/storage loss, NOT native CPU I/O or ordinary warm reset.
     // Neither upload is accepted before the owned reset drain completes.
-    wire rtc_firmware_load = RTC_ENABLE && core_reset && !ioctl_wait &&
+    wire rtc_firmware_load = (RTC_ENABLE || CASSETTE_ENABLE) && core_reset && !ioctl_wait &&
         ioctl_download && ioctl_wr && ioctl_index==6 && ioctl_addr<8192;
     wire rtc_power_reset = RTC_ENABLE && core_reset && !ioctl_wait &&
         ioctl_download && ioctl_wr && ioctl_index==7 && ioctl_addr==0 && ioctl_dout==1;
-    x1_sub #(.CLOCK_HZ(SINGLE_CLOCK ? MASTER_HZ : 32000000), .PS2_RECEIVE_ONLY(1), .IRQ_ACK_ONCE(TURBO), .RTC_ENABLE(RTC_ENABLE)) subCPU (
+    x1_sub #(.CLOCK_HZ(SINGLE_CLOCK ? MASTER_HZ : 32000000), .PS2_RECEIVE_ONLY(1), .IRQ_ACK_ONCE(TURBO), .RTC_ENABLE(RTC_ENABLE), .CASSETTE_ENABLE(CASSETTE_ENABLE)) subCPU (
         .I_reset(core_reset), .I_rtc_power_reset(rtc_power_reset), .I_clk(clk_sys), .I_cs(sub_cs),
+        .I_cassette_mode(tape_mode[1:0]), .I_cassette_sensor(tape_sensor),
+        .O_cassette_command(cassette_command),
         .I_rd(io_read), .I_wr(io_write || rtc_firmware_load), .I_M1_n(m1),
         .I_D(rtc_firmware_load ? ioctl_dout : data_out), .O_D(sub_data), .O_DOE(), .O_clk1(clk1),
         .O_FDC_DRQ_n(), .I_FDCS(1'b0), .I_RFSH_n(1'b1),
@@ -683,9 +718,9 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         .O_DMA_BUSRQ_n(), .I_DMA_BUSAK_n(1'b1), .I_DMA_RDY(1'b0),
         .I_DMA_WAIT_n(1'b1), .I_DMA_IEI(1'b1),
         .O_DMA_INT_n(), .O_DMA_IEO(), .O_PCM(), .O_FD_LAMP(),
-        .I_fa(RTC_ENABLE ? ioctl_addr[12:0] : 13'd0), .I_fcs(rtc_firmware_load), .I_PS2C(ps2_clk_in), .I_PS2D(ps2_data_in),
+        .I_fa((RTC_ENABLE || CASSETTE_ENABLE) ? ioctl_addr[12:0] : 13'd0), .I_fcs(rtc_firmware_load), .I_PS2C(ps2_clk_in), .I_PS2D(ps2_data_in),
         .O_PS2CT(), .O_PS2DT(), .O_TX_BSY(sub_tx_busy), .O_RX_BSY(sub_rx_busy),
-        .O_KEY_BRK_n(), .I_SPM1(TURBO ? keyboard_ack : !m1 && !iorq), .I_RETI(1'b0),
+        .O_KEY_BRK_n(sub_break), .I_SPM1(TURBO ? keyboard_ack : !m1 && !iorq), .I_RETI(1'b0),
         .I_IEI(1'b1), .O_INT_n(sub_int_n), .O_JOY_A(), .O_JOY_B(),
         .dot_7seg(), .num_7seg()
     );
@@ -731,7 +766,8 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     i8255 ppi (
         .reset(core_reset), .clk_sys(clk_sys), .addr(a[1:0]), .idata(data_out),
         .odata(ppi_data), .cs(ppi_cs), .we(io_write), .oe(io_read),
-        .ipa(8'hff), .opa(), .ipb({ppi_vdisp,sub_tx_busy,sub_rx_busy,!ipl_enabled,1'b0,ppi_vsync,1'b0,1'b1}),
+        .ipa(8'hff), .opa(), .ipb({ppi_vdisp,sub_tx_busy,sub_rx_busy,!ipl_enabled,1'b0,ppi_vsync,
+            cassette_waveform,CASSETTE_ENABLE ? !sub_break : 1'b1}),
         .opb(), .ipc(8'hff), .opc(mode_c),
         .sna_load(1'b0), .sna_opa(8'd0), .sna_opb(8'd0), .sna_opc(8'd0), .sna_control(8'd0)
     );
