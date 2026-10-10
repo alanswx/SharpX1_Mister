@@ -149,6 +149,9 @@ independent audit confirms 262,688 CPU reads, fifteen complete frames and
 Log: `/tmp/x1-z-kanji-full-main-audit.log`. Separate disabled, half-major and
 missing-display-response controls reject at matched assertions. These do not
 establish native fonts, wider raster support or an FPGA memory implementation.
+The machine build retains 61 warnings: the ordinary 60 plus source-order-
+exposed `TIMESCALEMOD` on existing `x1_z_effect_registers.sv`. No warning-clean
+claim is made; this is not an additional new-fixture or Kanji-module warning.
 Ordinary base/Turbo generated state
 is unchanged, and ordinary fast/snapshot checks complete zero. Final-current
 delay-aware regression remains in progress. See `DEVELOPMENT_HANDOFF.md` for

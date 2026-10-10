@@ -179,7 +179,14 @@ The older frozen 130-second native probe finishes with exit zero and has progres
 private ignored evidence, not a controls/gameplay pass. It accepts 524,717
 samples with zero underflow and enters STOP at 71.436165578125 seconds, before
 EOF. The terminal image still lacks a full playfield; do not treat its score/map
-as playable-game acceptance. Independent native ledger auditing is pending.
+as playable-game acceptance. Independent native auditing verifies all 524,717
+accepted bits and 313,598 waveform transitions against the actual TAP payload,
+all four assets/executable and 137 historical frozen-source hashes, terminal
+RGB/FNV and unchanged artifacts. Of the 524,716 sample intervals, 524,715 are
+125 us and one is 125.03125 us (one extra SYS tick). Supported-command priority
+is a plausible cause, not witnessed by this runner's log; preserve the
+exception rather than claiming uniformly exact cadence. Evidence:
+`/tmp/x1-rallyx-native-audit-5d22VJ/summary.json`.
 Same-executable 83-second exploratory keyboard and no-input cold probes are live.
 Its binary and assets are unchanged by this runner extension. Native cold repeats,
 loading/game input, recording/APSS and hardware remain separate gates. No

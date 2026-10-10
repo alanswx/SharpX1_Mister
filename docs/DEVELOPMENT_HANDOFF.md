@@ -6,6 +6,12 @@ historical game screenshots and a fitted RBF do not close that goal.
 
 ## Pushed checkpoints
 
+- `35b4dbf`: strengthened independent Z machine auditor and external-font
+  implementation plan; seventeen bad-evidence controls reject.
+- `8305e17`: opt-in full-size Z Kanji shared-machine CPU/display integration,
+  exhaustive physical CPU reads, bounded loader/reset/pixel diagnostics and
+  reusable evidence-audit regression. **Not native fonts or FPGA storage.**
+
 - `5438892`: separate delay-aware cassette runner passes 25 generated-asset
   checks: exact 40/80-column pixels, actual PS/2 Ctrl+C/plain-C behavior and
   retained tape cursor/partial-slot phase over repeated warm resets.
