@@ -21,7 +21,7 @@ Private ROMs/media, dumps, snapshots and native screenshots remain ignored.
 
 ## Worktree and live qualification
 
-Shared-machine Z Kanji integration is **uncommitted, partially qualified**:
+Shared-machine Z Kanji integration is **opt-in and synthetically qualified**:
 `rtl/sharpx1.v`, `rtl/x1_pcg_access.v`, `rtl/legacy/x1_vid.v`,
 `rtl/machine.qip`, and new machine fixtures. `TURBO_Z_KANJI` is default-off,
 requires the Turbo/X3/Kanji/render combination and excludes DMA. Ordinary
@@ -44,25 +44,38 @@ checks pass. The early frozen `zgfae1jf` probe/render80 collector completes;
 Main's independent read-only audit confirms 32 actual CPU reads, three frames,
 768,000 exact RGB pixels and frame periods with unchanged evidence. This is
 synthetic high-resolution normal-size Kanji, not native font or FPGA acceptance.
-The larger `hhofb8uy` collector has fourteen accepted bounded cases; its
-262,144-address CPU scan remains live (PID 74887). Whole-matrix acceptance and
-independent audit remain pending. Keep its source inputs frozen.
+The larger `hhofb8uy` collector now finishes zero. Main's strengthened audit
+confirms all fifteen cases, 262,688 CPU reads (including every physical font
+byte), fifteen frames and 3,072,000 exact pixels with frame-period checks.
+Frozen/current sources and evidence remain unchanged. Three separate disabled,
+half-major and missing-display-response controls reject at matched assertions.
+The reusable auditor regression also passes two baselines and seventeen
+evidence-mutation/optimized-execution controls; Main rerun evidence is
+`x1-z-kanji-audit-regression-d9pqixzx`, log
+`/tmp/x1-z-kanji-audit-regression-main.log`. These are synthetic diagnostics,
+not native fonts, FPGA backing storage or hardware acceptance.
 
 Existing jobs must be polled, **not restarted because observation times out**:
 
 | Job | Handle / evidence | Last verified state |
 |---|---|---|
-| Native Rally-X, older frozen cassette runner | session `53472`; `/tmp/x1-native-rallyx-cassette-iFzAfm/run130-autoload/` | Live; actual frame now shows score/map/car graphics; no terminal or controls/gameplay acceptance |
+| Native Rally-X, older frozen cassette runner | session `53472`; `/tmp/x1-native-rallyx-cassette-iFzAfm/run130-autoload/` | Terminal exit zero, 130 physical seconds, 524,717 samples, zero underflow; partial score/map/car display, no gameplay acceptance |
+| Native Rally-X exploratory keyboard / no-input control | sessions `21805` / `56833`; `run83-input` / `run83-control` under same native folder | Live cold probes, same immutable executable/assets and 83-second duration; key meanings not verified release instructions |
 | Ordinary delay-aware regression | session `53793`; `/tmp/x1-z-kanji-ordinary-regression.log` | Terminal exit zero; 164 PASS lines; pre-final Z-only repair source scope below |
 | Ordinary fast/snapshot regression | session `26203`; `/tmp/x1-z-kanji-ordinary-fast.log` | Terminal exit zero; 144 PASS lines |
 | Final-current ordinary delay-aware repeat | session `67295`; `/tmp/x1-z-kanji-final-current-regression.log` | Started after final Z-only repairs; result pending |
-| Exhaustive shared-machine Z Kanji | `hhofb8uy`, driver PID 71875 / child PID 74887 | Both verified live; original session handle missing, not a reason to restart |
+| Exhaustive shared-machine Z Kanji | `hhofb8uy`; Main audit log `/tmp/x1-z-kanji-full-main-audit.log` | Terminal collector and independent audit pass, not hardware/native acceptance |
 
 The delay-aware regression began before the final Z-only blanking/eligibility
 repair; its executable/source scope must be distinguished from final-current
 acceptance. Do not edit a frozen collector's inputs while its job is live.
 Regenerate final-current checks after integration stabilizes. The native tape
 job uses an older immutable executable/assets and is unaffected by these edits.
+
+Full-font external backing work is now described in
+`TURBO_Z_EXTERNAL_FONT_PLAN.md`. Original standalone DDR backend and tests are
+being developed outside the machine manifest; no display cache, native write-
+visibility policy or board integration is yet qualified.
 
 Uncommitted HDMI work remains separate: exact seventh whole-prefetch SDC bank,
 strict 9cc provenance/report auditor, mock and CI time-budget changes. Original

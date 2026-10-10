@@ -124,7 +124,7 @@ Qualified selector/store SHA-256:
 - `690d71fcf8fdbaaaece7738d28d2ac7dd34a5b8f561a738152690fa3ce126bf8`
 - `d8e70cba447b0e3ed6096eeab8546cc032d260720e7cd2962db3fa3c70087335`
 
-## Early shared-machine acceptance; exhaustive qualification still live
+## Shared-machine synthetic acceptance; native and FPGA gates open
 
 The separate `TURBO_Z_KANJI` integration uses the full simulation store and
 highest-cell selector. It freezes an 18-bit CPU address through the existing
@@ -142,10 +142,14 @@ frame periods and unchanged evidence/current inputs. Bound input-manifest hash:
 No native ROM bytes are used. These are generated physical-font diagnostics,
 not native software or hardware acceptance.
 
-The `hhofb8uy` matrix has fourteen accepted bounded CPU/pixel/loader/reset
-cases, but its exhaustive 262,144-address real-CPU scan remains live; whole-
-matrix terminal acceptance and independent auditing are pending. The early
-pass does not qualify that unfinished run. Ordinary base/Turbo generated state
+The `hhofb8uy` matrix now completes all fifteen CPU/pixel/loader/reset cases,
+including the exhaustive 262,144-address real-CPU scan. Main's strengthened
+independent audit confirms 262,688 CPU reads, fifteen complete frames and
+3,072,000 exact pixels, physical periods and unchanged evidence/current inputs.
+Log: `/tmp/x1-z-kanji-full-main-audit.log`. Separate disabled, half-major and
+missing-display-response controls reject at matched assertions. These do not
+establish native fonts, wider raster support or an FPGA memory implementation.
+Ordinary base/Turbo generated state
 is unchanged, and ordinary fast/snapshot checks complete zero. Final-current
 delay-aware regression remains in progress. See `DEVELOPMENT_HANDOFF.md` for
 job identities and source scope. No existing board or ordinary runner enables
@@ -163,7 +167,10 @@ unchanged. Review evidence: `/tmp/x1-z-kanji-auditor-rereview-pXi2RqA1/`;
 auditor SHA-256:
 `cef13e8586c867462672891abb5946533349ea470766f93c8c55f9c23e084673`.
 This verifies the auditor's bounded evidence contract, not completion of the
-still-running exhaustive machine test.
+native font or hardware qualification. The reusable regression driver
+`test_z_kanji_machine_audit.py` also passes an independent Main rerun against
+the caller-bound early evidence: two baselines and seventeen exact controls,
+with original evidence and monitored sources unchanged.
 
 The [external-font implementation plan](TURBO_Z_EXTERNAL_FONT_PLAN.md) records
 full storage, display deadlines, coherence, reset-drain and physical gates.

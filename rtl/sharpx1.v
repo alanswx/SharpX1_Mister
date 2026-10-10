@@ -1,7 +1,8 @@
 // Sharp X1 base-machine integration. Shared by MiSTer and simulation.
 // See docs/BASE_X1_CONTRACT.md for address-map sources and limitations.
 module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0, TURBO_DSW = 241, TURBO_DMA_RESTART_IRQ = 0, TURBO_Z_PALETTE_CPU = 0, TURBO_Z_VIDEO = 0, TURBO_Z_MULTIMODE = 0, TURBO_Z_INTERNAL8 = 0, TURBO_Z_TEXT_CPU = 0, TURBO_SIO = 0, TURBO_FM_CPU = 0, RTC_ENABLE = 0, TURBO_Z_EFFECT_CPU = 0, TURBO_DMA_KANJI_EXPERIMENT = 0, D88_ADDRESS_BITS = 20, TURBO_HD_SELECT = 0, TURBO_HD_MEDIA = 0,
-    TURBO_FDC_TIMING = 0, FDC_CLOCK_HZ = 1000000, CASSETTE_ENABLE = 0) (
+    TURBO_FDC_TIMING = 0, FDC_CLOCK_HZ = 1000000, CASSETTE_ENABLE = 0,
+    TURBO_Z_KANJI = 0) (
     input clk_sys, clk_28636, reset,
     input pal, scandouble,
     input ioctl_download,
@@ -144,6 +145,8 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
             $error("DMA/Kanji qualification requires Turbo, DMA, Kanji and X3 video");
         if (TURBO_KANJI_RENDER && !TURBO_KANJI)
             $error("TURBO_KANJI_RENDER requires the explicit physical Kanji ROM profile");
+        if (TURBO_Z_KANJI && !(TURBO && TURBO_VIDEO_MASTER && TURBO_KANJI && TURBO_KANJI_RENDER && !SINGLE_CLOCK && !TURBO_DMA))
+            $error("Z Kanji simulation profile requires Turbo/X3/Kanji/render and excludes single-clock/DMA");
         if (TURBO && (TURBO_DSW < 0 || TURBO_DSW > 255))
             $error("TURBO_DSW must be an explicit raw eight-bit switch configuration");
     end
@@ -880,16 +883,28 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     wire cg_selected_font16, cg_selected_unsupported;
     wire [7:0] cg_font_cpu_data;
     wire cg_selected_kanji, kanji_loaded, kanji_load_error, kanji_cpu_valid, kanji_cpu_read;
-    wire [16:0] cg_selected_kanji_addr, kanji_cpu_addr;
+    localparam KANJI_AW = TURBO_Z_KANJI ? 18 : 17;
+    wire [KANJI_AW-1:0] cg_selected_kanji_addr, kanji_cpu_addr;
     wire [7:0] kanji_cpu_data;
     wire [16:0] kanji_display_addr;
     wire kanji_display_select, kanji_display_level1;
     wire [7:0] kanji_display_data;
+    wire [17:0] z_kanji_display_addr;
+    wire z_kanji_display_select, z_kanji_display_valid, z_kanji_display_miss, z_kanji_display_unsupported;
     wire text_write = io_write && !dam && a[15:12] == 4'h3 && (!TURBO || !a[11]);
     wire kan_write = TURBO && io_write && !dam && a[15:11] == 5'b00111;
     wire attr_write = io_write && !dam && a[15:12] == 4'h2;
     wire cg_access = io_cycle && !dam && a[15:10] == 6'b000101;
-    generate if (TURBO) begin : turbo_pcg_selector
+    generate if (TURBO_Z_KANJI) begin : z_pcg_selector
+        x1_z_pcg_selector selector (
+            .clk(clk_sys), .text_write(text_write), .attr_write(attr_write), .kan_write(kan_write),
+            .address(a[10:0]), .data(data_out), .nibble(a[3:0]), .plane(a[9:8]),
+            .font16_mode(turbo_scrn[6]), .byte_address(cg_selected_addr),
+            .font_address(cg_selected_font_addr), .font16_select(cg_selected_font16),
+            .unsupported(cg_selected_unsupported), .kanji_select(cg_selected_kanji),
+            .kanji_address(cg_selected_kanji_addr)
+        );
+    end else if (TURBO) begin : turbo_pcg_selector
         x1_pcg_selector #(.KANJI_SUPPORT(TURBO_KANJI)) selector (
             .clk(clk_sys), .text_write(text_write), .attr_write(attr_write), .kan_write(kan_write),
             .address(a[10:0]), .data(data_out), .nibble(a[3:0]), .plane(a[9:8]),
@@ -905,7 +920,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         assign cg_selected_kanji = 0;
         assign cg_selected_kanji_addr = 0;
     end endgenerate
-    x1_pcg_access #(.SEPARATE_VIDEO_RESET(TURBO_VIDEO_MASTER), .KANJI_SUPPORT(TURBO_KANJI)) cg_bus (
+    x1_pcg_access #(.SEPARATE_VIDEO_RESET(TURBO_VIDEO_MASTER), .KANJI_SUPPORT(TURBO_KANJI), .KANJI_ADDRESS_BITS(KANJI_AW)) cg_bus (
         .video_reset(video_reset),
         .reset(core_reset), .cpu_clk(clk_sys), .video_clk(clk_28636),
         .cpu_select(cg_access), .cpu_write(io_write), .cpu_plane(a[9:8]), .cpu_data(data_out),
@@ -923,7 +938,22 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     // Explicit physical first-level ROM upload, not an emulator filename/JIS
     // conversion. The host must hold both resets through the falling commit.
     // Rendering is a separate opt-in provisional X Millennium row policy.
-    generate if (TURBO && TURBO_KANJI) begin : turbo_kanji
+    generate if (TURBO_Z_KANJI) begin : z_kanji
+        // Full physical simulation reference, not an FPGA BRAM fit solution.
+        x1_z_kanji_rom rom (
+            .cpu_clk(clk_sys), .video_clk(clk_28636),
+            .cpu_reset(core_reset), .video_reset(video_reset),
+            .upload(ioctl_download && !ioctl_wait && ioctl_index == 5),
+            .load(ioctl_wr && !ioctl_wait && ioctl_index == 5),
+            .load_address(ioctl_addr), .load_data(ioctl_dout),
+            .cpu_read(kanji_cpu_read), .cpu_address(kanji_cpu_addr),
+            .cpu_data(kanji_cpu_data), .cpu_valid(kanji_cpu_valid),
+            .display_select(z_kanji_display_select && !z_kanji_display_unsupported), .display_address(z_kanji_display_addr),
+            .display_data(kanji_display_data), .display_valid(z_kanji_display_valid),
+            .loaded(kanji_loaded), .load_error(kanji_load_error)
+        );
+    end else if (TURBO && TURBO_KANJI) begin : turbo_kanji
+        assign z_kanji_display_valid = 0;
         x1_kanji_rom rom (
             .cpu_clk(clk_sys), .video_clk(clk_28636),
             .cpu_reset(core_reset), .video_reset(video_reset),
@@ -939,6 +969,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
             .loaded(kanji_loaded), .load_error(kanji_load_error)
         );
     end else begin : no_turbo_kanji
+        assign z_kanji_display_valid = 0;
         assign kanji_loaded = 0;
         assign kanji_load_error = 0;
         assign kanji_cpu_data = 0;
@@ -992,7 +1023,8 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         assign cg_font_cpu_data = 0;
     end endgenerate
     // Missing/unloaded/level-2 Kanji is blank, never an ANK substitution.
-    assign cg_data = kanji_display_select ? kanji_display_data :
+    assign cg_data = (TURBO_Z_KANJI ? z_kanji_display_select : kanji_display_select) ?
+                     (TURBO_Z_KANJI && z_kanji_display_unsupported ? 8'd0 : kanji_display_data) :
                      TURBO && turbo_scrn_video[0] ? ank16_data : cg8_data;
     wire r,g,b;
     wire crtc_bus_write, crtc_bus_rs;
@@ -1010,7 +1042,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         assign crtc_wait_n=1;
         assign crtc_bus_write=0; assign crtc_bus_rs=0; assign crtc_bus_data=0;
     end endgenerate
-    x1_vid #(.ENABLE_CRTC(SINGLE_CLOCK || TURBO_VIDEO_MASTER), .TURBO_SUPPORT(TURBO), .TURBO_CLOCKS(TURBO_VIDEO_MASTER), .SEPARATE_VIDEO_RESET(TURBO_VIDEO_MASTER), .KANJI_RENDER(TURBO_KANJI_RENDER), .SEPARATE_CRTC_BUS(TURBO_VIDEO_MASTER)) display (
+    x1_vid #(.ENABLE_CRTC(SINGLE_CLOCK || TURBO_VIDEO_MASTER), .TURBO_SUPPORT(TURBO), .TURBO_CLOCKS(TURBO_VIDEO_MASTER), .SEPARATE_VIDEO_RESET(TURBO_VIDEO_MASTER), .KANJI_RENDER(TURBO_KANJI_RENDER && !TURBO_Z_KANJI), .SEPARATE_CRTC_BUS(TURBO_VIDEO_MASTER), .Z_KANJI_RENDER(TURBO_Z_KANJI)) display (
         .I_VIDEO_RESET(video_reset),
         .I_CRTC_BUS_CLK(clk_28636), .I_CRTC_BUS_RS(crtc_bus_rs),
         .I_CRTC_BUS_DATA(crtc_bus_data), .I_CRTC_BUS_WRITE(crtc_bus_write),
@@ -1034,6 +1066,9 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         .I_GRB_D(grb_vid), .I_GRR_D(grr_vid), .I_GRG_D(grg_vid),
         .O_CGA(cgaddr), .O_ANK16_ADDR(ank16_addr), .I_CG_D(cg_data),
         .O_KANJI_ADDR(kanji_display_addr), .O_KANJI_SELECT(kanji_display_select), .O_KANJI_LEVEL1(kanji_display_level1),
+        .O_Z_KANJI_ADDR(z_kanji_display_addr), .O_Z_KANJI_SELECT(z_kanji_display_select),
+        .I_Z_KANJI_VALID(z_kanji_display_valid), .O_Z_KANJI_MISS(z_kanji_display_miss),
+        .O_Z_KANJI_UNSUPPORTED(z_kanji_display_unsupported),
         .I_PCGB_D(pcgb_vid), .I_PCGR_D(pcgr_vid), .I_PCGG_D(pcgg_vid),
         .O_R(r), .O_G(g), .O_B(b), .O_HSYNC(HSync), .O_VSYNC(VSync), .O_VDISP(vdisp),
         .O_HBLANK(HBlank), .O_VBLANK(VBlank), .O_CE_PIXEL(ce_pix)

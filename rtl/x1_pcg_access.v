@@ -4,7 +4,8 @@
 // response stays stable until the next request. This is CDC latency WAIT,
 // not the optional inherited scanline AUTO_WAIT trap. Turbo high-speed mode
 // uses a frozen CPU-selected address and provisional asserted-HSYNC window.
-module x1_pcg_access #(parameter SEPARATE_VIDEO_RESET = 0, KANJI_SUPPORT = 0) (
+module x1_pcg_access #(parameter SEPARATE_VIDEO_RESET = 0, KANJI_SUPPORT = 0,
+    KANJI_ADDRESS_BITS = 17) (
     input reset, cpu_clk, video_clk,
     input cpu_select, cpu_write,
     input [1:0] cpu_plane,
@@ -26,10 +27,10 @@ module x1_pcg_access #(parameter SEPARATE_VIDEO_RESET = 0, KANJI_SUPPORT = 0) (
     output reg cpu_read_hold,
     input video_reset,
     input selected_kanji,
-    input [16:0] selected_kanji_addr,
+    input [KANJI_ADDRESS_BITS-1:0] selected_kanji_addr,
     input kanji_available, kanji_cpu_valid,
     input [7:0] kanji_cpu_q,
-    output reg [16:0] kanji_cpu_addr,
+    output reg [KANJI_ADDRESS_BITS-1:0] kanji_cpu_addr,
     output kanji_cpu_read
 );
     // With separate reset, the caller must asynchronously assert video_reset

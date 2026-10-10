@@ -19,10 +19,14 @@ records current commits and unfinished jobs. The cassette runner now passes
 25 generated diagnostics. Full-size Z Kanji selector/store components pass;
 their early shared-machine probe/render80 independent audit confirms 32 CPU
 reads and 768,000 exact pixels with frame-period checks. The exhaustive machine
-matrix remains live, not accepted. Ordinary fast and delay-aware regressions
+matrix now finishes zero; independent audit confirms 262,688 CPU reads,
+3,072,000 exact pixels and frame periods across fifteen cases. Ordinary fast and delay-aware regressions
 finish zero; a final-current delay-aware repeat is now running because the older
 delay-aware source preceded the final Z-only repairs. Native Rally-X now shows
-score/map/car graphics but its long run and controls/gameplay remain unqualified.
+score/map/car graphics; its 130-second run finishes zero with no underflow,
+but controls/gameplay remain unqualified. Same-executable exploratory input
+and no-input cold probes are running. Full-font external DDR/storage work is
+separate and does not yet qualify an FPGA implementation.
 No work group or Turbo Z milestone is newly declared complete.
 
 The standalone fixed FDC byte-slot scheduler now passes twelve enable/density

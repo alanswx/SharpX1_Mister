@@ -174,9 +174,13 @@ Four disposable evidence mutations reject at the exact pixel, retained-phase,
 held-waveform and plain-C-false-stop assertions. This strengthens artifact/
 oracle integrity; it is not a second simulator execution or native acceptance.
 
-The live older frozen 130-second native probe has progressed beyond the
+The older frozen 130-second native probe finishes with exit zero and has progressed beyond the
 `IPL is loading RALLY-X` display to score/map/car graphics. The observed PNG is
-private ignored evidence, not a terminal loading or controls/gameplay pass.
+private ignored evidence, not a controls/gameplay pass. It accepts 524,717
+samples with zero underflow and enters STOP at 71.436165578125 seconds, before
+EOF. The terminal image still lacks a full playfield; do not treat its score/map
+as playable-game acceptance. Independent native ledger auditing is pending.
+Same-executable 83-second exploratory keyboard and no-input cold probes are live.
 Its binary and assets are unchanged by this runner extension. Native cold repeats,
 loading/game input, recording/APSS and hardware remain separate gates. No
 existing RBF enables cassette.

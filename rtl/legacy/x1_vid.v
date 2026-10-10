@@ -27,7 +27,7 @@
     VIDEO / GRAPHIC RAM read is not supported
 
 ****************************************************************************/
-module x1_vid #(parameter ENABLE_CRTC = 0, TURBO_SUPPORT = 0, TURBO_CLOCKS = 0, SEPARATE_VIDEO_RESET = 0, KANJI_RENDER = 0, SEPARATE_CRTC_BUS = 0)(
+module x1_vid #(parameter ENABLE_CRTC = 0, TURBO_SUPPORT = 0, TURBO_CLOCKS = 0, SEPARATE_VIDEO_RESET = 0, KANJI_RENDER = 0, SEPARATE_CRTC_BUS = 0, Z_KANJI_RENDER = 0)(
   I_VIDEO_RESET,
   I_CRTC_BUS_CLK, I_CRTC_BUS_RS, I_CRTC_BUS_DATA, I_CRTC_BUS_WRITE,
   I_TURBO_BLACK,
@@ -84,6 +84,7 @@ module x1_vid #(parameter ENABLE_CRTC = 0, TURBO_SUPPORT = 0, TURBO_CLOCKS = 0, 
   O_CGA,
   O_ANK16_ADDR,
   O_KANJI_ADDR, O_KANJI_SELECT, O_KANJI_LEVEL1,
+  O_Z_KANJI_ADDR, O_Z_KANJI_SELECT, I_Z_KANJI_VALID, O_Z_KANJI_MISS, O_Z_KANJI_UNSUPPORTED,
   I_CG_D  , I_PCGB_D , I_PCGR_D , I_PCGG_D,
 // VIDEO OUTPUT
   O_R     , O_G     , O_B,
@@ -164,6 +165,9 @@ output [10:0] O_CGA;
 output [11:0] O_ANK16_ADDR;
 output [16:0] O_KANJI_ADDR;
 output O_KANJI_SELECT, O_KANJI_LEVEL1;
+output [17:0] O_Z_KANJI_ADDR;
+output O_Z_KANJI_SELECT, O_Z_KANJI_MISS, O_Z_KANJI_UNSUPPORTED;
+input I_Z_KANJI_VALID;
 input [7:0] I_CG_D  , I_PCGB_D , I_PCGR_D , I_PCGG_D;
 
 // VIDEO OUTPUT
@@ -309,6 +313,11 @@ reg att_rev;
 reg att_g;
 reg att_r;
 reg att_b;
+// Z request/response attributes share one captured bundle. Ordinary load
+// wiring is unchanged; no new state exists in disabled generate branches.
+wire [7:0] z_attr_latched;
+wire [7:0] load_attribute = Z_KANJI_RENDER ? z_attr_latched : att_d;
+wire z_glyph_blank;
 
 reg hsync_d , vsync_d , disp_d;
 
@@ -397,25 +406,25 @@ begin
         end
 `endif
         // CG load
-        if(~att_h2x || ~crtc_ma[0])
+        if(Z_KANJI_RENDER || ~att_h2x || ~crtc_ma[0])
         begin
           cgb_d  <= I_PCGB_D; // blue
           cgr_d  <= I_PCGR_D; // reg
-          cgg_d  <= att_d[5] ? I_PCGG_D : I_CG_D; // green or ROM
+          cgg_d  <= load_attribute[5] ? I_PCGG_D : I_CG_D; // green or ROM
         end
         // ATT load
-        att_h2x   <=  att_d[7];
+        att_h2x   <=  Z_KANJI_RENDER && O_Z_KANJI_UNSUPPORTED ? 1'b0 : load_attribute[7];
 `ifdef FAST_SQUE
 //        att_v2x   <=  att_d[6];
 `else
 //        att_v2x   <= (att_d[6] | ~crtc_disptmg) & vdisp;
 `endif
-        att_pcg   <=  att_d[5];
-        att_blink <=  att_d[4];
-        att_rev   <=  att_d[3];
-        att_g     <=  att_d[2];
-        att_r     <=  att_d[1];
-        att_b     <=  att_d[0];
+        att_pcg   <=  load_attribute[5];
+        att_blink <=  load_attribute[4];
+        att_rev   <=  load_attribute[3];
+        att_g     <=  load_attribute[2];
+        att_r     <=  load_attribute[1];
+        att_b     <=  load_attribute[0];
 
         // GRAM load
 `ifdef FAST_SQUE
@@ -494,6 +503,68 @@ end else begin : no_kanji_display
   assign O_KANJI_LEVEL1=0;
 end endgenerate
 
+// Original opt-in Z physical-byte renderer. Functional normal-size,
+// high-resolution 25-line/16-raster policy from Techknow printed 139–141.
+// Exact KACE timing and other row/double-size policies remain unqualified.
+generate if(TURBO_SUPPORT && Z_KANJI_RENDER) begin : z_kanji_display
+  reg [7:0] character_latched, kan_latched, attr_latched;
+  reg [3:0] row_latched;
+  reg eligible_latched, miss=0;
+  reg glyph_blank=1;
+  // Mirror accepted video-domain CRTC writes. The CRTC register file itself
+  // retains warm reset, so these fields/validity do too. Only the documented
+  // 25-line, 16-raster configuration is admitted by this initial Z profile.
+  reg [4:0] crtc_index, maximum_raster;
+  reg [6:0] displayed_rows;
+  reg raster_valid=0, rows_valid=0;
+  always @(posedge I_VCLK) begin
+    if(I_CRTC_BUS_WRITE) begin
+      if(!I_CRTC_BUS_RS) crtc_index<=I_CRTC_BUS_DATA[4:0];
+      else begin
+        if(crtc_index==5'd9) begin maximum_raster<=I_CRTC_BUS_DATA[4:0];raster_valid<=1;end
+        if(crtc_index==5'd6) begin displayed_rows<=I_CRTC_BUS_DATA[6:0];rows_valid<=1;end
+      end
+    end
+  end
+  always @(posedge I_VCLK or posedge video_reset_active) begin
+    if(video_reset_active) begin
+      character_latched<=0;kan_latched<=0;attr_latched<=0;row_latched<=0;
+      eligible_latched<=0;miss<=0;glyph_blank<=1;
+    end else begin
+      if(video_step & ~QP & QA & ~QD & QC & ~QB) begin
+        character_latched<=I_TXT_D;
+        kan_latched<=I_KAN_D;
+        attr_latched<=I_ATT_D;
+        row_latched<=crtc_ra[3:0];
+        eligible_latched<=I_TURBO_HIGH_SCAN && !text_y2 && !underline_mode &&
+                          !I_ATT_D[7] && !I_ATT_D[6] && raster_valid && rows_valid &&
+                          maximum_raster==5'd15 && displayed_rows==7'd25;
+      end
+      if(video_step & ~QP & QA & ~QD & ~QC & ~QB) begin
+        // Align invalidity to glyph LOAD, not the earlier request. Apply its
+        // mask after reverse/blink so invalid bytes cannot become white ink.
+        glyph_blank<=O_Z_KANJI_SELECT && (!eligible_latched || !I_Z_KANJI_VALID);
+        if(O_Z_KANJI_SELECT && eligible_latched && !I_Z_KANJI_VALID) miss<=1;
+      end
+    end
+  end
+  assign z_attr_latched=attr_latched;
+  assign z_glyph_blank=glyph_blank;
+  assign O_Z_KANJI_ADDR={kan_latched[4],kan_latched[3:0],character_latched,row_latched,kan_latched[6]};
+  // Keep Kanji source identity even in an unsupported layout: blank rather
+  // than silently interpreting the selected character as ANK.
+  assign O_Z_KANJI_SELECT=!video_reset_active && !attr_latched[5] && kan_latched[7];
+  assign O_Z_KANJI_UNSUPPORTED=O_Z_KANJI_SELECT && !eligible_latched;
+  assign O_Z_KANJI_MISS=miss;
+end else begin : no_z_kanji_display
+  assign z_attr_latched=0;
+  assign z_glyph_blank=0;
+  assign O_Z_KANJI_ADDR=0;
+  assign O_Z_KANJI_SELECT=0;
+  assign O_Z_KANJI_MISS=0;
+  assign O_Z_KANJI_UNSUPPORTED=0;
+end endgenerate
+
 /****************************************************************************
   CG attribute effect
 ****************************************************************************/
@@ -504,7 +575,7 @@ wire cg_r = (att_pcg ? cgr_d[7] : cgg_d[7]) & att_r;
 wire cg_g = cgg_d[7] & att_g;
 
 // Reserved interline pixels cannot acquire reverse/blink glyph ink.
-wire [2:0] cg_col = underline_mode && !glyph_visible_d ? 3'b000 :
+wire [2:0] cg_col = z_glyph_blank || (underline_mode && !glyph_visible_d) ? 3'b000 :
     {cg_g,cg_r,cg_b} ^ {col_rev,col_rev,col_rev};
 wire cg_trans = cg_col==3'b000;
 

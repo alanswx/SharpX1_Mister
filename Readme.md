@@ -27,6 +27,13 @@ October 10: see the [development handoff](docs/DEVELOPMENT_HANDOFF.md) for
 current pushed checkpoints, uncommitted integration, live jobs and remaining
 acceptance gates. Full Turbo Z and work groups 1–6 are not complete.
 
+The separate full-size Turbo Z Kanji simulation profile now passes an
+exhaustive real-CPU address scan and independently audited normal-size pixels,
+loader/reset cases and rejecting controls. It uses generated fonts, not native
+ROM conversion; full external FPGA storage and broader text modes remain open.
+See [Kanji qualification](docs/TURBO_Z_KANJI_STORAGE_STATUS.md) and the
+[external font plan](docs/TURBO_Z_EXTERNAL_FONT_PLAN.md).
+
 The [cassette prerequisite](docs/CASSETTE_STATUS.md) now has a bounded TAP
 parser with 356 synthetic checks. Format-1 fixed-rate sampling is corroborated
 by a second emulator. A default-off read-only shared-machine transport now
