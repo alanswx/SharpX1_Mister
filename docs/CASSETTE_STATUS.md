@@ -166,6 +166,14 @@ C++ warnings. New runner / collector / executable SHA-256:
 - `5163beef13d96eef07954a39fe1ba2fdbf431fb456588bb86a71d65572f58643`
 - `494812a481f6e4951f4115943a522ae92e24b8aceddb44f0c628a7aba6a6ac84`
 
+An independent read-only audit in `/tmp/x1-cassette-independent-Q4tA6i/`
+rechecks eleven positive reports, all 320,000 pixels, three warm runs, two
+PS/2 scripts and fourteen admission-negative logs. It verifies 137 frozen
+source hashes, 306 evidence hashes and all 363 original files unchanged.
+Four disposable evidence mutations reject at the exact pixel, retained-phase,
+held-waveform and plain-C-false-stop assertions. This strengthens artifact/
+oracle integrity; it is not a second simulator execution or native acceptance.
+
 The live older frozen 130-second native probe now visibly says `IPL is loading
 RALLY-X`; header recognition is not completed loading or gameplay. Its binary
 and assets are unchanged by this runner extension. Native cold repeats,
