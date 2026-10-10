@@ -1194,6 +1194,19 @@ Native before/after source/artifact auditing, unchanged synchronous/active
 paths, placement/MTBF and fresh fitting remain required before selection.
 This is preparation, not raw-input timing or physical acceptance.
 
+The reporting-only `scripts/quartus_hdmi_csync_input_probe.tcl` now prepares
+640 completed-fit reports: the seventeen explicit pairs, both return-policy
+consumer groups and global diagnostics, at eight corners/setup/hold before
+and after the explicitly supplied proposal. Original SDC is read once and
+all 320 before reports precede proposal application. It refuses an existing
+output directory and does not rewrite QSF, RTL, original reports or RBF.
+`test-hdmi-handoff-input-sdc` also passes mocked orchestration with exactly
+640 unique report destinations and no early/partial proposal application
+(`/tmp/x1-csync-input-probe-scope.log`). This is not a native timing result;
+run the independent native csync inventory alongside it, audit unchanged
+stage/consumer rows and original source/artifact hashes, and qualify actual
+first-stage exclusions before selecting the candidate.
+
 1. Establish an actually supported mode-sensitive STA method or a narrow
    output-routing proposal; validate all active data/sync paths in both clock
    selections and preserve unrelated master-clock crossings. Do not substitute
