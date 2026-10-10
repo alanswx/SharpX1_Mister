@@ -26,6 +26,8 @@ the remaining physical and unimplemented-feature gates.
 October 10: see the [development handoff](docs/DEVELOPMENT_HANDOFF.md) for
 current pushed checkpoints, uncommitted integration, live jobs and remaining
 acceptance gates. Full Turbo Z and work groups 1–6 are not complete.
+Work is paused at the user's request; the handoff records stopped jobs,
+unqualified drafts and exact resume steps.
 
 The separate full-size Turbo Z Kanji simulation profile now passes an
 exhaustive real-CPU address scan and independently audited normal-size pixels,

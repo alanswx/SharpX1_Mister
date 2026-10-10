@@ -1,8 +1,59 @@
 # Sharp X1 development handoff
 
-Updated October 10, 2026, 19:14 UTC. The active goal remains **unfinished**:
+Updated October 10, 2026, 19:23 UTC. **Paused at the user's request: write
+handoff and stop.** The goal remains **unfinished**:
 complete work groups 1–6 and documented Turbo Z. Component diagnostics,
 historical game screenshots and a fitted RBF do not close that goal.
+
+## Stop/resume boundary
+
+Latest verified pushed checkpoint is `3a6f5b4` on `alanswx/master`: passive
+cassette PCG/GRAM observations, generated CPU-written GRAM checks and status
+updates. Main interrupted only its own two local jobs on request; both return
+130. No remote Quartus job or MiSTer was stopped, loaded, reset or sent input.
+Preserve interrupted evidence; do not label it a functional failure or a pass.
+
+- Native plane probe: session `26507`, PID 3960, folder
+  `/tmp/x1-native-rallyx-cassette-iFzAfm/run83-plane-control/`. Interrupted before
+  terminal report/dumps; partial waveform log remains. It does **not** provide
+  the PCG/GRAM comparison yet.
+- Hardened suite: session `6320`, driver PID 7884, folder
+  `x1-z-kanji-machine-suite-khu9v_gz`, log
+  `/tmp/x1-z-kanji-hardened-suite-main.log`. Early collector/audit and seventeen
+  auditor controls pass; interrupted during full collector build. Its owned
+  child group 8219 was drained/terminated by the wrapper; source/artifact
+  preservation reports true. Whole hardened-suite acceptance remains open.
+- Earlier complete suite `t859nax6` remains terminal pass and untouched. Three
+  supplemental Main negative-provenance audits pass; the reusable regression
+  also passes all fifteen exact controls in `x1-z-kanji-negative-audit-regression-bp4dzjk1`,
+  log `/tmp/x1-z-kanji-negative-audit-regression-main.log`.
+
+Uncommitted drafts must be reviewed/staged selectively on resume:
+
+- `rtl/x1_z_kanji_frontend.sv`, `verilator/tests/x1_z_kanji_frontend_tb.sv`
+  and `test_z_kanji_frontend.py`: standalone external-font CPU/ordered-upload
+  frontend, outside machine manifest. Frozen 32-MHz review smoke passes one
+  full 262,144-byte upload/readback plus eleven focused cases, zero warnings,
+  in `x1-z-kanji-frontend-review-h5qgfl2m`. **Latest fixture additions are
+  unexecuted**, and checker still expects the older marker. Update the checker,
+  freeze final inputs and run the full 32/100-MHz/reset/ownership/malformed/retry
+  matrix with matched mutants. Do not claim current draft qualification from
+  the older smoke. Backend remains unchanged `638861b6…`.
+- `audit_z_kanji_machine_negative.py`,
+  `test_z_kanji_machine_negative_audit.py`, `run_z_kanji_machine_suite.py`:
+  qualified negative-provenance audit/regression plus hardened orchestration.
+  Hardened wrapper hash `8f55095e…`; complete real rerun was interrupted.
+  Reusable mock-driver port remains unfinished.
+- `mame_rallyx_reference.lua` and `docs/RTC_CASSETTE_PLAN.md`: completed
+  read-only MAME observations and a **proposal**, not a combined device build.
+- Separate pending HDMI files: workflow/Makefile hunks, context auditor,
+  inactive-data SDC, Tcl mock and `test_held_sdc_context_9cc.py`. Main's latest
+  synthetic 9cc test passes 26 provenance, 22 byte/missing-file and 37
+  scope/preservation negatives; no native timing acceptance follows.
+
+On resume, first inspect `git status` and verify no previously owned process
+remains. Explicitly stopped jobs may be rerun in **new** disposable directories;
+never overwrite frozen evidence or restart a merely slow live process.
 
 ## Pushed checkpoints
 
@@ -70,7 +121,7 @@ Existing jobs must be polled, **not restarted because observation times out**:
 |---|---|---|
 | Native Rally-X, older frozen cassette runner | session `53472`; `/tmp/x1-native-rallyx-cassette-iFzAfm/run130-autoload/` | Terminal exit zero, 130 physical seconds, 524,717 samples, zero underflow; partial score/map/car display, no gameplay acceptance |
 | Native Rally-X exploratory keyboard / no-input control | sessions `21805` / `56833`; `run83-input` / `run83-control` under same native folder | Both terminal exit zero; input reaches PUSH START BUTTON/CREDIT 02, no-input remains partial; not gameplay or release-correct controls |
-| Native Rally-X passive plane observation | session `26507`; `run83-plane-control` under same native folder | New 83-second no-input probe using qualified dump extension; terminal result pending |
+| Native Rally-X passive plane observation | session `26507`; `run83-plane-control` under same native folder | User-stopped, exit 130; no terminal dumps/report, not a result |
 | Ordinary delay-aware regression | session `53793`; `/tmp/x1-z-kanji-ordinary-regression.log` | Terminal exit zero; 164 PASS lines; pre-final Z-only repair source scope below |
 | Ordinary fast/snapshot regression | session `26203`; `/tmp/x1-z-kanji-ordinary-fast.log` | Terminal exit zero; 144 PASS lines |
 | Final-current ordinary delay-aware repeat | session `67295`; `/tmp/x1-z-kanji-final-current-regression.log` | Terminal exit zero, 164 PASS reports after final Z-only repairs |
@@ -95,8 +146,17 @@ The local MAME Rally-X no-input reference completes zero with protected media
 and unchanged inputs. Actual 83/130-second PNGs have a changing left playfield,
 unlike RTL's partial frame. It observes repeated PLAY and STOP/REWIND; different
 PB0/rewind policies are not a proven cause. Evidence is
-`output_files/mame-rallyx-reference-siRvI2/`. MAME read-only memory follow-up is
-in progress. Never compare RTL's bus `cpu_address` to MAME's instruction PC.
+`output_files/mame-rallyx-reference-siRvI2/`. Read-only memory follow-up
+`output_files/mame-rallyx-memory-mStnwi/` also completes zero. A third reference,
+`output_files/mame-rallyx-gram-4US3JD/`, adds direct-pointer mapped-bank-0 GRAM
+captures at 83/130 seconds, with no I/O side effects or bank changes.
+All previous evidence is preserved. Never compare RTL's bus `cpu_address` to
+MAME's instruction PC. Main confirms matching code at 1540h..1576h but differing
+random-generator seed words: RTL 0000h versus MAME FC1Ah/70F7h in the memory
+follow-up. Native initialization reads minute/second from EF; the cassette-only
+inherited clock does not advance. This is a concrete lead, **not** a proven
+gameplay fix. The combined RTC/cassette and explicit clock-initialization
+proposal is in `RTC_CASSETTE_PLAN.md`; implementation remains unapproved/unmade.
 
 Uncommitted passive cassette-runner PCG/GRAM dump extension now passes all
 25 diagnostics in `x1-cassette-runner-2rjkcn2t` (session `94866`). Four video
@@ -127,9 +187,9 @@ No load/reset/input was sent during this follow-up. Coordinate operator
 availability before changing it. Leave `mister192` untouched; `mister14` last
 had another core and has not been used in this follow-up.
 
-At the 18:29 UTC read-only check the build host still has foreign `quartus_fit`
-PID 2352689, `SunSparcStation -c SunSparcStation20`, plus a `MacPPC7300`
-compile/map (PIDs 2435380/2435412). Do not interrupt them or launch competing
+At the 19:15 UTC read-only check the build host still has foreign `MacPPC7300`
+`quartus_sh` PID 2459977 and STA PID 2477096, plus `SunSparcStation20` STA
+PID 2476895. Do not interrupt them or launch competing
 Quartus work. The isolated 9cc timing-study launcher remains deferred, not
 completed. Primary remote checkout and fitted originals must remain preserved.
 

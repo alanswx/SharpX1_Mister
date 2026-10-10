@@ -213,12 +213,56 @@ plane. Main's separate read-only check verifies all 72 sentinels, rejects
 files and bound sources. Only PCG dump sizes are checked, not PCG contents.
 The executable SHA-256 is
 `299858dc515aed48f9bb6ec1b09cf6747dea59f27f03fd494af4f54728d1442a`;
-sixty inherited HDL warnings remain, with no C++ warnings. A new native
-83-second no-input plane-dump probe is running; it is not yet a result.
+sixty inherited HDL warnings remain, with no C++ warnings. The new native
+83-second no-input plane-dump probe was interrupted at the user's stop request
+(session 26507, exit 130), before terminal dumps/report. Partial evidence is
+preserved; it is not a result.
 
 The older binary and assets are unchanged by this runner extension. Native cold repeats,
 loading/game input, recording/APSS and hardware remain separate gates. No
 existing RBF enables cassette.
+
+## Native Rally-X time dependency: investigation, not a gameplay fix
+
+Read-only inspection of the immutable 83-second no-input RAM identifies the
+actual seed initialization at 157Bh: `LD A,EFh; CALL 320Bh; CALL 321Ch` sends
+the time-read command and discards the first returned hour byte. Two subsequent
+calls to 321Ch store minute/second bytes at 1577h/1578h. The routine at
+1547h..1576h updates that word using shifts and carry; a zero starting word is
+therefore a concrete lead for its non-progressing generator, not permission
+to overwrite game RAM. The input and no-input observations both have zero
+there. The full disassembly can lose synchronization at embedded data; the
+initialization and mailbox routines were also checked directly as raw bytes.
+
+The inherited MR16 command table maps EF to `host_w3,time`, but its 500-ms
+ISR's elapsed-clock branch is commented out in
+`bios/reference/fw_subcpu/x1sub.asm`. The cassette-only extension leaves that
+clock behavior unchanged. Local MAME returns hour/minute/second from a running
+RTC initialized from host wall time. Its exact returned values must be recorded
+before comparing native seeds; differing wall time prevents assuming identical
+game state. This identifies the source of static time, not proof that it is the
+only cause of the missing playfield.
+
+The completed read-only MAME memory follow-up is
+`output_files/mame-rallyx-memory-mStnwi/`: terminal exit zero, protected media
+and frozen inputs unchanged. Main independently checks the 64-KiB program
+captures against underlying saved RAM and confirms exact code agreement at
+1540h..1576h. The 83/130-second reference words are FC1Ah/70F7h, unlike RTL's
+0000h. The observed EF transactions at 71.43582175/73.97396975 seconds return
+`12 03 47` / `12 03 49`; reference time is BCD and wall-clock-dependent.
+This strengthens the running-clock lead, not a causal gameplay qualification.
+Saved PCG/text/attribute dumps are present; that observer did not capture GRAM.
+
+Next implementation contract: qualify real RTC/cassette coexistence through
+executed controller firmware, preserving ordinary profiles. Both existing
+experiments use OP5 incompatibly and deliberately reject their combination.
+A new explicit profile needs non-overlapping GPIO ownership, retained/readable
+clock initialization, exact firmware redirection/allocation bounds, independent
+CPU time/deck/keyboard tests and pending-reset controls. Reading PORT5 to obtain
+its output latch is unsafe because it clears the host-data flag. An invalid
+power-on RTC does not advance until valid time is programmed; host/battery
+initialization must be an explicit contract, not an invented nonzero game seed.
+Only then rerun protected native cold/repeat/game-input checks.
 
 ## Bounded TAP prerequisite
 
