@@ -83,6 +83,11 @@ policy actually consumed by native HS. Six normal and six delayed-policy
 native profiles pass, and the matching no-echo control fails as intended.
 Ordinary static policy tests still pass; new source-bound fitting and physical
 acceptance remain required. No old RBF qualifies this newer framework.
+Its subsequent fit completes but the native inventory rejects a second-stage
+replica: HS and the echo use different physical samples. A narrow replication-
+prevention directive now protects their shared sample; fresh normal/skew
+native checks pass. New fitting must prove the topology; timing and hardware
+remain unqualified, with no broader exceptions or ordinary-default changes.
 Its isolated real-PLL controller maps/fits; a fitted-feedback audit led to an
 explicit falling-edge closure witness. Current native cases pass, while raw
 crossings, full-board timing and physical switching remain open. All 96 bounded

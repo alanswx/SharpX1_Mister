@@ -1180,7 +1180,11 @@ wire [2:0] hdmi_held_mode;
 // Independent first-stage settling cannot make a torn token/policy pair ready:
 // CTRL requires BOTH the epoch and applied policy to match its held request.
 reg dv_epoch_meta=0,dv_epoch_sample=0;
-reg dv_csync_meta=0,dv_csync_sample=0;
+reg dv_csync_meta=0;
+// Native HS and its CE echo must consume ONE physical settled policy bit.
+// Prevent the fitter splitting this second stage into independently sampled
+// copies; keep the exact first-stage fanout and replica guards unchanged.
+(* dont_replicate *) reg dv_csync_sample=0;
 reg dv_policy_first=0,dv_policy_second=0,dv_policy_completed=0;
 reg dv_csync_first=0,dv_csync_second=0,dv_csync_completed=0;
 always @(posedge clk_vid) begin

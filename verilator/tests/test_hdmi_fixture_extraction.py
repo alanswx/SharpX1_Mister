@@ -25,6 +25,7 @@ with tempfile.TemporaryDirectory(prefix="x1-hdmi-extract-") as temporary:
             assert "dv_csync_first <= dv_csync_sample;" in text
             assert ("(dv_csync_echo_sample == hdmi_held_mode[2])" in text) == ("--without-csync-echo" not in flags)
             assert "assign hdmi_policy_csync = dv_csync_sample;" in text
+            assert "(* dont_replicate *) reg dv_csync_sample=0;" in text
             assert "if(ce_pix) dv_hs1 <= hdmi_policy_csync ? vga_cs_osd : vga_hs_osd;" in text
             assert "fixture_native_hs  <= dv_hs2;" in text
             assert "assign HDMI_TX_DE = !hdmi_transition_blank & hdmi_out_de;" in text

@@ -838,6 +838,52 @@ checks, not native stage timing or a new RBF acceptance claim. They now run
 under CI's `test-hdmi-handoff-board-inventory` target. The current source-bound
 fit remains live; native execution must wait until its database is terminal.
 
+### Terminal fit and replicated second-stage finding
+
+The `00cabd4` flow finishes zero at **2026-10-10 00:15:02 UTC** (7m56s,
+162 warnings). Flow-summary minima are setup **-18.551 ns**, hold **+0.234
+ns**, recovery **+3.898 ns**, removal **+0.764 ns**, pulse **+0.529 ns**.
+This is not independent all-corner acceptance; global timing/MTBF/I/O remain
+open. Unqualified RBF SHA256:
+`f181ad9267bd0a92fd78f3ca6ed4302a2654c586212fab0f0f5d0b1308f13f6f`.
+Manifest/summary copies: ignored `output_files/hdmi-csync-board-00cabd4/`.
+
+The installed native reporter first rejects the preserved older `8685be0`
+fit with missing `dv_epoch_meta` (exit 3), before creating a report directory;
+log `/tmp/x1-csync-native-old-framework-negative-v1.log`. On the new completed
+fit it rejects `dv_csync_sample~DUPLICATE` (exit 3, no reports), log
+`/tmp/x1-csync-board-inventory-00cabd4-v1.log`. Independent before/after hash
+checks preserve the original source/STA/summary/RBF in both attempts. This
+is a **failed native scope gate**, not 320 passing timing reports.
+
+The no-SDC `scripts/quartus_hdmi_csync_replica_inventory.tcl` then completes
+with zero errors/warnings on that preserved fit; log
+`/tmp/x1-csync-replica-inventory-00cabd4-v1.log`. It confirms:
+
+- `dv_csync_meta` fans out to both physical second-stage copies.
+- Canonical `dv_csync_sample` drives `dv_csync_first` (the consumed-policy echo).
+- `dv_csync_sample~DUPLICATE` drives actual `dv_hs1`.
+
+Connectivity alone is not sequential equivalence or physical CDC acceptance.
+Splitting the policy defeats the intended single physical sample shared by
+the HS consumer and echo. The new framework therefore applies documented
+`dont_replicate` only to `dv_csync_sample`; all scalar/replica/first-fanout/
+data-driver guards stay strict. No new SDC is added. Existing board defaults
+remain unchanged. Its new framework hash is
+`583dd6f99967b8fc10df7f83ae92e6206f7c0874c51985669609831fcb800630`.
+
+Fresh frozen-source native runs repeat all six normal and six skew profiles
+with the same results: 5,030 words/204 holds/10,273 native-HS checks and
+5,032 words/192 holds/13,143 HS checks, respectively. Independent audits pass
+against the new framework/emitter/fixture/bench/controller hashes. Logs:
+`/tmp/x1-csync-single-sample-normal-v1.log`,
+`/tmp/x1-csync-single-sample-skew-v1.log`. The matching no-echo negative
+still exits 1 at the intended early-unblank assertion with completion zero;
+`/tmp/x1-csync-single-sample-noecho-negative-v1.log`. Static extraction/auditor
+checks also pass. A **new fit and native scope/timing inventory** must prove
+that the protected second-stage really remains single and shared. Neither
+native simulation nor an attribute declaration establishes that topology.
+
 ## Next gates
 
 1. Establish an actually supported mode-sensitive STA method or a narrow

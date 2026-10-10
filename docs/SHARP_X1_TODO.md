@@ -48,6 +48,12 @@ native HS/CE captures, ready consumers and separate raw/global timing. Its
 320-report enumeration and invalid scope/provenance controls pass synthetically
 in CI's inventory target. Native results remain pending the active fit; these
 test passes do not complete timing or any hardware work group.
+The `00cabd4` flow completes zero, still fails setup -18.551 ns, and the
+native scope probe rejects a duplicated csync second stage. Connectivity
+shows HS and the echo consume different copies. Only that shared sample now
+gets replication prevention; repeated normal/skew native checks pass, but
+fresh fitting and the strict native inventory must prove the physical repair.
+No guard is weakened or failed timing report counted as passing.
 
 The experimental [coherent CRTC transport](CRTC_WRITE_CDC_STATUS.md) now
 passes four helper clock ratios, three real-CPU clock ratios, five owned-DMA
