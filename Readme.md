@@ -18,6 +18,12 @@ the remaining physical and unimplemented-feature gates.
 
 ## Current status
 
+The separate [RTC/X3/DMA/Kanji/FM profile](docs/RTC_DMA_KANJI_FM_STATUS.md)
+now passes elapsed/reset, six keyboard and four active RTC/FDC/DMA checks.
+Actual CPU-programmed mixed PSG/FM sound also cold-repeats exactly with
+four DMA pairs. These are separate bounded gates, not full device contention,
+native games, Turbo Z or new board/hardware acceptance.
+
 The separate [DMA/Kanji bus diagnostic](docs/DMA_KANJI_MACHINE_STATUS.md)
 now passes eight real-CPU ownership/payload/reset cases and its rejecting
 default-profile control. It fixes a blocked upload-start invalidating a live
@@ -103,6 +109,9 @@ inventory now identifies that exact fourth profile, and mocked scope/negative
 checks pass. Native same-fit active-path preservation now passes independent
 384-report auditing, but global setup remains -9.962 ns; a fresh full flow
 and timing/hardware acceptance are still required.
+The fifth `3c6242e` fit now also passes independently audited same-fit
+preservation across 384 reports. Global setup still fails at -9.659 ns;
+fresh full-flow, CDC/MTBF/I/O and hardware acceptance remain open.
 No newly accepted hardware build is implied.
 
 For a blank screen on first launch, see [IPL loading](docs/IPL_LOADING.md):

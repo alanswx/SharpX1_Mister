@@ -60,6 +60,12 @@ It does not enable ordinary runners/boards or define a combined snapshot model.
 must report `dma_kanji_experiment`. Use the explicit `--dma --kanji --x3`
 RTC collectors and frozen `test_rtc_dma_fdc.py`; distinguish enabled-but-idle
 DMA pixel/keyboard cases from active FDC/clock transfers and native games.
+`rtc-x3-dma-kanji-fm` separately adds the existing CPU JT51/signed mix.
+Its explicit RTC collectors require `--fm`; ordinary collector defaults
+require FM off. Use `docs/RTC_DMA_KANJI_FM_STATUS.md` for exact bounded gates.
+FM-idle disk/calendar and RTC-unqueried sound fixtures are not ongoing
+all-device contention. Ordinary signed-WAV acceptance must still reject
+this profile; use explicit `--rtc-dma-kanji-fm --ram` for its exact checks.
 `--active-dma` pixels repeat actual CPU-verified CG DMA throughout displayed
 frames, including late bus source/destination checks. A terminal WAIT read is
 not a completed response: its exclusion requires exact final timestamp/current
@@ -83,6 +89,11 @@ git diff --check
 
 The headless target uses Verilator 5.x and a C++20-capable compiler. It does not
 need SDL. The historical GUI path is incomplete; do not advertise it as working.
+Keep internal make `-B` on shared C++ runner recipes: inherited Verilator
+VPATH can reuse a parent's profile-specific object/executable in nested Mdirs.
+Use `test-runner-build-isolation`; see `docs/RUNNER_BUILD_ISOLATION_STATUS.md`.
+Outer make remains incremental. Preserve rejected/counterfactual artifacts;
+never feed assets merely to make a wrong-profile executable run.
 
 The timing regression checks independent clocks, deterministic reset/divider
 phase, delayed events, repeatability, and FST output. The video clock defaults

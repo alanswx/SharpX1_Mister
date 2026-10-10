@@ -184,4 +184,12 @@ The new `--fit-3c6242e` auditor separately binds all eleven original/staged
 hashes and the exact pin profile. Its synthetic 384-report/preservation and
 36 provenance/actual-source rejecting checks pass alongside historical gates.
 The native same-fit attempt at 09:33:45 UTC is not launched because another
-project's actual synthesis is active; no new native timing result is claimed.
+project's actual synthesis is active; no native result comes from that attempt.
+
+The subsequent idle-host same-fit run finishes at 10:06:42 UTC, zero errors/
+warnings. Independent exact-source/artifact auditing passes 384 reports,
+928 held-budget and 6,624 active/raw/mode rows unchanged; 848 inactive rows
+remain excluded, not passed. Global setup **still fails at -9.659 ns**
+(hold +0.010 ns). See the native fifth-profile evidence in
+`HDMI_MODE_STATUS.md`. This does not qualify this DMA board, a fresh full
+flow or any new RBF. Original artifacts are preserved; no MiSTer is loaded.

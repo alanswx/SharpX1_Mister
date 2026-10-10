@@ -35,6 +35,20 @@ protected inputs/executable, reports and all six ordinary machine artifacts
 with observations on/off, in both cold runs. The 32-second observed native
 cold/repeat is still running; no result is inferred from its launch.
 
+The first 32-second cold run subsequently finishes (repeat still running).
+Its executable and protected inputs rehash identically to the 16-second
+probe; 76,800 actual DMA pairs and 2,971 disk requests occur with zero writes.
+Actual CPU endpoint is now **0E9E, IFF1=IFF2=0, IM2/I=F0**. CTC channel 1
+control A1/constant 16, running/pending/in-service masks 2/2/2 match the
+historical handler-stage pattern. This shows why the earlier 0AA0 endpoint
+could not be called the same stage prematurely; it does not yet establish
+late-only opcode starvation or a correct interrupt-policy fix.
+The all-invocation `.cpu-fetches` population includes boot/foreground work.
+The 31–32-second trace has 160,677 I/O events, mostly graphics, but is I/O-only
+and cannot substitute for late-only M1 fetch observations. Its actual PNG
+is visually black and matches all 256,000 source RGB pixels exactly.
+No repeatability/gameplay verdict is issued until the repeat terminates.
+
 Outputs: `verilator/obj_dir_v17_rtc_x3_dma_kanji/special-probes/`
 `arcus-observer-smoke-1s/` and `arcus-dma-rtc-x3-kanji-observed-32s/`.
 Logs: `/tmp/x1-arcus-observer-smoke-1s.log` and

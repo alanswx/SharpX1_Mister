@@ -1,17 +1,39 @@
 """Check opt-in machine signed stereo WAV, left FM + centered PSG both sides."""
 import pathlib
+import argparse
 import json
 import statistics
 import struct
 import sys
 import wave
 
-source = pathlib.Path(sys.argv[1])
-report = json.loads(pathlib.Path(sys.argv[2]).read_text().splitlines()[-1])
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('wav', type=pathlib.Path)
+parser.add_argument('report', type=pathlib.Path)
+parser.add_argument('--rtc-dma-kanji-fm', action='store_true',
+                    help='require the separate non-savable X3 coexistence profile, not ordinary FM')
+parser.add_argument('--ram', type=pathlib.Path, help='actual CPU RAM dump; required for coexistence')
+args = parser.parse_args()
+if args.rtc_dma_kanji_fm and not args.ram:
+    parser.error('--rtc-dma-kanji-fm requires --ram')
+source = args.wav
+report = json.loads(args.report.read_text().splitlines()[-1])
 assert report["turbo_fm_cpu"] and report["turbo_foundation"]
-assert not report["turbo_dma"]  # This C++ audio profile does not qualify DMA.
-assert report["sys_hz"] == 32000000 and report["video_hz"] == 28571428
-assert report["time_ps"] == 800000000000 and report["download_bytes"] == 8192
+if args.rtc_dma_kanji_fm:
+    assert report['rtc_experiment'] and report['rtc_controller_bytes'] == 8192
+    assert report['turbo_dma'] and report['dma_kanji_experiment'] and report['turbo_kanji']
+    assert report['turbo_video_master'] and report['intra_assignment_delays']
+    assert not report['turbo_dma_irq']
+    assert report['video_hz'] == 42954540 and report['download_bytes'] == 16385
+    assert all(report[name] == 4 for name in ('dma_reads', 'dma_writes', 'dma_grants'))
+    memory = args.ram.read_bytes()
+    assert len(memory) == 65536 and memory[0x4000] == 0xaa
+    assert memory[0x4100:0x4104] == bytes((0, 1, 0, 0xff))
+    assert memory[0x8000:0x8004] == memory[0x9000:0x9004] == bytes((0x31, 0x32, 0x33, 0x34))
+else:
+    assert not report["turbo_dma"]  # Ordinary C++ audio profile does not qualify DMA.
+    assert report['video_hz'] == 28571428 and report['download_bytes'] == 8192
+assert report["sys_hz"] == 32000000 and report["time_ps"] == 800000000000
 assert report["halted"] and report["peek"].startswith("aa")
 assert report["disk_writes"] == report["disk_requests"] == 0
 with wave.open(str(source)) as capture:

@@ -70,7 +70,35 @@ These are auditor integrity gates, **not native reports**. The next native
 launch is refused by a single authoritative idle check at 09:33:45 UTC:
 MacPPC7300 Quartus shell PID 1945921 and synthesis PID 1945954 are active.
 No stage is created, probe launched or competing process disturbed in that
-attempt; native same-fit preservation remains required.
+attempt; native same-fit preservation remains required at that point.
+
+### Native fifth-profile same-fit preservation
+
+The subsequent idle-host run completes at **10:06:42 UTC October 10**,
+93 seconds, terminal zero with zero errors/warnings. Independent local
+`--fit-3c6242e` auditing passes all **384 reports**, **928 held-budget rows**
+and **6,624 active/raw/mode rows** unchanged. The **848 inactive rows are
+excluded, not passed**; no pre-existing raw report is excluded. The exact
+`fitted3c` profile supplies 77 scoped cuts in all sixteen corner contexts.
+All eleven ordered provenance entries agree before/after, all copied report
+hashes match, and original fit/STA/RBF artifacts remain unchanged.
+
+Remote evidence is `quartus-linux-VlAoOluh/held-context-3c6242e-v1/`;
+local ignored copy is
+`output_files/held-fifth-audit-tnUYpJ/held-context-3c6242e-v1/`.
+Native log SHA-256:
+`36a6d732ed370e0adaf9843b33cffb333b462b3d17e4e84e4bbf95ec10edb3df`.
+Report-list SHA-256:
+`bb2d6da0f1f4981cf36c18eb519f4ba6eef32ef3413a8b8823ce128cc1564131`.
+Both ordered provenance lists have SHA-256:
+`59440c98b82811fe17dc8b2ef73297f1cd610d7246186ca4a4a7d1977bb0886e`.
+
+**Global setup still fails at -9.659 ns; minimum hold is +0.010 ns.**
+The worst reported setup path is HDMI VS to HPS `video_calc.old_vs~reg1`;
+the next paths are HPS `cfg[1]` to video-domain palette response selections.
+These identify CDC/reset review targets, not permission for blanket cuts.
+This is same-fit preservation, not a fresh full flow, global timing closure,
+PCG-WE, CDC/MTBF/I/O or hardware acceptance. No RBF is promoted or deployed.
 
 ## Actual inherited policy
 

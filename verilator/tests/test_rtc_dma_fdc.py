@@ -23,6 +23,7 @@ def digest(p):return hashlib.sha256(p.read_bytes()).hexdigest()
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('runner',type=pathlib.Path)
+    parser.add_argument('--fm',action='store_true',help='require FM enabled; fixture does not program or qualify FM sound')
     args=parser.parse_args();runner=args.runner.resolve()
     folder=pathlib.Path(tempfile.mkdtemp(prefix='fdc-qualified-',dir=runner.parent))
     inputs=[pathlib.Path(__file__).resolve(),runner]
@@ -40,7 +41,7 @@ def main():
     controller=folder/'controller.bin';controller.write_bytes(build(receive_only=True)[0])
     font=folder/'original.physical';font.write_bytes(bytes(((a*37)^(a>>4)^(a>>12)^(a>>16))&255 for a in range(131072)))
     assets={str(p):digest(p) for p in (controller,font)}
-    manifest={'inputs':hashes,'assets':assets,'scope':'CPU RTC during real 1024-byte FDC DMA; enabled renderer, no displayed glyph/native/hardware claim'}
+    manifest={'inputs':hashes,'assets':assets,'fm_requested':args.fm,'scope':'CPU RTC during real 1024-byte FDC DMA; enabled renderer, no displayed glyph/programmed FM/audio/native/hardware claim'}
     (folder/'manifest-before.json').write_text(json.dumps(manifest,indent=2)+'\n')
     for explicit in (False,True):
         code,image,payload=diagnostic(explicit_wr3=explicit,with_rtc=True)
@@ -58,6 +59,7 @@ def main():
             assert result.returncode==0,(folder,result.stderr)
             report=json.loads(result.stdout.splitlines()[-1]);memory=prefix.with_suffix('.ram').read_bytes()
             assert report['dma_kanji_experiment'] and report['rtc_experiment'] and report['turbo_kanji'] and report['turbo_dma']
+            assert report['turbo_fm_cpu']==args.fm,'wrong FM coexistence profile'
             assert report['intra_assignment_delays'] and (report['sys_hz'],report['video_hz'])==(32000000,42954540)
             assert report['halted'] and memory[0xf000:0xf004]==b'DMA!',report
             assert memory[0x8000:0x8400]==payload

@@ -14,16 +14,35 @@ support before optional Turbo extensions.
 
 ## Active goal: items 1–6 and Turbo Z (October 6)
 
+The separately named non-savable RTC/X3/DMA/Kanji/FM runner now passes
+elapsed/warm calendar, six keyboard and four real RTC/FDC/DMA sector cases,
+with independent frozen-input/RAM auditing. Actual CPU-programmed mixed sound
+cold-repeats with identical PCM and four real DMA pairs; the current-source
+emitter reproduces its uploaded IPL exactly. FM remains unprogrammed in the
+clock/disk fixtures, and the sound fixture does not query RTC or draw glyphs.
+Ongoing all-device contention, owned-reset sound and native/board gates remain.
+See `RTC_DMA_KANJI_FM_STATUS.md`; this does not complete the full goal.
+
+Nested-Mdir parent-object reuse is now reproduced and repaired with internal
+make -B on all shared C++ runner recipes. Actual isolation/default-headless/
+ordinary-FM sound checks pass; the fixed nested combined executable hash is
+identical to its frozen qualification. See `RUNNER_BUILD_ISOLATION_STATUS.md`.
+Arcus's first observed 32-second cold run now reaches the historical CTC
+handler state on black; its repeat remains pending, not gameplay acceptance.
+
 The fresh 3c6242e fitted-profile discovery now completes with independent
 51-keeper/205-pin/109-driver and original-hash auditing. Only its exact fifth
 whole-bank pattern is added; five scoped positives and 16,379 mixed-profile
-rejections pass. Native same-fit active/raw path preservation remains next,
-not timing closure or an accepted RBF. See `HDMI_MODE_STATUS.md`.
+rejections pass. Native same-fit active/raw path preservation subsequently
+passes independent 384-report auditing; global setup still fails at -9.659 ns.
+This is not timing closure or an accepted RBF. See `HDMI_MODE_STATUS.md`.
 
 A separate exact 3c6242e/cef2210 auditor binding now passes 384-report
 synthetic integrity and rejecting provenance/source/preservation controls.
-The connected SDC tests complete zero. Native same-fit launch is refused
-while another project's synthesis is active; no native timing pass is inferred.
+The connected SDC tests complete zero. The initial busy-host launch is refused;
+the subsequent idle-host run completes with zero errors/warnings and preserves
+928 held-budget/6,624 active/raw/mode rows. Its 848 inactive rows are excluded,
+not passed. Full-flow timing, CDC/MTBF/I/O and hardware gates remain open.
 
 Current Arcus follow-up distinguishes the combined 16-second CPU state
 (0AA0 output loop, interrupts enabled) from the historical 0EA0 interrupt
