@@ -1237,6 +1237,7 @@ test-hdmi-handoff-board-inventory:
 test-hdmi-handoff-input-sdc:
 	tclsh tests/hdmi_csync_input_sdc_tb.tcl
 	tclsh tests/hdmi_csync_input_probe_tb.tcl
+	python3 tests/test_hdmi_csync_input_probe.py
 	tclsh tests/hdmi_inactive_data_sdc_tb.tcl
 	python3 tests/test_hdmi_inactive_data_probe.py
 	tclsh tests/hdmi_held_mode_sdc_tb.tcl

@@ -1207,6 +1207,19 @@ run the independent native csync inventory alongside it, audit unchanged
 stage/consumer rows and original source/artifact hashes, and qualify actual
 first-stage exclusions before selecting the candidate.
 
+`scripts/audit_hdmi_csync_input_probe.py` now independently audits the
+prepared protocol: every bounded pair and both complete consumer groups must
+retain identical positive timing; exactly the four raw source/first-stage
+pairs may become empty, explicitly excluded rather than passed. Every
+previously reported unrelated global path must remain unchanged. Exact
+phase/corner enumeration, report inventory, native scope markers, consumer
+counts below cap and seven source/proposal/reporter/original-artifact hashes
+before/after are checked. Global timing remains separately reported, not
+promoted to closure. The CI-integrated synthetic 640-report positive passes
+with eighteen invalid timing/scope and four invalid provenance controls
+(`/tmp/x1-csync-input-probe-audit.log`). Native execution remains pending;
+these controls are not native constraint or hardware acceptance.
+
 1. Establish an actually supported mode-sensitive STA method or a narrow
    output-routing proposal; validate all active data/sync paths in both clock
    selections and preserve unrelated master-clock crossings. Do not substitute
