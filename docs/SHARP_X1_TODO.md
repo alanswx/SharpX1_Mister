@@ -14,6 +14,17 @@ support before optional Turbo extensions.
 
 ## Active goal: items 1–6 and Turbo Z (October 6)
 
+The full default D88-container regression completes zero. Correct-clock
+Arcus/Bastard cold/repeat probes also complete with identical protected media
+and pixels to the earlier clock: neither is playable yet. Exploratory later
+key trials are running. A new isolated RTC+X3+Kanji build passes ten synthetic
+CPU/pixel cases with independently audited 1,536,000 pixels; combined calendar
+elapsed/reset and six-key/absent-key gates also complete with independent
+138/136-input auditing. Fresh protected native probes with the private
+model40 physical-font candidate are running, not gameplay acceptance.
+These are separate gates, not native Turbo Z
+or a complete Kanji/serial/disk/hardware milestone.
+
 Current continuation: the separate RTC+nominal-X3 runner passes actual CPU
 elapsed-time, retained-IPL reset and six-key/absent-key qualification, with
 independent frozen-input auditing. Fresh protected Arcus/Bastard cold/repeat
@@ -1283,7 +1294,7 @@ Preserve each frozen runner; do not rebuild historical v05.
   27 protected CLI cases, direct scanner and old-RTL rejecting control pass;
   real CPU read/write/readback preserves all trailing generated volumes.
   Selected volumes remain below 1 MiB and containers below 16 MiB; no wider
-  2HD, native disk-set or hardware acceptance. Full baseline repeat is running.
+  2HD, native disk-set or hardware acceptance. Full baseline repeat completes zero.
 - [x] Add strict D88-only bounds/rejection to shared RTL; bypass host preflight
   in direct scanner tests covering header/table/count/payload errors, index
   overflow, selected-volume bounds, eject/replacement and scanner/controller

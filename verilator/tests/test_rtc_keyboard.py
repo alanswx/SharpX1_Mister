@@ -61,7 +61,9 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('runner',type=pathlib.Path)
     parser.add_argument('--x3',action='store_true',help='require the separate nominal X3 video clock profile')
+    parser.add_argument('--kanji',action='store_true',help='require the separate X3/Kanji combination')
     args=parser.parse_args()
+    if args.kanji and not args.x3:parser.error('--kanji qualification requires --x3')
     runner=args.runner.resolve()
     folder=pathlib.Path(tempfile.mkdtemp(prefix='keyboard-qualified-',dir=runner.parent))
     inputs=[pathlib.Path(__file__).resolve(),ROOT/'verilator/tests/z80_fixture.py',
@@ -81,7 +83,7 @@ def main():
         rom=folder/f'{name}.bin';rom.write_bytes(fixture(expected));assets.append(rom)
         keys=folder/f'{name}.keys';keys.write_text(script);assets.append(keys)
     asset_hashes={str(path):digest(path) for path in assets}
-    manifest={'inputs':hashes,'assets':asset_hashes,'x3_requested':args.x3,'scope':'real PS/2/MR16 IRQ plus Z80 E4/E6/EC..EF; no Z80 IRQ/native/FDC/hardware acceptance'}
+    manifest={'inputs':hashes,'assets':asset_hashes,'x3_requested':args.x3,'kanji_requested':args.kanji,'scope':'real PS/2/MR16 IRQ plus Z80 E4/E6/EC..EF; no Kanji pixels/Z80 IRQ/native/FDC/hardware acceptance'}
     (folder/'manifest-before.json').write_text(json.dumps(manifest,indent=2)+'\n')
     for name,_,expected in CASES:
         print(f'START: RTC/keyboard {name}',flush=True)
@@ -91,6 +93,7 @@ def main():
         assert result.returncode==0,(folder,result.stdout,result.stderr)
         report=json.loads(result.stdout.splitlines()[-1]);memory=(folder/f'{name}.ram').read_bytes()
         assert report['turbo_video_master']==args.x3,'wrong video clock profile'
+        assert report['turbo_kanji']==args.kanji,'wrong Kanji profile'
         assert report['rtc_experiment'] and report['intra_assignment_delays'] and report['sys_hz']==32000000 and report['video_hz']==(42954540 if args.x3 else 28571428)
         assert report['ps2_bytes_sent']==len((folder/f'{name}.keys').read_text().splitlines())
         validate(report,memory,expected)

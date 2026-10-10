@@ -108,8 +108,12 @@ volumes and headers. Original media hashes remain unchanged. SYS 32 MHz / VID
 28.571428 MHz, delay-aware, 8,000,000 reference cycles per case. Log:
 `/tmp/x1-d88-large-container-machine.log`; frozen runner SHA-256
 `0772cf0ef66675efc8abfc6c1b602617d934067bd195845e66ce3f5c4ecf206c`.
-The ordinary full suite is still running in
-`/tmp/x1-d88-container-baseline-suite.log`. Native game, new-RBF and physical
+The ordinary full suite now completes zero in
+`/tmp/x1-d88-container-baseline-suite.log`, including both CPU-programmed video
+matrices, protected preflight, keyboard/reset, CPU/memory/CTC, generated A/B,
+native FDC reads/writes/CRC/metadata and final disk-control/index checks. This
+is the shared default RTL at the container repair, not a Turbo/Z hardware gate.
+Native game, new-RBF and physical
 large-container acceptance remain open; earlier frozen RTC/X3 game probes
 predate this RTL repair and are not current-source qualification.
 

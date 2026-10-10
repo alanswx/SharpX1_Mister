@@ -43,6 +43,9 @@ The separate `rtc-x3` runner passes bounded elapsed/reset and keyboard checks;
 it does not change any default or qualify native Turbo Z. Ordinary-clock
 short reset during RTC/keyboard polling also passes three keys and a rejecting
 no-reset control, without asset reupload.
+The separate `rtc-x3-kanji` combination now passes ten synthetic CPU/pixel
+cases plus elapsed-time, retained-IPL reset and six-key/absent-key gates;
+native game/font and hardware acceptance remain open.
 
 Protected sixteen-second Arcus/Bastard cold/repeat probes finish deterministically
 on the qualified 28.571428-MHz RTC checkpoint: Bastard reaches its title;

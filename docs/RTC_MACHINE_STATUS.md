@@ -86,6 +86,38 @@ FDC/DMA, native MCU or OSD-command dispatch acceptance.
 
 ## Architecture and upload contract
 
+### Separate X3/Kanji combination: bounded simulation gates pass
+
+`rtc-x3-kanji` builds a separate non-savable runner in
+`obj_dir_v17_rtc_x3_kanji`, with the existing first-level Kanji renderer,
+SYS 32 MHz / VID 42.954540 MHz and RTC. Ordinary profiles and board revisions
+remain unchanged. `test-rtc-x3-kanji-runner` and
+`test-rtc-x3-kanji-keyboard` require both clock and Kanji identities; no font
+pixels are implied by their mailbox checks. The build, actual CPU elapsed and
+retained-IPL warm-reset cases, six keyboard cases and absent-key rejecting
+control now complete zero in `/tmp/x1-rtc-x3-kanji-first.log`.
+Independent auditing checks identical before/after manifests, all 138/136
+original and frozen inputs, executable/controller/fixture assets, actual
+RTC2/RTC3 stores and keyboard translations. Frozen evidence is
+`obj_dir_v17_rtc_x3_kanji/qualified-3npf1bl3/` and
+`obj_dir_v17_rtc_x3_kanji/keyboard-qualified-v2kvwwi2/`.
+The executable SHA-256 is
+`eeb70f1a1ccac785c29edc2a0f8fc506a66c6ba35310615c57a9b6175eaa265e`.
+Native game/font, broader device coexistence and hardware gates remain open.
+
+From `verilator/`, `python3 tests/test_rtc_kanji_pixels.py
+obj_dir_v17_rtc_x3_kanji/Vtop` independently freezes the executable, shared
+source graph, original Kanji emitter/oracle and RTC controller, then runs the
+unchanged ten-case CPU/pixel matrix with an explicit controller upload. Its
+loaded/missing, low/high-scan, width, bank/half/reversal/absent-level2 and warm
+cases now complete zero in `/tmp/x1-rtc-x3-kanji-pixels-first.log`, frozen
+`obj_dir_v17_rtc_x3_kanji/kanji-pixels-dqw01_sx/`. Independent auditing verifies
+137 original/frozen inputs, the runner/controller/oracle/emitter, exact generated
+font and all ten original IPLs, then checks all **1,536,000** actual RGB pixels.
+No private native font is used in this matrix. It qualifies these original
+CPU/loader/video cases while the controller runs, not simultaneous calendar
+commands, native game/ASIC, full device coexistence or hardware.
+
 `rtl/sub_cpu.v` uses the source-derived firmware from
 `scripts/build_mr16_rtc_firmware.py`, without embedding private derivative bytes.
 Its public firmware-access pins program/read a packed 8-KiB image while the

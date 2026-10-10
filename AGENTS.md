@@ -43,6 +43,11 @@ identity/frequency. `tests/test_rtc_keyboard_reset.py RUNNER [--x3]` qualifies
 only three post-reset keys with traced CPU command boots and no asset reupload;
 the no-reset control must fail the same reboot oracle. Neither qualifies caps
 retention, Main/OSD dispatch or simultaneous disk/IRQ behavior.
+`rtc-x3-kanji` is a separate non-savable renderer/controller combination.
+`tests/test_rtc_kanji_pixels.py RUNNER` freezes its original CPU/pixel oracle,
+emitter, shared source graph and controller before the ten-case matrix. Do
+not infer native font/game, level-2 Kanji, simultaneous calendar commands or
+board acceptance from those synthetic pixels.
 
 From the repository root:
 

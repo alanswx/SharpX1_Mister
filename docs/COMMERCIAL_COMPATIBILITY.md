@@ -519,14 +519,44 @@ and no sub-CPU command writes in this window. Counts describe this bounded
 execution, not native command latency, the stall's cause or missing interrupts.
 A separate RTC+nominal-X3 runner now passes elapsed/warm/keyboard diagnostics
 with independent auditing. Fresh protected sixteen-second cold/repeat game
-probes are running under `obj_dir_v17_rtc_x3/special-probes/`, directories
+probes now complete zero under `obj_dir_v17_rtc_x3/special-probes/`, directories
 `arcus-rtc-x3-5a8be9e-16s/` and `bastard-rtc-x3-5a8be9e-16s/`, logs
 `/tmp/x1-arcus-rtc-x3-5a8be9e-16s.log` and
 `/tmp/x1-bastard-rtc-x3-5a8be9e-16s.log`. They copy the qualified frozen
 runner, use explicit controller/Turbo IPL/ANK and preserve original disk images;
-no snapshot or game patch is used. Arcus A1/B2 remains exploratory. These
-probes are pending, not new boot/gameplay evidence; no previous
-28.571428-MHz probe is relabeled as an X3 result.
+no snapshot or game patch is used. Arcus A1/B2 remains exploratory.
+Independent auditing verifies protected input/executable hashes, both exact
+reports and every cold/repeat RAM/text/attribute/sub-RAM/CPU/PPM/CSV artifact.
+Both runs remain `gameplay_verified: false`. Their actual cold PPM pixels are
+identical to the earlier 28.571428-MHz probes, while Arcus's VS period changes
+to 18.022406250 ms and Bastard's to 16.145062500 ms. This correct-clock test
+does not resolve the observed dialog/title state or establish native timing.
+Both `cold.png` conversions also pass strict zero-mismatch RGB comparison and
+were visually inspected. No earlier probe is relabeled as an X3 result.
+
+Observer-only disassembly of actual private RAM finds Arcus's E6 polling and
+its Enter-to-Space translation; its sampled PC lies in joystick fallback,
+not a proven disk-controller hang. Bastard's sampled PC is a counted delay
+loop, not by itself evidence of a deadlock. No game code or RAM was patched.
+New exploratory `tests/special_titles_late_start.keys` retains boot input and
+adds Enter/Space after 8/10/12 seconds. Two cold/repeat probes using this script
+are running in `arcus-rtc-x3-late-start-16s/` and
+`bastard-rtc-x3-late-start-16s/`, logs `/tmp/x1-arcus-rtc-x3-late-start-16s.log`
+and `/tmp/x1-bastard-rtc-x3-late-start-16s.log`. They use the same qualified
+frozen pre-container-repair runner to isolate input, not current-RTL or verified
+release instructions. Native Kanji is disabled in that runner; its dialog
+cannot qualify Kanji text. Combined RTC/X3/Kanji elapsed/reset/keyboard and
+ten synthetic pixel diagnostics now pass with independent auditing; see
+`RTC_MACHINE_STATUS.md`. Fresh sixteen-second cold/repeat trials are running
+under `obj_dir_v17_rtc_x3_kanji/special-probes/`, directories
+`arcus-model40-kanji-late-start-16s/` and
+`bastard-model40-kanji-late-start-16s/`. They use the qualified frozen combined
+runner (including the D88 container repair), explicit controller/IPL/ANK and
+the private model40 physical Kanji candidate after checking its provenance
+SHA-256. The candidate's native chip identity/order remains inferred, not
+hardware-qualified. Logs are `/tmp/x1-arcus-rtc-x3-kanji-late-start-16s.log`
+and `/tmp/x1-bastard-rtc-x3-kanji-late-start-16s.log`. These pending trials do
+not prove native glyphs, playability, release disk order or Turbo Z support.
 
 ## Arcus and Bastard Special: private native probes
 

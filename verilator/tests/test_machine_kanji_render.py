@@ -63,7 +63,12 @@ def main():
                         help="preserve synthetic ROM/font, actual PPMs and reports in a new directory")
     parser.add_argument("--physical-rom", type=pathlib.Path,
                         help="optional authorized 131072-byte physical candidate, not an emulator export")
+    parser.add_argument("--rtc-controller", type=pathlib.Path,
+                        help="explicit packed 8192-byte controller for the separate RTC combination")
     args = parser.parse_args()
+    controller = args.rtc_controller.resolve() if args.rtc_controller else None
+    controller_hash = hashlib.sha256(controller.read_bytes()).hexdigest() if controller else None
+    if controller:assert controller.stat().st_size == 8192
     executable = str(args.executable.resolve())
     with tempfile.TemporaryDirectory(prefix="x1-kanji-pixels-") as directory:
         root = args.output if args.output else pathlib.Path(directory)
@@ -88,6 +93,8 @@ def main():
             rom, frame = root / f"{name}.rom", root / f"{name}.ppm"
             rom.write_bytes(fixture(high, columns))
             command = [executable, "--rom", str(rom), "--cycles", "9600000", "--frame", str(frame)]
+            if controller:
+                command += ["--rtc-controller", str(controller)]
             if loaded:
                 command += ["--kanji-physical", str(font)]
             if warm:
@@ -100,6 +107,8 @@ def main():
             report = json.loads(result.stdout.splitlines()[-1])
             assert report["halted"] and report["peek"].startswith(b"KPIX".hex()), report
             assert report["turbo_kanji"] and report["frames"] >= 3, report
+            if controller:
+                assert report["rtc_experiment"] and report["rtc_controller_bytes"] == 8192
             assert (report["sys_hz"], report["video_hz"]) == (32000000, 42954540), report
             expected_hs = 112 * (16 if high else 24) * 1e12 / 42954540
             expected_vs = expected_hs * 28 * (16 if high else 8)
@@ -124,6 +133,7 @@ def main():
                         errors.append((x, y, address, expected.hex(), pixels[offset:offset + 3].hex()))
             assert not errors, (high, errors, report)
             print(f"PASS actual CPU Kanji RGB: {name} {width}x{height}, bank/half/glyph/row/reverse/absent-level2", flush=True)
+        if controller:assert hashlib.sha256(controller.read_bytes()).hexdigest() == controller_hash
 
 
 if __name__ == "__main__":
