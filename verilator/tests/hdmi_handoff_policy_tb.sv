@@ -23,8 +23,10 @@ module hdmi_handoff_policy_tb;
     wire [23:0] data_out;
     logic [26:0] history[0:2];
     time mode_changed_at=0,minimum_mode_hold=0;
+    time last_output_edge=0,minimum_mode_quiet=0;
     bit mode_pending_edge=0;
     int held_mode_checks=0;
+    int mode_blank_checks=0;
     hdmi_policy_fixture dut(.*,.HDMI_TX_HS(hs),.HDMI_TX_VS(vs),.HDMI_TX_DE(de),.HDMI_TX_D(data_out));
     always #15625 clk_control=~clk_control;
     initial begin #1; forever #(video_half) clk_vid=~clk_vid; end
@@ -48,7 +50,17 @@ module hdmi_handoff_policy_tb;
     // gate reopening. Verify the held bundle BEFORE its first output sample,
     // not just after the ten-edge blank flush. This is a functional contract,
     // not a routed delay or an SDC waiver for unrelated data sources.
+    always @(fixture_clk) if($time) last_output_edge=$time;
     always @(fixture_mode) if($time) begin
+        time quiet;
+        quiet=$time-last_output_edge;
+        assert(fixture_blank===1 && fixture_busy===1 && fixture_clk===0)
+            else $fatal(1,"held mode changed without blanked closed output clock");
+        // Gate closure passes through two CTRL samples, CLOSE and SWITCH.
+        // Three complete CTRL periods must separate its last edge and mode.
+        assert(quiet>=93750) else $fatal(1,"held mode changed before closure acknowledgement settled");
+        if(!mode_blank_checks || quiet<minimum_mode_quiet) minimum_mode_quiet=quiet;
+        mode_blank_checks++;
         mode_changed_at=$time;
         mode_pending_edge=1;
     end
@@ -116,10 +128,12 @@ module hdmi_handoff_policy_tb;
         end
         assert(checked>=480) else $fatal(1,"missing actual-policy coverage");
         assert(held_mode_checks>=20) else $fatal(1,"missing held-mode first-edge coverage");
+        assert(mode_blank_checks==held_mode_checks) else $fatal(1,"missing blank/closed-clock mode coverage");
         assert(native_hs_checks>=100) else $fatal(1,"missing native HS coverage");
         qualification_complete=1;
         $display("PASS: actual HDMI handoff policy video_half=%0d hdmi_half=%0d checks=%0d",video_half,hdmi_half,checked);
         $display("MODE_HOLD_CHECKS=%0d MINIMUM_MODE_HOLD_PS=%0d",held_mode_checks,minimum_mode_hold);
+        $display("MODE_BLANK_CHECKS=%0d MINIMUM_MODE_QUIET_PS=%0d",mode_blank_checks,minimum_mode_quiet);
         $display("NATIVE_HS_CHECKS=%0d",native_hs_checks);
         $finish;
     end

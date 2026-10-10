@@ -892,6 +892,33 @@ commit host checkout starts a fresh full flow in
 (PID 1340148). Final topology, native inventory/timing, MTBF/I/O and hardware
 remain open. All prior fits and failed scope evidence remain preserved.
 
+## Native blank/closed-clock mode-change checks
+
+The extracted native-policy bench now checks each held-mode change while
+`output_blank` and `busy` are asserted and the output clock is low. It also
+requires at least three complete 32 MHz control periods (93,750 ps) since
+the last output-clock transition, before the existing five-period first-edge
+settle check. These are functional controller checks, not routed timing or
+physical clock-gate readback.
+
+Fresh six-profile runs on framework `583dd6f99967b8fc10df7f83ae92e6206f7c0874c51985669609831fcb800630`
+and bench `f6a53879693b3c9bb60d00967f0f83d67c7cea9fc9de533651e8e573c4b37358`
+complete zero. Normal: 5,030 output words, 204 first-edge and closed-mode
+checks, 10,273 native HS checks. Synthetic 3 us policy delay: 5,032 words,
+192 first-edge and closed-mode checks, 13,143 HS checks. Both have minimum
+closed-mode quiet time 96,873 ps. Logs are
+`/tmp/x1-hdmi-mode-closure-normal-v1.log` and
+`/tmp/x1-hdmi-mode-closure-skew-v1.log`; frozen fixtures are copied into ignored
+`output_files/hdmi-mode-closure/{normal,skew}/` and independently audited
+locally against current sources. The result auditor requires all six closed-
+mode counts to match the first-edge counts, and rejects short quiet times.
+Its synthetic positive and fifteen invalid controls pass locally.
+
+The repeated raw-policy negative exits 1 with completion zero at the existing
+output-pipeline assertion (`/tmp/x1-hdmi-mode-closure-raw-negative-v1.log`).
+It does **not** reach or independently validate the newer closure assertion.
+Full upstream/DDR/PHY, fitted timing and physical mode switches remain open.
+
 ## Next gates
 
 1. Establish an actually supported mode-sensitive STA method or a narrow

@@ -16,6 +16,9 @@ def audit(log, source_root, fixture):
     assert text.count("POLICY_COMPLETION=1") == 6 and "POLICY_COMPLETION=0" not in text
     holds = re.findall(r"^# MODE_HOLD_CHECKS=(\d+) MINIMUM_MODE_HOLD_PS=(\d+)$", text, re.M)
     assert len(holds) == 6 and all(int(n) >= 20 and int(t) >= 156250 for n, t in holds), "missing/short first-edge settling"
+    blanks = re.findall(r"^# MODE_BLANK_CHECKS=(\d+) MINIMUM_MODE_QUIET_PS=(\d+)$", text, re.M)
+    assert len(blanks) == 6 and [n for n, _ in blanks] == [n for n, _ in holds], "missing mode blank/closed-clock coverage"
+    assert all(int(t) >= 93750 for _, t in blanks), "short gate-closure acknowledgement settling"
     native_hs = re.findall(r"^# NATIVE_HS_CHECKS=(\d+)$", text, re.M)
     assert len(native_hs) == 6 and all(int(n) >= 100 for n in native_hs), "missing native HS CE/consumed-policy coverage"
     assert len(re.findall(r"^# Errors: 0, Warnings: 7$", text, re.M)) == 6
@@ -36,6 +39,7 @@ def audit(log, source_root, fixture):
     assert re.findall(r"^([0-9a-f]{64})  (\S+)$", text, re.M) == expected * 2, "frozen source mismatch/final hash missing"
     print(f"PASS: six ordered native policy profiles, {sum(int(n) for _, _, n in found)} exact output checks, {sum(int(n) for n, _ in holds)} first-edge holds, minimum {min(int(t) for _, t in holds)} ps")
     print(f"PASS: {sum(int(n) for n in native_hs)} extracted native HS CE/pipeline/consumed-policy checks")
+    print(f"PASS: {sum(int(n) for n, _ in blanks)} blank/closed-clock mode checks, minimum quiet {min(int(t) for _, t in blanks)} ps")
     print(f"PROFILE: {profiles[0]}; skew is a synthetic transport-delay diagnostic, not routed timing")
     print("SCOPE: extracted policy only; native VID csync timing, full upstream/DDR/PHY and physical acceptance remain open")
 

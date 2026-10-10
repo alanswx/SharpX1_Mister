@@ -55,6 +55,13 @@ gets replication prevention; repeated normal/skew native checks pass, but
 fresh fitting and the strict native inventory must prove the physical repair.
 No guard is weakened or failed timing report counted as passing.
 
+Fresh extracted native-policy runs now check 396 held-mode changes while
+blanked with a closed output clock, including synthetic delayed-policy cases.
+Minimum quiet time is 96,873 ps, above the three-control-period requirement;
+independent source/hash audits pass. This strengthens controller evidence,
+not fitted timing or hardware acceptance. See the native blank/closed-clock
+section in `HDMI_MODE_STATUS.md`; the broad work groups remain incomplete.
+
 The experimental [coherent CRTC transport](CRTC_WRITE_CDC_STATUS.md) now
 passes four helper clock ratios, three real-CPU clock ratios, five owned-DMA
 reset scenarios and all sixteen delay-aware X3 pixel cases. CPU/DMA WAIT
