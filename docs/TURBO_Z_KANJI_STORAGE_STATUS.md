@@ -1,6 +1,7 @@
 # Turbo Z Kanji physical storage contract
 
-October 10, 2026. The standalone physical decoder is implemented/tested;
+October 10, 2026. The physical decoder and full-size selector/store components
+are implemented/tested;
 second-level machine storage, native font loading and glyph rendering remain
 unimplemented. This does not complete work group 3 or Z7.
 
@@ -96,3 +97,33 @@ Ordered public upload, both levels/halves/all rows and bank boundaries, missing
 response handling, pending-reset cancellation and ordinary v17 state identity
 must be tested before declaring machine support. No native font conversion is
 implied by a synthetic physical-byte diagnostic.
+
+## Full-size selector/store checkpoint, not machine acceptance
+
+Run `python3 -B verilator/tests/test_z_kanji_components.py`. The independent
+Main rerun completes zero in `x1-z-kanji-components-fxxyzae0`, log
+`/tmp/x1-z-kanji-components-main.log`; the initial agent run also completes
+zero in `x1-z-kanji-components-btwne303`. Both freeze source/fixtures before
+compilation and preserve the monitored ordinary modules.
+
+The highest-cell selector visits all 262,144 physical addresses exactly once
+and 524,288 attribute/Kanji/plane/font-mode combinations. Lower fallback cells
+cannot qualify or replace it; PCG priority and unaccepted-write exclusion are
+checked. The separate 262,144-byte simulation store scans every byte on both
+ports three times at each of two unrelated video half-periods (17,500/11,640 ps).
+Ordered publication, first-byte/start ties, gaps/repeats/overflows, trailing and
+orphan strobes, live uploads, lost reset permission, short resets and stopped
+CPU/video clocks are covered. Warm reset retains image/readiness but cancels
+response validity. Half-major, swapped level/bank and stale-reset-valid mutants
+reject at matched assertions. Raw build warnings are retained; only the
+reviewed synchronous/asynchronous reset-use diagnostics are permitted.
+
+Qualified selector/store SHA-256:
+
+- `690d71fcf8fdbaaaece7738d28d2ac7dd34a5b8f561a738152690fa3ce126bf8`
+- `d8e70cba447b0e3ed6096eeab8546cc032d260720e7cd2962db3fa3c70087335`
+
+The shared-machine CPU/WAIT and load-aligned display integration is the next
+qualification, not inferred from these component passes. Actual pixel, CPU
+instruction, pending-reset, ordinary-state and external FPGA-memory gates
+remain mandatory. No existing board or ordinary runner enables these modules.
