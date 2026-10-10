@@ -87,7 +87,7 @@ Arcus displays a garbled high-scan dialog. Neither is gameplay acceptance or
 an X3-clock test. See [software evidence](docs/COMMERCIAL_COMPATIBILITY.md).
 
 The experimental handoff revision's early/fitted HDMI pin guard now accepts
-four exact observed whole-bank profiles, not arbitrary per-bit alternatives.
+five exact observed whole-bank profiles, not arbitrary per-bit alternatives.
 Native mapped guard loading and historical-fit active-path preservation pass;
 fresh fitting and timing/hardware acceptance remain open. See
 [scope and evidence](docs/HDMI_MODE_STATUS.md#exact-whole-bank-earlypacked-contract-qualification).

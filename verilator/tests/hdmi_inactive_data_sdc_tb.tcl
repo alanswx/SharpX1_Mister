@@ -99,12 +99,14 @@ set original_pins $pins
 set original_packed $packed_prefetch
 set new_packed {hdmi_dv_hs hdmi_dv_de hdmi_dv_data[0] hdmi_dv_data[6] hdmi_dv_data[17]}
 set fitted048_packed {hdmi_dv_hs hdmi_dv_de hdmi_dv_data[3] hdmi_dv_data[12] hdmi_dv_data[13] hdmi_dv_data[16] hdmi_dv_data[17]}
-foreach profile {packed direct fitted4cd fitted048} {
+set fitted3c_packed {hdmi_dv_hs hdmi_dv_vs hdmi_dv_data[6] hdmi_dv_data[13] hdmi_dv_data[16]}
+foreach profile {packed direct fitted4cd fitted048 fitted3c} {
 set pins $original_pins
 set packed_prefetch $original_packed
 if {$profile eq "direct"} {set packed_prefetch {}}
 if {$profile eq "fitted4cd"} {set packed_prefetch $new_packed}
 if {$profile eq "fitted048"} {set packed_prefetch $fitted048_packed}
+if {$profile eq "fitted3c"} {set packed_prefetch $fitted3c_packed}
 foreach name $prefetch {
     set old [expr {$name in $original_packed ? "asdata" : "d"}]
     set new [expr {$name in $packed_prefetch ? "asdata" : "d"}]
@@ -135,12 +137,12 @@ foreach group {output prefetch} targets [list $outputs $prefetch] {
 if {$cuts ne $expected || [llength $cuts] != 77} {error "inactive-data candidate cut unintended clocks/pins"}
 puts "PASS: 77 exact inactive DATA-pin cuts; twenty invalid clock/keeper/driver/pin scopes reject before constraints"
 }
-# Exhaust all combinations over the union of the thirteen changing keepers.
+# Exhaust all combinations over the union of the fourteen changing keepers.
 set fault {}
-set changed_keepers [lsort -unique [concat $original_packed $new_packed $fitted048_packed]]
-if {[llength $changed_keepers] != 13} {error "mixed-profile coverage union changed"}
+set changed_keepers [lsort -unique [concat $original_packed $new_packed $fitted048_packed $fitted3c_packed]]
+if {[llength $changed_keepers] != 14} {error "mixed-profile coverage union changed"}
 set rejected 0
-for {set mask 0} {$mask < (1 << 13)} {incr mask} {
+for {set mask 0} {$mask < (1 << 14)} {incr mask} {
     set pins $original_pins
     set bit 0
     set selected {}
@@ -152,11 +154,11 @@ for {set mask 0} {$mask < (1 << 13)} {incr mask} {
         set pins [lreplace $pins $index $index ${name}|$new]
         incr bit
     }
-    if {$selected eq {} || $selected eq [lsort $original_packed] || $selected eq [lsort $new_packed] || $selected eq [lsort $fitted048_packed]} {continue}
+    if {$selected eq {} || $selected eq [lsort $original_packed] || $selected eq [lsort $new_packed] || $selected eq [lsort $fitted048_packed] || $selected eq [lsort $fitted3c_packed]} {continue}
     set cuts {}
     if {![catch {source $candidate} problem]} {error "mixed unreviewed packing accepted: $mask"}
     if {[llength $cuts]} {error "partial constraints applied for mixed packing: $mask"}
     incr rejected
 }
-if {$rejected != 8188} {error "incomplete mixed-profile rejection matrix"}
-puts "PASS: four exact native pin profiles; 8188 unreviewed mixed profiles reject before any cut"
+if {$rejected != 16379} {error "incomplete mixed-profile rejection matrix"}
+puts "PASS: five exact native pin profiles; 16379 unreviewed mixed profiles reject before any cut"

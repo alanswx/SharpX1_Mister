@@ -6,7 +6,7 @@ The guarded source-bound `3c6242e771446dc11843cc8f4b7d4c58430b8f17` flow
 starts at 08:02:29 UTC and terminates exit 3 at 08:15:43 UTC, after fitting.
 Final STA refuses an unreviewed whole-prefetch D/ASDATA profile. The four
 previously qualified patterns are not broadened or silently reapplied.
-Native discovery and original-artifact preservation auditing are pending;
+Native discovery and original-artifact preservation auditing subsequently pass;
 the partial STA transcript cannot establish final constrained timing.
 Remote frozen root is `output_files/quartus-linux-VlAoOluh/source` on
 `misterubuntu`; log `/tmp/x1-quartus-3c6242e-handoff-local.XhSvnjgI`.
@@ -24,6 +24,33 @@ The partial STA summary reports setup/hold -10.317/-2.636 ns, but final
 constraint loading failed: these numbers are not a completed constrained
 timing audit. The reporting-only fitted inventory was deferred after actual
 MacPPC7300/DSPPC604 fitters were observed; no job was killed or guard broadened.
+
+### Fifth fitted profile: discovery and guarded scope complete
+
+Reporting-only fitted discovery runs at 09:26:49–09:26:54 UTC October 10,
+terminal zero with zero errors/warnings and **no SDC or cuts**. Independent
+local auditing proves 51 unique keepers, 205 unique pins, 77 D/ASDATA pins
+and 109 registered-driver rows. All fifteen source/constraint hash entries
+match `git show 3c6242e`; all twenty original source/artifact entries and four
+provenance entries agree before/after. Logical connectivity matches the
+previous `048d996` inventory after separately normalizing source replicas.
+Output pin scope and the d[4]/d[8]/d[20] prefetch aliases remain unchanged.
+
+Exactly `hdmi_dv_hs`, `hdmi_dv_vs` and data bits **6,13,16** use ASDATA;
+the other nineteen prefetch keepers use D. The candidate accepts this fifth
+complete observed profile as `fitted3c`, never arbitrary per-bit alternatives.
+The connected local SDC test target completes zero: five positives each
+require exactly 77 scoped cuts; 100 invalid scope controls and **16,379**
+unreviewed combinations over fourteen changing keepers refuse all cuts.
+Log `/tmp/x1-hdmi-five-profile-connected.log`.
+
+Native raw evidence: remote `quartus-linux-VlAoOluh/`
+`fitted-discovery-3c6242e-vLTLXw3i/`, copied locally under ignored
+`output_files/hdmi-fifth-discovery-2G2jM4/`. Native log SHA-256:
+`621ba7fbca3e2e4454be3063b76af80bb793e9219f7b49bf1132f7bb12bfb01d`.
+This is inventory and guarded-scope evidence only. Native same-fit
+active/raw/mode path preservation, full-flow timing, PCG-WE, CDC/MTBF/I/O
+and physical acceptance remain open. No failed-flow RBF is promoted.
 
 ## Actual inherited policy
 

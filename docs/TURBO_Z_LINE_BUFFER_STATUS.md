@@ -124,6 +124,44 @@ fixture SHA-256:
 
 ## Remaining full capture gates
 
+### Board control endpoints traced (October 10 follow-up)
+
+Re-rendered the same primary CZ-880 PDF page/printed sheet 46 at pin
+resolution, with separate crops retaining the shared-net junctions:
+`/tmp/x1-z-line-controls-crop.png` and `/tmp/x1-z-line-clock-top.png`.
+The NEC printed 3-1 pin drawing was visually cross-checked, avoiding confusion
+between pin 6 (read reset), pin 8 (read clock) and pin 17 (write clock).
+
+| IC56 and IC57 input | Device pin | Traced shared connection |
+| --- | --- | --- |
+| RCK | 8 | `OA` net, also IC58 pin 61; distinct from ADCCLK |
+| WCK | 17 | IC58 `LMWCK`, pin 68 |
+| RSTR (active low) | 6 | IC58 RSTR, pin 66 |
+| RSTW (active low) | 19 | IC58 RSTW, pin 67 |
+| RE (active low) | 5 | IC58 RE, pin 64 |
+| WE (active low) | 20 | IC58 WE, pin 69 |
+
+Both buffers share these six controls. This is a connectivity trace, **not**
+a claim that every listed IC58 pin is an output: OA's ultimate driver,
+frequency and phase still require adjoining-sheet tracing. ADCCLK is a
+separate net at IC58 pin 91. No divider or direct X3 assignment is justified
+by these endpoints. The drawing labels the buffers uPD41101C / IX0860CE;
+it does not establish a numeric speed suffix.
+
+IC57 DIN0..3 (pins 24/23/22/21) carry BD12/22/32/42, and DIN4..7
+(16/15/14/13) carry RD12/22/32/42; DOUT0..3 produce BDO0..3 and
+DOUT4..7 produce RDO0..3. IC56's corresponding low inputs/outputs carry
+GD12/22/32/42 and GDO0..3. Its upper data inputs/outputs are not shown here;
+do not infer a native tie value or valid capture data from them. The twelve
+buffer-input nets are IC58 pins 76/74/72/70, 59/58/57/56 and 77/75/73/71.
+The upstream ADC-to-ASIC transformation is still unresolved: matching suffix
+names do not prove inversion, quantization or sample phase.
+
+This closes the six **endpoint** mappings, not their waveform generation or
+machine integration. Keep independent storage clocks in the device model;
+a future single-master implementation needs measured/traced event enables,
+not interchangeable ADCCLK/RCK/WCK assumptions.
+
 Trace actual WCK/RCK/reset/enable nets and speed grade, reconcile custom ASIC
 packing/control phases, implement deterministic ADC-to-buffer-to-GRAM
 ownership and effect processing, and qualify CPU-controlled formats/position/

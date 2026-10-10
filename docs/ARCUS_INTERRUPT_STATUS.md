@@ -29,9 +29,11 @@ contract tests pass, including missing-output and changed-CTC rejection;
 they are not machine tests. The one-second real combined observer smoke
 completes zero with identical reports and all eighteen artifacts per run.
 Independent input/executable/artifact rehashing also passes. This is an
-observation/repeat gate, not game boot. Its no-observation counterpart and
-the 32-second observed native cold/repeat are still running under separate
-protected output directories; no result is inferred from their launch.
+observation/repeat gate, not game boot. Its no-observation counterpart also
+completes zero. Independent rehashing and cross-comparison prove identical
+protected inputs/executable, reports and all six ordinary machine artifacts
+with observations on/off, in both cold runs. The 32-second observed native
+cold/repeat is still running; no result is inferred from its launch.
 
 Outputs: `verilator/obj_dir_v17_rtc_x3_dma_kanji/special-probes/`
 `arcus-observer-smoke-1s/` and `arcus-dma-rtc-x3-kanji-observed-32s/`.

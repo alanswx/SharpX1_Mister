@@ -42,7 +42,7 @@ if {[lsort $x1_inactive_actual_prefetch] ne [lsort $x1_inactive_prefetch]} {
     error "physical DV bank changed; repeat discovery before updating scope"
 }
 set x1_inactive_pin_inventory [get_pins -compatibility_mode {hdmi_dv*|* d*|* hs*|* vs*|* de*|*}]
-# Four complete observed profiles, never independent per-bit alternatives.
+# Five complete observed profiles, never independent per-bit alternatives.
 # Fresh ce2eba8/db2dc8c synthesis has all prefetch DATA on D. The completed
 # ce2eba8 fit packs exactly seven onto ASDATA. All other topology guards stay
 # unchanged; reject partial packing, replicas, missing or duplicated pins.
@@ -62,10 +62,17 @@ set x1_inactive_fitted048_prefetch {
     hdmi_dv_hs hdmi_dv_de hdmi_dv_data[3] hdmi_dv_data[12]
     hdmi_dv_data[13] hdmi_dv_data[16] hdmi_dv_data[17]
 }
+# Reporting-only 3c6242e fit: five exact ASDATA keepers. Independent native
+# inventory preserves all 51 keepers/205 pins and logical driver connectivity.
+# This exact profile still requires same-fit active-path preservation.
+set x1_inactive_fitted3c_prefetch {
+    hdmi_dv_hs hdmi_dv_vs hdmi_dv_data[6] hdmi_dv_data[13] hdmi_dv_data[16]
+}
 set x1_inactive_direct_pins {}
 set x1_inactive_packed_pins {}
 set x1_inactive_fitted4cd_pins {}
 set x1_inactive_fitted048_pins {}
+set x1_inactive_fitted3c_pins {}
 set x1_inactive_actual_pins {}
 foreach name $x1_inactive_prefetch {
     lappend x1_inactive_direct_pins "${name}|d"
@@ -75,6 +82,8 @@ foreach name $x1_inactive_prefetch {
     lappend x1_inactive_fitted4cd_pins "${name}|$port"
     set port [expr {$name in $x1_inactive_fitted048_prefetch ? "asdata" : "d"}]
     lappend x1_inactive_fitted048_pins "${name}|$port"
+    set port [expr {$name in $x1_inactive_fitted3c_prefetch ? "asdata" : "d"}]
+    lappend x1_inactive_fitted3c_pins "${name}|$port"
     foreach_in_collection pin $x1_inactive_pin_inventory {
         set actual [get_pin_info -name $pin]
         if {$actual in [list "${name}|d" "${name}|asdata"]} {lappend x1_inactive_actual_pins $actual}
@@ -88,6 +97,8 @@ if {[lsort $x1_inactive_actual_pins] eq [lsort $x1_inactive_direct_pins]} {
     set x1_inactive_pin_profile fitted4cd
 } elseif {[lsort $x1_inactive_actual_pins] eq [lsort $x1_inactive_fitted048_pins]} {
     set x1_inactive_pin_profile fitted048
+} elseif {[lsort $x1_inactive_actual_pins] eq [lsort $x1_inactive_fitted3c_pins]} {
+    set x1_inactive_pin_profile fitted3c
 } else {error "unreviewed whole-prefetch D/ASDATA profile; repeat discovery"}
 set x1_inactive_cuts {}
 foreach group {output prefetch} targets [list $x1_inactive_outputs $x1_inactive_prefetch] {
@@ -135,6 +146,8 @@ foreach group {output prefetch} targets [list $x1_inactive_outputs $x1_inactive_
             $name in $x1_inactive_fitted4cd_prefetch} {set expected_pins [list "${name}|asdata"]}
         if {$group eq "prefetch" && $x1_inactive_pin_profile eq "fitted048" &&
             $name in $x1_inactive_fitted048_prefetch} {set expected_pins [list "${name}|asdata"]}
+        if {$group eq "prefetch" && $x1_inactive_pin_profile eq "fitted3c" &&
+            $name in $x1_inactive_fitted3c_prefetch} {set expected_pins [list "${name}|asdata"]}
         if {[lsort $names] ne [lsort $expected_pins]} {
             error "inactive-data D/ASDATA pin topology changed at $name: actual $names expected $expected_pins; repeat discovery"
         }

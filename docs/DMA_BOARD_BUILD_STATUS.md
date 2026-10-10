@@ -169,3 +169,13 @@ Evidence `output_files/X1Matrix_20261009T004105Z/`, log
 This is native boot/input progression, not exact movement, game music, long
 compatibility, physical keyboard or native Turbo firmware acceptance. No five
 commercial games are newly qualified by this single homebrew trial.
+## October 10 fitted-profile follow-up
+
+The separately fitted `3c6242e` Z-handoff full flow's fifth physical HDMI
+profile now passes native reporting-only discovery and independent original
+artifact/source preservation auditing. The experimental guard recognizes
+only that complete observed pattern; five scoped positives, 100 invalid
+scope controls and 16,379 mixed-pattern rejections pass locally. See
+[exact evidence and remaining gates](HDMI_MODE_STATUS.md#fifth-fitted-profile-discovery-and-guarded-scope-complete).
+This does not qualify the DMA board or a new RBF: same-fit preservation,
+full-flow constrained timing and hardware remain open. No MiSTer is loaded.
