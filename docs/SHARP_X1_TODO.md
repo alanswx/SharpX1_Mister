@@ -1299,6 +1299,10 @@ capability profile. The existing `TURBO=1` build is not Turbo Z support.
   in RAM. This is proposed replacement GPIO wiring, not shared firmware/native
   MCU acceptance. Resolve driver ROM budget and the separate failed sparse-CE
   response-retention experiment before advertising broader cadence support.
+  A default-off MR16 response-retention candidate now passes the stronger
+  actual-store fixture at five cadences, while the unretained sparse-CE control
+  fails. Existing profiles leave it off; enabled reset/stack/RAM-read/IRQ,
+  snapshot and hardware gates still need checks before machine integration.
 - [ ] Research/implement capture quantization/inversion, mosaic, chroma key,
   extra scroll and superimpose/telopper, with a deterministic test video source.
   Primary encodings and a standalone decoder now pass exhaustive local checks;

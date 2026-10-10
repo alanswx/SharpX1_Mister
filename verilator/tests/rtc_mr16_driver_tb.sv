@@ -3,10 +3,10 @@
 // Proposed replacement-MR16 wiring only: free OP5 -> P1; spare IP1[5] <- T1.
 // No machine port, work-RAM interception or forced CPU/RTC state is supplied.
 `timescale 1ps/1ps
-module rtc_mr16_driver_tb;
+module rtc_mr16_driver_tb #(parameter CE_DIVISOR=1, RETAIN_RESPONSE=0);
     bit clk=0,cpu_reset=1,power_reset=1,cpu_running=1,ready=0;
     longint unsigned cycles=0;
-    wire cpu_ce=cpu_running;
+    wire cpu_ce=cpu_running && cycles%CE_DIVISOR==0;
     wire [15:0] address,write_data,p1;
     logic [15:0] memory_data=0;
     wire write_enable,memory_cs,t1,oscillator_ce;
@@ -15,6 +15,7 @@ module rtc_mr16_driver_tb;
     bit negative_t1=0,negative_clock=0;
     wire actual_ce=oscillator_ce && !(negative_clock && !cpu_running);
     logic [15:0] rom[2048],ram[2048];
+    bit [39:0] stored_bits=0;
     integer emitted=8;
     x1_rtc_clock_enable clock_source(.clk(clk),.power_reset(power_reset),
         .oscillator_ce(oscillator_ce),.phase());
@@ -22,7 +23,7 @@ module rtc_mr16_driver_tb;
         .cs(1'b1),.mcu_p1(p1[7:0]),.mcu_t1(t1),.data_out_sink(),
         .current_state(calendar),.state_valid(valid),.shift_state(),.register_mode(),
         .divider_phase(),.second_tick(),.calendar_advanced(),.month_wrapped());
-    mr16_x1 controller(.I_RESET(cpu_reset),.I_CLK(clk),.I_CLKEN(cpu_ce),
+    mr16_x1 #(.RETAIN_RESPONSE(RETAIN_RESPONSE)) controller(.I_RESET(cpu_reset),.I_CLK(clk),.I_CLKEN(cpu_ce),
         .O_A(address),.O_D(write_data),.I_D(memory_data),.O_WR(write_enable),.O_MEMCS(memory_cs),
         .I_TMRG(1'b0),.O_P0(),.O_P1(),.O_P2(),.O_P3(),.O_P4(),.O_P5(p1),
         .O_P6(),.O_P7(),.O_P8(),.O_P9(),.O_PA(),.O_PB(),
@@ -33,8 +34,11 @@ module rtc_mr16_driver_tb;
     // Same synchronous memory latency as the replacement-controller path.
     always @(posedge clk) begin
         memory_data <= address[12] ? ram[address[11:1]] : rom[address[11:1]];
-        if(!cpu_reset && memory_cs && write_enable && address[12])
+        if(!cpu_reset && memory_cs && write_enable && address[12]) begin
             ram[address[11:1]] <= write_data;
+            if(address>=16'h1020 && address<16'h1070)
+                stored_bits[(int'(address)-16'h1020)/2] <= 1'b1;
+        end
     end
     task automatic step;
         clk=0;#5;clk=1;#5;cycles++;
@@ -93,10 +97,11 @@ module rtc_mr16_driver_tb;
         ready=1;cpu_running=1;
         for(integer i=0;i<200000 && ram[0]!=2;i++) step();
         assert(ram[0]==2) else $fatal(1,"MR16 RTC read driver completion mismatch");
+        assert(&stored_bits) else $fatal(1,"MR16 RTC driver omitted actual RAM bit stores");
         for(integer bitno=0;bitno<40;bitno++)
             assert(ram[16+bitno]==(1'(40'hc631123458>>bitno) ? 16'h0020 : 16'h0000))
                 else $fatal(1,"MR16 RTC T1 readback mismatch bit=%0d actual=%h",bitno,ram[16+bitno]);
-        $display("PASS: real MR16 %0d-word original driver programs P1, independent two-second clock while CE stopped, all 40 T1 bits in actual RAM; main mailbox/native MCU integration separate",emitted);
+        $display("PASS: real MR16 %0d-word original driver CE=%0d retain=%0d programs P1, independent two-second clock while CE stopped, all 40 T1 bits in actual RAM; main mailbox/native MCU integration separate",emitted,CE_DIVISOR,RETAIN_RESPONSE);
         $finish;
     end
 endmodule

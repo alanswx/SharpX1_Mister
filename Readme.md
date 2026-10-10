@@ -171,6 +171,9 @@ controller integration and physical clock/persistence remain open.
 An original real-MR16 diagnostic now programs and reads all 40 RTC bits through
 proposed replacement GPIO wiring, including two seconds with controller CE
 stopped. The inherited firmware/mailbox driver and ROM budget remain open.
+A default-off MR16 response-retention experiment now passes that driver at
+five enable cadences; ordinary keyboard/IRQ checks pass with it disabled.
+Enabled reset/IRQ/snapshot/hardware and actual mailbox integration remain open.
 The standalone [SIO clock-event adapter](docs/SIO_EDGE_CLOCK_STATUS.md) now
 preserves serial edges and sampled RX data across enable gaps; independent
 queue tests and real CTC/SIO diagnostics pass. Shared event routing is opt-in;

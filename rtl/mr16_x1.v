@@ -14,7 +14,7 @@
 `define TIMER_MODULE // TIMER MODULE
 //`define ADDR_DEPTH 10 // Memory size
 
-module mr16_x1 #(parameter CLOCK_HZ = 32000000)
+module mr16_x1 #(parameter CLOCK_HZ = 32000000, RETAIN_RESPONSE = 0)
 (
   I_RESET,I_CLK,I_CLKEN,
 // Address Bus
@@ -225,10 +225,37 @@ reg mem_cs_r;
 always @(posedge I_CLK)
   mem_cs_r <= mem_cs;
 
+wire [15:0] raw_d_in;
 mux_2 #(16) top_din_mux(
 .I0(gpio_in_mux), // GPIO
 .I1(I_D),      // memory
-.S(mem_cs_r),.O(d_in));
+.S(mem_cs_r),.O(raw_d_in));
+
+// Opt-in experiment: retain the one-SYS response tail when the instruction
+// pipeline stops after an enabled edge. This is not a native bus WAIT model.
+// Ordinary machine instantiations leave RETAIN_RESPONSE disabled.
+generate if (RETAIN_RESPONSE) begin : response_retention
+  reg previous_ce;
+  reg held_valid;
+  reg [15:0] held_data;
+  always @(posedge I_CLK) begin
+    if (I_RESET) begin
+      previous_ce <= 1'b0;
+      held_valid <= 1'b0;
+      held_data <= 16'd0;
+    end else begin
+      previous_ce <= I_CLKEN;
+      if (I_CLKEN) held_valid <= 1'b0;
+      else if (previous_ce) begin
+        held_valid <= 1'b1;
+        held_data <= raw_d_in;
+      end
+    end
+  end
+  assign d_in = held_valid ? held_data : raw_d_in;
+end else begin : ordinary_response
+  assign d_in = raw_d_in;
+end endgenerate
 
 endmodule
 

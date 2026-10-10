@@ -311,6 +311,50 @@ not fit in the inherited firmware's 22 free bytes; a compact driver/verified
 ROM-budget solution and EC..EF integration still need implementation. This
 fixture does not patch the firmware, change machine behavior or close Z7.
 
+### Opt-in MR16 response retention experiment
+
+The sparse-CE diagnostic now has a default-off `RETAIN_RESPONSE` option in
+`rtl/mr16_x1.v`. The ordinary mux remains a direct alias of its original raw
+response. When selected, the experiment captures the one-SYS response tail
+on the first stopped edge after an enabled instruction edge and holds it
+until the next instruction enable. Reset clears validity. This does not
+invent a main-CPU port, gate the RTC clock, modify firmware or introduce a
+native bus WAIT model. Every existing machine/board instantiation leaves it off.
+
+The RTC fixture also now requires actual writes to all 40 RAM result slots,
+not only final bytes that might accidentally match untouched zeros. Frozen
+executables and source/oracle copies are under ignored
+`verilator/obj_dir_headless/rtc-retention-qualified-kW6Bv0OD/`. Five retained
+cadences (1/2/3/17/32) and the ordinary unretained full-rate case all complete
+the original serial programming, two stopped-controller seconds and 40-bit
+RAM checks. The matched unretained 32-cadence control fails the stronger
+actual-store coverage check, before the older T1-byte assertion. A first
+collection stopped because its expected-negative filter recognized only the
+older byte failure; no positive assertion was relaxed. The collector now
+accepts these two explicit expected failure sites, not arbitrary process failure.
+The remaining inverted-T1 and host-gated-clock controls also terminate with
+their precise readback/stopped-clock assertions. Final SHA-256 checks pass all
+fourteen frozen source/executable inputs. The final collection therefore
+qualifies six positive profiles and three expected failures without changing
+the binaries or test oracle after freezing.
+
+Current RTL SHA-256:
+`ab8cabbd687abb8b1c5cf540bff0c4de17bf2ae6081115601180973d5998dbdd`;
+fixture:
+`b613c190981d4569fa05986f6c65d5feb8f630e4b0a15b4ac594cb3d37429051`.
+The ordinary `test-ctc` target independently completes zero again: eleven
+reports include real MR16 receive-only keyboard/vector/held-ACK checks at
+32,000,000 / 28,636,364 / 28,571,428 Hz. Log:
+`/tmp/x1-rtc-retention-default-ctc.log`. This verifies the disabled path's
+bounded keyboard/IRQ behavior, not all ordinary games or snapshot layouts.
+
+Enabled-profile reset/stack/RAM-read/IRQ, snapshots, native timing and fitted
+hardware still need qualification before any shared profile selects this
+option. The fixture demonstrates a response-retention/cadence problem in
+its explicit controller/memory configuration, not native RTC or whole-machine
+compatibility. The real-CPU EC..EF clock test remains unfixed; controller
+driver/ROM-budget integration is still the next machine-level dependency.
+
 ### Remaining integration order
 
 1. Finish tracing controller year storage and power retention; reconcile

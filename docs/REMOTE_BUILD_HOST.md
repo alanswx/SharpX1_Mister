@@ -54,3 +54,19 @@ and its mapper, while the X1 checkout remained clean. No X1 snapshot/fit was
 started and no timing/RBF acceptance is inferred from this attempt. Log:
 `/tmp/x1-quartus-db2dc8c-handoff.log`. Preserve other users' jobs; a coordinated
 slot and fresh current-source fit are still required for the PCG-reset repair.
+
+After that competing flow ended, a fresh read-only process check found the
+host idle again. The same clean, exact `db2dc8c` checkout then successfully
+started `sharpx1_turbo_z_handoff` in
+`/home/alans/mister/SharpX1_Mister/output_files/quartus-linux-H1XpgcbN/source`.
+Local log: `/tmp/x1-quartus-db2dc8c-handoff-retry.log`. This is a source-bound
+PCG-reset-repair fit, not a build of the newer local MR16 retention experiment.
+That attempt now terminates **three**. Analysis/synthesis succeeds (150
+warnings), but the fitter stops at the strict inactive-data SDC guard:
+`hdmi_dv_data[0]` has mapped pin `|d`, whereas the selected candidate requires
+the earlier fit's `|asdata`. `Read_sdc` fails; a later fitter 11802/resource
+message is not separately established as the root cause. The source-bound
+snapshot and failed logs remain intact. Repeat stage/topology discovery and
+qualify any revised mapped/fitted pin contract before selecting constraints;
+do not weaken the guard or classify this as completed timing/PCG qualification.
+No new RBF is accepted or deployed, and no MiSTer is accessed by this helper.
