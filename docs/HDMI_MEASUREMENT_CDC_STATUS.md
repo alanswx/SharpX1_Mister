@@ -116,3 +116,27 @@ timing. Reporting-only inspection must establish the actual replica's
 fan-in/fan-out before any constraint change. See
 [the build record](DMA_BOARD_BUILD_STATUS.md#october-10-current-source-build-gate)
 for frozen inputs and the unaccepted artifact hash.
+
+Reporting-only inspection subsequently completes on the same fitted database
+after the host becomes idle at 11:00:25 UTC. No SDC is loaded or timing cut
+changed. Exact-edge and driver logs show `hdmi_vs_meta` feeding only
+`hdmi_vs_sync`, which feeds `old_vs~reg1`; both stages use the HPS user clock.
+The external/internal palette selection D endpoints each have 78 upstream
+register fanins, without raw `cfg[1]`, `status[0]` or `ioctl_download`.
+Their CLRN pins are driven by the video-local release pipe. This confirms
+those narrow fitted connections, not timing closure or MTBF.
+
+The handoff primary and `completed_generation~DUPLICATE` each expose exact
+CLK/ASDATA/Q pins. CLK has a common `gate|outclk` driver and ASDATA a common
+`completed_generation~3|combout` driver. `completed_meta` takes primary Q,
+not duplicate Q. The duplicate feeds the primary/duplicate feedback cone,
+not a first-stage synchronizer directly. Identical D/clock routes alone do
+not establish reset/startup/control equivalence; that review remains before
+any guarded replica allowance. The original refusal remains intact.
+
+Preserved local reporting evidence:
+`/tmp/x1-aa05dd2-topology.Eu3NqBQI/topology-aa05dd2-QaH3AJQC`.
+The agent records three terminal-zero probes, unchanged fourteen original
+source/artifact hash pairs and 409 snapshot inputs. Main reads the exact
+pin/driver logs independently. Driver-log SHA-256:
+`99343dce92bc33cf77898a3e2a41a318ffcf4319f571407b3ee423f4bca1d191`.
