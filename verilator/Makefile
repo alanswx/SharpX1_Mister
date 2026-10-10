@@ -1716,6 +1716,11 @@ test-machine-cassette:
 	ulimit -c 0; python3 -B tests/test_machine_cassette.py --run --negative rtc-combo
 .PHONY: test-machine-cassette
 
+# Separate non-savable C++ waveform producer; all assets generated locally.
+test-cassette-runner:
+	ulimit -c 0; python3 -B tests/test_cassette_runner.py --run
+.PHONY: test-cassette-runner
+
 test-hps-video-cdc: $(HEADLESS_DIR)/hps-video-cdc/Vhps_video_cdc_tb
 	./$(HEADLESS_DIR)/hps-video-cdc/Vhps_video_cdc_tb
 

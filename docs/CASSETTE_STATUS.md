@@ -4,7 +4,7 @@ October 10: the default-off `CASSETTE_ENABLE` shared-machine profile now connect
 a read-only SYS-timed waveform transport, executed MR16 setters/live E9/EA/EB
 responses and PPI PB1. Six generated-IPL machine cases pass an independent
 rerun. Ordinary runners and all board revisions remain cassette-disabled;
-the TAP parser is not yet connected to a native runner. Native tape loading,
+the separate non-savable TAP runner now passes generated-asset checks. Native tape loading,
 recording, speed control and APSS remain open. PC0 has no recorder consumer.
 
 ## Connected read-only diagnostic checkpoint
@@ -59,6 +59,68 @@ retained-reset, transport and DMA-reset diagnostics finish their immutable
 evidence checks after integration. Wrapper DMA lint passes an interface check,
 not Quartus or hardware acceptance. No existing RBF enables cassette.
 
+## Separate waveform-fed runner
+
+`verilator/sim_cassette.v` and `verilator/cassette_main.cpp` instantiate the same
+shared machine with only cassette enabled. It accepts binary 4/8-KiB IPL
+assets (explicitly uploads/maps only the lower 4 KiB), an explicit 8-KiB
+controller and the bounded TAP parser. It mounts STOP state and holds the
+next sample stable until pre-edge SYS `valid && ready`. No decoded tape data
+is injected into RAM and no mailbox responses are supplied. Debug ports read
+only. Snapshots, disk services and deck-command injection are unavailable.
+
+```sh
+python3 -B verilator/tests/test_cassette_runner.py --run
+```
+
+`make -C verilator test-cassette-runner` wraps these generated-asset checks;
+CI scheduling is not a hosted acceptance result.
+
+The collector prints its disposable `EVIDENCE` folder, including a frozen
+`obj/cassette_runner`, source-derived `generated/controller.bin` and builder
+report. `--build-only` does not execute tests. Use a new disposable output:
+
+```sh
+PATH_TO_FROZEN/cassette_runner --ipl LOCAL_IPL --controller LOCAL_CONTROLLER \
+  --tape LOCAL_TAP --cycles 32000000 --output NEW_DISPOSABLE_DIRECTORY
+```
+
+`--keys` accepts decimal millisecond / hex PS/2-byte rows. `--cycles` measures
+physical 32-MHz units including 12,352 startup/upload cycles; JSON separately
+records reset release. SYS=32 MHz, VID=28,571,428 Hz, delay-aware execution.
+Declared TAP position is honored; accepted-final-sample and completed playback
+EOF are distinct. Actual RGB frames, RAM/text/attribute observations and input/
+executable hashes are saved, not loading-success claims. Outputs can contain
+private bytes and must remain ignored/disposable.
+
+Fresh execution in `x1-cassette-runner-ol445t4d` finishes zero: twelve checks,
+including eight exact admission/option rejections, 4/8-KiB IPL equivalence,
+declared position 3, ten actual samples/cursor 13, STOP and empty media.
+Public waveform transitions match every held input level; final EOF occurs
+exactly 125 microseconds after final acceptance. Inputs and executable remain
+unchanged. There are 60 inherited Verilator warnings, none in the new top/
+transport, and no C++ warnings. The first collector failure on macOS `/var`
+versus `/private/var` aliases is retained; normalizing the temporary path fixes
+generation, not RTL.
+
+Native local IPL/Rally-X probes at one/four physical seconds exit zero with
+assets unchanged, but show only preparing / floppy-search screens and accept
+zero tape samples. This establishes native IPL initialization, not tape loading.
+The IPL menu dispatches ASCII C to cassette loading; the real-PS/2 follow-up
+first disables joystick emulation with F12, which otherwise consumes C.
+That longer probe is not yet an accepted tape boot.
+
+Runner source / collector / executable SHA-256, respectively:
+
+- `34b1d2257a398649a815e87c1a075a3e65acce9e31d2b71641dd7dc79853a355`
+- `3d111bff9201224e403ef412f13ada28addae36c09569a9a92bfc512df761dc4`
+- `0eb97d7b1c52802d844d58dca625522f456aab8dcdb1c17dd32b7b4f77e385c2`
+
+Native cold repeats, loading/game input, PS/2/rendered diagnostic oracles,
+warm-reset scheduling in this runner, recording/APSS and hardware remain
+separate gates. The earlier machine fixture qualifies only its own warm-reset/
+keyboard/PPI scope; those runner features do not follow from that result.
+
 ## Bounded TAP prerequisite
 
 `verilator/x1_tap_image.h` is original C++20 code. The format layout reference
@@ -106,7 +168,7 @@ an independent modern-header waveform vector and unsupported-format-zero check.
 
 ## Connected implementation and acceptance still required
 
-1. Connect the qualified format-1/old-header parser; retain explicit unsupported
+1. Qualify native loading through the connected format-1/old-header parser; retain explicit unsupported
    policies for other formats/rates until their vectors and timing are tested.
 2. Qualify native use of the implemented SYS-timed sampling, bounded host
    buffering, pause/resume/EOF and reset policy. Connect actual waveform levels
@@ -115,7 +177,7 @@ an independent modern-header waveform vector and unsupported-format-zero check.
    BREAK, and serve live EA/EB responses through its existing mailbox. Preserve
    host flag/clear semantics. The proposed cassette-only OP5 allocation conflicts
    with RTC; reject that combination until a proper shared interface exists.
-4. Connect a separate non-savable native runner using the qualified extended
+4. Qualify the separate non-savable native runner using the qualified extended
    upload without changing ordinary/RTC behavior; index 7 remains RTC-only. New
    interfaces need explicit snapshot identity/compatibility design, not state
    byte conversion. Initial playback experiments should be non-savable.

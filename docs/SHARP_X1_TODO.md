@@ -1453,7 +1453,8 @@ Preserve each frozen runner; do not rebuild historical v05.
   against hardware; test PCG raster images and Turbo high-speed addressing.
 - [ ] Complete cassette transport and baud/timing behavior.
   The bounded TAP parser now passes 356 synthetic and sanitizer checks; it is
-  not yet connected to a native runner. Format-1 fixed-rate samples are
+  connected to a separate non-savable runner with twelve generated-asset checks.
+  Format-1 fixed-rate samples are
   corroborated by a second emulator. The default-off shared-machine read-only
   transport passes six actual CPU/MR16/PPI cases and three rejecting controls,
   including BREAK, EOF and retained-media reset. Native loading, other
