@@ -88,6 +88,12 @@ replica: HS and the echo use different physical samples. A narrow replication-
 prevention directive now protects their shared sample; fresh normal/skew
 native checks pass. New fitting must prove the topology; timing and hardware
 remain unqualified, with no broader exceptions or ordinary-default changes.
+The protected-sample fit has now completed. Its native inventory and
+independent 320-report audit pass the exact topology and 912 synchronous
+stage/consumer rows (+19.594/+0.230 ns minimum setup/hold). Raw crossings and
+global setup still fail; this is not timing closure or a qualified tester RBF.
+See [the fitted evidence](docs/HDMI_MODE_STATUS.md#single-sample-fit-and-native-all-corner-inventory).
+
 Its isolated real-PLL controller maps/fits; a fitted-feedback audit led to an
 explicit falling-edge closure witness. Current native cases pass, while raw
 crossings, full-board timing and physical switching remain open. All 96 bounded

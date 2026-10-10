@@ -55,6 +55,14 @@ gets replication prevention; repeated normal/skew native checks pass, but
 fresh fitting and the strict native inventory must prove the physical repair.
 No guard is weakened or failed timing report counted as passing.
 
+The `ce2eba8` fit subsequently completes zero. Its native scope and independent
+320-report audit now pass the single-sample topology and 912 synchronous
+stage/consumer rows (+19.594/+0.230 ns minimum setup/hold). Raw crossings
+remain -9.318 ns setup; global eight-corner setup/hold is -18.327/+0.009 ns.
+The replication repair is verified on this fit, but the RBF remains timing-
+unqualified and no physical gate is completed. Original artifacts remain
+unchanged; see `HDMI_MODE_STATUS.md` for source/hash/provenance and exact scope.
+
 Fresh extracted native-policy runs now check 396 held-mode changes while
 blanked with a closed output clock, including synthetic delayed-policy cases.
 Minimum quiet time is 96,873 ps, above the three-control-period requirement;

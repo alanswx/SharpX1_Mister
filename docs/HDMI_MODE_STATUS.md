@@ -892,6 +892,37 @@ commit host checkout starts a fresh full flow in
 (PID 1340148). Final topology, native inventory/timing, MTBF/I/O and hardware
 remain open. All prior fits and failed scope evidence remain preserved.
 
+## Single-sample fit and native all-corner inventory
+
+The `ce2eba8` full flow completes zero in eight minutes (162 warnings),
+ending October 9 at 17:29:19 on the build host. Its source snapshot remains
+`output_files/quartus-linux-b8qkpvN8/source`. Flow-summary minima are setup
+**-18.327 ns**, hold **+0.253 ns**, recovery **+4.220 ns**, removal
+**+0.820 ns**, and pulse width **+0.529 ns**. Design MTBF is not calculated
+because timing requirements are unmet. RBF SHA-256 is
+`6388008ee87bb1b5cff9b6ff108fc0d9cf1d84e45299e8336db2298ad212cb8d`;
+this is an **unqualified experimental RBF**, not a recommended tester build.
+
+The guarded native csync inventory now completes zero with zero warnings.
+The exact scalar/replica, four first-stage fanout and four registered-driver
+checks pass on this fit, unlike the preceding split-sample fit. Independent
+local auditing checks all **320 reports**, including **912 synchronous
+stage/consumer rows** at eight corners: minimum setup/hold **+19.594/+0.230
+ns**. These include the shared csync sample's echo and native-HS capture paths.
+The sample replication repair is therefore supported by fitted evidence,
+not merely the source attribute or native simulation.
+
+The same audit records, without accepting them, 64 raw crossing rows with
+minimum setup/hold **-9.318/+0.178 ns**, and global setup/hold
+**-18.327/+0.009 ns**. The latter eight-corner hold minimum is distinct from
+the original flow summary. Raw inputs are not newly excluded by this probe.
+Original controller/framework/reporter/STA/summary/RBF hashes match before
+and after. Native log: `/tmp/x1-csync-board-inventory-ce2eba8-v1.log`;
+local report copy: ignored
+`output_files/hdmi-csync-board-ce2eba8/csync-board-inventory-v1/`.
+MTBF/placement, held output-data/mode paths, I/O and physical acceptance remain
+open. No MiSTer was loaded, and ordinary board defaults remain unchanged.
+
 ## Native blank/closed-clock mode-change checks
 
 The extracted native-policy bench now checks each held-mode change while
