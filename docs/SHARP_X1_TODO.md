@@ -105,6 +105,13 @@ changing the SDC or scalar startup values. Its mock adds the exact replica
 negative. Fresh native-primitive/reset checks, fitted topology/timing and
 hardware acceptance remain open; see `HDMI_MEASUREMENT_CDC_STATUS.md`.
 
+The exact `16fa816` follow-up now repeats all 96 native reset profiles and
+six normal/six delayed actual-policy profiles, with source/runtime manifests
+unchanged. Its source-bound Quartus flow is confirmed running; final fitted
+topology/timing and hardware remain unaccepted. The original MB4107 data-book
+scan is also retrieved, correcting DW pin 4 and resolving chip MIN polarity;
+Sharp capacity-to-MIN logic is still open. See `FDC_VFO_CLOCK_STATUS.md`.
+
 Current Arcus follow-up distinguishes the combined 16-second CPU state
 (0AA0 output loop, interrupts enabled) from the historical 0EA0 interrupt
 handler. The collector now compares read-only video/CTC/opcode observations;

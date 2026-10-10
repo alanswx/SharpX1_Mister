@@ -221,3 +221,33 @@ retained in `/tmp/x1-handoff-completed-no-replica-local.log`; this was not a
 native timing failure. Synthetic positives and rejecting controls do not
 replace a new fitted inventory. CI now fetches complete project history for
 the immutable historical fixture; no hosted CI result is claimed here.
+
+### Fresh 16fa816 native gates and launched fit
+
+The exact `16fa816713d4bf418e04f34fc5f4949c660246eb` detached worktree
+passes 96 native reset cases, six normal extracted-policy cases and six
+synthetically delayed-policy cases. Main independently reads their completed
+footers and terminal files and compares source/runtime before/after manifests
+unchanged. Normal: 5,030 exact output checks, 204 first-edge holds and 10,273
+native-HS policy checks; skew: 5,032, 192 and 13,143 respectively. Skew is
+transport-delay qualification, not fitted routing. The known primitive-model
+warnings remain; this is not a zero-warning synthesis claim.
+
+Evidence root on misterubuntu:
+`/home/alans/mister/SharpX1_Mister/output_files/handoff-16fa816-L1wzVxzQ`.
+SHA-256 of the completed driver logs:
+
+- `reset.log`: `3b02e0320b80a80471089ae04aaa86534a4463b8cc1ad9473acc194f4e06c34c`
+- `normal.log`: `1da15f11ccc1f751711cd77a86e44fa01fe5f26b298b7646486b4ca8cd56359e`
+- `skew.log`: `a33e3441afead5744e332fc40fce7e35fd8a592b9683b75eba9fb96b2b597820`
+
+After another idle-host check, the source-bound handoff flow launches at
+12:44:21 UTC October 10. Main confirms actual Quartus shell PID 2134800
+running, not merely a launch/state file. Frozen source:
+`worktree/output_files/quartus-linux-MS3GQ1PO/source` under that evidence root;
+input manifest SHA-256
+`365713fe66c9a70a69e497468646f8a4549ed98079bebc64462ce2d340b38992`.
+Remote log: `/tmp/x1-quartus-16fa816-handoff-OcwH65RD.log`.
+Primary checkout remains unchanged and all SDCs match the prior source.
+Final topology, full timing/MTBF/I/O and RBF acceptance remain pending;
+no MiSTer is contacted or loaded for this build.

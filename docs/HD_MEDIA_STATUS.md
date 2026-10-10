@@ -90,8 +90,11 @@ Commands that change density/class during BUSY,
 native FDCCLK routing, byte/DRQ/deadline pacing, FM decoding, RPM/low-current,
 format/WRITE TRACK, authorized native HD software and source-bound board tests
 remain open. No guessed BUSY deferral or native clock divider is introduced.
-The current MB4107A documentation has a different pin assignment from the
-CZ-880's MB4107; do not substitute it as proof of the older chip's routing.
+The earlier claimed MB4107A pin-assignment mismatch is withdrawn: the
+original MB4107 manufacturer scan has now been retrieved and the relevant
+MIN/CK/DW pin table visually read. Use the original chip source rather than
+assuming suffix equivalence. Its documented MIN-to-CK selection does not yet
+prove the Sharp ASIC's capacity-to-MIN logic; see `FDC_VFO_CLOCK_STATUS.md`.
 See [the full HD plan](TURBO_HD_DISK_PLAN.md),
 [CPU selector scope](HD_CAPACITY_CPU_STATUS.md) and
 [wide-storage qualification](WIDE_D88_STATUS.md).

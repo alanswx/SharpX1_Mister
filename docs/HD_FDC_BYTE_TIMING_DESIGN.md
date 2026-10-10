@@ -103,7 +103,8 @@ the initial ID-to-write-gate request: its startup sequence is distinct.
 `70a5f8da327ed25710e76d60117c4f82a655e6a7b29a34cb3239c75f0bd65a81`:
 sheet 47 shows IC417 MB8877A CLK pin 24 connected to IC416 MB4107 CK pin 8.
 DDEN pin 37 has a separate FM/MFM route into MB4107. MB8877A RCLK pin 26
-is connected to MB4107 DW pin 1. Sheet 48 shows IC420 IX0870CE gate-array
+is connected to MB4107 DW pin 4 (corrected by re-reading sheet 47;
+pin 1 is MIN, not DW). Sheet 48 shows IC420 IX0870CE gate-array
 controls and distinct MIN, MFM, 1.6M, low-current, index and drive routes;
 the drive connector separately labels its 500K-1M/(1.6M) class signal.
 
@@ -114,6 +115,13 @@ specification/measurement. There is no established class-to-1/2-MHz mapping
 in this note. No Sharp-authored native BUSY-time capacity/clock-switch
 contract, installed-drive RPM, or reset phase is established. The existing
 third-party Techknow IN-port labels are capacity labels, not clock evidence.
+
+October 10 follow-up: the original MB4107 manufacturer data sheet is now
+retrieved and visually inspected. It resolves MIN polarity and the chip's
+CK frequency selection, not the Sharp ASIC's capacity-to-MIN truth table.
+See [the original VFO evidence](FDC_VFO_CLOCK_STATUS.md). The preceding
+statement about unresolved chip divider behavior is superseded only to that
+documented extent; native BUSY/rate/drive acceptance remains open.
 
 ## Inspected emulator code: cross-checks, not native authority
 

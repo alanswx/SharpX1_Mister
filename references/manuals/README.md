@@ -1,5 +1,17 @@
 # Downloaded Sharp X1 documentation
 
+## Original Fujitsu disk VFO reference
+
+Retrieved the [1988 Fujitsu Linear Products Data Book mirror](https://ftpmirror.your.org/pub/misc/bitsavers/components/fujitsu/_dataBooks/1988_Fujitsu_Linear_Products_Data_Book.pdf)
+as ignored `Fujitsu_1988_Linear_Products_Data_Book.pdf`: 23,951,016 bytes,
+600 pages, SHA-256 `081d4cb0d9031b1a87137b122d0be86d30e162a3eb108c135069d4cb8f9f50d8`.
+Original MB4107 PDF 273 / printed 6-2 is visually inspected alongside the
+already-local 1990 MB4107A pin table and CZ-880 sheets 47/48. This corrects
+the mistaken DW pin number and resolves the chip's MIN-to-CK polarity, not
+the Sharp ASIC's capacity/clock truth table. See
+[evidence and remaining gates](../../docs/FDC_VFO_CLOCK_STATUS.md).
+No scan is committed or licensed for redistribution by this retrieval.
+
 ## NEC capture line-buffer manufacturer reference
 
 Retrieved `NEC_1986_Memory_Data_Book.pdf` from the
