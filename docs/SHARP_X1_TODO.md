@@ -41,8 +41,8 @@ does not enable it. An explicit inactive clock-input tie repairs an otherwise
 changed default saved-state layout: all eight base/Turbo generated headers/
 serializers match c744767 and the ordinary 144-gate fast/snapshot regression
 passes. Actual CPU/DMA, native clock/initial-gap/drive and hardware gates remain
-open; see `FDC_STRICT_TIMING_STATUS.md`. The fresh delay-aware baseline is still
-running, not a completed gate.
+open; see `FDC_STRICT_TIMING_STATUS.md`. The fresh ordinary delay-aware baseline
+also finishes with exit zero and 149 PASS reports; it does not enable the bridge.
 
 The separate HD-media experiment connects the selector to selected-volume
 metadata and passes actual CPU wrong-class RNF/correct-class read/write/readback

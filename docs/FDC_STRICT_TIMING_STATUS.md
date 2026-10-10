@@ -108,8 +108,11 @@ The current default headless build and 200,000-reference-cycle smoke finish;
 the full default fast/snapshot regression now completes zero with 144 PASS
 markers in `/tmp/x1-fdc-strict-disabled-fast.log`. Its runner SHA-256 is
 `cb3670e97f9a5f25d57510ccda8ef44fa4416d314ad6ba6e8b13e784851a1ec8`.
-The broader delay-aware `make test` remains running; its partial output must
-not be counted as a completed gate.
+The broader ordinary delay-aware `make test` also finishes with exit zero and
+149 PASS markers in `/tmp/x1-fdc-strict-disabled-timing.log`. Its runner SHA-256
+is `b405612b16ee40e47c41fa95a8b865ef5c79ce1abc12e7ea86bb0de528dd5c00`.
+These default-disabled regressions do not qualify the enabled bridge through
+the actual CPU/DMA path or on hardware.
 
 ## Remaining acceptance
 

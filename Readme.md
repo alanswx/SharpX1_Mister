@@ -30,7 +30,9 @@ shared-DR/raw-bus and held-completion gates also pass. The default-off
 [WD/SD integration](docs/FDC_STRICT_TIMING_STATUS.md) now passes 408 counted
 standalone cases and nine rejecting controls. Actual CPU/DMA and native timing
 integration remain open; no board enables it. Ordinary generated state and
-the 144-gate fast/snapshot regression remain intact.
+the 144-gate fast/snapshot regression remain intact. The ordinary delay-aware
+regression also finishes successfully with 149 PASS reports; neither enables
+the experimental bridge.
 
 The separate non-savable `turbo-hd-media` experiment now connects capacity
 selection to D88 medium matching. Original CPU cases pass wrong-class RNF
