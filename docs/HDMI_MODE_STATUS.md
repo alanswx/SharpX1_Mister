@@ -1215,12 +1215,21 @@ copied. Its first direct `quartus_map` attempt failed before synthesis because
 it skips the normal flow's generated `build_id.v` hook. The exact historical
 generated header was then copied (SHA-256
 `1129592d58d7243fb463315e148909ab7b4035ce090d35bdd499dee7f26e2824`),
-and the retry started after another idle-host check. It is needed to obtain
-honest early-netlist evidence rather than relabeling the historical fit.
+and the retry started after another idle-host check. It now terminates zero
+(150 synthesis warnings). Correct mapped discovery on this new, never-fitted
+database also terminates zero, without ignored-option warnings. Its complete
+sorted target/driver/pin inventory is **byte-identical** to the genuinely mapped
+`db2dc8c` failed build: both topology texts hash to
+`9a706d7b74d40d6c21acea9cee75086bbae29302e5296c4a7ac89f08f96b4871`.
+Thus these seven D-versus-ASDATA differences are demonstrated between actual
+early and packed netlists, not an inferred source change or a relabeled fitted
+database. The guard is applying a fitted pin contract too early in the flow.
 Logs: `/tmp/x1-hdmi-ce2eba8-fresh-synthesis-stage.log` and
-`/tmp/x1-hdmi-ce2eba8-fresh-synthesis-stage-with-id.log`. Mapping completion,
-stage discovery, any revised exact pin contract and before/after active/raw
-scope auditing remain required before another selected full build.
+`/tmp/x1-hdmi-ce2eba8-fresh-synthesis-stage-with-id.log`; honest discovery:
+`/tmp/x1-hdmi-ce2eba8-genuine-mapped-discovery-v3.log`.
+An exact early/packed pin contract and its negative controls, plus native
+before/after active/raw scope auditing, remain required before another selected
+full build. No timing exception or guard was changed by this investigation.
 
 ## Next gates
 
