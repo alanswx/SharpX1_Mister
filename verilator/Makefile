@@ -69,6 +69,9 @@ test-fdc-byte-slots:
 test-fdc-bus-events:
 	python3 tests/test_fdc_bus_events.py
 .PHONY: test-fdc-bus-events
+test-fdc-stream-adapter:
+	python3 tests/test_fdc_stream_adapter.py
+.PHONY: test-fdc-stream-adapter
 .PHONY: test-fdc-address-width test-fdc-default-state
 test-machine-hd-capacity: $(HEADLESS_DIR)/hd-capacity/Vhd_capacity_machine_tb $(HEADLESS_DIR)/hd-capacity-disabled/Vhd_capacity_machine_tb
 	./$(HEADLESS_DIR)/hd-capacity/Vhd_capacity_machine_tb
