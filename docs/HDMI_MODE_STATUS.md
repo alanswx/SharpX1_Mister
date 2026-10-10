@@ -884,6 +884,14 @@ checks also pass. A **new fit and native scope/timing inventory** must prove
 that the protected second-stage really remains single and shared. Neither
 native simulation nor an attribute declaration establishes that topology.
 
+The verified single-sample checkpoint is pushed as `ce2eba8`. A clean exact-
+commit host checkout starts a fresh full flow in
+`output_files/quartus-linux-b8qkpvN8/source`, complete source commit
+`ce2eba80d6fd6d2fd0cdbfbb4814c19576f87d3e`; log
+`/tmp/x1-quartus-ce2eba8-z-single-csync-sample.log`. Live mapping is confirmed
+(PID 1340148). Final topology, native inventory/timing, MTBF/I/O and hardware
+remain open. All prior fits and failed scope evidence remain preserved.
+
 ## Next gates
 
 1. Establish an actually supported mode-sensitive STA method or a narrow
