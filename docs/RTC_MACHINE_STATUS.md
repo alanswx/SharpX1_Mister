@@ -27,7 +27,7 @@ gate, not Z80 interrupt, FDC, native MCU, X3 or hardware acceptance.
 This frozen checkpoint predates the separate X3 collector/build additions;
 its original test/Makefile hashes must not be presented as current-source matches.
 
-## Separate nominal-X3 combination: qualification running
+## Separate nominal-X3 combination: bounded qualification passes
 
 `rtc-x3` builds in `obj_dir_v17_rtc_x3`, with RTC enabled, independent
 32-MHz SYS / nominal 42.954540-MHz VID, timing delays and no savable model.
@@ -35,16 +35,48 @@ its original test/Makefile hashes must not be presented as current-source matche
 fixtures/oracles, explicitly require the X3 JSON identity/frequency and freeze
 their own inputs. The ordinary `rtc` target remains unchanged. The new build
 and missing/short/save/restore rejection controls pass; the runtime rejects an
-ordinary 28.571428-MHz override before execution. Elapsed/warm and X3 keyboard
-qualification remains incomplete, so no game, RGB, native or hardware acceptance
-is implied. The first collector terminates after elapsed execution with a Python
+ordinary 28.571428-MHz override before execution. Elapsed/warm and all six X3
+keyboard cases now complete zero. The first collector terminates after elapsed execution with a Python
 argument-name collision: its negative-control loop overwrote the parsed options.
 The collector now uses a distinct negative-argument variable; no RTL, CPU fixture
 or result oracle is changed. Failed log: `/tmp/x1-rtc-x3-first.log`; corrected
-repeat: `/tmp/x1-rtc-x3-corrected.log`. An ordinary-clock keyboard repeat
+repeat: `/tmp/x1-rtc-x3-corrected.log`. Its independently audited
+`obj_dir_v17_rtc_x3/qualified-z0dbcoyy/` contains 138 original/frozen inputs,
+three assets and identical before/after manifests. The real CPU observes
+initial `31 C6 99 12 34 56`, elapsed seconds 57 and retained-IPL second-boot
+`31 C6 00 12 34 59`, with no firmware/IPL reupload. The X3 keyboard evidence
+`keyboard-qualified-545bxfvx/` separately passes independent 136-input/13-asset
+auditing and its absent-key rejecting control. No programmed CRTC/pixel,
+native calendar, complete device coexistence or hardware gate follows from this.
+An ordinary-clock keyboard repeat
 completes zero in `/tmp/x1-rtc-keyboard-x3-controls-baseline.log`, frozen
 `keyboard-qualified-r79o5t56/`: six positives and absent-key rejection pass,
 and an independent original/frozen 136-input and 13-asset audit passes.
+
+## Short reset during actual RTC/keyboard polling
+
+From `verilator/`, run
+`python3 tests/test_rtc_keyboard_reset.py obj_dir_v17_rtc/Vtop`.
+The unchanged original keyboard IPL is reset at 15 ms for 10 microseconds,
+then genuine F/Space/Enter packets arrive at 25 ms. Each 125-ms run requires
+the actual `RTCK`/ASCII/date/time stores and observer-only I/O traces showing
+EC, EF and E6 traffic before and after reset. Exactly one cold firmware/IPL
+upload is required. Removing the real reset still permits key completion but
+fails the unchanged two-command-boot oracle; it cannot falsely qualify reset.
+
+All three cases and the no-reset control pass in
+`obj_dir_v17_rtc/keyboard-reset-7bj65duk/`, terminal-zero log
+`/tmp/x1-rtc-keyboard-short-reset-controlled.log`. Independent auditing verifies
+137 original/frozen inputs, seven assets, the executable, manifests and actual
+two-versus-one EC command traces. The earlier three-case positive-only run is
+preserved in `keyboard-reset-ely4gepi/`, not counted as rejecting-control coverage.
+The X3 repeat (`--x3`, qualified frozen X3 runner) also completes zero in
+`/tmp/x1-rtc-x3-keyboard-short-reset-controlled.log`, frozen
+`obj_dir_v17_rtc_x3/qualified-z0dbcoyy/keyboard-reset-t9c7kwo9/`. Independent
+137-input/seven-asset and actual command/store auditing passes at that clock.
+This is a bounded short
+mailbox/keyboard-reset gate, not caps-state retention, Z80 IRQ, simultaneous
+FDC/DMA, native MCU or OSD-command dispatch acceptance.
 
 ## Architecture and upload contract
 

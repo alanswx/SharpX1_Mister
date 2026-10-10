@@ -14,6 +14,18 @@ support before optional Turbo extensions.
 
 ## Active goal: items 1–6 and Turbo Z (October 6)
 
+Current continuation: the separate RTC+nominal-X3 runner passes actual CPU
+elapsed-time, retained-IPL reset and six-key/absent-key qualification, with
+independent frozen-input auditing. Fresh protected Arcus/Bastard cold/repeat
+probes are now running at that clock profile, not yet accepted as gameplay.
+Ordinary-clock short reset during RTC/keyboard polling also passes three keys
+and a no-reset rejecting control, with two actual command boots and no asset
+reupload. Its X3 repeat also passes with independent auditing. The ordinary-clock RTC runner is repeating the shared
+collector after its argument-name repair. Pending runs are not completed gates.
+Fresh `ef4eb22` Quartus launch attempts remain blocked by
+actual competing MacPPC7300/DSPPC604 processes; the idle-host guard refuses
+launch, so no new X1 fit, RBF or hardware result exists from those attempts.
+
 The CPU-only Turbo Z effect-storage prototype now passes 1,024 actual Z80
 byte roundtrips, AEN/DAM/neighbor isolation, retained-IPL reset and a disabled
 control. Unit address/held-transaction checks and two negatives pass. Native

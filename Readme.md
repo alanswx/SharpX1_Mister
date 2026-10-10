@@ -23,42 +23,25 @@ now passes actual Z80 position/mosaic/chroma/scroll register storage and
 AEN/DAM/neighbor/warm-reset tests. Native read/reset policies remain provisional;
 no capture or rendered effects, board capability or Z identification is added.
 
-The RTC investigation now includes a restricted MR16 assembler that reproduces
-all 4,096 inherited ROM bytes from source. This enables firmware work without
-the missing AASM executable, but is not an RTC fix or a general AASM replacement;
-full firmware integration remains open. See
-[firmware evidence](docs/RTC_COMMAND_STATUS.md#reproducible-restricted-source-rebuild-not-an-rtc-fix).
-The new counted serial routines now pass actual MR16 call/stack/RAM and
-retained-controller reset checks at full/sparse enables. Their 106-byte body
-does not fit the 22-byte free tail; full firmware integration remains open.
-An isolated extra-ROM decoder now passes exhaustive address checks and actual
-banked MR16 driver execution. It is not connected to the shared machine or boards.
-Source-linked inherited firmware now boots and executes its real EC..EF
-mailbox routines with the new callbacks at CE=1/32, including elapsed seconds
-and retained-clock warm reset. A reset-vector retention repair is confined to
-the opt-in response experiment. Actual Z80/sub-CPU integration, native year/
-power policy and interrupt/FDC/DMA coexistence remain open.
-The new default-off [shared RTC profile](docs/RTC_MACHINE_STATUS.md) now passes
-actual Z80 EC..EF elapsed seconds using an original ioctl-loaded IPL. Its
-sub-controller also passes public upload/readback, running timer IRQs and
-retained-clock reset at three frequencies. Ordinary profiles stay disabled;
-An actual retained-IPL Z80 reboot also passes after two seconds of ordinary
-reset without asset reupload, with a rejecting storage-loss control. Native
-year/power, short/in-flight reset/DMA and hardware acceptance remain open.
-Public ioctl admission also passes 314 rejected transactions and legal-traffic
-negative controls; it does not by itself validate partial firmware or owned-DMA uploads.
-A bounded RTC-enabled memory-DMA reset test now also passes both owned phases,
-blocked firmware/clock/IPL traffic, stopped SYS recovery and native Z80 reboot;
-other DMA targets, Ready/IRQ and hardware coexistence remain open.
-The separate `make -C verilator rtc` headless runner now builds and rejects
-enabled snapshots/missing or short controller images. Its actual CPU elapsed/
-warm-reset qualification passes with frozen provenance; ordinary runners stay
-RTC-disabled, and native calendar/firmware/hardware gates remain open.
-The RTC profile also passes six real PS/2 keyboard cases with concurrent
-Z80 clock/mailbox polling and a rejecting absent-key control. Protected
-sixteen-second Arcus/Bastard cold/repeat probes finish deterministically:
-Bastard reaches its title; Arcus displays a garbled high-scan dialog. Neither
-is gameplay acceptance, and this runner does not use the X3 video clock.
+The default-off [shared RTC profile](docs/RTC_MACHINE_STATUS.md) passes actual
+Z80 EC..EF elapsed seconds, retained-IPL warm reset, six real PS/2 keyboard
+cases with clock/mailbox polling, and bounded memory-DMA reset/upload checks.
+Its source-derived controller uses an extended ROM and independently ticking
+serial clock; the [restricted assembler](docs/RTC_COMMAND_STATUS.md#reproducible-restricted-source-rebuild-not-an-rtc-fix)
+also reproduces all 4,096 inherited ROM bytes without AASM. Negative controls
+reject clock-storage loss, missing keyboard input and inadmissible uploads.
+`make -C verilator rtc` is a separate non-savable runner requiring an explicit
+8-KiB controller upload; ordinary runners and all boards remain RTC-disabled.
+Native year/leap/power policy, full device coexistence and hardware remain open.
+The separate `rtc-x3` runner passes bounded elapsed/reset and keyboard checks;
+it does not change any default or qualify native Turbo Z. Ordinary-clock
+short reset during RTC/keyboard polling also passes three keys and a rejecting
+no-reset control, without asset reupload.
+
+Protected sixteen-second Arcus/Bastard cold/repeat probes finish deterministically
+on the qualified 28.571428-MHz RTC checkpoint: Bastard reaches its title;
+Arcus displays a garbled high-scan dialog. Neither is gameplay acceptance or
+an X3-clock test. See [software evidence](docs/COMMERCIAL_COMPATIBILITY.md).
 
 The experimental handoff revision's early/fitted HDMI pin guard now accepts
 four exact observed whole-bank profiles, not arbitrary per-bit alternatives.

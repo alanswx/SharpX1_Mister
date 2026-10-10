@@ -38,6 +38,11 @@ top is `sys_top`; the simulator top is `top`.
 RTC/mailbox polling at SYS 32 MHz / VID 28.571428 MHz. Its absent-key control
 must fail the unchanged CPU completion oracle. Do not infer Z80 IRQ, native
 MCU, FDC, X3 or hardware coexistence from these short runs.
+`test-rtc-x3-runner`/`test-rtc-x3-keyboard` require the separate nominal X3
+identity/frequency. `tests/test_rtc_keyboard_reset.py RUNNER [--x3]` qualifies
+only three post-reset keys with traced CPU command boots and no asset reupload;
+the no-reset control must fail the same reboot oracle. Neither qualifies caps
+retention, Main/OSD dispatch or simultaneous disk/IRQ behavior.
 
 From the repository root:
 

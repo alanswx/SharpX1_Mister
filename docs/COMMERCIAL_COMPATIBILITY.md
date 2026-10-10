@@ -517,8 +517,16 @@ Observer-only analysis of the retained 7–8-second actual I/O traces finds
 `0FF8` and keyboard/PPI traffic. Bastard has 397 writes each to `1C00`/`1B00`
 and no sub-CPU command writes in this window. Counts describe this bounded
 execution, not native command latency, the stall's cause or missing interrupts.
-A separate RTC+nominal-X3 runner is now under diagnostic qualification before
-new game probes; no previous 28.571428-MHz probe is relabeled as an X3 result.
+A separate RTC+nominal-X3 runner now passes elapsed/warm/keyboard diagnostics
+with independent auditing. Fresh protected sixteen-second cold/repeat game
+probes are running under `obj_dir_v17_rtc_x3/special-probes/`, directories
+`arcus-rtc-x3-5a8be9e-16s/` and `bastard-rtc-x3-5a8be9e-16s/`, logs
+`/tmp/x1-arcus-rtc-x3-5a8be9e-16s.log` and
+`/tmp/x1-bastard-rtc-x3-5a8be9e-16s.log`. They copy the qualified frozen
+runner, use explicit controller/Turbo IPL/ANK and preserve original disk images;
+no snapshot or game patch is used. Arcus A1/B2 remains exploratory. These
+probes are pending, not new boot/gameplay evidence; no previous
+28.571428-MHz probe is relabeled as an X3 result.
 
 ## Arcus and Bastard Special: private native probes
 
