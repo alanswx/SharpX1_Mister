@@ -1,5 +1,11 @@
 # X1 Turbo Z roadmap (output foundation only)
 
+October 10 continuation: see [current development handoff](DEVELOPMENT_HANDOFF.md)
+and [full-size Kanji contract/components](TURBO_Z_KANJI_STORAGE_STATUS.md).
+The two-level selector/store is qualified only as synthetic components;
+shared-machine CPU/pixel and external FPGA storage acceptance remain open.
+No Z0–Z9 completion is inferred from this checkpoint.
+
 October 6, 2026. Turbo Z is now explicitly part of the user's active goal,
 alongside work groups 1–6. Base Turbo device/video gates remain dependencies.
 `TURBO=1` is not a Turbo Z identification flag. Introduce a separate capability

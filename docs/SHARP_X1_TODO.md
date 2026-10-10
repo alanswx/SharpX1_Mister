@@ -14,6 +14,13 @@ support before optional Turbo extensions.
 
 ## Active goal: items 1–6 and Turbo Z (October 6)
 
+October 10 latest continuation: [development handoff](DEVELOPMENT_HANDOFF.md)
+records current commits and unfinished jobs. The cassette runner now passes
+25 generated diagnostics. Full-size Z Kanji selector/store components pass;
+their shared-machine CPU/pixel integration is in progress, not yet accepted.
+Both ordinary regressions and native Rally-X loading remain live, not terminal
+passes. No work group or Turbo Z milestone is newly declared complete.
+
 The standalone fixed FDC byte-slot scheduler now passes twelve enable/density
 profiles, 96 start phases, 181 consumed boundaries, physical 1/2-MHz interval checks and a
 wrong-boundary rejecting control. It is
@@ -1650,6 +1657,10 @@ capability profile. The existing `TURBO=1` build is not Turbo Z support.
   selection, qualify FDCCLK/byte timing and resolve native drive RPM. The
   in-progress non-savable wide-D88 experiment alone is not native 2HD support.
 - [ ] Add second-level Kanji, mouse/serial and RTC/control-processor behavior.
+  The full-256-KiB selector/store components now pass exhaustive synthetic
+  checks and an independent rerun. Shared-machine CPU/WAIT/pixel qualification,
+  native font conversion and external FPGA storage remain open; see
+  [the current Kanji contract](TURBO_Z_KANJI_STORAGE_STATUS.md).
   Current RTC evidence supersedes the historical driver-only checkpoints below:
   the default-off shared RTC profile passes real Z80 EC..EF elapsed time,
   retained-IPL warm reset and bounded real memory-DMA/reset/upload tests.

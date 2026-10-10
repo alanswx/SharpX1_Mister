@@ -1,12 +1,22 @@
 # Experimental Sharp X1 hardware test handoff
 
+October 10: [current development handoff](DEVELOPMENT_HANDOFF.md) supersedes
+the historical availability/recommendation below. The latest hardware-tested
+DMA candidate is source `818b0de`, RBF SHA-256
+`c1d83e6bc7218a5736d3c8cf4505cc3eb69d4c75c4ca958a5106f3c698bc8ca3`;
+see [its actual feature/reset matrix](HARDWARE_DMA_FEATURE_MATRIX_STATUS.md).
+It does not include current cassette or Z Kanji experiments. For a black
+screen, follow [IPL loading](IPL_LOADING.md); the tester's exact failure is
+not yet reproduced or closed. Coordinate availability before loading/resetting
+mister126, never contact reserved mister192, and preserve other users' cores.
+
 October 8 update: a newer native Quartus 17.0.2 single-clock RBF is available
 and has bounded CROSS Chase cold boot/input and both OSD-reset observations.
 See [current artifact, MGLs and exact limits](HARDWARE_126_STATUS.md).
 The candidate and availability notes below preserve the earlier handoff;
 they are not the latest test result.
 
-Recommended candidate: the October 6/7 DIP-fix local build, source-bound to
+Historical candidate: the October 6/7 DIP-fix local build, source-bound to
 358 FPGA inputs of `bcc4349`. No hardware testing has occurred on this artifact yet.
 
 [sharpx1_turbo_single.rbf](../output_files/quartus-5ge19D0o/source/output_files/sharpx1_turbo_single.rbf)
@@ -30,8 +40,8 @@ original media. Use disposable disk copies, initially write-protected in OSD;
 FAT permission bits alone do not enforce write protection. Use the usual
 authorized IPL/BIOS and a known base-X1 disk; do not bundle ROMs or games with
 the RBF. Record the BIOS and disk hashes/configuration. Hardware availability
-must be coordinated before loading; the travelling owner has not released a
-remote MiSTer again.
+must be coordinated before loading; the current development handoff records
+the most recent ownership checks, not an ongoing reservation for these tests.
 
 1. Cold-load the core and boot a known disk. Record the visible screen and how
    long boot took; black/garbled output is a failure to investigate, not success.

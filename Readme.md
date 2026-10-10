@@ -23,6 +23,10 @@ the remaining physical and unimplemented-feature gates.
 
 ## Current status
 
+October 10: see the [development handoff](docs/DEVELOPMENT_HANDOFF.md) for
+current pushed checkpoints, uncommitted integration, live jobs and remaining
+acceptance gates. Full Turbo Z and work groups 1–6 are not complete.
+
 The [cassette prerequisite](docs/CASSETTE_STATUS.md) now has a bounded TAP
 parser with 356 synthetic checks. Format-1 fixed-rate sampling is corroborated
 by a second emulator. A default-off read-only shared-machine transport now

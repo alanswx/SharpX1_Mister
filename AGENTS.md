@@ -52,6 +52,17 @@ board acceptance from those synthetic pixels.
 machine profile. Its local ROM format interleaves half at A0 and differs from
 the existing four-chip half-major loader. See `TURBO_Z_KANJI_STORAGE_STATUS.md`;
 do not silently accept earlier raw dumps or truncate glyph exports for it.
+The default-off `TURBO_Z_KANJI` shared-machine integration is in bring-up,
+not yet CPU/pixel-qualified. It requires Turbo/X3/Kanji/render, excludes DMA
+and has no advertised savable/board profile. Its complete 256-KiB store is a
+simulation reference, not an FPGA BRAM fit solution. Highest-cell selectors
+use 37FF/3FFF/27FF without the historical four-cell fallback. Keep address/
+attribute/raster bundles and response validity aligned to glyph load; mask
+invalid text ink after reverse/blink, not at the earlier request phase.
+Initial Kanji eligibility requires high scan, R6=25/R9=15 and normal-size cells.
+Other row/double-width ANK/PCG policies, native fonts and external backing/cache
+remain open. See `docs/DEVELOPMENT_HANDOFF.md` for live jobs and uncommitted
+qualification; preserve their frozen inputs and do not restart on timeout.
 
 `TURBO_DMA_KANJI_EXPERIMENT` is a default-off shared-bus qualification
 profile. Use `test-machine-dma-kanji`; see `docs/DMA_KANJI_MACHINE_STATUS.md`.
