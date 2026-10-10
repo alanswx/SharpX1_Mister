@@ -24,6 +24,23 @@ before/after manifests and six positive plus one negative result. The machine
 uses delay-aware SYS 32 MHz / VID 28.571428 MHz with RTC enabled; ordinary
 profiles remain disabled. This closes this bounded PS/2/mailbox coexistence
 gate, not Z80 interrupt, FDC, native MCU, X3 or hardware acceptance.
+This frozen checkpoint predates the separate X3 collector/build additions;
+its original test/Makefile hashes must not be presented as current-source matches.
+
+## Separate nominal-X3 combination: qualification running
+
+`rtc-x3` builds in `obj_dir_v17_rtc_x3`, with RTC enabled, independent
+32-MHz SYS / nominal 42.954540-MHz VID, timing delays and no savable model.
+`test-rtc-x3-runner` and `test-rtc-x3-keyboard` use the same original CPU
+fixtures/oracles, explicitly require the X3 JSON identity/frequency and freeze
+their own inputs. The ordinary `rtc` target remains unchanged. The new build
+and missing/short/save/restore rejection controls pass; the runtime rejects an
+ordinary 28.571428-MHz override before execution. Elapsed/warm and X3 keyboard
+qualification is still running, so no game, RGB, native or hardware acceptance
+is implied. Log: `/tmp/x1-rtc-x3-first.log`. An ordinary-clock keyboard repeat
+completes zero in `/tmp/x1-rtc-keyboard-x3-controls-baseline.log`, frozen
+`keyboard-qualified-r79o5t56/`: six positives and absent-key rejection pass,
+and an independent original/frozen 136-input and 13-asset audit passes.
 
 ## Architecture and upload contract
 

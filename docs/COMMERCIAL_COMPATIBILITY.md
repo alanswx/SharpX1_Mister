@@ -512,6 +512,14 @@ option. High-scan software output cannot inherit nominal X3 or hardware
 acceptance from this clock/profile. Correct-clock probes, handler/disk diagnosis
 and actual start/playfield/control acceptance remain open.
 
+Observer-only analysis of the retained 7–8-second actual I/O traces finds
+3,153 E6 sub-CPU command writes in Arcus, alongside 24,311 reads of port
+`0FF8` and keyboard/PPI traffic. Bastard has 397 writes each to `1C00`/`1B00`
+and no sub-CPU command writes in this window. Counts describe this bounded
+execution, not native command latency, the stall's cause or missing interrupts.
+A separate RTC+nominal-X3 runner is now under diagnostic qualification before
+new game probes; no previous 28.571428-MHz probe is relabeled as an X3 result.
+
 ## Arcus and Bastard Special: private native probes
 
 These additional titles are locally supplied archives, outside the top-32

@@ -42,6 +42,21 @@ test-rtc-keyboard: rtc
 	python3 tests/test_rtc_keyboard.py $(RTC_RUNNER_DIR)/Vtop
 .PHONY: test-rtc-keyboard
 
+# Separate X3 clock combination: never overwrite the checked-in-clock runner.
+RTC_X3_RUNNER_DIR ?= obj_dir_v17_rtc_x3
+rtc-x3: $(RTC_X3_RUNNER_DIR)/Vtop
+$(RTC_X3_RUNNER_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
+	mkdir -p $(@D)
+	$(V) --cc --exe --build --timing --trace-fst --top-module top --Mdir $(@D) -j 4 \
+		-GTURBO=1 -GRTC_ENABLE=1 -GTURBO_VIDEO_MASTER=1 $(TURBO_DSW_FLAGS) \
+		-CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_RTC_EXPERIMENT -DX1_TURBO_VIDEO_MASTER" \
+		$(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
+test-rtc-x3-runner: rtc-x3
+	python3 tests/test_rtc_runner.py $(RTC_X3_RUNNER_DIR)/Vtop --x3
+test-rtc-x3-keyboard: rtc-x3
+	python3 tests/test_rtc_keyboard.py $(RTC_X3_RUNNER_DIR)/Vtop --x3
+.PHONY: rtc-x3 test-rtc-x3-runner test-rtc-x3-keyboard
+
 test-psg-mix: $(HEADLESS_DIR)/psg-mix/Vpsg_mix_tb
 	./$(HEADLESS_DIR)/psg-mix/Vpsg_mix_tb
 $(HEADLESS_DIR)/psg-mix/Vpsg_mix_tb: tests/psg_mix_tb.sv ../rtl/x1_psg_signed.sv ../rtl/x1_fm_mix.sv ../rtl/x1_audio_mix.sv Makefile

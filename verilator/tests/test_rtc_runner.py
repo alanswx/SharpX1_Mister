@@ -1,4 +1,5 @@
 """Frozen delay-aware RTC runner gates, no private IPL/state conversions."""
+import argparse
 import hashlib
 import json
 import pathlib
@@ -17,7 +18,11 @@ from build_mr16_rtc_firmware import build
 def digest(path):return hashlib.sha256(path.read_bytes()).hexdigest()
 
 def main():
-    runner=pathlib.Path(sys.argv[1]).resolve()
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('runner',type=pathlib.Path)
+    parser.add_argument('--x3',action='store_true',help='require the separate nominal X3 video clock profile')
+    args=parser.parse_args()
+    runner=args.runner.resolve()
     folder=pathlib.Path(tempfile.mkdtemp(prefix='qualified-',dir=runner.parent))
     inputs=[pathlib.Path(__file__).resolve(),ROOT/'verilator/tests/test_rtc_commands.py',
             ROOT/'verilator/tests/test_machine_rtc_reset.py',ROOT/'verilator/tests/z80_fixture.py',
@@ -36,7 +41,7 @@ def main():
     elapsed=folder/'elapsed.bin';elapsed.write_bytes(elapsed_fixture())
     warm=folder/'warm.bin';warm.write_bytes(warm_fixture())
     assets={str(path):digest(path) for path in (controller,elapsed,warm)}
-    manifest={'inputs':hashes,'assets':assets,'scope':'non-savable Turbo RTC runner, real IPL elapsed/warm CPU execution; no native calendar/DMA/hardware acceptance'}
+    manifest={'inputs':hashes,'assets':assets,'x3_requested':args.x3,'scope':'non-savable Turbo RTC runner, real IPL elapsed/warm CPU execution; no native calendar/DMA/hardware acceptance'}
     (folder/'manifest-before.json').write_text(json.dumps(manifest,indent=2)+'\n')
     sentinel=folder/'do-not-overwrite.state';sentinel.write_bytes(b'original sentinel, not an RTL state')
     short=folder/'short-controller.bin';short.write_bytes(image[:-1])
@@ -60,7 +65,8 @@ def main():
         report=json.loads(result.stdout.splitlines()[-1]);memory=(folder/f'{name}.ram').read_bytes()
         assert report['rtc_experiment'] and report['rtc_controller_bytes']==8192
         assert report['turbo_foundation'] and not report['turbo_dma'] and report['intra_assignment_delays']
-        assert report['sys_hz']==32000000 and report['video_hz']==28571428 and report['halted']
+        assert report['turbo_video_master']==args.x3,'wrong video clock profile'
+        assert report['sys_hz']==32000000 and report['video_hz']==(42954540 if args.x3 else 28571428) and report['halted']
         assert report['download_bytes']==8193+len(rom.read_bytes()),'unexpected reupload during warm reset'
         assert memory[0xf010:0xf016]==DATE+TIME
         assert memory[0xf020:0xf025]==DATE+TIME[:2] and memory[0xf025] in (0x57,0x58)
