@@ -73,16 +73,20 @@ static uint64_t number(const std::string& s) {
 }
 struct Asset { fs::path path; std::string hash; size_t limit; };
 struct Key { uint64_t ps; uint8_t byte; };
+struct ResetEdge { uint64_t ps; bool asserted; };
 
 int main(int argc,char** argv) {
     try {
         fs::path ip,cp,tp,kp,out;
-        uint64_t cycles=0; unsigned marker=0; bool marker_set=false;
+        uint64_t cycles=0,reset_us=10; unsigned marker=0;
+        bool marker_set=false,reset_width_set=false;
+        std::vector<uint64_t> reset_ms;
         for(int i=1;i<argc;++i) {
             std::string arg=argv[i];
             if(arg=="--help") {
                 std::cout<<"--ipl FILE --controller FILE --tape FILE --cycles N --output NEW_DIR "
-                    "[--keys FILE] [--marker-address N]\nBinary assets; no snapshots/disks.\n";
+                    "[--keys FILE] [--marker-address N] [--reset-at MS (repeatable) --reset-for-us US]\n"
+                    "Binary assets; no snapshots/disks.\n";
                 return 0;
             }
             if(i+1==argc) throw std::runtime_error("missing option value");
@@ -93,6 +97,10 @@ int main(int argc,char** argv) {
             else if(arg=="--keys") kp=value;
             else if(arg=="--output") out=value;
             else if(arg=="--cycles") cycles=number(value);
+            else if(arg=="--reset-at") {
+                if(reset_ms.size()>=1024) throw std::runtime_error("too many reset events");
+                reset_ms.push_back(number(value));
+            } else if(arg=="--reset-for-us") {reset_us=number(value);reset_width_set=true;}
             else if(arg=="--marker-address") {
                 auto n=number(value);if(n>65535) throw std::runtime_error("marker out of range");
                 marker=unsigned(n);marker_set=true;
@@ -130,6 +138,19 @@ int main(int argc,char** argv) {
         constexpr uint64_t startup_cycles=4096+8192+64;
         if(cycles<=startup_cycles) throw std::runtime_error("cycles must exceed 12352 startup cycles");
         const uint64_t reset_end=startup_cycles*31250,end=cycles*31250;
+        if(reset_us==0 || reset_us>1000000 || (reset_width_set && reset_ms.empty()))
+            throw std::runtime_error("reset width requires events and 1..1000000 us");
+        std::sort(reset_ms.begin(),reset_ms.end());
+        std::vector<ResetEdge> reset_edges;
+        for(auto when:reset_ms) {
+            if(when>1000000) throw std::runtime_error("reset time out of bounds");
+            const uint64_t at=when*1000000000ULL,release=at+reset_us*1000000ULL;
+            if(at<=reset_end || release>=end)
+                throw std::runtime_error("reset must fit strictly after startup and before duration");
+            if(!reset_edges.empty() && at<=reset_edges.back().ps)
+                throw std::runtime_error("overlapping or touching reset events");
+            reset_edges.push_back({at,true});reset_edges.push_back({release,false});
+        }
         for(const auto& key:keys)
             if(key.ps<reset_end || key.ps>=end) throw std::runtime_error("key outside post-startup run");
         // Explicit executable pathname avoids PATH ambiguity in provenance.
@@ -140,6 +161,11 @@ int main(int argc,char** argv) {
         if(!log) throw std::runtime_error("cannot open event log");
         log<<"time_ps,event,cursor,level,last,mode,sensor\n";
         VerilatedContext context;context.commandArgs(argc,argv);
+#if VM_TIMING
+        constexpr bool timing=true;
+#else
+        constexpr bool timing=false;
+#endif
         Vcassette_top top{&context};
         top.clk_sys=0;top.clk_28636=0;top.reset=1;
         top.ioctl_download=1;top.ioctl_wr=1;top.ioctl_index=0;top.ioctl_addr=0;top.ioctl_dout=ipl[0];
@@ -160,6 +186,8 @@ int main(int argc,char** argv) {
                 +(e%28571428)*500000000000ULL/28571428;
         };
         bool upload_ack=false,sample_ack=false;
+        size_t ri=0;
+        uint64_t warm_assertions=0,warm_releases=0;
         size_t ki=0;uint16_t packet=0;unsigned bit=0;bool key_active=false;
         uint64_t key_edge=0,key_gap=0,keys_sent=0;
         bool hs=top.HSync,vs=top.VSync;
@@ -172,6 +200,7 @@ int main(int argc,char** argv) {
                 if(context.gotFinish()) throw std::runtime_error("unexpected HDL finish");
                 uint64_t next=std::min({st(se),vt(ve),end});
                 if(context.time()<reset_end) next=std::min(next,reset_end);
+                if(ri<reset_edges.size()) next=std::min(next,reset_edges[ri].ps);
                 if(key_active) next=std::min(next,key_edge);
                 else if(ki<keys.size()) next=std::min(next,std::max({context.time()+1,keys[ki].ps,key_gap}));
 #if VM_TIMING
@@ -183,13 +212,26 @@ int main(int argc,char** argv) {
                     if(uploads!=12288 || top.ioctl_download) throw std::runtime_error("upload reset deadline missed");
                     top.reset=0;
                 }
+                if(ri<reset_edges.size() && next==reset_edges[ri].ps) {
+                    const bool asserted=reset_edges[ri++].asserted;
+                    top.reset=asserted;
+                    warm_assertions+=asserted;warm_releases+=!asserted;
+                    // Count a sample already consumed on the preceding rising
+                    // edge even if its producer pins update on this falling
+                    // edge. Reset logs describe consumed cursor, not stale pins.
+                    log<<next<<','<<(asserted?"reset_assert":"reset_release")<<','
+                        <<(tape.position()+(sample_ack?1:0))
+                        <<','<<unsigned(asserted)<<",0,"<<unsigned(top.tape_mode)<<','<<unsigned(top.tape_sensor)<<'\n';
+                }
                 bool sr=false,vr=false,pix=top.ce_pix;
                 if(next==st(se)) {
                     sr=!top.clk_sys;
                     if(sr) {
                         upload_ack=top.ioctl_wr && !top.ioctl_wait;
                         if(upload_ack && !top.core_reset) throw std::runtime_error("upload outside drained reset");
-                        sample_ack=top.tape_sample_valid && top.tape_sample_ready;
+                        // A reset asserted on this same consuming SYS edge must
+                        // not advance the producer using stale pre-eval ready.
+                        sample_ack=!top.reset && top.tape_sample_valid && top.tape_sample_ready;
                         if(sample_ack) {
                             log<<next<<",accept,"<<tape.position()<<','<<unsigned(top.tape_sample_level)<<','
                                 <<unsigned(top.tape_sample_last)<<','<<unsigned(top.tape_mode)<<','<<unsigned(top.tape_sensor)<<'\n';
@@ -271,9 +313,12 @@ int main(int argc,char** argv) {
         json<<"{\n\"scope\":\"observational-native-waveform-not-compatibility\",\n"
             <<"\"terminal_exit\":"<<(failure.empty()?0:1)<<",\"inputs_unchanged\":"<<(unchanged?"true":"false")
             <<",\"non_savable\":true,\"cassette_enable\":true,\"turbo\":false,\"rtc\":false,\"dma\":false,"
-            <<"\"disk_service\":false,\"sys_hz\":32000000,\"video_hz\":28571428,\n"
+            <<"\"disk_service\":false,\"intra_assignment_delays\":"<<(timing?"true":"false")
+            <<",\"sys_hz\":32000000,\"video_hz\":28571428,\n"
             <<"\"cycles_requested\":"<<cycles<<",\"time_ps\":"<<context.time()<<",\"reset_release_ps\":"<<reset_end
             <<",\"startup_included\":true,\"sys_rising_edges\":"<<sys_rises<<",\"video_rising_edges\":"<<video_rises
+            <<",\"warm_reset_assertions\":"<<warm_assertions<<",\"warm_reset_releases\":"<<warm_releases
+            <<",\"warm_reset_width_us\":"<<reset_us<<",\"warm_reset_edges_pending\":"<<(reset_edges.size()-ri)
             <<",\"ipl_asset_bytes\":"<<ipl.size()<<",\"ipl_mapped_bytes\":4096,\"upper_ipl_bytes_uploaded\":false,\n"
             <<"\"ipl_sha256\":\""<<assets[0].hash<<"\",\"controller_sha256\":\""<<assets[1].hash
             <<"\",\"tape_sha256\":\""<<assets[2].hash<<"\",\"executable_sha256\":\""<<assets.back().hash<<"\",\n"

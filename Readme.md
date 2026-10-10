@@ -27,7 +27,8 @@ The [cassette prerequisite](docs/CASSETTE_STATUS.md) now has a bounded TAP
 parser with 356 synthetic checks. Format-1 fixed-rate sampling is corroborated
 by a second emulator. A default-off read-only shared-machine transport now
 passes six real CPU/MR16/PPI cases and three rejecting controls. The separate
-non-savable waveform-fed TAP runner passes twelve generated-asset checks;
+non-savable waveform-fed TAP runner passes 25 generated-asset checks, including
+exact base-video pixels, real PS/2 stopping and retained-media warm reset;
 native tape loading, other rates/formats, recording and APSS remain open.
 No board enables cassette.
 

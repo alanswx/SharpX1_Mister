@@ -130,10 +130,47 @@ Runner source / collector / executable SHA-256, respectively:
 - `3d111bff9201224e403ef412f13ada28addae36c09569a9a92bfc512df761dc4`
 - `0eb97d7b1c52802d844d58dca625522f456aab8dcdb1c17dd32b7b4f77e385c2`
 
-Native cold repeats, loading/game input, PS/2/rendered diagnostic oracles,
-warm-reset scheduling in this runner, recording/APSS and hardware remain
-separate gates. The earlier machine fixture qualifies only its own warm-reset/
-keyboard/PPI scope; those runner features do not follow from that result.
+The subsequent current-source runner qualification completes zero with **25
+checks** in `x1-cassette-runner-vw9jbd_r`; observation log
+`/tmp/x1-cassette-reset-video-main.log`. It retains the original twelve checks
+and adds two CPU-written base-video cases, Ctrl+C/plain-C video/input cases,
+three playback/reset cases and six exact reset-admission rejections.
+All four captured rasters match independently constructed glyph/color/reverse
+pixels: 320,000 RGB pixels across 40/80-column and input cases. The checked-in
+ANK source is frozen before compilation, not taken from a private font export.
+Both physical clock frequencies and frame/line periods are asserted.
+
+Nine actual PS/2 packets (F12 then Ctrl+C make/release) stop playback at
+124.057953125 ms, after 524 of 4,096 samples and before EOF. The plain-C control
+transmits six packets and continues playback. Public waveform transitions are
+checked against the accepted source ledger; this is not native PB0 pulse or
+keyboard-release-state acceptance.
+
+`--reset-at MS` is repeatable; `--reset-for-us US` defaults to 10 us. Events
+must fit strictly after startup and before the requested end; overlapping or
+touching pulses and orphan/zero widths are rejected before output creation.
+The generated 128-sample test resets at 4 and 8 ms for 100 us each. Every
+cursor/level remains ordered, no samples advance during asserted reset, and
+uploads remain exactly 12,288. Partial slot phases of 55.125 and 21.28125 us
+survive reboot; actual next arrivals match the independent active-edge oracle.
+EOF differs from the no-reset control only by measured inactive/command edges.
+These integer-ms assertions occur at SYS falling edges; an acceptance-edge tie
+is not qualified. JSON now explicitly records intra-assignment-delay handling
+and warm-reset scheduling/counters.
+
+Source manifests compare unchanged before/after and independently against the
+current tree. The build has the same 60 inherited Verilator warnings and no
+C++ warnings. New runner / collector / executable SHA-256:
+
+- `e4c29630ed92f4d61679f6547a719e3ed241550b7f38ad95a6ccc9198b5fba83`
+- `5163beef13d96eef07954a39fe1ba2fdbf431fb456588bb86a71d65572f58643`
+- `494812a481f6e4951f4115943a522ae92e24b8aceddb44f0c628a7aba6a6ac84`
+
+The live older frozen 130-second native probe now visibly says `IPL is loading
+RALLY-X`; header recognition is not completed loading or gameplay. Its binary
+and assets are unchanged by this runner extension. Native cold repeats,
+loading/game input, recording/APSS and hardware remain separate gates. No
+existing RBF enables cassette.
 
 ## Bounded TAP prerequisite
 
