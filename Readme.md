@@ -40,7 +40,10 @@ by a second emulator. A default-off read-only shared-machine transport now
 passes six real CPU/MR16/PPI cases and three rejecting controls. The separate
 non-savable waveform-fed TAP runner passes 25 generated-asset checks, including
 exact base-video pixels, real PS/2 stopping and retained-media warm reset;
-native tape loading, other rates/formats, recording and APSS remain open.
+native Rally-X tape loading reaches score/map and, with exploratory keyboard
+input, a start/credits screen. Its full playfield/gameplay, other rates/formats,
+recording and APSS remain open. Passive PCG/GRAM dumps support diagnosis;
+generated CPU-written GRAM sentinels are checked without injecting native RAM.
 No board enables cassette.
 
 The standalone [FDC byte-slot scheduler](docs/FDC_BYTE_SLOT_STATUS.md) passes

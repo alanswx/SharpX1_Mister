@@ -1,6 +1,6 @@
 # Sharp X1 development handoff
 
-Updated October 10, 2026, 18:45 UTC. The active goal remains **unfinished**:
+Updated October 10, 2026, 19:14 UTC. The active goal remains **unfinished**:
 complete work groups 1–6 and documented Turbo Z. Component diagnostics,
 historical game screenshots and a fitted RBF do not close that goal.
 
@@ -11,6 +11,9 @@ historical game screenshots and a fitted RBF do not close that goal.
 - `8305e17`: opt-in full-size Z Kanji shared-machine CPU/display integration,
   exhaustive physical CPU reads, bounded loader/reset/pixel diagnostics and
   reusable evidence-audit regression. **Not native fonts or FPGA storage.**
+- `7dfcfeb`: standalone full-font DDR command backend; Main's independent
+  32/100-MHz/max-base full-byte rerun and nine matched mutants/overflow checks
+  pass without warnings. External loader/cache and board integration remain open.
 
 - `5438892`: separate delay-aware cassette runner passes 25 generated-asset
   checks: exact 40/80-column pixels, actual PS/2 Ctrl+C/plain-C behavior and
@@ -66,11 +69,13 @@ Existing jobs must be polled, **not restarted because observation times out**:
 | Job | Handle / evidence | Last verified state |
 |---|---|---|
 | Native Rally-X, older frozen cassette runner | session `53472`; `/tmp/x1-native-rallyx-cassette-iFzAfm/run130-autoload/` | Terminal exit zero, 130 physical seconds, 524,717 samples, zero underflow; partial score/map/car display, no gameplay acceptance |
-| Native Rally-X exploratory keyboard / no-input control | sessions `21805` / `56833`; `run83-input` / `run83-control` under same native folder | Live cold probes, same immutable executable/assets and 83-second duration; key meanings not verified release instructions |
+| Native Rally-X exploratory keyboard / no-input control | sessions `21805` / `56833`; `run83-input` / `run83-control` under same native folder | Both terminal exit zero; input reaches PUSH START BUTTON/CREDIT 02, no-input remains partial; not gameplay or release-correct controls |
+| Native Rally-X passive plane observation | session `26507`; `run83-plane-control` under same native folder | New 83-second no-input probe using qualified dump extension; terminal result pending |
 | Ordinary delay-aware regression | session `53793`; `/tmp/x1-z-kanji-ordinary-regression.log` | Terminal exit zero; 164 PASS lines; pre-final Z-only repair source scope below |
 | Ordinary fast/snapshot regression | session `26203`; `/tmp/x1-z-kanji-ordinary-fast.log` | Terminal exit zero; 144 PASS lines |
 | Final-current ordinary delay-aware repeat | session `67295`; `/tmp/x1-z-kanji-final-current-regression.log` | Terminal exit zero, 164 PASS reports after final Z-only repairs |
 | Exhaustive shared-machine Z Kanji | `hhofb8uy`; Main audit log `/tmp/x1-z-kanji-full-main-audit.log` | Terminal collector and independent audit pass, not hardware/native acceptance |
+| Reproducible complete Kanji suite | session `64002`; folder `x1-z-kanji-machine-suite-t859nax6`, log `/tmp/x1-z-kanji-complete-suite-main.log` | Terminal exit zero: early/full collectors and independent audits, seventeen auditor controls and three machine negatives; supplemental Main negative-provenance audits also pass |
 
 The delay-aware regression began before the final Z-only blanking/eligibility
 repair; its executable/source scope must be distinguished from final-current
@@ -80,10 +85,28 @@ job uses an older immutable executable/assets and is unaffected by these edits.
 
 Full-font external backing work is now described in
 `TURBO_Z_EXTERNAL_FONT_PLAN.md`. Original standalone DDR backend and tests are
-being developed outside the machine manifest. Initial full-font 32/100-MHz
-checks and seven rejecting mutants pass; focused admission/cancellation/base-
-address tests are being expanded before its checkpoint. No display cache, native write-
+pushed as `7dfcfeb`, outside the machine manifest. Full-font 32/100-MHz/max-base
+checks, nine rejecting mutants and overflow checks pass. The ordered-upload/
+CPU frontend API and drain contract are reviewed; implementation is now assigned
+as a separate standalone component. No display cache, native write-
 visibility policy or board integration is yet qualified.
+
+The local MAME Rally-X no-input reference completes zero with protected media
+and unchanged inputs. Actual 83/130-second PNGs have a changing left playfield,
+unlike RTL's partial frame. It observes repeated PLAY and STOP/REWIND; different
+PB0/rewind policies are not a proven cause. Evidence is
+`output_files/mame-rallyx-reference-siRvI2/`. MAME read-only memory follow-up is
+in progress. Never compare RTL's bus `cpu_address` to MAME's instruction PC.
+
+Uncommitted passive cassette-runner PCG/GRAM dump extension now passes all
+25 diagnostics in `x1-cassette-runner-2rjkcn2t` (session `94866`). Four video
+cases verify eighteen actual CPU-written GRAM sentinels per case and physical
+plane sizes; PCG payloads are not programmed/qualified by these fixtures.
+Main separately verifies all 72 sentinels, rejects 28 in-memory width/boundary/
+plane-swap controls and preserves all 431 original files and bound sources.
+The same sixty HDL warnings remain after location normalization; sixty-six
+warning-containing log lines include explanation links, with no C++ warnings.
+This extension changes no shared machine RTL or private native assets.
 
 The new `make -C verilator test-z-kanji-components` entry completes zero:
 both clock-rate component scans and three matched mutants remain intact.
@@ -123,15 +146,15 @@ the reported hardware failure has been fixed.
 
 ## Next work, preserving the full goal
 
-1. Finish real CPU/WAIT and RGB qualification of both Kanji levels, including
-   all physical CPU addresses, malformed uploads, delayed service and pending
-   resets. Test unsupported/reverse/blink and width transitions. Then implement
-   full external backing memory/cache/arbitration for FPGA—do not truncate the
+1. Extend the completed synthetic CPU/WAIT/RGB qualification beyond its bounded
+   high-resolution normal-size contract. Implement the ordered external loader/
+   CPU frontend, then full backing memory/cache/arbitration for FPGA—do not truncate the
    image to fit spare BRAM. Resolve native font conversion and broader modes.
-2. Complete/audit the live Rally-X load, then native cold repeats and controls.
+2. Audit the new Rally-X plane observation and MAME memory comparison, then
+   native cold repeats and release-correct controls.
    Cassette still needs other format/rate policies, recording/APSS, coexistence
    and board loading; diagnostics alone do not close base completeness.
-3. Finish current-source ordinary/snapshot regressions. On an idle build host,
+3. Preserve the completed current ordinary/snapshot regressions. On an idle build host,
    run exact 9cc same-fit preservation, then source-bound full-flow timing/CDC
    qualification. Negative global setup is not timing closure.
 4. Complete remaining SIO, DMA, HD/FDC and multi-device/reset/native gates;

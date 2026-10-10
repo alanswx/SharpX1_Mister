@@ -297,11 +297,16 @@ int main(int argc,char** argv) {
             std::ofstream f(out/name,std::ios::binary);
             for(unsigned i=0;i<count;++i) {
                 top.debug_addr=i;top.eval();
-                f.put(char(kind==0?top.debug_ram:kind==1?top.debug_text:top.debug_attr));
+                const std::array<uint8_t,9> values={top.debug_ram,top.debug_text,top.debug_attr,
+                    top.debug_pcgb,top.debug_pcgr,top.debug_pcgg,
+                    top.debug_gramb,top.debug_gramr,top.debug_gramg};
+                f.put(char(values.at(kind)));
             }
             if(!f) throw std::runtime_error("dump write failed");
         };
         dump("ram.bin",0,65536);dump("text.bin",1,2048);dump("attr.bin",2,2048);
+        dump("pcg-b.bin",3,2048);dump("pcg-r.bin",4,2048);dump("pcg-g.bin",5,2048);
+        dump("gram-b.bin",6,16384);dump("gram-r.bin",7,16384);dump("gram-g.bin",8,16384);
         bool unchanged=true;std::ofstream provenance(out/"assets.sha256");
         for(const auto& a:assets) {
             bool same=false;try {same=sha256(read_file(a.path,a.limit))==a.hash;}catch(...){}

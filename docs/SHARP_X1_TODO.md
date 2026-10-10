@@ -25,7 +25,10 @@ finish zero; the final-current delay-aware repeat also finishes zero with 164
 PASS reports after the final Z-only repairs. Native Rally-X now shows
 score/map/car graphics; its 130-second run finishes zero with no underflow,
 but controls/gameplay remain unqualified. Same-executable exploratory input
-and no-input cold probes are running. Full-font external DDR/storage work is
+and no-input cold probes finish zero: input reaches PUSH START BUTTON/CREDIT 02,
+while the no-input playfield remains incomplete. The reproducible complete
+synthetic Kanji suite also finishes zero, including independent positive and
+negative provenance audits. Full-font external DDR/storage work is
 separate and does not yet qualify an FPGA implementation.
 No work group or Turbo Z milestone is newly declared complete.
 

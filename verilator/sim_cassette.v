@@ -16,6 +16,8 @@ module cassette_top (
     output [11:0] rgb12,
     input [15:0] debug_addr,
     output [7:0] debug_ram, debug_text, debug_attr,
+    output [7:0] debug_pcgb, debug_pcgr, debug_pcgg,
+    output [7:0] debug_gramb, debug_gramr, debug_gramg,
     output [15:0] cpu_address, sub_pc,
     output cpu_halt_n
 );
@@ -47,6 +49,14 @@ module cassette_top (
     assign debug_ram = machine.RAM.mem[debug_addr];
     assign debug_text = machine.text_ram.mem[debug_addr[10:0]];
     assign debug_attr = machine.attr_ram.mem[debug_addr[10:0]];
+    assign debug_pcgb = machine.pcg_b.mem[debug_addr[10:0]];
+    assign debug_pcgr = machine.pcg_r.mem[debug_addr[10:0]];
+    assign debug_pcgg = machine.pcg_g.mem[debug_addr[10:0]];
+    // This top is base X1 only: each physical GRAM plane is 16 KiB.
+    // Passive inspection never clocks, writes or supplies CPU bus data.
+    assign debug_gramb = machine.gram_b.mem[debug_addr[13:0]];
+    assign debug_gramr = machine.gram_r.mem[debug_addr[13:0]];
+    assign debug_gramg = machine.gram_g.mem[debug_addr[13:0]];
     assign cpu_address = machine.a;
     assign cpu_halt_n = machine.halt_n;
     assign sub_pc = {machine.subCPU.sub_cpu.cpu.reg_pc, 1'b0};

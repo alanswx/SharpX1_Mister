@@ -187,8 +187,36 @@ RGB/FNV and unchanged artifacts. Of the 524,716 sample intervals, 524,715 are
 is a plausible cause, not witnessed by this runner's log; preserve the
 exception rather than claiming uniformly exact cadence. Evidence:
 `/tmp/x1-rallyx-native-audit-5d22VJ/summary.json`.
-Same-executable 83-second exploratory keyboard and no-input cold probes are live.
-Its binary and assets are unchanged by this runner extension. Native cold repeats,
+Same-executable 83-second exploratory keyboard and no-input cold probes both
+finish zero with unchanged assets, identical accepted-waveform logs and zero
+underflow. Main inspected their actual PNGs: exploratory F12/Space/Enter/arrows
+reach `PUSH START BUTTON`, `CREDIT 02` and program credits; the no-input frame
+still shows the partial blue map block. Both retain a zero word at RAM 1577h;
+its apparent random-generator role is a hypothesis, not a diagnosed fault.
+Neither establishes release-correct controls or gameplay.
+
+The local MAME no-input reference reaches a fuller, changing playfield at
+83/130 seconds. Its read-only observer records repeated PLAY and STOP/REWIND,
+with a read-cleared PB0 STOP pulse unlike the current held-BREAK policy.
+These differences are leads, not a proven cause; MAME uses a replacement MCU
+and warns about its font dump. Protected evidence is
+`output_files/mame-rallyx-reference-siRvI2/`. Never equate the RTL bus address
+with MAME's instruction PC.
+
+The passive physical-plane dump extension passes all 25 generated checks in
+`x1-cassette-runner-2rjkcn2t`. Terminal inspection adds six files: 2-KiB
+`pcg-{b,r,g}.bin` and 16-KiB `gram-{b,r,g}.bin`. Inspection advances no clocks
+and supplies no CPU bus data. Four video fixtures execute eighteen GRAM
+sentinel writes each, spanning 0000h/0007h/0008h/1FFFh/2000h/3FFFh in every
+plane. Main's separate read-only check verifies all 72 sentinels, rejects
+28 in-memory width/boundary/plane-swap controls, and preserves all 431 original
+files and bound sources. Only PCG dump sizes are checked, not PCG contents.
+The executable SHA-256 is
+`299858dc515aed48f9bb6ec1b09cf6747dea59f27f03fd494af4f54728d1442a`;
+sixty inherited HDL warnings remain, with no C++ warnings. A new native
+83-second no-input plane-dump probe is running; it is not yet a result.
+
+The older binary and assets are unchanged by this runner extension. Native cold repeats,
 loading/game input, recording/APSS and hardware remain separate gates. No
 existing RBF enables cassette.
 

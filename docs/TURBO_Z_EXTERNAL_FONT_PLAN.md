@@ -16,7 +16,7 @@ FM7 `rtl/sdram.sv` (GPLv3-or-later) and Apple IIgs `rtl/sdram_burst.sv` (GPLv3).
 Their controllers are not imported. The tape controller demonstrates the
 DDR word/byte-lane interface, not video deadlines or safe machine reset.
 The SDRAM examples' clock/refresh constants cannot be adopted blindly.
-An original GPL-2.0-only backend is being developed separately from the shared
+An original GPL-2.0-only backend is implemented separately from the shared
 machine manifest and existing board defaults.
 
 The standalone [DDR backend checkpoint](TURBO_Z_DDR_BACKEND_STATUS.md) now

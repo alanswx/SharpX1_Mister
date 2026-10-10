@@ -54,6 +54,11 @@ def generated_ipl(Program, play, columns=None):
         out(0x1A02, 0x40 if columns == 40 else 0)
         p.word(0x01, 0x1A01)
         p.emit(0xED, 0x78)         # clear any control-write DAM transition
+        # Original physical-plane readback sentinels. Real CPU OUTs only;
+        # palette black below keeps them out of the text pixel oracle.
+        for bank, first in ((0x4000, 0x31), (0x8000, 0x57), (0xC000, 0xA4)):
+            for i, address in enumerate((0, 7, 8, 0x1FFF, 0x2000, 0x3FFF)):
+                out(bank + address, (first + 13 * i) & 255)
         for attribute, base in ((True, 0x2000), (False, 0x3000)):
             label = 'attributes' if attribute else 'characters'
             p.word(0x01, base)
@@ -110,6 +115,13 @@ def check_video(folder, result, columns, font, font_hash):
     assert len(ram) == 65536 and ram[0xF000:0xF004] == b'CVID'
     assert (folder / 'text.bin').read_bytes() == bytes(0x41 + (i & 3) for i in range(2048))
     assert (folder / 'attr.bin').read_bytes() == bytes(i & 15 for i in range(2048))
+    for plane, first in (('b', 0x31), ('r', 0x57), ('g', 0xA4)):
+        gram = (folder / f'gram-{plane}.bin').read_bytes()
+        assert len(gram) == 16384, 'CASSETTE_GRAM_DUMP_WIDTH'
+        for i, address in enumerate((0, 7, 8, 0x1FFF, 0x2000, 0x3FFF)):
+            assert gram[address] == (first + 13 * i) % 256, 'CASSETTE_CPU_GRAM_DUMP'
+        # Only size is qualified here; this IPL does not program PCG glyphs.
+        assert len((folder / f'pcg-{plane}.bin').read_bytes()) == 2048, 'CASSETTE_PCG_DUMP_WIDTH'
     expected_pixels = bytearray()
     fnv, colors = 14695981039346656037, set()
     for y in range(height):
