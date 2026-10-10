@@ -246,9 +246,14 @@ writes. Freeze/hash each runner before a long test, not after another build
 may have replaced it. Older frozen game qualifications remain historical.
 Simulator disk writes require `--disk-output NEW_COPY`; private originals and
 snapshots remain ignored. See `docs/DISK_STATUS.md` for tested and missing cases.
-Vendor `STRICT_D88_TIMING=1` is a separate default-off SD/register experiment,
-not an enabled shared-machine or board profile. It requires explicit synchronous
-`fdc_ce`; ordinary machine wiring ties this input to zero to preserve v17 state.
+Vendor `STRICT_D88_TIMING=1` is a separate default-off SD/register experiment.
+`TURBO_FDC_TIMING=1` now opts into its shared-machine connection; actual CPU/DMA
+transfer qualification is still required. `turbo-fdc-timing` is non-savable,
+with isolated directories per `FDC_CLOCK_HZ=1000000/2000000` and `FDC_TIMING_DMA`.
+It requires Turbo/SYS32, rejects single-clock/other rates, and does not infer
+the rate from capacity. No board enables it. Explicit synchronous `fdc_ce`
+stays zero in ordinary profiles to preserve v17 state; the four bridge helpers
+now belong to `rtl/machine.qip`.
 See `docs/FDC_STRICT_TIMING_STATUS.md`: 32-enable MFM slots, initial prefill/tail
 and collision policies are experimental, not native failure-edge timing. Keep
 physical DR in its existing SYS owner; underrun zero must not update it. Serial

@@ -1,6 +1,7 @@
 // Sharp X1 base-machine integration. Shared by MiSTer and simulation.
 // See docs/BASE_X1_CONTRACT.md for address-map sources and limitations.
-module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0, TURBO_DSW = 241, TURBO_DMA_RESTART_IRQ = 0, TURBO_Z_PALETTE_CPU = 0, TURBO_Z_VIDEO = 0, TURBO_Z_MULTIMODE = 0, TURBO_Z_INTERNAL8 = 0, TURBO_Z_TEXT_CPU = 0, TURBO_SIO = 0, TURBO_FM_CPU = 0, RTC_ENABLE = 0, TURBO_Z_EFFECT_CPU = 0, TURBO_DMA_KANJI_EXPERIMENT = 0, D88_ADDRESS_BITS = 20, TURBO_HD_SELECT = 0, TURBO_HD_MEDIA = 0) (
+module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0, TURBO_DSW = 241, TURBO_DMA_RESTART_IRQ = 0, TURBO_Z_PALETTE_CPU = 0, TURBO_Z_VIDEO = 0, TURBO_Z_MULTIMODE = 0, TURBO_Z_INTERNAL8 = 0, TURBO_Z_TEXT_CPU = 0, TURBO_SIO = 0, TURBO_FM_CPU = 0, RTC_ENABLE = 0, TURBO_Z_EFFECT_CPU = 0, TURBO_DMA_KANJI_EXPERIMENT = 0, D88_ADDRESS_BITS = 20, TURBO_HD_SELECT = 0, TURBO_HD_MEDIA = 0,
+    TURBO_FDC_TIMING = 0, FDC_CLOCK_HZ = 1000000) (
     input clk_sys, clk_28636, reset,
     input pal, scandouble,
     input ioctl_download,
@@ -75,6 +76,19 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     wire pe4M4 = SINGLE_CLOCK ? fractional_cpu : ce[2:0] == 3'b100;
     wire psg_ce = SINGLE_CLOCK ? fractional_psg : ce[3:0] == 4'b1000;
     wire ne4M4 = ce[2:0] == 3'b000;
+    // Explicit SYS32 diagnostic rates, independent of CPU/DMA ownership.
+    // Capacity-to-MIN routing and recovered RCLK are not inferred here.
+    // Disabled profiles keep the vendor input constant and ordinary v17 state.
+    wire fdc_chip_ce;
+    generate if (TURBO_FDC_TIMING) begin : fixed_fdc_clock
+        initial if (!TURBO || SINGLE_CLOCK ||
+                    (FDC_CLOCK_HZ != 1000000 && FDC_CLOCK_HZ != 2000000))
+            $fatal(1,"fixed FDC timing requires Turbo/SYS32 and explicit 1 or 2 MHz");
+        assign fdc_chip_ce = FDC_CLOCK_HZ == 2000000 ?
+            ce[3:0] == 4'b1000 : ce[4:0] == 5'b10000;
+    end else begin : no_fixed_fdc_clock
+        assign fdc_chip_ce = 1'b0;
+    end endgenerate
 
     wire [15:0] a;
     wire [7:0] di, data_out;
@@ -785,8 +799,8 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     generate if(D88_ADDRESS_BITS!=20 && D88_ADDRESS_BITS!=24) begin : invalid_d88_width
         initial $fatal(1,"shared D88 addressing permits ordinary20 or experimental24 only");
     end endgenerate
-    wd1793 #(.RWMODE(1), .EDSK(1), .HEADLOAD_STATUS(1), .INDEX_CYCLES(800000), .D88_ONLY(1), .PHYSICAL_DRIVES(2), .ADDRESS_BITS(D88_ADDRESS_BITS), .MAX_SECTORS(D88_ADDRESS_BITS==24 ? 4095 : 1992), .D88_CAPACITY_CHECK(TURBO_HD_MEDIA)) fdc (
-        .clk_sys(clk_sys), .ce(pe4M4), .reset(core_reset), .fdc_ce(1'b0),
+    wd1793 #(.RWMODE(1), .EDSK(1), .HEADLOAD_STATUS(1), .INDEX_CYCLES(800000), .D88_ONLY(1), .PHYSICAL_DRIVES(2), .ADDRESS_BITS(D88_ADDRESS_BITS), .MAX_SECTORS(D88_ADDRESS_BITS==24 ? 4095 : 1992), .D88_CAPACITY_CHECK(TURBO_HD_MEDIA), .STRICT_D88_TIMING(TURBO_FDC_TIMING)) fdc (
+        .clk_sys(clk_sys), .ce(pe4M4), .reset(core_reset), .fdc_ce(fdc_chip_ce),
         .io_en(!dam && a[15:2] == 14'h03fe), .rd(io_read), .wr(io_write),
         .addr(a[1:0]), .din(data_out), .dout(fdc_data),
         .drq(fdc_drq), .intrq(), .busy(), .wp(selected_wp || fdc_fmt_wp), .fmt_wp(fdc_fmt_wp),

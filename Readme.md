@@ -29,7 +29,9 @@ passes missed-byte/held-response/reset tests at nominal 1/2 MHz. Separate
 shared-DR/raw-bus and held-completion gates also pass. The default-off
 [WD/SD integration](docs/FDC_STRICT_TIMING_STATUS.md) now passes 408 counted
 standalone cases and nine rejecting controls. Actual CPU/DMA and native timing
-integration remain open; no board enables it. Ordinary generated state and
+qualification remain open; a non-savable `turbo-fdc-timing` shared-machine
+candidate now builds at explicit 1/2-MHz enables, but no board enables it.
+Ordinary generated state and
 the 144-gate fast/snapshot regression remain intact. The ordinary delay-aware
 regression also finishes successfully with 149 PASS reports; neither enables
 the experimental bridge.
@@ -61,7 +63,9 @@ CDC/timing acceptance remain separate. See
 
 The completion-source replication-prevention candidate passes fresh native
 reset/policy checks. Its new fit is rejected by a whole-prefetch pin-profile
-guard; strict SDC guards remain intact and fitted timing/hardware acceptance
+guard. Same-fit discovery/preservation now qualifies that exact sixth bank,
+with active/raw/mode timing rows unchanged; global setup still fails.
+Strict SDC guards remain intact and a fresh full flow/timing/hardware acceptance
 are still required. Historical
 fit-integrity tests require Git history to bind their original source commits.
 

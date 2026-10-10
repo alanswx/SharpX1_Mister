@@ -36,8 +36,10 @@ CPU/DMA and source-bound hardware integration remain open. The prerequisite
 targets are scheduled in CI, not yet a hosted acceptance result.
 
 The default-off WD/SD bridge now passes four nominal-rate/address profiles,
-408 counted cases and nine matched rejecting controls. The shared machine
-does not enable it. An explicit inactive clock-input tie repairs an otherwise
+408 counted cases and nine matched rejecting controls. The new opt-in
+`turbo-fdc-timing` shared-machine candidate builds, but actual CPU/DMA transfer
+qualification remains open; ordinary profiles stay disabled. An explicit
+inactive clock-input tie repairs an otherwise
 changed default saved-state layout: all eight base/Turbo generated headers/
 serializers match c744767 and the ordinary 144-gate fast/snapshot regression
 passes. Actual CPU/DMA, native clock/initial-gap/drive and hardware gates remain
@@ -71,6 +73,11 @@ measurement consumes only the second synchronized VS stage. Live measurement,
 connected ownership/reset/CPU-control and wrapper-lint gates pass. A fresh
 frozen 120-case pixel matrix is running; fitted topology/timing and hardware
 remain open. See `HDMI_MEASUREMENT_CDC_STATUS.md`.
+The replication-prevention fit now has an exact same-fit sixth-bank constraint
+qualification: 384 reports preserve active/raw/mode rows and all eleven bound
+files match. Global setup remains negative; a fresh committed-source full flow
+and hardware acceptance are still required. The scope only permits whole
+observed banks, not arbitrary per-bit packing.
 The new opcode window passes actual CPU/full-bus oracle and native one-second
 cold/repeat checks. Protected Arcus 32-second cold/repeats now finish with
 660,326 completed M1 fetches in the final second, all at 0E7C–0EFB. Inputs and

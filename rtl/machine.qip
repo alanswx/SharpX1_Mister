@@ -101,5 +101,9 @@ set_global_assignment -name VERILOG_FILE references/chip-src/jt49/hdl/jt49_div.v
 set_global_assignment -name VERILOG_FILE references/chip-src/jt49/hdl/jt49_exp.v
 set_global_assignment -name VERILOG_FILE references/chip-src/jt49/hdl/jt49_eg.v
 set_global_assignment -name VERILOG_FILE references/chip-src/jt49/hdl/jt49_noise.v
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_fdc_byte_slots.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_fdc_bus_events.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_fdc_stream_adapter.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_fdc_completion.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/vendor/wd1793.sv
 set_global_assignment -name VERILOG_FILE rtl/vendor/x1_fdc_index_ram.v

@@ -20,6 +20,9 @@
 #include "verilated_fst_c.h"
 #include "Vtop.h"
 #include "Vtop___024root.h"
+#if defined(X1_FDC_TIMING_EXPERIMENT) && (defined(X1_SAVABLE) || !defined(X1_TURBO_FOUNDATION) || !defined(X1_FDC_CLOCK_HZ))
+#error "fixed FDC timing requires the separate non-savable explicit-rate Turbo profile"
+#endif
 #if defined(X1_WIDE_D88_EXPERIMENT) && (!defined(X1_TURBO_FOUNDATION) || defined(X1_SAVABLE))
 #error "wide D88 addressing requires the separate non-savable Turbo experiment"
 #endif
@@ -198,6 +201,10 @@ int main(int argc, char **argv) {
 #ifdef X1_WIDE_D88_EXPERIMENT
         if (save_path || restore_path)
             throw std::runtime_error("wide D88 experiment is non-savable; snapshots are rejected");
+#endif
+#ifdef X1_FDC_TIMING_EXPERIMENT
+        if (save_path || restore_path)
+            throw std::runtime_error("fixed FDC timing experiment is non-savable; snapshots are rejected");
 #endif
         if (joystick_keys && !interactive)
             throw std::runtime_error("--joystick-keys requires --interactive");
@@ -1097,6 +1104,10 @@ int main(int argc, char **argv) {
 #endif
 #ifdef X1_HD_MEDIA_EXPERIMENT
         crtc_observation += ",\"hd_media_experiment\":true";
+#endif
+#ifdef X1_FDC_TIMING_EXPERIMENT
+        crtc_observation += ",\"fdc_timing_experiment\":true,\"fdc_clock_hz\":"
+            + std::to_string(X1_FDC_CLOCK_HZ);
 #endif
         if (fetch_window_requested)
             crtc_observation += ",\"fetch_start_ms\":" + std::to_string(fetch_start_ms)

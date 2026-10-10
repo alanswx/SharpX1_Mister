@@ -39,6 +39,20 @@ $(WIDE_D88_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h 
 	  -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_WIDE_D88_EXPERIMENT" \
 	  -MAKEFLAGS "-B" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 .PHONY: turbo-wide-d88
+# Fixed-slot byte timing diagnostic, not capacity-derived/native FDCCLK.
+# Each rate and DMA setting has isolated objects and no snapshot support.
+FDC_CLOCK_HZ ?= 1000000
+FDC_TIMING_DMA ?= 0
+FDC_TIMING_DIR ?= obj_dir_v17_fdc_timing_$(FDC_CLOCK_HZ)_dma$(FDC_TIMING_DMA)
+turbo-fdc-timing: $(FDC_TIMING_DIR)/Vtop
+$(FDC_TIMING_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
+	@test "$(FDC_TIMING_DMA)" = 0 || test "$(FDC_TIMING_DMA)" = 1 || { echo "FDC_TIMING_DMA must be 0 or 1" >&2; exit 2; }
+	mkdir -p $(@D)
+	$(V) --cc --exe --build --timing --assert --trace-fst --top-module top --Mdir $(@D) -j 4 \
+	  -GTURBO=1 -GTURBO_FDC_TIMING=1 -GFDC_CLOCK_HZ=$(FDC_CLOCK_HZ) -GTURBO_DMA=$(FDC_TIMING_DMA) $(TURBO_DSW_FLAGS) \
+	  -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_FDC_TIMING_EXPERIMENT -DX1_FDC_CLOCK_HZ=$(FDC_CLOCK_HZ) $(if $(filter 1,$(FDC_TIMING_DMA)),-DX1_TURBO_DMA,)" \
+	  -MAKEFLAGS "-B" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
+.PHONY: turbo-fdc-timing
 HD_MEDIA_DIR ?= obj_dir_v17_hd_media
 turbo-hd-media: $(HD_MEDIA_DIR)/Vtop
 $(HD_MEDIA_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
@@ -60,6 +74,9 @@ test-fdc-address-width:
 	python3 tests/test_fdc_address_width.py --default-regressions --edsk-capacity
 test-fdc-default-state:
 	python3 tests/test_fdc_default_state.py --baseline 3c34dd0
+test-machine-fdc-default-state:
+	python3 tests/test_machine_fdc_default_state.py --baseline c744767 --vendor-sha $(FDC_TIMING_VENDOR_SHA)
+.PHONY: test-machine-fdc-default-state
 test-fdc-capacity-class:
 	python3 tests/test_fdc_capacity_class.py --vendor-sha $(FDC_TIMING_VENDOR_SHA)
 .PHONY: test-fdc-capacity-class
@@ -1492,6 +1509,7 @@ test-hdmi-handoff-input-sdc:
 	python3 tests/test_hdmi_held_mode_probe.py
 	python3 tests/test_held_sdc_context_048.py
 	python3 tests/test_held_sdc_context_3c.py
+	python3 tests/test_held_sdc_context_16fa.py
 	tclsh tests/hdmi_handoff_input_sdc_tb.tcl
 	python3 tests/test_hdmi_handoff_input_probe.py
 .PHONY: test-hdmi-handoff-input-sdc

@@ -268,3 +268,44 @@ The assembled but **unaccepted** RBF SHA-256 is
 It is not deployed. Reporting-only fitted discovery and before/after path
 preservation are next; the host's independently running MacPPC fit prevents
 launching another native probe until idle. Preserve that other build.
+
+### Exact 16fa816 inventory and same-fit constraint qualification
+
+The subsequent idle-host inventory (13:03:21–13:03:29 UTC) preserves the exact
+51 keepers, 205 pins, 77 DATA pins and 109 drivers. The six prefetch ASDATA
+keepers are `hdmi_dv_hs`, `hdmi_dv_vs`, and data bits 5/6/9/11; the remaining
+observed prefetch keepers use D. All 24 canonical DV drivers and the six guarded
+input driver/fanout records match, with no completion-source replica. Raw
+inventory SHA-256 is
+`fdda3bcc5f139f8691d497ab1dffd16072653205d80f24d908a2f5733c173b6d`.
+This supports the narrow replication-prevention attribute, not global timing.
+
+An isolated, initially unselected sixth-bank proposal then runs on the same
+preserved fit, 13:15:25–13:16:58 UTC, exit zero with no native errors/warnings.
+Main independently audits all 384 actual reports, verifies every report hash
+and source/ordered manifest equality, and checks all eleven actual bound files
+on the build host. The study preserves 928 held-budget rows and 6,816 active/
+raw/mode rows, excluding only 848 inactive-parent rows. It does not broaden
+the cut to CLK/SLOAD, raw CDC, I/O or arbitrary per-bit packing. Diagnostic
+global setup/hold are **-9.721/+0.054 ns**, not accepted timing closure.
+
+Copied evidence: `/tmp/x1-16fa-context-evidence-G51hHNFH/held-context-16fa816-v1`.
+Native log SHA-256:
+`ea5fcde85afb610532ccfe0a1a2c0a0cc1875090c7b40b00f047372fe59402e8`.
+Original source/proposal/five-artifact hashes remain unchanged. Database
+preservation is explicitly partial: 508 existing files unchanged, four changed,
+13 added, none removed. Main verifies the original database archive SHA-256
+`a20fba498e28f8f6447e30f70fae022fdf62aa1dfcec74d7e7de4ae5d4df2dcd`.
+Neither the database nor diagnostic global path ranking is claimed unchanged.
+
+The reviewed production candidate now allows this exact sixth whole-bank
+profile only. `--fit-16fa816` binds the original fit and staged study bytes,
+including all five actual artifacts; it deliberately retains the staged hash
+rather than replacing it with today's selected SDC hash. New synthetic checks
+pass 26 provenance, 22 actual-byte/missing-file, substituted-fit and 16 report-
+preservation negatives. Historical 048/3c bindings remain separate. Main's
+independent staged six-profile test completes zero, including 120 scope negatives
+and 131,066 mixed-bank rejections before any cut; log
+`/tmp/x1-16fa-independent-scope-test.log`. The selected production-scope rerun
+and a fresh committed-source full flow remain required before this candidate
+can produce another accepted build; no new RBF is loaded.

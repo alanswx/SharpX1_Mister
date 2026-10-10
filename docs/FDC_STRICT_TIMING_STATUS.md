@@ -1,15 +1,16 @@
 # Default-off controller byte-timing integration
 
-October 10, 2026. Original experimental bridge in `rtl/vendor/wd1793.sv`,
-not native MB8877A timing, a shared-machine enabled profile or board acceptance.
+October 10, 2026. Original experimental bridge in `rtl/vendor/wd1793.sv`.
+An opt-in shared-machine connection is under qualification; neither it nor
+the standalone gates establish native MB8877A timing or board acceptance.
 
 ## Implemented experiment
 
 `STRICT_D88_TIMING=1` requires the SD-backed indexed strict-D88 configuration.
 The trailing `fdc_ce` input is an explicit nominal chip-clock event, separate
 from the existing controller/bus `ce`; no capacity-derived rate is invented.
-No ordinary board or runner enables this parameter. The actual shared machine
-ties the new input inactive while preserving its legacy controller enable.
+No ordinary board or runner enables this parameter. Disabled shared-machine
+profiles tie the new input inactive while preserving the legacy controller enable.
 
 The bridge connects the previously standalone byte scheduler, external-DR
 stream, raw bus-event capture and held completion lease. The existing SYS
@@ -113,6 +114,62 @@ The broader ordinary delay-aware `make test` also finishes with exit zero and
 is `b405612b16ee40e47c41fa95a8b865ef5c79ce1abc12e7ea86bb0de528dd5c00`.
 These default-disabled regressions do not qualify the enabled bridge through
 the actual CPU/DMA path or on hardware.
+
+## Shared-machine candidate (not yet a transfer acceptance gate)
+
+`TURBO_FDC_TIMING=1` now connects the bridge through `rtl/sharpx1.v` and
+`verilator/sim.v`. The four helper sources belong to `rtl/machine.qip`.
+`FDC_CLOCK_HZ=1000000/2000000` uses fixed SYS32 counter enables independent of
+CPU/DMA ownership; it does not map the capacity latch to FDCCLK. Turbo and
+the ordinary 32-MHz system profile are required; single-clock and other rates
+are rejected. No board revision selects this parameter.
+
+`make -C verilator turbo-fdc-timing FDC_CLOCK_HZ=1000000 FDC_TIMING_DMA=0`
+builds the non-savable delay-aware runner in a rate/DMA-specific directory.
+The 1-MHz CPU and 2-MHz DMA candidates build and complete 200,000-reference-cycle
+smokes with explicit JSON identities. Without an uploaded IPL or disk these
+smokes produce no frames or disk requests and are not transfer/game tests.
+The enabled runner rejects snapshot requests before creating a state file.
+Actual CPU/DMA, dual-drive and cancellation fixtures are being prepared.
+The fresh `test-machine-fdc-default-state` gate freezes the actual updated
+manifest/RTL/top and compares all eight default base/Turbo generated headers
+and serializers against c744767. They are byte-identical; each profile retains
+60 inherited warning messages with no additions. Frozen evidence:
+`/var/folders/sv/859j7h856t5gzg1kv3nnqdj40000gn/T/x1-machine-fdc-default-state-igj_w1xt/comparison.json`.
+This qualifies generated state after the helper-manifest connection, not
+runtime restore or enabled transfer behavior.
+
+Independent inspection finds the existing media glue asserts `changing` before
+updating the active drive, so the vendor cancellation suppresses serial stores,
+arrivals and completion consumption while the old SD ACK owner drains. Coupled
+stream/reselection tests remain required. READY-only loss is not a justified
+automatic stream-abort contract: WD FD179X-01 (October 1979) PDF pp8/11/12
+samples READY at Type-II command entry, without a READY decision in the payload
+loops or multi-record continuation. PDF pp14/15 separate armed Type-IV READY
+transition interrupts from live inverted-READY status. Fujitsu MB8877A (October
+1986, PDF pp3/6/7) defines eligibility, transition interrupt conditions and
+status, but does not establish automatic mid-transfer termination. Its stated
+compatibility is FD1793-02; the -01 flowcharts are family evidence, not measured
+Fujitsu silicon equivalence. Local MAME `wd_fdc.cpp` lines558/941 and1463
+corroborate command-start checks and transition IRQs without automatic abort.
+Evidence/hashes: `/tmp/x1-ready-contract.Sf40b2/evidence.md`; original PDFs
+remain ignored under `references/manuals/`. No proposed READY-abort patch is
+made. A bare `!ready` cancellation would also strand the waiting FSM after
+discarding its completion. Existing search/pre-flush readiness rechecks remain
+implementation policies, not qualified native sampling points.
+
+The first existing `test_disk.py` CPU run at 1 MHz passes its basic and large
+container reads, then reaches its 250-ms limit during the deleted-mark
+multi-sector case, with 15 of the 16 multi-record sectors serviced. Preserve
+`/tmp/x1-machine-fdc-timing-cpu1m-disk.log`; it is a failed bounded run, not a
+completed suite. A rerun adds only an explicit 16,000,000-reference-cycle
+(500-ms) case budget, keeping the default 8,000,000 unchanged and every payload/
+status assertion intact. The same frozen runner hash is
+`c244826e3f9da196276431ceb4e3ce7b7f8a1d0d849b4e8af977c99c27ca76cc`.
+The formerly failing deleted-16 case now passes; the broader rerun is still
+active in `/tmp/x1-machine-fdc-timing-cpu1m-disk-16m.log`. This is evidence of
+an insufficient original window for that case, not a relaxed byte deadline
+or full enabled-profile acceptance.
 
 ## Remaining acceptance
 

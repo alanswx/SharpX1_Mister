@@ -15,6 +15,48 @@ CORNERS = [(model, str(t)) for model in ("slow", "fast") for t in (-40, 0, 85, 1
 PACKED = {"hdmi_dv_hs", "hdmi_dv_de", "hdmi_dv_data[0]", "hdmi_dv_data[6]", "hdmi_dv_data[17]"}
 PACKED048 = {"hdmi_dv_hs", "hdmi_dv_de"} | {f"hdmi_dv_data[{i}]" for i in (3, 12, 13, 16, 17)}
 PACKED3C = {"hdmi_dv_hs", "hdmi_dv_vs"} | {f"hdmi_dv_data[{i}]" for i in (6, 13, 16)}
+PACKED16FA = {"hdmi_dv_hs", "hdmi_dv_vs"} | {f"hdmi_dv_data[{i}]" for i in (5, 6, 9, 11)}
+
+
+def audit_provenance_16fa(log):
+    """Bind only the original 16fa816 fit and its unselected v1 study inputs.
+
+    The staged proposal's historical byte hash deliberately does not follow
+    today's selected candidate, even when only comments have changed.
+    """
+    names = ["rtl/x1_hdmi_clock_handoff.sv", "sys/sys_top.v",
+             "scripts/constraints/hdmi_held_mode_candidate.sdc"]
+    names += ["../held-context-16fa816-v1/" + name for name in (
+        "hdmi_held_mode_candidate.sdc", "hdmi_inactive_data_candidate.sdc",
+        "quartus_held_sdc_context_probe.tcl")]
+    names += [f"output_files/sharpx1_turbo_z_handoff.{ext}" for ext in (
+        "fit.rpt", "fit.summary", "sta.rpt", "sta.summary", "rbf")]
+    expected = [
+        "1ea8f6f3c523efc8de5ecd176c7ff1bb4cf43f42bfb3641bcecf78798d91aeca",
+        "583dd6f99967b8fc10df7f83ae92e6206f7c0874c51985669609831fcb800630",
+        "e4266eaa455e0603b0df5e2a8439bfb69b36e98956d431808c7e73acf1f3d5e1",
+        "e4266eaa455e0603b0df5e2a8439bfb69b36e98956d431808c7e73acf1f3d5e1",
+        "208e236c48d5305ffe585dae9641e51a4b02f3dc0868c5ae6c4495d1599ad61f",
+        "980d9cb7523d6b556af0a2f65ba693b85374244b30e20634ff79ac96885cb37f",
+        "709c5d21abb2b045f53ee21ba37b93decf5e2e459b3b7f90e27529b5bbeb84d2",
+        "21182a678ded966e9177777c758096c17ff54d23879d78b457ea72b4b60784b8",
+        "8e79bcb271c9cd58c7afbac914956a52d601374178aa166b7a6b4c2449d91e89",
+        "2838ece4f86af3367728e30fe013fa908c7b011fe82d7a774fdff36fd6ae9782",
+        "45110cb947f00fa690e2b28a24cf666fc363bf9b37513d151c270645dbb6f483"]
+    records = list(zip(expected, names))
+    hashes = re.findall(r"^([0-9a-f]{64})  (\S+)$", log.read_text(), re.M)
+    assert hashes == records * 2, "wrong/reordered/changed 16fa original fit or staged study provenance"
+    return records
+
+
+def verify_bound_files(root, records):
+    """Check actual bytes, including all five artifacts, not just log equality."""
+    for expected, name in records:
+        assert hashlib.sha256((root / name).read_bytes()).hexdigest() == expected, f"bound file changed: {name}"
+
+
+def audit_sources_16fa(log, root):
+    verify_bound_files(root, audit_provenance_16fa(log))
 
 
 def audit_sources_3c(log, root):
@@ -90,8 +132,8 @@ def audit_sources(log, root):
 
 
 def audit(directory, log, profile="fitted4cd"):
-    assert profile in ("fitted4cd", "fitted048", "fitted3c"), "unqualified context profile"
-    packed = {"fitted4cd": PACKED, "fitted048": PACKED048, "fitted3c": PACKED3C}[profile]
+    assert profile in ("fitted4cd", "fitted048", "fitted3c", "fitted16fa"), "unqualified context profile"
+    packed = {"fitted4cd": PACKED, "fitted048": PACKED048, "fitted3c": PACKED3C, "fitted16fa": PACKED16FA}[profile]
     text = log.read_text()
     assert text.count("TimeQuest Timing Analyzer was successful. 0 errors, 0 warnings") == 1, "native flow incomplete/warned"
     assert not re.search(r"^\s*(?:Error|Warning|Critical Warning)\b", text, re.M), "native diagnostic warning/error"
@@ -161,12 +203,15 @@ if __name__ == "__main__":
     fit = parser.add_mutually_exclusive_group()
     fit.add_argument("--fit-048d996", action="store_true", help="require the separate exact 048d996 fit/proposal binding")
     fit.add_argument("--fit-3c6242e", action="store_true", help="require exact 3c6242e fit and cef2210 diagnostic inputs")
+    fit.add_argument("--fit-16fa816", action="store_true", help="require all eleven actual files of the exact original 16fa816 fit and v1 staged study")
     args = parser.parse_args()
-    if args.fit_3c6242e:
+    if args.fit_16fa816:
+        audit_sources_16fa(args.native_log, args.source_root)
+    elif args.fit_3c6242e:
         audit_sources_3c(args.native_log, args.source_root)
     elif args.fit_048d996:
         audit_sources_048(args.native_log, args.source_root)
     else:
         audit_sources(args.native_log, args.source_root)
     audit(args.directory, args.native_log,
-          "fitted3c" if args.fit_3c6242e else "fitted048" if args.fit_048d996 else "fitted4cd")
+          "fitted16fa" if args.fit_16fa816 else "fitted3c" if args.fit_3c6242e else "fitted048" if args.fit_048d996 else "fitted4cd")

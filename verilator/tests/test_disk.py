@@ -1,19 +1,25 @@
 """Original generated D88 + Z80 tests: actual machine controller, never game data."""
 import binascii
+import argparse
 import hashlib
 import json
 import pathlib
 import shutil
 import struct
 import subprocess
-import sys
 import tempfile
 from z80_fixture import Program
 
-exe = str(pathlib.Path(sys.argv[1]).resolve())
-large_container_only = sys.argv[2:] == ["--large-container-only"]
-if sys.argv[2:] and not large_container_only:
-    raise SystemExit("usage: test_disk.py RUNNER [--large-container-only]")
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('runner', type=pathlib.Path)
+parser.add_argument('--large-container-only', action='store_true')
+parser.add_argument('--cycles', type=int, default=8000000,
+                    help='32-MHz reference cycles per case; default unchanged, explicit-rate profiles may need longer')
+args = parser.parse_args()
+if args.cycles <= 0:
+    parser.error('--cycles must be positive')
+exe = str(args.runner.resolve())
+large_container_only = args.large_container_only
 
 
 def media(protected=False, crc=0, mixed=False, deleted=0):
@@ -208,7 +214,7 @@ with tempfile.TemporaryDirectory(prefix="x1-disk-") as directory:
     assert hashlib.sha256(frozen_runner.read_bytes()).hexdigest() == executable_hash
     exe = str(frozen_runner)
     print(json.dumps({"frozen_runner_sha256": executable_hash,
-                      "reference_cycles_per_case": 8000000}), flush=True)
+                      "reference_cycles_per_case": args.cycles}), flush=True)
     disk, rom = folder / "original.d88", folder / "test.bin"
 
     def run(program, data, name, writable=False, resets=()):
@@ -216,7 +222,7 @@ with tempfile.TemporaryDirectory(prefix="x1-disk-") as directory:
         original_hash = hashlib.sha256(data).hexdigest()
         rom.write_bytes(program)
         output, dump = folder / (name + ".d88"), folder / name
-        command = [exe, "--cycles", "8000000", "--rom", str(rom), "--disk", str(disk), "--dump", str(dump)]
+        command = [exe, "--cycles", str(args.cycles), "--rom", str(rom), "--disk", str(disk), "--dump", str(dump)]
         for when in resets:
             command += ["--reset-at", str(when), "--reset-for-us", "1000"]
         if writable:
