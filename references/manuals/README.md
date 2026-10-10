@@ -2,6 +2,15 @@
 
 ## NEC calendar manufacturer reference
 
+Sharp YEAR follow-up: CZ-856C BASIC reference PDF pages 411/413 (printed
+3–90/3–92) and user's manual introduction PDF page 5 were visually inspected
+for TIME$/DATE$ and Startup YEAR initialization. CZ-880 service PDF/printed
+page 6 specifies the Ni-Cd-backed clock. These confirm software YEAR setup
+and clock backup, **not** native EC–EF payload ordering or YEAR retention.
+The subagent's additional UI/third-party I/O appendix survey did not locate
+a command payload table. See [exact evidence and limits](../../docs/RTC_COMMAND_STATUS.md#primary-year-initialization-evidence-not-command-order-resolution).
+No PDF or additional private asset is committed.
+
 Retrieved the [1983 NEC Consumer IC Data Book mirror](https://ftpmirror.your.org/pub/misc/bitsavers/components/nec/_dataBooks/1983_NEC_Integrated_Circuits_for_Consumer_Use.pdf)
 to ignored `NEC_1983_Consumer_IC_Data_Book.pdf`: 42,422,169 bytes, 1,150 pages,
 SHA-256 `b07eb0e05741c014375ad8e2bf9df20ee90e5d1b09dec38ce2bd14ab4cc9cac0`.

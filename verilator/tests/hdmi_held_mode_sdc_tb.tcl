@@ -55,21 +55,36 @@ proc get_node_info {option node} {
 }
 proc set_max_delay {args} {lappend ::constraints [list max {*}$args]}
 proc set_min_delay {args} {lappend ::constraints [list min {*}$args]}
-foreach fault {missing duplicate alias replica missing_clock clock_alias clock_period missing_driver wrong_driver extra_driver nonreg_driver} {
-    set constraints {}
-    if {![catch {source $candidate} problem]} {error "invalid scope accepted: $fault"}
-    if {[llength $constraints]} {error "partial constraints applied: $fault"}
+proc source_local_candidate {candidate} {source $candidate}
+proc load_candidate {context} {
+    unset -nocomplain ::x1_mode_inventory
+    switch $context {
+        global {uplevel #0 [list source $::candidate]}
+        procedure {source_local_candidate $::candidate}
+        namespace {
+            namespace eval x1_scope [list source $::candidate]
+        }
+        default {error "unknown mock load context"}
+    }
 }
-set fault {}
-set constraints {}
-source $candidate
-set expected {}
+set mock_expected_constraints {}
 foreach target $targets {
     set bits [expr {$target eq "hs" ? {0 1 2} : {0}}]
     foreach bit $bits {
-        lappend expected [list max -from [list [lindex $sources $bit]] -to [list $target] 31.25]
-        lappend expected [list min -from [list [lindex $sources $bit]] -to [list $target] -31.25]
+        lappend mock_expected_constraints [list max -from [list [lindex $sources $bit]] -to [list $target] 31.25]
+        lappend mock_expected_constraints [list min -from [list [lindex $sources $bit]] -to [list $target] -31.25]
     }
 }
-if {$constraints ne $expected} {error "candidate changed scope or delay bounds"}
-puts "PASS: unselected held-mux candidate: 29 exact pairs and eleven invalid scope/clock/route controls"
+foreach context {global procedure namespace} {
+    foreach fault {missing duplicate alias replica missing_clock clock_alias clock_period missing_driver wrong_driver extra_driver nonreg_driver} {
+        set constraints {}
+        if {![catch {load_candidate $context} problem]} {error "invalid scope accepted: $context $fault"}
+        if {[llength $constraints]} {error "partial constraints applied: $context $fault"}
+    }
+    set fault {}
+    set constraints {}
+    load_candidate $context
+    if {$constraints ne $mock_expected_constraints} {error "candidate changed scope or delay bounds: $context"}
+}
+namespace delete x1_scope
+puts "PASS: held-mux candidate: 29 exact pairs and eleven rejecting scope/clock/route controls at global/procedure/namespace loads"

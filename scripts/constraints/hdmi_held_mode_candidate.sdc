@@ -1,4 +1,4 @@
-# UNSELECTED diagnostic candidate: held output-mux DATA controls only.
+# Experimental handoff-only candidate: held output-mux DATA controls only.
 # Controller changes the bundle with output blanked and clock closed, then
 # waits five 31.25 ns CTRL periods before reopening. The native bench also
 # requires three CTRL periods since the last output transition at publication.
@@ -9,13 +9,15 @@
 # Exact scope/route/clock checks finish before any constraint is applied.
 set x1_mode_prefix {x1_hdmi_clock_handoff:hdmi_handoff|}
 set x1_mode_inventory [get_registers {*hdmi_handoff|active_mode* d* hs* vs* de*}]
-proc x1_mode_scalar {name} {
+proc x1_mode_scalar {name inventory} {
     set result [get_registers -no_duplicates [list $name]]
     if {[get_collection_size $result] != 1} {error "missing/ambiguous held mux keeper $name"}
     foreach_in_collection node $result {
         if {[get_register_info -name $node] ne $name} {error "substituted held mux keeper $name"}
     }
-    foreach_in_collection node $::x1_mode_inventory {
+    # read_sdc may evaluate this file in a procedure/namespace. Pass the held
+    # inventory explicitly rather than depending on a global Tcl variable.
+    foreach_in_collection node $inventory {
         set actual [get_register_info -name $node]
         if {[string first "${name}~" $actual] == 0 ||
             [string first "${name}_Duplicate_" $actual] == 0} {
@@ -41,13 +43,13 @@ foreach {name lo hi} {
 }
 set x1_mode_sources {}
 foreach bit {0 1 2} {
-    lappend x1_mode_sources [x1_mode_scalar [format {%sactive_mode[%d]} $x1_mode_prefix $bit]]
+    lappend x1_mode_sources [x1_mode_scalar [format {%sactive_mode[%d]} $x1_mode_prefix $bit] $x1_mode_inventory]
 }
 set x1_mode_targets {hs vs de}
 for {set bit 0} {$bit < 24} {incr bit} {lappend x1_mode_targets [format {d[%d]} $bit]}
 set x1_mode_pairs {}
 foreach name $x1_mode_targets {
-    set target [x1_mode_scalar $name]
+    set target [x1_mode_scalar $name $x1_mode_inventory]
     set actual {}
     # Clock-cone reachability is deliberately excluded from this D-route check.
     foreach_in_collection node [get_fanins -synch $target] {

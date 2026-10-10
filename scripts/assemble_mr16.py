@@ -307,6 +307,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("source", type=pathlib.Path)
     parser.add_argument("--check-rom", type=pathlib.Path, help="compare all 2048 literal ROM words; no writes")
+    parser.add_argument("--output-mem-new", type=pathlib.Path, help="exclusive new simulation readmemh file; never overwrite")
     args = parser.parse_args()
     image, symbols, locations = assemble(args.source)
     if args.check_rom:
@@ -321,6 +322,13 @@ def main():
         if differences:
             raise AssemblyError(f"ROM mismatch: {len(differences)} bytes; first offset {differences[0]:04x}")
         print("PASS: all 4096 assembled bytes match the inherited literal ROM; receive-only override is separate")
+    if args.output_mem_new:
+        destination = args.output_mem_new.resolve()
+        root = pathlib.Path(__file__).resolve().parents[1]
+        if any(destination.is_relative_to(root / name) for name in ("bios", "rtl", "sys")):
+            raise AssemblyError("generated ROM must stay outside source/firmware trees")
+        with destination.open("x", encoding="ascii") as output:
+            output.writelines(f"{int.from_bytes(image[i:i+2], 'little'):04x}\n" for i in range(0, len(image), 2))
     print(f"MR16 layout: code_end={symbols.get('code_end', locations['cseg']):04x}, data_end={locations['dseg']:04x}; no firmware changed")
 
 

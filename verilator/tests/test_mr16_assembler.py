@@ -1,6 +1,7 @@
 """Artifact parity and restricted syntax tests, not native firmware acceptance."""
 import hashlib
 import pathlib
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -141,6 +142,28 @@ class MR16AssemblerTest(unittest.TestCase):
             source.write_text('include "recursive.asm"')
             with self.assertRaisesRegex(AssemblyError, "recursive include"):
                 assemble(source)
+
+    def test_generated_mem_exclusive_and_source_tree_protection(self):
+        script = ROOT / "scripts/assemble_mr16.py"
+        source = ROOT / "verilator/tests/fixtures/rtc_mr16_compact.asm"
+        with tempfile.TemporaryDirectory(prefix="x1-mr16-output-") as folder:
+            output = pathlib.Path(folder) / "driver.mem"
+            command = [sys.executable, str(script), str(source), "--output-mem-new", str(output)]
+            subprocess.run(command, check=True, capture_output=True)
+            original = output.read_bytes()
+            self.assertEqual(len(original.splitlines()), 2048)
+            self.assertEqual(original.splitlines()[0], b"0010")
+            overwrite = subprocess.run(command, capture_output=True, text=True)
+            self.assertNotEqual(overwrite.returncode, 0)
+            self.assertIn("FileExistsError", overwrite.stderr)
+            self.assertEqual(output.read_bytes(), original)
+            for tree in ("bios", "rtl", "sys"):
+                forbidden = ROOT / tree / (pathlib.Path(folder).name + ".mem")
+                self.assertFalse(forbidden.exists())
+                result = subprocess.run(command[:-1] + [str(forbidden)], capture_output=True, text=True)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("outside source/firmware trees", result.stderr)
+                self.assertFalse(forbidden.exists())
 
 
 if __name__ == "__main__":

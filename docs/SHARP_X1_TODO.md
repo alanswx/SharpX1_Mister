@@ -14,12 +14,29 @@ support before optional Turbo extensions.
 
 ## Active goal: items 1–6 and Turbo Z (October 6)
 
+The `4cd18ed` handoff flow now terminates 3: synthesis, fitting and assembly
+pass, but final STA fails a same-file Tcl helper's global-inventory dependency.
+The helper now receives its inventory explicitly; global/procedure/namespace
+scope tests preserve all 29 pairs and reject eleven controls in each context.
+Native final scope/preservation/timing and PCG-WE qualification remain open;
+the generated RBF is unqualified and not deployed. See
+[the failed-flow checkpoint](HDMI_MODE_STATUS.md#exact-whole-bank-earlypacked-contract-qualification).
+
+The RTC's original counted serial driver now executes actual MR16 calls,
+stack/RAM and warm reset at CE=1/32; independent ticking with stopped CE and
+three phase-specific rejecting controls pass with frozen provenance. Its
+serial body measures 106 bytes, the full diagnostic 212 bytes, still exceeding
+the inherited 22-byte free tail. Primary Sharp pages confirm software YEAR
+initialization, not native mailbox ordering or YEAR retention. Full firmware
+space/decoding, command integration, IRQ/carry/reset/power policies and native
+acceptance remain open. See [driver evidence](RTC_COMMAND_STATUS.md#counted-assembly-driver-execution-and-measured-space-requirement).
+
 The RTC firmware rebuild dependency now has a tested restricted replacement
 assembler: the unchanged inherited source reproduces all 4,096 ROM bytes,
 independently checked against saved checksum-valid HEX/BIN and literal RTL.
 It preserves inherited macro quirks rather than silently fixing their machine
-behavior. Only 22 bytes remain free; a compact real serial driver and verified
-space/decoding solution are still required. EC..EF time advancement remains
+behavior. Only 22 bytes remain free; driver adaptation to the real mailbox and
+a verified space/decoding solution are still required. EC..EF time advancement remains
 unfixed. See [source-rebuild evidence](RTC_COMMAND_STATUS.md#reproducible-restricted-source-rebuild-not-an-rtc-fix).
 
 The early/fitted HDMI pin-contract repair now qualifies two exact whole-bank

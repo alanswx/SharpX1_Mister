@@ -417,6 +417,95 @@ removing FDC/DMA support is not an acceptable space shortcut; an extended
 replacement-controller ROM would require non-overlapping decoding and its
 own explicit profile rather than aliasing work RAM at `1000`.
 
+### Counted assembly driver execution and measured space requirement
+
+`verilator/tests/fixtures/rtc_mr16_compact.asm` now implements original counted
+serial routines using qualified LDM/STM, arithmetic and actual JSR/RET. The
+mode routine is **14 bytes**, write-40 **44 bytes**, read-40 **48 bytes**:
+**106 bytes / 53 words** total. The complete diagnostic, reset vector, caller
+and payload included, is **212 bytes / 106 words**. These are measured symbol
+differences from assembled source, not an estimate or a fitting result.
+Neither the 106-byte body nor the complete diagnostic fits the inherited
+22-byte free tail; mailbox conversion/year/initialization needs additional
+code. No FDC/DMA support is removed to make space.
+
+`make -C verilator test-rtc-mr16-compact` completes zero. Independent actual
+MR16 execution at CE=1 and CE=32, `RETAIN_RESPONSE=1`, programs the complete
+40-bit calendar through OP5/P1 and reads packed data through IP1[5]/T1.
+It requires actual result writes at `1020/1022/1024`, stack bus read/write
+witnesses at `17FE`, and correct return to the completion marker. The test
+calendar starts `C6 31 12 34 56`; after 64,000,000 nominal 32-MHz SYS events
+with the controller CE stopped it reads `C6 31 12 34 58` through instructions,
+not direct state injection. The instruction clock still uses diagnostic
+steps; electrical SYS frequency/pin timing is not qualified by this fixture.
+
+A real controller reset restarts at the ROM vector while the RTC producer
+keeps running. The diagnostic's own instructions inspect a retained RAM
+marker and skip reprogramming before a new read. **This is an explicit test
+driver retention policy**, not the inherited firmware's startup policy:
+the inherited startup clears work RAM. No battery persistence or native
+year/MCU reset semantics are inferred. No shared-machine profile selects
+this driver or enables response retention.
+
+Three controls reject at the required phases: inverted T1 fails packed
+readback (`CBA7 CEED 0039`), CPU-gated crystal fails stopped-controller
+advancement, unretained CE=32 fails initial programming. The real executable,
+emitter, assembly, collector and RTL inputs are frozen before execution;
+final before/after manifests and all source/frozen/ROM hashes match in an
+independent audit. Final evidence:
+`verilator/obj_dir_headless/rtc-mr16-compact-1/qualified-bz9s24ty/`;
+log `/tmp/x1-rtc-mr16-compact-final.log`.
+
+The first launch failed before any case because its measured-size expectation
+mistakenly omitted four write-routine bytes; it is retained as a failure, not
+a driver result. The corrected run passes; the final run also fixes a new
+fixture width warning and requires each negative's specific failure phase.
+Inherited CPU/timer missing-pin/width warnings remain visible; none is
+suppressed as a new correctness claim. IRQ interleaving, partially completed
+serial transactions, varied/carry payloads and real mailbox integration
+remain open.
+
+The assembler's optional `--output-mem-new` emits only a new simulation
+readmemh file, refusing overwrite and the `bios/rtl/sys` trees. Eight assembler
+test groups pass, including output identity/overwrite/isolation controls and
+unchanged whole-image base/receive-only parity. Log:
+`/tmp/x1-mr16-assembler-output-tests.log`. New assembler SHA-256:
+`0921dd0c19f805d5a1d971277499861e9d03fb90bf8425ace7304fec9da11ef9`;
+compact assembly:
+`76b4ac58e01199bf10ae04b2ad43de15a93c789b4abf7fcbb8fcf8e14e725a43`;
+fixture:
+`caff9cb5719caa3abeec908c790f6db0f9e8f557ae322c8ae93fc5a924ab2569`;
+collector:
+`3f6a5b9a0bcbbec55e3a905be953209101196aafa76a2f2275b6765810a01371`.
+ROM image SHA-256:
+`525d6eb83bcaf8dd6c181c72339d27edf15bc20ddbaffc6dc157f03d9bd2cc7a`.
+
+### Primary YEAR initialization evidence, not command-order resolution
+
+The retained Sharp CZ-856C BASIC reference PDF page 413 / printed 3–92,
+DATE$ section, explicitly identifies Startup software as setting YEAR.
+It specifies the `yy/mm/dd` string and year 00–99, and discusses an unknown
+year displayed as `??`. The Sharp user's manual PDF page 5 introduction
+independently lists setting the internal clock's year among Startup tasks.
+BASIC PDF page 411 / printed 3–90 specifies `hh:mm:ss`, hours 00–23 and
+minutes/seconds 00–59. These three pages were visually inspected by the main
+agent, not inferred from text search or emulator behavior.
+
+Sharp CZ-880 service PDF/printed page 6, also visually inspected, specifies
+an internally Ni-Cd-backed clock. That corroborates sheet 47's RTC battery
+network but **does not specify YEAR backup**. Software initialization and
+clock backup do not locate a year register or resolve year carry/leap/reset/
+main-power/battery-loss policies. The subagent additionally checked the
+user-manual clock UI and third-party Techknow I/O appendix; UI field sequence
+is not EC/ED/EE/EF mailbox ordering, and floppy ports `0FEC–0FEF` are not RTC
+commands. No native payload table was located in that survey.
+
+The PDFs remain unchanged/local/ignored; identities are recorded in
+`references/manuals/README.md`. Relevant renders and survey locators:
+`/tmp/x1-rtc-manual-audit.6TJ8G1/`. The emulator ordering discrepancy remains
+unresolved. Do not replace the current byte-preservation contract with an
+assumed native date order or promote this counted driver to a machine RTC fix.
+
 ### Remaining integration order
 
 1. Finish tracing controller year storage and power retention; reconcile

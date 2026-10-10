@@ -21,16 +21,21 @@ the remaining physical and unimplemented-feature gates.
 The RTC investigation now includes a restricted MR16 assembler that reproduces
 all 4,096 inherited ROM bytes from source. This enables firmware work without
 the missing AASM executable, but is not an RTC fix or a general AASM replacement;
-the compact driver and ROM-space solution remain open. See
+full firmware integration and the ROM-space solution remain open. See
 [firmware evidence](docs/RTC_COMMAND_STATUS.md#reproducible-restricted-source-rebuild-not-an-rtc-fix).
+The new counted serial routines now pass actual MR16 call/stack/RAM and
+retained-controller reset checks at full/sparse enables. Their 106-byte body
+does not fit the 22-byte free tail; full firmware integration remains open.
 
 The experimental handoff revision's early/fitted HDMI pin guard now accepts
 two exact observed whole-bank profiles, not arbitrary per-bit alternatives.
 Native mapped guard loading and historical-fit active-path preservation pass;
 fresh fitting and timing/hardware acceptance remain open. See
 [scope and evidence](docs/HDMI_MODE_STATUS.md#exact-whole-bank-earlypacked-contract-qualification).
-The new `4cd18ed` source-bound handoff flow is now synthesizing on
-`misterubuntu`; a started build is not a timing-qualified RBF.
+The new `4cd18ed` source-bound handoff flow fits and assembles, but final STA
+fails a Tcl helper scope dependency. The local repair preserves the exact
+constraint scope in three load contexts; native requalification remains open.
+Its generated RBF is unqualified and has not been deployed.
 
 For a blank screen on first launch, see [IPL loading](docs/IPL_LOADING.md):
 the RBF does not bundle the boot ROM. Load a matching raw `.rom` through

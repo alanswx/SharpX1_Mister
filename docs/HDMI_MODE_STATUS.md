@@ -1289,6 +1289,38 @@ actual `quartus_sh`/`quartus_map` processes confirm synthesis is live.
 Log: `/tmp/x1-quartus-4cd18ed-handoff.log`. This is a started flow, not
 synthesis/fitting/timing acceptance or a new tester RBF. No MiSTer is loaded.
 
+The flow subsequently terminates **3**, after 9m23s. Synthesis completes
+zero (150 warnings), fitting completes zero (11 warnings; 20,525/41,910 ALMs,
+49%), and assembly completes zero. Final TimeQuest fails because
+`x1_mode_scalar` reads `::x1_mode_inventory` although `read_sdc` evaluates
+the held-mode file in a non-global context. This is a same-file helper scope
+dependency, not missing HDL or another file's inventory. The inactive-data
+candidate is not reached in final STA, so its new fitted pin profile remains
+unqualified. Partial failed STA reports cannot establish timing closure.
+
+The failed flow produces source-bound RBF SHA-256
+`38a779e9e6e72ea80d8d19087b32978e705b192b14573f180248496b027fb8ee`.
+It is **unqualified**, not a successful full flow or a new accepted tester
+artifact. The source snapshot, input manifest and failed reports stay
+unchanged. Final manifest records exit 3 at `2026-10-10T04:45:56Z`.
+
+The local repair passes the exact inventory as a helper argument rather than
+reaching into the global namespace. No keeper/replica/driver/clock check,
+29-pair scope or max/min bound changes. The mock now checks all three load
+contexts independently (global/procedure/namespace): three identical complete
+58-command positive lists and eleven rejecting controls at each context,
+before any partial constraint application. The related full scope/provenance/
+board-isolation targets complete zero in
+`/tmp/x1-hdmi-held-sdc-context-tests-final.log`.
+Candidate SHA-256:
+`e4266eaa455e0603b0df5e2a8439bfb69b36e98956d431808c7e73acf1f3d5e1`.
+An initial expanded mock failed due to collision of its oracle's global
+`expected` variable with an SDC scratch variable; a distinct mock-oracle name
+fixes that harness bug without altering the proposal. The failure is retained.
+Native completed-fit scope/preservation and a fresh source-bound final STA
+remain required. Other build-host projects are currently active, so no
+competing analyzer or another full build is started.
+
 ## Next gates
 
 ### Unselected csync first-stage proposal
