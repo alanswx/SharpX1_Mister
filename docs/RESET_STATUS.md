@@ -98,3 +98,35 @@ with protected disposable media, without using core reload as recovery:
 
 Malformed media, eject/remount, stopped host service, scanner reset and physical
 input/PLL/CDC behavior remain separate bring-up items.
+
+## Prepared repeated physical-menu check, not yet executed
+
+October 9: the user has subsequently released named units; the travelling
+availability note above is historical. A new availability confirmation is
+requested before sending input or loading another test on mister126.
+`scripts/mister_reset_check.py` now supports 1–8 rounds of both actual Main
+menu entries, with one initial protected MGL load and no recovery reload
+between rounds. Repeated execution requires `--expect-active SETNAME` and
+checks the exact active set before creating evidence or issuing load/input.
+Each menu iteration keeps distinct before/after/post-reset-input PNG names,
+exact native-title pixel comparisons, unchanged set/core and media hashes.
+Default one-round behavior remains unchanged.
+
+Asset-free orchestration tests pass six cases, including bounds/required
+active guard, read-only preflight, three rounds/one load/18 unique images,
+changed-core refusal and retained failing-pixel evidence. Existing five
+matrix CLI safety cases also pass. Log:
+`/tmp/x1-repeated-osd-orchestration-final.log`. These mocked pixels/SSH/sleeps
+are not MiSTer or native gameplay results. Script SHA-256:
+`bccfa0ec071da959778d2e3e7827ee9d5ac9c70d50319279f151f99206799e77`;
+test SHA-256:
+`2bb3b4d8657da714dae6b5440c1ca28d28f1e4f089a68e0ad7cca0b26864d752`.
+
+Actual read-only preflight subsequently terminates zero through misterubuntu
+on mister126: prior RBF `c1d83e6b...98bc8ca3`, existing protected IPL/disk and
+installed input-helper hashes match the original matrix; active set remains
+`X1M_20261009T005633Z_01`. Log:
+`/tmp/x1-repeated-osd-hardware-preflight.log`. No core is loaded, no input is
+sent and no screenshot is requested by preflight. This is readiness for an
+older source-bound DMA-board artifact, not current Z/PCG fitting or physical
+reset acceptance. mister14 and reserved mister192 remain untouched.

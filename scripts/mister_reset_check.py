@@ -23,7 +23,14 @@ def main():
     parser.add_argument("--manifest", type=pathlib.Path, required=True)
     parser.add_argument("--bridge", default="misterubuntu")
     parser.add_argument("--execute", action="store_true")
+    parser.add_argument("--repeat", type=int, default=1,
+                        help="1..8 rounds of both menu entries; no recovery reload between rounds")
+    parser.add_argument("--expect-active", help="refuse execution unless this exact test set is already active")
     args = parser.parse_args()
+    if not 1 <= args.repeat <= 8:
+        parser.error("repeat must be 1..8")
+    if args.execute and args.repeat > 1 and not args.expect_active:
+        parser.error("repeated execution requires --expect-active")
     prior = json.loads(args.manifest.read_text())
     assert prior["host"] in ("mister126", "mister14"), "Reserved/unreleased target"
     test = next(t for t in prior["tests"] if t["title"] == "01_CROSS_Chase")
@@ -59,6 +66,8 @@ def main():
         pathlib.Path(__file__).with_name("mister_uinput.py").read_bytes()).hexdigest()
     assert media() == test["initial_hashes"]
     before = status()
+    if args.expect_active:
+        assert ssh("cat /tmp/CORENAME").strip() == args.expect_active, "Active set changed; refusing test"
     if not args.execute:
         print("CHECKED qualified assets/host/RBF/helper; no core loaded")
         return
@@ -68,6 +77,7 @@ def main():
     evidence = {"host": prior["host"], "rbf_sha256": prior["rbf_sha256"],
                 "source_manifest": str(args.manifest), "pre_load": before,
                 "mgl": test["mgl"], "script_sha256": hashlib.sha256(pathlib.Path(__file__).read_bytes()).hexdigest(),
+                "repeat_count": args.repeat, "expected_active": args.expect_active,
                 "tests": []}
 
     def save():
@@ -88,12 +98,15 @@ def main():
     time.sleep(30)
     active = status()
     assert test["setname"] in active
-    for label, up_count, close in (("reset", 3, False), ("reset-close", 2, True)):
+    for iteration, label, up_count, close in (
+            (iteration, *item) for iteration in range(1, args.repeat + 1)
+            for item in (("reset", 3, False), ("reset-close", 2, True))):
+        case_label = label if args.repeat == 1 else f"{label}-{iteration:02d}"
         keys(57, 28, 2, 105, 106, 57)
         time.sleep(3)
-        path, pixels = capture(label + "-before")
+        path, pixels = capture(case_label + "-before")
         entry = {"menu": label, "before_png": path.name,
-                 "before_png_sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
+                 "before_png_sha256": hashlib.sha256(path.read_bytes()).hexdigest(), "iteration": iteration}
         evidence["tests"].append(entry)
         save()
         assert pixels != expected, "Already at title; no reset observation possible"
@@ -101,7 +114,7 @@ def main():
         time.sleep(30)
         if not close:
             keys(88)
-        path, pixels = capture(label + "-after")
+        path, pixels = capture(case_label + "-after")
         entry["after_png"] = path.name
         entry["after_png_sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
         entry["matches_native_title"] = pixels == expected
@@ -110,7 +123,7 @@ def main():
         assert status() == active, "Core/setname changed across menu reset"
         keys(57, 28, 2)
         time.sleep(3)
-        path, pixels = capture(label + "-input")
+        path, pixels = capture(case_label + "-input")
         entry["input_png"] = path.name
         entry["input_png_sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
         entry["input_changes_title"] = pixels != expected
@@ -119,7 +132,7 @@ def main():
         assert media() == test["initial_hashes"], "Protected assets changed"
         entry["unchanged_media"] = True
         save()
-        print("PASS OSD " + label + " native title and retained input", flush=True)
+        print("PASS OSD " + case_label + " native title and retained input", flush=True)
     print("EVIDENCE " + str(folder), flush=True)
 
 

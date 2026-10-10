@@ -146,6 +146,11 @@ ignored and are neither converted nor bundled.
 
 The runner-only [scheduled joystick increment](JOYSTICK_SCHEDULE_STATUS.md)
 now passes focused real-CPU input and existing timing/key/snapshot checks.
-Three freshly frozen continuous delay-aware Xevious cold runs are launched,
-not yet accepted. The earlier completed fast five-title results retain their
+Three freshly frozen continuous delay-aware Xevious cold runs subsequently
+complete zero: IPL/disk cold boot, start/right movement, changed RGB and exact
+repeatability pass without snapshots. The independent final 695-input manifest
+and actual report/artifact audit pass; see the scheduled-input evidence for
+hashes and scope. The new full fast suite also completes zero with 141 PASS
+reports and unchanged executable; the new baseline suite remains running.
+The earlier completed fast five-title results retain their
 original frozen executable identity; no machine RTL/layout was changed.

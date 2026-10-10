@@ -149,8 +149,12 @@ or any physical/timing gate. See `BASELINE_V17_STATUS.md` for exact scope.
 The runner now accepts scheduled external A/B joystick events. Focused
 real-CPU input, reset, retained-B restore and pending-event save rejection
 pass alongside existing clock/key/snapshot checks. Three new continuous
-delay-aware Xevious cold boots are running, not completed; see
-`JOYSTICK_SCHEDULE_STATUS.md`. Native Turbo/Z and physical gates stay open.
+delay-aware Xevious cold boots now complete zero: native start/right movement,
+changed RGB, exact repeatability and independently checked unchanged frozen
+inputs pass without snapshots. The new full fast suite completes zero with
+141 PASS reports; the baseline is still running. See
+`JOYSTICK_SCHEDULE_STATUS.md`. Other delay-aware titles, native Turbo/Z and
+physical gates stay open.
 
 Fresh extracted native-policy runs now check 396 held-mode changes while
 blanked with a closed output clock, including synthetic delayed-policy cases.
@@ -1265,5 +1269,11 @@ capability profile. The existing `TURBO=1` build is not Turbo Z support.
   line-buffer/GRAM ownership, actual effects and native/physical gates remain open.
   The follow-up primary ADC wiring audit and digital adapter exhaust all
   code/validity combinations; they do not implement analog sampling or capture.
+
+The reset helper now prepares repeated physical OSD menu checks with exact
+active-set refusal and distinct image evidence. Asset-free safety tests and
+actual read-only mister126 asset preflight pass; execution awaits availability
+confirmation. See `RESET_STATUS.md`. This does not check a hardware box or
+replace current-source Quartus qualification.
 - [ ] Validate native Z software, pending-operation resets, Quartus/CDC and
   physical video/input/audio. EMM/SASI remain separately scoped expansions.

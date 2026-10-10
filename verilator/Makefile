@@ -188,6 +188,7 @@ test-machine-dam-control: headless
 
 test-mister-matrix-safety:
 	python3 ../scripts/test_mister_matrix.py
+	python3 ../scripts/test_mister_reset_check.py
 .PHONY: test-mister-matrix-safety
 
 test-z-palette-probe-scripts:

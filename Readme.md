@@ -858,7 +858,8 @@ writes CSV and `--dump` saves main/text/attribute RAM. `--audio` captures mono
 Repeated `--joy-at MS A|B BYTE` schedules raw joystick pin changes relative
 to this run/restore, including during reset. See
 [scheduled input acceptance](docs/JOYSTICK_SCHEDULE_STATUS.md); continuous
-delay-aware commercial qualification is running, not yet completed.
+delay-aware Xevious cold boot/start/right movement and exact-repeat checks now
+pass without snapshots. Other titles and Turbo/Z/hardware gates stay separate.
 Repeated `--reset-at MS` with `--reset-for-us US` inject warm machine resets,
 relative to this run/restore, without reloading the core or assets.
 Key scripts contain `milliseconds hex-byte` lines and now support `#` full-line

@@ -381,6 +381,27 @@ font-looking data. The model-20/30 video schematic does not settle CPU EKSEL,
 read advancement, special conversion or Turbo Z ASIC behavior. MAME's FIXME
 conversion and eX1's TODO are explicit gaps, not acceptance oracles.
 
+### Primary `0E80..82` device distinction
+
+October 9 follow-up: visually read the existing X1-Techknow Appendix A PDF
+page 3, printed 275, alongside page 2/printed 274. Scan SHA-256:
+`720c79f24169ad33ea91d5b4e2c32b98fab41c91430f226462eb254ac9e5505c`.
+The table names the Kanji device **CZ-8KR** and groups it with external ROM
+and expansion EPROM interfaces. `0E80/81` are left/right data on reads and
+low/high address bytes on writes; `0E82` selects expansion EPROM with `00h`
+or Kanji ROM with `01h`. The EPROM subsection describes separate ROM1/ROM2
+data/address access through the same two ports.
+
+This primary table corroborates the port/data-half/staging-byte and selection
+roles, but does not document a rising-edge versus every-write latch, row
+advancement, address conversion, WAIT, reset or upper-bit/alias behavior.
+It does not list `0E83` or prove that the integrated Turbo/Z glyph ASIC uses
+the external CZ-8KR protocol identically. Keep the optional interface and
+integrated `1400..140F`/display-ROM paths distinct while tracing compatibility
+requirements. Do not turn MAME's partial `jis_convert` or its combined map
+into a default native font-device implementation. No RTL or private assets
+were changed in this follow-up; the protocol and Z storage gates stay open.
+
 ## Implementation sequence still required
 
 1. Connect the now-tested physical decoder/storage to the shared loader and

@@ -57,9 +57,11 @@ The target is in both full ordinary suites and asset-free hosted diagnostics;
 full reruns and hosted results are separate, not inferred from these checks.
 Both full ordinary suites are subsequently launched with the new input case:
 `/tmp/x1-joystick-schedule-full-baseline.log` and
-`/tmp/x1-joystick-schedule-full-fast.log`. They are running, not completed.
+`/tmp/x1-joystick-schedule-full-fast.log`. The fast suite subsequently completes
+zero with 141 PASS reports and the unchanged `e21f5781...0906b1f` executable.
+The delay-aware baseline remains running; its completion is not inferred.
 
-## Continuous commercial qualification launched, not passed
+## Continuous commercial qualification completed
 
 `test_xevious_cold_gameplay.py` launches three independent 19.8-second native
 ordinary delay-aware runs: idle, right movement and exact repeat. Each uploads
@@ -81,5 +83,21 @@ Original cold-gameplay oracle SHA-256:
 It requires three zero native exits, correct ordinary delay-aware clocks/profile,
 actual input/ROM/disk activity, active release-bound player structures,
 rightward movement, actual RGB change, full dump/report repeatability and
-unchanged inputs. Started is not gameplay acceptance. Other titles, music,
-Turbo/Z/native firmware and physical input acceptance remain separate.
+unchanged inputs.
+
+All three native runs subsequently terminate zero, followed by the collector's
+terminal PASS. Independent inspection rechecks the actual stdout reports,
+commands, artifact hashes, original inputs and both executable copies. Each
+run captures 1,228 frames and services 1,151 disk requests without disk writes.
+The player moves from `(30,40)` idle to `(36,40)` controlled. Controlled and
+repeat reports and all six dumps/frame artifacts are byte-identical; idle and
+controlled RGB frames differ. Final full **695-entry** input-manifest validation
+also terminates zero: `/tmp/x1-xevious-cold-final-inputs.log`.
+
+Idle PPM SHA-256:
+`b11a7abae52389c01f7ecabc17724d42888f74679c9690ae6708fdf896fb8db5`;
+controlled/repeat:
+`0153f12ce1c432687ae27d49ac55ec12e3c4fea96cbfc24f0ed51f3713f73d9b`.
+This qualifies bounded ordinary delay-aware cold boot/start/right movement
+without snapshots, not a complete game or the other four delay-aware titles.
+Music, Turbo/Z/native firmware and physical input acceptance remain separate.
