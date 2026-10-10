@@ -48,6 +48,28 @@ test-fdc-address-width:
 test-fdc-default-state:
 	python3 tests/test_fdc_default_state.py --baseline aa05dd2
 .PHONY: test-fdc-address-width test-fdc-default-state
+test-machine-hd-capacity: $(HEADLESS_DIR)/hd-capacity/Vhd_capacity_machine_tb $(HEADLESS_DIR)/hd-capacity-disabled/Vhd_capacity_machine_tb
+	./$(HEADLESS_DIR)/hd-capacity/Vhd_capacity_machine_tb
+	@ulimit -c 0; log=$$(mktemp /tmp/x1-hd-capacity-negative-XXXXXX); \
+	  ./$(HEADLESS_DIR)/hd-capacity-disabled/Vhd_capacity_machine_tb >$$log 2>&1; result=$$?; \
+	  test $$result -ne 0 && rg -q 'CPU-selected capacity mismatch' $$log || { cat $$log; exit 1; }; \
+	  echo "PASS disabled capacity negative: same CPU oracle rejects absent selection (log $$log)"
+$(HEADLESS_DIR)/hd-capacity/Vhd_capacity_machine_tb: $(V_SRC) tests/hd_capacity_machine_tb.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module hd_capacity_machine_tb --Mdir $(@D) \
+	  -j 4 $(V_SRC) tests/hd_capacity_machine_tb.sv -Wno-fatal
+$(HEADLESS_DIR)/hd-capacity-disabled/Vhd_capacity_machine_tb: $(V_SRC) tests/hd_capacity_machine_tb.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module hd_capacity_machine_tb --Mdir $(@D) \
+	  -GENABLE_SELECT=0 -j 4 $(V_SRC) tests/hd_capacity_machine_tb.sv -Wno-fatal
+.PHONY: test-machine-hd-capacity
+test-hd-capacity-select: $(HEADLESS_DIR)/hd-capacity-select/Vhd_capacity_select_tb
+	./$<
+$(HEADLESS_DIR)/hd-capacity-select/Vhd_capacity_select_tb: tests/hd_capacity_select_tb.sv ../rtl/x1_disk_capacity_select.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module hd_capacity_select_tb --Mdir $(@D) \
+	  -j 4 tests/hd_capacity_select_tb.sv ../rtl/x1_disk_capacity_select.sv -Wno-fatal
+.PHONY: test-hd-capacity-select
 
 # Explicit delay-aware RTC profile; no snapshots or ordinary board changes.
 RTC_RUNNER_DIR ?= obj_dir_v17_rtc

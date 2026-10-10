@@ -18,6 +18,11 @@ the remaining physical and unimplemented-feature gates.
 
 ## Current status
 
+The default-off `TURBO_HD_SELECT` CPU-storage experiment passes exhaustive
+capacity-port decoding and actual CPU cold/warm checks. It does not yet connect
+the selected class to byte rate, medium matching or drive mechanics; no board
+or C++ runner enables it. See [the exact scope](docs/HD_CAPACITY_CPU_STATUS.md).
+
 The separate non-savable `turbo-wide-d88` runner now passes actual CPU
 read/write/readback above 1 MiB and at sector index 4,003. Ordinary address/
 capacity defaults and generated savable state remain unchanged; the default

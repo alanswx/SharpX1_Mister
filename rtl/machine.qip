@@ -77,6 +77,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_z_graphics.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_cdc_snapshot.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_dam_control.sv
 set_global_assignment -name VERILOG_FILE rtl/x1_disk_control.v
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_disk_capacity_select.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_disk_media.sv
 set_global_assignment -name VERILOG_FILE rtl/x1_clock_enables.v
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_ctc.sv

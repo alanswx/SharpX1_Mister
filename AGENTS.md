@@ -252,6 +252,13 @@ It is non-savable and does not implement native density/FDCCLK/RPM/format.
 Use `test-machine-wide-d88`, `test-fdc-address-width` and
 `test-fdc-default-state`; see `docs/WIDE_D88_STATUS.md`. Generated IPL CPU
 buffers must be above `8000` while its lower-32-KiB read overlay is retained.
+`TURBO_HD_SELECT` is a default-off, SV CPU-storage experiment requiring Turbo
+and rejecting DMA; no board/C++ runner enables it. Capacity is not connected
+to medium matching or rate/mechanics yet. Use `test-machine-hd-capacity` and
+`test-hd-capacity-select`; see `docs/HD_CAPACITY_CPU_STATUS.md`. Reset to low
+capacity and global-class policy are provisional. A held CPU IN can clear DAM
+then become device-eligible on subsequent SYS edges; do not invent a native
+transaction-bound density window from this implementation.
 For D88, distinguish total container size (24-bit machine interface) from the
 selected volume's sub-1-MiB 20-bit addressing limit. Do not restore the old
 total-file 1-MiB rejection or advertise larger selected-volume/2HD support.
