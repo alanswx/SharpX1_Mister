@@ -60,6 +60,10 @@ It does not enable ordinary runners/boards or define a combined snapshot model.
 must report `dma_kanji_experiment`. Use the explicit `--dma --kanji --x3`
 RTC collectors and frozen `test_rtc_dma_fdc.py`; distinguish enabled-but-idle
 DMA pixel/keyboard cases from active FDC/clock transfers and native games.
+`--active-dma` pixels repeat actual CPU-verified CG DMA throughout displayed
+frames, including late bus source/destination checks. A terminal WAIT read is
+not a completed response: its exclusion requires exact final timestamp/current
+address/one-extra-read evidence. Keep completed payload and RGB assertions exact.
 Upload START changes font readiness and must honor `ioctl_wait`, not only WR.
 The pending DMA read counter counts the strobe start before WAIT completes.
 

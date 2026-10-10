@@ -88,7 +88,10 @@ test-rtc-x3-dma-kanji-keyboard: rtc-x3-dma-kanji
 	python3 tests/test_rtc_keyboard.py $(RTC_DMA_KANJI_DIR)/Vtop --x3 --kanji --dma
 test-rtc-x3-dma-kanji-pixels: rtc-x3-dma-kanji
 	python3 tests/test_rtc_kanji_pixels.py $(RTC_DMA_KANJI_DIR)/Vtop --dma
+test-rtc-x3-dma-kanji-active-pixels: rtc-x3-dma-kanji
+	python3 tests/test_rtc_kanji_pixels.py $(RTC_DMA_KANJI_DIR)/Vtop --dma --active-dma
 .PHONY: rtc-x3-dma-kanji test-rtc-x3-dma-kanji-runner test-rtc-x3-dma-kanji-keyboard test-rtc-x3-dma-kanji-pixels
+.PHONY: test-rtc-x3-dma-kanji-active-pixels
 
 test-psg-mix: $(HEADLESS_DIR)/psg-mix/Vpsg_mix_tb
 	./$(HEADLESS_DIR)/psg-mix/Vpsg_mix_tb

@@ -1,5 +1,6 @@
 """Original CPU-programmed Kanji raster; compare actual RGB, no native assets."""
 import argparse
+import csv
 import hashlib
 import json
 import pathlib
@@ -12,7 +13,7 @@ def pattern(address):
     return ((address * 37) ^ (address >> 4) ^ (address >> 12) ^ (address >> 16)) & 255
 
 
-def fixture(high, columns=80):
+def fixture(high, columns=80, active_dma=False, loaded=True):
     p = Program()
     p.emit(0xF3)
     p.word(0x31, 0xFFFF)
@@ -52,7 +53,22 @@ def fixture(high, columns=80):
         out(0x1801, value)
     for index, value in enumerate(b"KPIX"):
         p.store(0xF000 + index, value)
-    p.emit(0x76)
+    if active_dma:
+        # Selector entry zero is cell 2047, outside every displayed 25-row
+        # 40/80-column frame. Changing it leaves the existing RGB oracle intact.
+        out(0x27ff, 7);out(0x37ff, 0xa5);out(0x3fff, 0xcf)
+        out(0x1fd0, int(high)|0x20)
+        for value in (0xc3,0x7d,0,0x14,15,0,0x1c,0x10,0xad,0,0xd0,0x92):out(0x1f80,value)
+        p.store(0xf010,0);p.store(0xf011,0)
+        p.label('dma-loop')
+        for value in (0xcf,0xb3,0x87):out(0x1f80,value)
+        # Real CPU is held by BUSACK until completion; it then checks every
+        # delivered byte, not just a diagnostic counter or the first payload.
+        for row in range(16):p.compare_memory(0xd000+row,pattern(65536+15*4096+0xa5*16+row) if loaded else 0xff)
+        p.word(0x21,0xf010);p.emit(0x34);p.jump(0xc2,'counted');p.emit(0x23,0x34);p.label('counted')
+        p.jump(0xc3,'dma-loop')
+        p.label('fail');p.store(0xf000,0xee);p.emit(0x76)
+    else:p.emit(0x76)
     return p.finish()
 
 
@@ -66,8 +82,10 @@ def main():
     parser.add_argument("--rtc-controller", type=pathlib.Path,
                         help="explicit packed 8192-byte controller for the separate RTC combination")
     parser.add_argument("--dma", action="store_true", help="require explicit combined DMA/Kanji/RTC profile")
+    parser.add_argument("--active-dma", action="store_true", help="repeat real CG DMA with CPU payload checks throughout rendered frames")
     args = parser.parse_args()
     if args.dma and not args.rtc_controller:parser.error('--dma requires --rtc-controller')
+    if args.active_dma and (not args.dma or args.physical_rom):parser.error('--active-dma requires --dma and the original synthetic font')
     controller = args.rtc_controller.resolve() if args.rtc_controller else None
     controller_hash = hashlib.sha256(controller.read_bytes()).hexdigest() if controller else None
     if controller:assert controller.stat().st_size == 8192
@@ -93,7 +111,7 @@ def main():
         for high, columns, loaded, warm in cases:
             name = f"{'high' if high else 'standard'}-{columns}-{'loaded' if loaded else 'absent'}-{'warm' if warm else 'cold'}"
             rom, frame = root / f"{name}.rom", root / f"{name}.ppm"
-            rom.write_bytes(fixture(high, columns))
+            rom.write_bytes(fixture(high, columns,args.active_dma,loaded))
             command = [executable, "--rom", str(rom), "--cycles", "9600000", "--frame", str(frame)]
             if controller:
                 command += ["--rtc-controller", str(controller)]
@@ -101,13 +119,45 @@ def main():
                 command += ["--kanji-physical", str(font)]
             if warm:
                 command += ["--reset-at", "120", "--reset-for-us", "10"]
+            if args.active_dma:
+                command += ['--dump',str(root/name),'--bus-trace',str(root/f'{name}.csv'),
+                            '--bus-events','--bus-start-ms','250']
             result = subprocess.run(command,
                                     capture_output=True, text=True, timeout=180)
             (root / f"{name}.stdout.log").write_text(result.stdout)
             (root / f"{name}.stderr.log").write_text(result.stderr)
             assert result.returncode == 0, result.stderr
             report = json.loads(result.stdout.splitlines()[-1])
-            assert report["halted"] and report["peek"].startswith(b"KPIX".hex()), report
+            assert report["halted"]==(not args.active_dma) and report["peek"].startswith(b"KPIX".hex()), report
+            if args.active_dma:
+                memory=(root/f'{name}.ram').read_bytes()
+                assert int.from_bytes(memory[0xf010:0xf012],'little')>=10,'real CPU did not repeatedly verify DMA payload'
+                assert report['dma_grants']>=10 and report['dma_reads']>=160 and report['dma_writes']>=160,report
+                assert 0<=report['dma_reads']-report['dma_writes']<=1,report
+                expected_payload=bytes(pattern(65536+15*4096+0xa5*16+row) if loaded else 0xff for row in range(16))
+                assert memory[0xd000:0xd010]==expected_payload
+                with (root/f'{name}.csv').open() as source:
+                    rows=list(csv.DictReader(source))
+                transfers=[r for r in rows if 0x1400<=int(r['address'])<=0x140f and
+                           r['mreq_n']=='1' and r['iorq_n']=='0' and r['rd_n']=='0' and r['wr_n']=='1']
+                assert len(transfers)>=32 and max(int(r['time_ps']) for r in transfers)>=290000000000,'DMA did not continue through final frames'
+                assert {int(r['address'])&15 for r in transfers}==set(range(16))
+                # Runner flushes its still-active final bus row at end_ps.
+                # A final read with no destination start is NOT a completed
+                # response; require exact counter/address/time evidence before
+                # excluding it. Every earlier completed response stays exact.
+                if (int(transfers[-1]['time_ps'])==report['time_ps']-15625 and
+                    report['dma_reads']==report['dma_writes']+1 and
+                    int(transfers[-1]['address'])==report['cpu_address']):
+                    transfers=transfers[:-1]
+                assert all(int(r['data_in'])==expected_payload[int(r['address'])&15] for r in transfers),'actual DMA read bus payload mismatch'
+                destinations=[r for r in rows if 0xd000<=int(r['address'])<=0xd00f and
+                              r['mreq_n']=='0' and r['iorq_n']=='1' and r['wr_n']=='0']
+                assert len(destinations)>=32
+                assert all(int(r['data_out'])==expected_payload[int(r['address'])&15] for r in destinations),'actual DMA destination bus payload mismatch'
+                for read in transfers:
+                    following=next((w for w in destinations if int(w['time_ps'])>int(read['time_ps'])),None)
+                    assert following and (int(following['address'])&15)==(int(read['address'])&15),'completed DMA read lost/misordered destination'
             assert report["turbo_kanji"] and report["frames"] >= 3, report
             assert report['turbo_dma']==args.dma and report.get('dma_kanji_experiment',False)==args.dma, report
             if controller:

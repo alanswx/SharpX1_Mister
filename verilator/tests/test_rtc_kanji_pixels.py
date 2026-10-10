@@ -20,7 +20,9 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('runner',type=pathlib.Path)
     parser.add_argument('--dma',action='store_true')
+    parser.add_argument('--active-dma',action='store_true')
     args=parser.parse_args()
+    if args.active_dma and not args.dma:parser.error('--active-dma requires --dma')
     runner = args.runner.resolve()
     folder = pathlib.Path(tempfile.mkdtemp(prefix='kanji-pixels-', dir=runner.parent))
     inputs = [pathlib.Path(__file__).resolve(), ROOT/'verilator/tests/test_machine_kanji_render.py',
@@ -47,7 +49,7 @@ def main():
     (folder/'manifest-before.json').write_text(json.dumps(manifest, indent=2)+'\n')
     result = subprocess.run([sys.executable, str(folder/'test_machine_kanji_render.py'),
         str(frozen), '--rtc-controller', str(controller), '--output', str(folder/'pixels'),
-        *(['--dma'] if args.dma else [])],
+        *(['--dma'] if args.dma else []),*(['--active-dma'] if args.active_dma else [])],
         capture_output=True, text=True, cwd=ROOT/'verilator')
     (folder/'pixels.log').write_text(result.stdout+result.stderr)
     print(result.stdout, end='', flush=True)

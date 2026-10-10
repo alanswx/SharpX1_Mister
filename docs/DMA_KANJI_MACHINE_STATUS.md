@@ -68,8 +68,13 @@ pin/width warnings remain accommodations, not correctness guarantees.
 Four RAM, five PCG and five CRTC owned-reset cases also complete zero in
 `/tmp/x1-dma-kanji-adjacent-dma.log`. Wrapper DMA lint completes zero using its
 PLL stand-in, not Quartus or hardware. The ordinary `test`/headless/lint sequence
-is still running under session 70443 in
-`/tmp/x1-dma-kanji-baseline-regression.log`; it is not yet a completed gate.
+now completes zero under session 70443 in
+`/tmp/x1-dma-kanji-baseline-regression.log`, including exact ordinary RGB,
+keyboard/joystick, audio/PSG, PCG, D88/FDC and dual-drive/reset gates. Machine
+RTL is the `8be40e6` checkpoint; this is not a combined-profile/native/board
+acceptance matrix. A current ordinary `run CYCLES=200000` also completes zero
+in `/tmp/x1-combined-current-headless-smoke.log`; its unprogrammed CRTC can
+still report zero HS/VS, not a boot failure or a game frame.
 CI now schedules the asset-free combined diagnostic; no hosted result is claimed.
 
 ## Still required
@@ -145,3 +150,58 @@ script; Arcus A=Disk 1/B=Disk 2 remains an unverified release configuration.
 Their logs are `/tmp/x1-arcus-dma-rtc-x3-kanji-first-16s.log` and
 `/tmp/x1-bastard-dma-rtc-x3-kanji-first-16s.log`. No gameplay, repeatability,
 native-font identity or hardware result is yet inferred from these running jobs.
+
+## Repeating DMA during actual Kanji frames
+
+The subsequent opt-in `--active-dma` collector qualifies **ongoing** DMA rather
+than only enabling an idle engine or transferring once before final capture:
+
+```sh
+make -C verilator test-rtc-x3-dma-kanji-active-pixels
+cd verilator
+python3 tests/test_kanji_dma_payload_negative.py RUNNER --rtc-controller CONTROLLER.bin
+```
+
+All ten original loaded/absent, low/high, 40/80-column and warm-reset pixel cases
+pass with repeated actual CG-source DMA reads and CPU comparison of every
+delivered byte. Only selector entry zero at cell 2047 changes, outside all
+25-row displayed layouts. The existing display pixel oracle remains unchanged;
+the four non-active IPL programs remain byte-identical to `bdddcc1`.
+The CPU repeatedly loads/enables a sixteen-byte incrementing `1400..140F` to
+`D000..D00F` transfer, verifies it after real BUSACK release, increments a
+verification counter, and repeats through the end of the run. HSYNC-window
+WAIT remains active. No debug writes, forced grant, native assets or fake clock
+are used. The RTC controller runs but this pixel program does not exchange
+calendar commands; active FDC/clock and active pixels remain separate gates.
+
+The paired-trace run completes zero in
+`/tmp/x1-rtc-x3-dma-kanji-active-pixels-paired.log`, immutable directory
+`fdc-qualified-1mfmk_a1/kanji-pixels-exz8_tzp`, using the unchanged
+`bbfe27...` combined binary and 137 frozen inputs. Independent program and
+pixel regeneration matches all **1,536,000 RGB pixels**. Actual bus auditing
+matches **18,549 late-run completed read/destination-start pairs**, including
+transfers after 290 ms, and every final RAM payload. Each CPU verifies between
+125 and 486 complete payload iterations. Read/write counts may differ by one
+at the invocation boundary, not by an abandoned transaction mid-run.
+
+The first io-only trace attempt rejects one loaded-case final row: the runner
+flushes a still-active WAIT read at exactly `end_ps - 15625`. Its previous
+response is not the not-yet-completed new read's payload. The collector now
+captures destination memory writes too. It excludes only that terminal source
+read when exact final SYS timestamp, current bus address and one-extra-read
+counter evidence agree; every completed response and subsequent destination
+data/address remain exact. This is an explicit unfinished transaction, not
+an accepted wrong byte or a relaxed pixel/timing assertion. Evidence of the
+rejected initial attempt remains in the ignored first collector directory.
+
+The independently audited negative uploads exactly one corrupt synthetic
+font byte at physical address 129616. The same unmodified active-video CPU
+program reads it through one real sixteen-byte DMA grant, observes the changed
+destination byte, emits EE and halts without incrementing the verified-iteration
+counter. The other fifteen payload bytes remain correct. Negative evidence:
+`/tmp/x1-kanji-dma-active-payload-negative.log`, immutable
+`fdc-qualified-1mfmk_a1/kanji-dma-negative-ge_ki_jy`.
+
+CI schedules the positive active-pixel target; no hosted result is claimed.
+Native font/model behavior, graphics/FDC/IRQ concurrency, exact ASIC WAIT,
+current-source Quartus timing/CDC and physical hardware remain open.

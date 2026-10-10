@@ -30,6 +30,12 @@ warm transfers. Elapsed/warm calendar and four rejection gates also pass.
 Pixels and active disk/clock tests are separate bounded gates; protected
 native probes are running, not game/hardware acceptance.
 
+Repeated Kanji DMA during rendered frames now passes the ten-case pixel matrix:
+1,536,000 exact RGB pixels, 18,549 late bus pairs and repeated CPU payload
+verification. A one-byte uploaded-font corruption is rejected by the same CPU
+program. See the [active-display gate](docs/DMA_KANJI_MACHINE_STATUS.md#repeating-dma-during-actual-kanji-frames);
+native and physical compatibility remain open.
+
 The frozen post-PCG-reset [combined Z matrix](docs/TURBO_Z_COMBINED_STATUS.md)
 now passes all 120 cases and 8,960,000 independently regenerated RGB pixels.
 Its source binding is `d2df8a1`, not current RTC/D88/native/hardware acceptance.

@@ -27,6 +27,15 @@ calendar and four rejection gates also pass with 138-input auditing. Fresh
 protected native Arcus/Bastard trials remain running; no gameplay or
 hardware qualification is inferred. These do not close full device coexistence.
 
+The ordinary regression/headless/DMA-wrapper-lint sequence started after the
+upload-start repair now completes zero; the current 200,000-cycle ordinary
+smoke also passes. This preserves baseline behavior, not full Turbo Z/native
+game/timing acceptance. Active, repeating Kanji DMA during rendered frames is
+now passes all ten pixel cases with ongoing late-run transfers and actual CPU
+payload checks: independent 1,536,000 pixels and 18,549 bus pairs match. A
+one-byte uploaded-font corruption is rejected. Earlier combined pixel gates
+kept DMA idle; this bounded follow-up still is not full native/hardware acceptance.
+
 The post-PCG-reset combined Z matrix now completes all 120 cases with
 independent regeneration of 8,960,000 pixels and all CPU programs. Its 135
 RTL/seven support copies match `d2df8a1`; this is a source-bound historical
