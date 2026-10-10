@@ -70,3 +70,17 @@ native Turbo/Z, FPGA timing or physical behavior. X3 separately requires
 revision-3 snapshot identity; ordinary v17 identity remains unchanged.
 See [the PCG repair evidence](PCG_BUNDLE_TIMING_STATUS.md) for scope,
 snapshot checks and remaining source-bound fitting/hardware gates.
+
+The fresh full ordinary fast/SDL/snapshot suite is now running in
+`/tmp/x1-pcg-reset-full-fast.log`, runner SHA-256
+`88bb30c8ec465c15099a3897c1ee1da059816e2211cafb284445de9afc45ac69`.
+Its video and mixed-transition fixtures have completed. Independent
+`scripts/audit_fast_timing_video.py` comparison against the completed fresh
+delay-aware log passes all eighteen ordinary cases: equal frame hashes,
+dimensions/counts, HS/VS periods, nominal clocks, reset/cycle parameters and
+program/font identities. Each log retains one executable identity and its
+expected delay-aware/fast flag. This is logged video agreement, not full
+fast-suite acceptance, bytewise frame-file comparison, native gameplay or
+FPGA behavior. An early comparison rejected the live log's missing final
+transition case; no coverage assertion was loosened. CI's synthetic audit
+passes nineteen invalid profile/input/timing/coverage controls.

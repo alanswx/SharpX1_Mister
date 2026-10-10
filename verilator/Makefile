@@ -1921,6 +1921,10 @@ test-z-combined-matrix-plan:
 	python3 tests/test_z_combined_matrix_plan.py
 .PHONY: test-z-combined-matrix-plan
 
+test-fast-timing-video-audit:
+	python3 tests/test_fast_timing_video_audit.py
+.PHONY: test-fast-timing-video-audit
+
 test-vsync-report-audit:
 	python3 tests/test_vsync_report_audit.py
 .PHONY: test-vsync-report-audit
