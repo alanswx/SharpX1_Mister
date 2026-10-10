@@ -396,10 +396,19 @@ operations on the active MR16 CPU. Correcting either would be a separate
 functional change requiring execution evidence. RTC driver development should
 use qualified instructions, not infer working STW from artifact parity.
 
-Assembler SHA-256:
-`5f225a64639ed3c1626d55f8069a6a5f35e6a8aabade724884340bec5e8bc8fc`;
-test SHA-256:
-`ce80e2249568ff605157466eab5af18cc219f45c46a864b710e360388e8bd8ad`.
+An additional reserved-prefix mnemonic control now rejects `unused` instead
+of treating an alias-table gap as an instruction. All six groups and full
+parity pass again, now with eighteen rejecting syntax/range/overlap controls.
+Log: `/tmp/x1-mr16-assembler-tests-reserved.log`. A seventh test group now
+assembles `PS2_RECEIVE_ONLY` from the existing source conditional and requires
+the entire image to differ only by the selected `2FFB` word at byte `045C`.
+All original symbols and segment endpoints stay identical; `PS2_TX=045C`
+and `ps2_rx_en=0452` are independently required. Seven groups and full base
+parity terminate zero in `/tmp/x1-mr16-assembler-selected-profile.log`.
+Final assembler SHA-256:
+`563605655658c3dfa7e4af2c98c7f93235f8c804026c537abe00f806a734166c`;
+final test SHA-256:
+`37e563b0b31227f00ababf1de96d4ae5e1cbe86cb71edf4596ec0e56576f2a8c`.
 Original ASM, macro, HEX, listing and active ROM hashes remain unchanged.
 This removes the missing executable dependency for reproducing this exact
 source, but not the compact-driver/ROM-space, year/retention, real mailbox,

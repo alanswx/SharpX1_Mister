@@ -74,6 +74,19 @@ class MR16AssemblerTest(unittest.TestCase):
             with self.subTest(op=op, args=args):
                 self.assertEqual(encode(op, args, lambda s: expression(s, {}, 4), 4, True), expected)
 
+    def test_receive_only_selected_firmware_image(self):
+        source = ROOT / "bios/reference/fw_subcpu/x1sub.asm"
+        original, original_symbols, original_locations = assemble(source)
+        selected, selected_symbols, selected_locations = assemble(source, {"ps2_receive_only": 1})
+        expected = bytearray(original)
+        self.assertEqual(original_symbols["ps2_tx"], 0x45c)
+        self.assertEqual(original_symbols["ps2_rx_en"], 0x452)
+        expected[0x45c:0x45e] = bytes.fromhex("fb2f")
+        self.assertEqual(selected, expected)
+        selected_symbols.pop("ps2_receive_only")
+        self.assertEqual(selected_symbols, original_symbols)
+        self.assertEqual(selected_locations, original_locations)
+
     def test_layout_forward_relocation_and_segments(self):
         image, symbols, locations = self.snippet("""
             dseg
@@ -112,6 +125,7 @@ class MR16AssemblerTest(unittest.TestCase):
                  "allocation": "ds 4097",
                  "odd_instruction": "db 1\nnop",
                  "syntax": "unsupported r0",
+                 "reserved": "unused 0",
                  "duplicate_symbol": "label:\nlabel:",
                  "duplicate_else": ".if 1\n.else\n.else\n.endif",
                  "unclosed": ".ifdef missing",

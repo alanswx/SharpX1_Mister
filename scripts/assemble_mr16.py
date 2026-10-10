@@ -20,6 +20,7 @@ class AssemblyError(ValueError):
 ALU = {name: i for i, name in enumerate(
     ["", "", "", "", "and", "or", "xor", "mov", "add", "sub", "adc", "sbc", "tst", "cmp", "mlt", "mlh"]) if name}
 BRANCH = dict(zip("blo beq bvs bmi bls blt ble unused bhs bne bvc bpl bhi bge bgt bra".split(), range(16)))
+BRANCH.pop("unused")  # Reserved prefix index is not an instruction mnemonic.
 BRANCH.update(bcs=0, bcc=8)
 JUMP = {"j" + name[1:]: value for name, value in BRANCH.items()}
 JUMP.pop("jra")
