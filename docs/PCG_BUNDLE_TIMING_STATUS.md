@@ -62,6 +62,27 @@ No new warnings/suppressions are introduced by the timing observations.
 
 ## Remaining constraints/acceptance
 
+### Stopped-clock reset cancellation follow-up
+
+The strengthened `test-turbo-pcg-native-windows` completes zero in
+`/tmp/x1-pcg-stopped-reset-windows.log`. All twelve inherited/native-rate
+profiles additionally stop VID at accepted stages 1 and 2, assert CPU reset
+off-edge, and release CPU reset while VID remains stopped. They require
+asynchronous local-reset assertion, zero write permission, no write-count
+change during the stop or subsequent clock restart, retained font contents,
+and a fresh successful read after each cancellation. Stage 2 permits the
+write already completed before cancellation; it must never replay it.
+Each profile now completes 16,397 transactions, 16,403 request-window checks
+and 16,398 response-window checks. The two inherited `video_half_ps`
+conditional-width warnings remain; no new warning suppression was added.
+
+Fixture SHA-256:
+`89e9a812042d447dd78e1e1d913d5be2d331deaeb40e6818e6d53def4922afe6`.
+Machine RTL remains unchanged at the hash above. This adds cancellation
+coverage before investigating the fitted CPU-reset-to-VID-RAM write-enable
+path; it does not fix that timing path or qualify hardware placement, reset
+skew, independent uncoordinated reset inputs, or native PCG scanline timing.
+
 ### Fresh fitted endpoint inventory
 
 The reporting-only `scripts/quartus_pcg_bundle_inventory.tcl` executes on the

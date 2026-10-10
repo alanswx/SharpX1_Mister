@@ -182,6 +182,32 @@ module turbo_pcg_access_tb;
                 assert(wait_n && write_count==before_count) else $fatal(1,"stale staged write");
             end
         end
+        // Cancel each accepted RAM stage while VID is stopped. CPU reset
+        // release must not reopen write permission before local VID release.
+        // Stage 1 has not written; stage 2 may already have written once.
+        for(integer s=1;s<=2;s++) begin
+            integer before_count;
+            @(negedge cpu_clk); high_speed=1; select=1; write_enable=1; plane=3;
+            data=8'h96; selected_addr=11'h456; unsupported=0;
+            wait(dut.stage==2'(s));
+            @(negedge video_clk); video_run=0;
+            before_count=write_count;
+            #0.003; reset=1; select=0;
+            #0.003;
+            assert(video_reset && writes==0 && dut.stage==0)
+                else $fatal(1,"stopped VID asynchronous cancellation stage %0d",s);
+            repeat(4) @(negedge cpu_clk); reset=0;
+            repeat(20) @(negedge cpu_clk);
+            assert(video_reset && writes==0 && wait_n && write_count==before_count)
+                else $fatal(1,"CPU release reopened stopped VID write stage %0d",s);
+            video_run=1;
+            repeat(20) @(negedge video_clk);
+            assert(!video_reset && writes==0 && write_count==before_count && loaded)
+                else $fatal(1,"stale write after stopped VID reset stage %0d",s);
+            repeat(3) @(negedge cpu_clk);
+            // A new accepted transaction must still complete after recovery.
+            transaction(0,1,0,0,0,0,0,37);
+        end
         // Reset after the video ACK but before its CPU synchronizers consume it.
         @(negedge cpu_clk); high_speed=1; select=1; write_enable=0; plane=1;
         selected_addr=0; unsupported=0;
@@ -196,6 +222,7 @@ module turbo_pcg_access_tb;
         assert(request_windows>=checks && response_windows>=checks)
             else $fatal(1,"Turbo PCG bundle-window coverage missing");
         $display("PASS: Turbo PCG two-period windows and immutable 37-bit accepted bundle; requests=%0d responses=%0d",request_windows,response_windows);
+        $display("PASS: PCG stages 1/2 asynchronous cancellation, CPU release with stopped VID, no stale write and fresh read recovery");
         $display("PASS: %0d high-speed CDC transactions, all PCG/font bytes, frozen bundle/window/held bus/reset",checks);
         $finish;
     end

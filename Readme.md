@@ -108,6 +108,9 @@ The joint probe now verifies both proposals together, preserving 5,472 other
 rows while budgeting the held controls. Only the separate handoff revision
 selects them for a fresh experimental fit. Global setup still fails -10.797 ns
 at PCG download/reset write gating; ordinary boards remain unchanged.
+Twelve PCG helper profiles now additionally pass accepted-stage cancellation
+with stopped VID and earlier CPU reset release, without stale writes on
+restart. This is reset-test coverage, not a timing-path fix or hardware pass.
 
 Its isolated real-PLL controller maps/fits; a fitted-feedback audit led to an
 explicit falling-edge closure witness. Current native cases pass, while raw

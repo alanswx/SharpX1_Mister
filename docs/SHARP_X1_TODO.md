@@ -98,6 +98,14 @@ Only the separate handoff revision now selects the two qualified proposals;
 joint diagnostic and ordinary boards stay unchanged. Fresh fit/pin topology,
 PCG local-reset/write gating, raw synchronizers and hardware remain next gates.
 
+The PCG reset follow-up now passes all twelve helper clock/window profiles
+with accepted stages 1/2 cancelled while VID is stopped. CPU reset release
+cannot reopen writes before local VID release, and resumed clocks cannot
+replay the cancelled transaction; fresh reads and font retention also pass.
+Machine RTL is unchanged. This strengthens the cancellation prerequisite,
+not the fitted reset-to-write-enable path or a hardware/timing acceptance
+gate. See `PCG_BUNDLE_TIMING_STATUS.md` for exact counts and fixture hash.
+
 Fresh extracted native-policy runs now check 396 held-mode changes while
 blanked with a closed output clock, including synthetic delayed-policy cases.
 Minimum quiet time is 96,873 ps, above the three-control-period requirement;
