@@ -177,4 +177,6 @@ with original evidence and monitored sources unchanged.
 
 The [external-font implementation plan](TURBO_Z_EXTERNAL_FONT_PLAN.md) records
 full storage, display deadlines, coherence, reset-drain and physical gates.
-An isolated DDR backend is being developed; it is not yet integrated or passed.
+The isolated [DDR backend](TURBO_Z_DDR_BACKEND_STATUS.md) now passes full-font
+32/100-MHz and lifecycle/boundary diagnostics; it is not yet integrated with
+ordered loading, display caching or a board.

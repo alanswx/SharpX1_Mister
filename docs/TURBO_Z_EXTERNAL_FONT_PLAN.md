@@ -19,6 +19,10 @@ The SDRAM examples' clock/refresh constants cannot be adopted blindly.
 An original GPL-2.0-only backend is being developed separately from the shared
 machine manifest and existing board defaults.
 
+The standalone [DDR backend checkpoint](TURBO_Z_DDR_BACKEND_STATUS.md) now
+passes full-font 32/100-MHz and boundary/reset/admission tests. This is not the
+ordered-loader, display-cache or FPGA integration gate below.
+
 ## Deadline and capacity
 
 At nominal 42.954540 MHz X3, phase-10 glyph request to phase-14 load is four
@@ -71,3 +75,26 @@ deadlines. Do not choose either architecture solely because it passes a mock.
 The framework safe terminator addresses core/platform reset at the DDR
 boundary; it is not proof that an arbitrary machine reset may discard an
 outstanding read or drop a held command. Private font bytes remain uncommitted.
+
+## Backend/front-end reset boundary
+
+The separate original DDR backend has a single outstanding request/response
+lease. Its synchronous reset stops admission and suppresses delivery while
+draining queued/accepted commands, including writes. The caller must retire
+valid after acceptance and cancel its pending valid on reset; holding an old
+valid through drain requests a new transaction when ready returns. There is
+no caller-generation quarantine in the backend itself.
+
+Do not tie this reset blindly to held machine `core_reset`: reset-held ordered
+font uploads would never be admitted. The future frontend must separately
+quiesce consumers, cancel their delivery, drain old ownership with SYS running,
+and admit loader requests while CPU/VID remain reset. It must wait for drain
+before taking ownership, not assume that asserted machine reset means idle.
+Warm reset retains font readiness; malformed/new uploads revoke it explicitly.
+
+Frontend acceptance must cover upload START during an outstanding CPU read,
+stopped VID, held machine resets, backend BUSY, last-write acceptance and
+falling upload commit, permission lost mid-upload, orphan/short/overflow
+strobes and recovery with a new complete image. Public `ioctl_wait` must prevent
+lost/replayed bytes. Cache invalidation/publication and native visibility are
+later gates; backend command acceptance alone is not a font publication proof.
