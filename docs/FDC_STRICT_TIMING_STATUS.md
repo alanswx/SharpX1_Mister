@@ -213,14 +213,25 @@ existing authorized read-only disk. SYS=32 MHz, video=28,571,428 Hz, reset spans
 no writes. Standard startup PS/2 input sends 24 bytes; actual RGB captures 926
 frames at 320x200. Main verifies release-specific RAM player `(22,14,1)` and
 the real text-RAM `*` at that coordinate, then visually inspects the PNG.
-This is a native game-screen boot, not movement/repeatability acceptance or a
-commercial-game count. A separate cold run with late I/J input is still active.
+This is a native game-screen boot, not repeatability acceptance or a
+commercial-game count. A second cold 15-second run with late I/J input now
+terminates exit zero: 30 PS/2 bytes, the same 763 SD requests/no writes and
+926 frames. Main checks the player moves from `(22,14,1)` to `(21,13,1)`,
+the corresponding real text-RAM `*`, and changed captured RGB bytes. This
+qualifies actual keyboard movement through this frozen candidate, not exact
+controlled repeatability, native timing or hardware acceptance.
 
 Ignored evidence: `output_files/fdc-native-cross-7Ri8Vj/`, including inputs,
 log, RAM/text dumps and original PPM/converted PNG. All four before/after input
 hashes match; originals and snapshots are not changed or committed.
 PNG SHA-256 `e5abb689da1426e7fce294fbfa1c520beef31c2778ed5a5dcd19f657ac760755`;
 PPM SHA-256 `9befdf3c3984765778a143e58f138b06938e4ce53a1e1e3a7ebe2e739fc74d07`.
+Movement evidence uses the same directory's `move.log`, `move.ram/text`,
+`late_move.keys`, and `move.ppm/png`; all four input hashes match before/after.
+Movement PNG SHA-256
+`aa4d9a1411348998fe247510bb7a1290c5049e237ff386361d13fcd5625f0f25`;
+PPM SHA-256
+`2c8614bffc839be168f1d59d4b7ffcfc43c51e27fa6b70968a483074ecc064a9`.
 
 ## Actual CPU/DMA fixed-clock qualification
 

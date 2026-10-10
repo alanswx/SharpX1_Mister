@@ -88,8 +88,12 @@ The replication-prevention fit now has an exact same-fit sixth-bank constraint
 qualification: 384 reports preserve active/raw/mode rows and all eleven bound
 files match. Global setup remains negative; a fresh committed-source full flow
 and hardware acceptance are still required. The subsequent `5afb059` flow stops
-at the VSYNC-fanout identity guard; reporting-only topology discovery must precede
-any scope change. The scope only permits whole
+at the VSYNC-fanout identity guard. Reporting-only topology discovery now
+identifies the extra `vs_d1~DUPLICATE` consumer; a narrowly guarded `vs_d1`
+replication-prevention candidate passes interface/source-scope checks and an
+exact duplicate-rejecting SDC mock. Strict constraints remain unchanged; a
+fresh committed-source fit and complete timing/hardware acceptance remain open.
+The scope only permits whole
 observed banks, not arbitrary per-bit packing.
 The new opcode window passes actual CPU/full-bus oracle and native one-second
 cold/repeat checks. Protected Arcus 32-second cold/repeats now finish with

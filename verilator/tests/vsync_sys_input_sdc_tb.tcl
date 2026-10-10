@@ -24,6 +24,7 @@ proc get_fanouts {query} {
         return [list $::last]
     }
     if {$::mode eq "consumer_missing"} {return {vs_d0 vsd}}
+    if {$::mode eq "consumer_replica"} {return {vs_d0 vs_d1 vsd vs_d1~DUPLICATE}}
     return {vs_d0 vs_d1 vsd}
 }
 proc get_pins {option query} {
@@ -60,7 +61,7 @@ proc foreach_in_collection {var collection body} {uplevel 1 [list foreach $var $
 proc post_message args {}
 proc set_false_path args {lappend ::applied $args}
 foreach name {set_clock_groups set_max_delay set_min_delay set_multicycle_path} {proc $name args {error "unexpected exception"}}
-foreach mode {valid_asdata valid_d valid_primary missing_stage duplicate_stage extra_stage wrong_stage replica first_leak consumer_missing missing_pin duplicate_pin double_data wrong_bit pin_lookup_missing pin_lookup_duplicate fanin_missing clock_fanin wrong_source wrong_type source_lookup_missing source_lookup_duplicate} {
+foreach mode {valid_asdata valid_d valid_primary missing_stage duplicate_stage extra_stage wrong_stage replica first_leak consumer_missing consumer_replica missing_pin duplicate_pin double_data wrong_bit pin_lookup_missing pin_lookup_duplicate fanin_missing clock_fanin wrong_source wrong_type source_lookup_missing source_lookup_duplicate} {
     set data_kind asdata
     set raw {hdmi_out_vs~_Duplicate_1}
     if {$mode eq "valid_d"} {set data_kind d}
@@ -71,5 +72,8 @@ foreach mode {valid_asdata valid_d valid_primary missing_stage duplicate_stage e
         set pin [format {hdmi_vsync_to_sys|sample_pipe[0]|%s} $data_kind]
         if {$failed || $applied ne [list [list -from [list $raw] -to [list $pin]]]} {error "wrong input-only scope: $message"}
     } elseif {!$failed || [llength $applied]} {error "$mode accepted invalid scope"}
+    if {$mode eq "consumer_replica" && $message ne "VSYNC fanout identity changed"} {
+        error "exact four-consumer replica did not hit fanout identity guard before cuts"
+    }
 }
-puts "PASS: VSYNC source-to-one-data-pin scope, d/asdata; 19 invalid inventories reject (mock only)"
+puts "PASS: VSYNC source-to-one-data-pin scope, d/asdata; 20 invalid inventories reject (mock only)"

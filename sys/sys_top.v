@@ -344,7 +344,16 @@ always@(posedge clk_sys) begin
 	reg  [7:0] cmd;
 	reg        has_cmd;
 	reg  [7:0] cnt = 0;
+`ifdef X1_TURBO_Z_VIDEO_EXPERIMENT
+	// Keep the audited three-consumer VSYNC topology. Quartus replicated
+	// this conditional-hold register on the 5afb059 fit; do not allow an
+	// unknown consumer replica through the strict CDC input guard.
+	reg        vs_d0;
+	(* dont_replicate *) reg vs_d1;
+	reg        vs_d2;
+`else
 	reg        vs_d0,vs_d1,vs_d2;
+`endif
 	reg  [4:0] acx_att;
 	reg  [7:0] fb_crc;
 

@@ -366,3 +366,38 @@ Assembled **unaccepted** RBF SHA-256:
 No deployment follows. An external MacPPC mapper is active at 13:51:14 UTC,
 so reporting-only, no-SDC VSYNC/HPS topology inspection waits for an idle host.
 No first-stage/consumer identity guard is relaxed without that evidence.
+
+### Same-fit VSYNC consumer discovery and narrow candidate
+
+On the idle host, reporting-only inspection completes 14:05:25–14:05:31 UTC,
+exit zero: no SDC loaded, no cuts or recompilation. The native log reports
+zero errors and 76 warnings (missing-pointer metadata retained). Source,
+provenance and five original artifact comparisons are unchanged; the database
+comparison differs, including updated cache files and a new TimeQuest database.
+The original database archive is preserved, not claimed unchanged.
+Copied evidence:
+`/tmp/x1-5afb059-launch-IImk4zK8/vsync-hps-inventory-Thidt8Yu`.
+Native-log SHA-256:
+`cd40a5ecf4d4cc5bd77cf2ff1c2b5a74ff575acf3285229261f59e6d20ac5206`.
+
+The fitted SYS synchronizer still has stage zero feeding only stage one.
+Stage one now feeds `vs_d0`, `vs_d1`, `vsd` and the extra
+`vs_d1~DUPLICATE`; the strict three-consumer guard correctly rejects it.
+The represented duplicate and primary have matching D driver, clock and
+startup metadata, but this is not a complete physical-equivalence proof.
+The separate HPS meta/sync chain remains represented; no HPS wiring is changed.
+
+The new candidate applies `dont_replicate` only to the process-local `vs_d1`
+declaration under `X1_TURBO_Z_VIDEO_EXPERIMENT`. It retains declaration order,
+uninitialized startup, conditional-hold logic and the literal ordinary branch.
+This core-specific framework edit addresses the discovered consumer replica;
+it does not permit replicas through the strict SDC. The frozen source gate
+passes exact historical logic/default restoration, two-revision QSF scope and
+nine matched rejecting mutations. The input-SDC mock now rejects the exact
+fourth-consumer replica among 20 negative inventories before any cuts.
+`lint-wrapper-turbo-z-video` completes exit zero with inherited warnings;
+this is an interface stand-in, not Intel PLL or hardware verification.
+Main logs: `/tmp/x1-vsync-consumer-scope-main.log` and
+`/tmp/x1-vsync-consumer-lint-correct.log`.
+Fresh committed-source native checks, fit, exact consumer/HPS topology,
+complete constraints, timing/MTBF/I/O and hardware acceptance remain required.

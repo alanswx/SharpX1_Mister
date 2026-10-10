@@ -2468,6 +2468,10 @@ test-vsync-sys-input-sdc:
 	tclsh tests/vsync_sys_input_sdc_tb.tcl
 .PHONY: test-vsync-sys-input-sdc
 
+test-vsync-consumer-replication:
+	python3 tests/test_vsync_consumer_replication.py
+.PHONY: test-vsync-consumer-replication
+
 test-vsync-sys-probe:
 	tclsh tests/vsync_sys_probe_tb.tcl
 .PHONY: test-vsync-sys-probe

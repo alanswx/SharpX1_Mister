@@ -40,7 +40,8 @@ Ordinary generated state and
 the fresh 144-gate fast/snapshot regression remain intact. The fresh ordinary
 delay-aware rerun also passes all 149 reports after updating the intentional
 runner-recipe inventory guard. Native CROSS Chase reaches a real game screen
-through the 1-MHz candidate; its new movement/repeatability gates remain open.
+through the 1-MHz candidate; a second cold run qualifies real PS/2 movement
+and changed RGB. Controlled repeatability remains open.
 These ordinary regressions do not enable the experimental bridge.
 
 The separate non-savable `turbo-hd-media` experiment now connects capacity
@@ -74,8 +75,10 @@ guard. Same-fit discovery/preservation now qualifies that exact sixth bank,
 with active/raw/mode timing rows unchanged; global setup still fails.
 Strict SDC guards remain intact and a fresh full flow/timing/hardware acceptance
 are still required. The latest `5afb059` fit instead stops at the VSYNC-fanout
-identity guard before reaching the later data guards; reporting-only discovery
-is next. Its assembled RBF is not accepted or deployed. Historical
+identity guard before reaching the later data guards. Reporting-only discovery
+identifies an extra `vs_d1` consumer replica; a narrowly scoped experimental
+replication-prevention candidate passes source/interface checks, not a new fit.
+Its assembled RBF is not accepted or deployed. Historical
 fit-integrity tests require Git history to bind their original source commits.
 
 The separate [RTC/X3/DMA/Kanji/FM profile](docs/RTC_DMA_KANJI_FM_STATUS.md)
