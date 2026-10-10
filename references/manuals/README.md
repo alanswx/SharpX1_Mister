@@ -1,5 +1,16 @@
 # Downloaded Sharp X1 documentation
 
+## NEC calendar manufacturer reference
+
+Retrieved the [1983 NEC Consumer IC Data Book mirror](https://ftpmirror.your.org/pub/misc/bitsavers/components/nec/_dataBooks/1983_NEC_Integrated_Circuits_for_Consumer_Use.pdf)
+to ignored `NEC_1983_Consumer_IC_Data_Book.pdf`: 42,422,169 bytes, 1,150 pages,
+SHA-256 `b07eb0e05741c014375ad8e2bf9df20ee90e5d1b09dec38ce2bd14ab4cc9cac0`.
+`pdfinfo`/text extraction succeed; PDF pages 800–803 (printed 795–798) are
+rendered and visually inspected for the [RTC contract](../../docs/RTC_COMMAND_STATUS.md).
+Other device pages were not audited. The standalone oguchi-rd RTC scan was
+identified online but its local retrieval returned HTTP 406; it is not claimed
+as downloaded. No PDF is committed or granted redistribution permission here.
+
 ## CTC terminal-output timing follow-up
 
 Retrieved [official Zilog PS018101-0602](https://www.zilog.com/docs/z80/ps0181.pdf)

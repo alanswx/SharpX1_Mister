@@ -198,6 +198,11 @@ extra GRAM. The digital RGB output reduces analog multi-mode colors to eight
 - [ ] Z7: second-level Kanji/ANK ROM authenticity and addressing, mouse/serial
   behavior, calendar/RTC persistence and control-processor commands. Verify
   CPU-level device transactions, not static capability signatures.
+  The [RTC command investigation](RTC_COMMAND_STATUS.md) now reproduces exact
+  EC..EF storage but static seconds with an original CPU IPL in fast and
+  delay-aware execution; default acceptance correctly rejects it and an
+  independent elapsed-delay probe passes. The manufacturer's actual calendar
+  contract must guide implementation, not MAME's host-time approximation.
   The [SIO wiring audit](SIO_MACHINE_WIRING_AUDIT.md) now identifies native
   mouse-related B controls and A clock selection through DTRB; complete
   event-preserving clocks, pin/protocol input, machine decode and shared

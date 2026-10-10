@@ -154,6 +154,10 @@ now includes a standalone exhaustively tested programming decoder. Actual
 capture, mosaic/key/scroll rendering and input-video integration remain unimplemented.
 Its follow-up adds a tested digital ADC pin adapter, not an analog digitizer
 or connected capture pipeline.
+The [RTC command diagnostic](docs/RTC_COMMAND_STATUS.md) now reproduces correct
+date/time storage but stalled seconds in fast and delay-aware real-CPU tests.
+Its ordinary acceptance correctly fails; a running/persistent clock remains
+unimplemented, not qualified by static EC..EF readback.
 The standalone [SIO clock-event adapter](docs/SIO_EDGE_CLOCK_STATUS.md) now
 preserves serial edges and sampled RX data across enable gaps; independent
 queue tests and real CTC/SIO diagnostics pass. Shared event routing is opt-in;

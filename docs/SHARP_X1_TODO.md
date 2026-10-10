@@ -1265,6 +1265,11 @@ capability profile. The existing `TURBO=1` build is not Turbo Z support.
 - [ ] Integrate standard stereo YM2151 FM, CTC/IRQ and PSG mixing.
 - [ ] Qualify switchable dual 2HD/2D drives and native HD software.
 - [ ] Add second-level Kanji, mouse/serial and RTC/control-processor behavior.
+  Original real-CPU EC..EF diagnostics now reproduce the missing clock tick
+  after exact command storage/readback; see `RTC_COMMAND_STATUS.md`. A primary
+  NEC reference is retained locally. No running/battery-backed RTC is implemented
+  by this investigation; delay-aware/probe/default-rejection checks now finish
+  and independently confirm the defect without falsely accepting an RTC.
 - [ ] Research/implement capture quantization/inversion, mosaic, chroma key,
   extra scroll and superimpose/telopper, with a deterministic test video source.
   Primary encodings and a standalone decoder now pass exhaustive local checks;
