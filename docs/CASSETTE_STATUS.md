@@ -77,3 +77,38 @@ an independent modern-header waveform vector and unsupported-format-zero check.
    until separately implemented and tested.
 
 Parser checks alone do not close the cassette TODO or base-X1 compatibility.
+
+## Connected-path research follow-up
+
+Common Source Project `src/vm/x1/psub.cpp:692–696` normalizes EB as insertion,
+not-at-end and recording permission; `play_tape()` at lines 466–475 attaches
+playback media in STOP state. Its actual read-only values are `00` without
+media, `03` inserted before EOF (including stopped), and `02` at EOF. Lines
+243–250 make EA STOP when the transport remote drops. These third-party
+behaviors support an explicit first read-only policy, **not measured Sharp
+upper-bit/timing semantics**. Do not confuse this pseudo-controller response
+with the separate physical-pin model's ROM-dependent input inversion.
+Inspected file SHA-256:
+`d6d44e11086bb20a3d0cde6e6a490d6171997303da816368c2502005ff022115`.
+
+The planned real path is parser → SYS-timed held-sample handshake → transport
+→ PPI PB1 → real Z80 loader. Transport/sensors must return via executed MR16
+firmware and the existing mailbox, not host-generated EA/EB replies. Startup,
+E9 and BREAK need setters; normal key IRQ processing also needs live status
+refresh because inherited PLAY/REC keyboard-IRQ suppression otherwise remains
+stale after autonomous EOF.
+
+There is a verified polarity trap in the current code: `rtl/sub_cpu.v:445`
+assigns `O_KEY_BRK_n` directly from OP1[2], while firmware asserts BREAK by
+setting `PIO_BRK=04h`. A future cassette PB0 connection therefore needs its
+inverse, despite the signal's name. Preserve the existing IP1 feedback and
+qualify actual PS/2 BREAK execution rather than changing ordinary wiring by
+inspection alone.
+
+The initial integration plan uses a separate non-savable simulator top and
+constant-disabled machine generate branches. This only preserves ordinary
+snapshot v17 if generated declarations/checksums/serializer order compare
+unchanged. Neither new ports nor a new profile bit alone prove compatibility.
+RTC+cassette remains unsupported until the conflicting OP5 interface is resolved;
+index-6 uploaded-controller factoring must leave RTC/index-7 behavior intact.
+These hooks and connected acceptance remain work in progress.

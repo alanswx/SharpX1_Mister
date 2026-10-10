@@ -142,6 +142,11 @@ phase and explicit integrity/read-error evidence, never a stale `repeatable`
 phase. The prior collector already refused a PASS/returned nonzero on changed
 bytes; this repairs its terminal reporting and missing-file evidence. Existing
 native results retain their original frozen collector and source hashes.
+The strict checker also binds the collector's original working-tree path;
+after this intentional collector edit, rerunning that historical check against
+the current tree rejects that source hash. Preserve its original evidence/
+frozen copy and recorded successful acceptance rather than patching manifests
+or substituting current source. Future native runs need the new collector.
 The direct local unittest run completes zero; an initial new fixture failure
 from macOS `/var` versus `/private/var` spelling was corrected by normalizing
 the disposable root, not weakening the integrity comparison.
