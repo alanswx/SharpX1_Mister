@@ -41,7 +41,10 @@ An actual retained-IPL Z80 reboot also passes after two seconds of ordinary
 reset without asset reupload, with a rejecting storage-loss control. Native
 year/power, short/in-flight reset/DMA and hardware acceptance remain open.
 Public ioctl admission also passes 314 rejected transactions and legal-traffic
-negative controls; it does not validate partial firmware or owned-DMA uploads.
+negative controls; it does not by itself validate partial firmware or owned-DMA uploads.
+A bounded RTC-enabled memory-DMA reset test now also passes both owned phases,
+blocked firmware/clock/IPL traffic, stopped SYS recovery and native Z80 reboot;
+other DMA targets, Ready/IRQ and hardware coexistence remain open.
 
 The experimental handoff revision's early/fitted HDMI pin guard now accepts
 four exact observed whole-bank profiles, not arbitrary per-bit alternatives.

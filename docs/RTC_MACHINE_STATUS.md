@@ -157,6 +157,49 @@ test repeats zero against current inputs in
 `/tmp/x1-machine-rtc-transport-current.log`. Independent auditing again verifies
 all 130 current/frozen inputs, executable/MEM and before/after manifests.
 
+## Real CPU/DMA reset drain with RTC enabled
+
+`make -C verilator test-machine-rtc-dma-reset` now combines `RTC_ENABLE=1`,
+`TURBO=1` and `TURBO_DMA=1` in the delay-aware shared machine. An original
+ioctl-loaded Z80 program sends actual EC/EE/ED/EF commands, then programs a
+real continuous Force-Ready 16-byte high-RAM DMA transfer. Observer counters
+use actual owner/read/write transitions, never forced BUSACK or bus state.
+
+Six cases request reset during the owned read or write phase, stop SYS for
+1.25 microseconds, and select hostile controller-firmware, clock-loss or IPL
+uploads. Reset must retain the actual CPU ACK, stop CPU CE, assert ioctl wait
+and leave the controller/clock/IPL admission signals inactive. Traffic remains
+selected through one real blocked SYS edge, then is removed before drain ends;
+holding it into an admitted reset upload would instead be legal host behavior.
+
+Exactly one started pair drains before machine reset. Both uploaded images
+remain byte-for-byte intact. The retained IPL's second actual Z80 boot reads
+date `31 C6 00`, time `12 34 56` without reprogramming the clock, programs a
+fresh complete DMA and halts after all sixteen payload bytes match. Totals
+require two genuine grants and seventeen read/write pairs. This short test
+qualifies retention, not elapsed seconds (the separate warm-reset gate does).
+Two controls deliberately upload after ownership release: an admitted
+firmware overwrite fails image integrity; an admitted clock-loss token reaches
+the actual second CPU read and fails calendar retention.
+
+The first six-case run is retained in `/tmp/x1-machine-rtc-dma-reset-first.log`;
+the subsequent positive/negative run completes zero in
+`verilator/obj_dir_headless/machine-rtc-dma-reset/qualified-0ddkgc55/`, log
+`/tmp/x1-machine-rtc-dma-reset-controls.log`. Independent review verifies all
+131 original/frozen inputs, copied executable, emitted firmware/IPL memories,
+identical before/after manifests, six actual positives and two rejecting logs.
+A follow-up replaces an integer-as-condition with an explicit comparison;
+current repeat completes zero in
+`verilator/obj_dir_headless/machine-rtc-dma-reset/qualified-m8bigfk7/`, log
+`/tmp/x1-machine-rtc-dma-reset-current.log`. Independent auditing again proves
+131 current/frozen inputs, executable/MEM, manifests and all eight logs;
+no bench warning remains. Earlier source hashes stay historical.
+
+This covers the ordinary memory-target/Force-Ready DMA reset seam at SYS
+32 MHz / VID 28.571428 MHz, not FDC/PCG/CRTC targets, Ready/IRQ/restart semantics,
+serial/PS2 coexistence, arbitrarily long or partial uploads, enabled snapshots,
+native calendar/year, stopped-FPGA battery time or physical hardware.
+
 ## Default regression and remaining gates
 
 The RTC-disabled delay-aware build passes actual E7/E8/PS2 and six cold/steady
@@ -181,7 +224,7 @@ It is not synthesis, timing or hardware acceptance.
 
 Still required: enabled C++ runner/identity or explicit save rejection;
 short/in-flight shared-Z80 reset; partial/malformed upload and
-owned-DMA drain; real DMA/FDC/PS2/IRQ coexistence; native host byte-order/year/
+other owned-DMA target/drain combinations; real DMA/FDC/PS2/IRQ coexistence; native host byte-order/year/
 carry/leap/power policy; native BASIC/software; other clock/profile combinations;
 FPGA ROM inference, timing/CDC and physical clock behavior. No Turbo Z work
 group is complete from this elapsed-time pass.

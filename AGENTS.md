@@ -134,6 +134,9 @@ year and short/in-flight whole-Z80 reset gates remain open. A bounded real-Z80
 retained-IPL HALT/warm-reset test passes without asset reupload; it does not
 qualify owned DMA or native year retention. Disabled profiles retain v17;
 their actual pre-RTC generated-state restore is separately checked.
+The separate RTC/memory-DMA reset fixture qualifies both real owned phases,
+blocked controller/clock/IPL uploads and stopped SYS recovery with two native
+Z80 boots; it does not qualify other DMA targets, Ready/IRQ or board profiles.
 
 Snapshot format v17 rejects older states after the signed shared FM audio
 interface/state increment (v16 added the FM bus; v15 the shared serial interface).

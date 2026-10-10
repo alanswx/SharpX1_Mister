@@ -70,6 +70,11 @@ Public ioctl admission now also passes 314 rejected firmware/clock transactions,
 with complete image readback and two legal-traffic rejecting controls. All
 high address bits, invalid clock payloads and active uploads are covered at
 32 MHz; malformed partial-image boot and owned-DMA backpressure remain open.
+The subsequent RTC-enabled real CPU/memory-DMA fixture now passes read/write
+owned reset, blocked firmware/clock/IPL uploads, stopped SYS recovery and a
+second retained-IPL Z80 boot with actual calendar reads and full DMA payload.
+Six cases and two admitted-traffic rejecting controls pass; other target,
+Ready/IRQ, FDC/PS2/serial coexistence and board gates remain open.
 
 The RTC firmware rebuild dependency now has a tested restricted replacement
 assembler: the unchanged inherited source reproduces all 4,096 ROM bytes,
