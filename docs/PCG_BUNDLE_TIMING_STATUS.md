@@ -108,8 +108,8 @@ Fresh checks finish zero on this repair:
   retains inherited warnings, and is not Quartus or hardware validation.
 
 A fresh delay-aware combined-Z runner builds zero and passes its actual
-seven-feature/clock preflight. Its full 120-case CPU/pixel matrix is now
-running under
+seven-feature/clock preflight. Its full 120-case CPU/pixel matrix now completes
+zero under
 `verilator/obj_dir_headless/z-pcg-local-reset-combined/qualified-inputs-Eqh95G/all-120/`,
 log `/tmp/x1-pcg-reset-z-combined-all-120.log`. Runner SHA-256:
 `5622a916f4629e7d6d15fb3d7d5798d88c044e5350e36a79fb7d8195a8181437`.
@@ -118,9 +118,13 @@ from the older live matrix. An initial launch stopped before preflight because
 the ANK copy used a nonexistent path; that failure log remains preserved as
 `/tmp/x1-pcg-reset-z-combined-missing-font.log`. Copying the actual checked-in
 `rtl/legacy/x1_cg8.v` fixes fixture staging, not an oracle or RTL assertion.
-Started is not passed. The build host has source `d2df8a1` preflighted but
-other users' active Quartus jobs prevent starting our fresh flow; none was
-stopped, and no MiSTer was loaded.
+Independent final auditing now verifies all 120 regenerated CPU programs and
+8,960,000 exact pixels, retained-reset no-refill traces and frozen-input
+manifests. All 135 RTL copies and seven simulator/build/oracle/emitter/font
+copies match `d2df8a1` byte-for-byte. See `TURBO_Z_COMBINED_STATUS.md`.
+This checkpoint predates RTC/D88 changes and is not current-HEAD/native or
+physical acceptance. The initial build-host busy checks and newer guarded
+flow outcomes remain separate; no other job or occupied MiSTer is disturbed.
 
 `scripts/quartus_pcg_reset_inventory.tcl` now prepares a reporting-only
 fresh-fit check: twelve fitted WE keepers (four per physical plane), exact

@@ -14,6 +14,12 @@ support before optional Turbo extensions.
 
 ## Active goal: items 1–6 and Turbo Z (October 6)
 
+The post-PCG-reset combined Z matrix now completes all 120 cases with
+independent regeneration of 8,960,000 pixels and all CPU programs. Its 135
+RTL/seven support copies match `d2df8a1`; this is a source-bound historical
+simulation gate, not newer RTC/D88, native Z or physical acceptance. See
+`TURBO_Z_COMBINED_STATUS.md`.
+
 The standalone CZ-880 Kanji pin decoder now passes 262,144 unique addresses
 and disabled/dual-select/earlier-layout negative checks; see
 `TURBO_Z_KANJI_STORAGE_STATUS.md`. It does not add machine level-2 storage or

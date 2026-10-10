@@ -1,5 +1,28 @@
 # Combined experimental Turbo Z video qualification
 
+## Completed PCG-local-reset 120-case checkpoint
+
+October 10: the frozen `d2df8a1` matrix now terminates zero with all 120
+original cold/warm identity/custom, mode/bank/priority/text/reverse cases.
+Evidence: `verilator/obj_dir_headless/z-pcg-local-reset-combined/qualified-inputs-Eqh95G/all-120/`;
+log `/tmp/x1-pcg-reset-z-combined-all-120.log`. Runner SHA-256:
+`5622a916f4629e7d6d15fb3d7d5798d88c044e5350e36a79fb7d8195a8181437`.
+
+Independent auditing checks exact ordered case/completion enumeration,
+before/after executable/oracle/emitter/ANK hashes, each actual clock/seven-
+feature profile, actual halted CPU completion, and all 120 emitted programs
+against regeneration. It independently regenerates and compares **8,960,000
+actual RGB pixels**, plus retained-reset traces with real CRTC/PPI writes and
+no GRAM/palette refill. All 135 frozen RTL files and all seven frozen
+Makefile/simulator/collector/oracle/emitter/font files match `git show d2df8a1`
+byte-for-byte. This binds the passed matrix to that source, not merely a
+plausible folder name.
+
+This completes the bounded post-PCG-reset combined-video checkpoint, not
+native ASIC semantics, current RTC/D88 changes, Turbo Z software or hardware.
+Newer sources still need their own acceptance, and timing/physical gates
+remain open. No private assets or converted snapshots are used here.
+
 October 9, 2026. This matches the video capabilities selected by the new
 `sharpx1_turbo_z_video` wrapper profile: external palette CPU/video,
 multi-mode fetch, internal-eight palette and text/priority together. No

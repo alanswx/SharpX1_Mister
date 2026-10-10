@@ -18,6 +18,10 @@ the remaining physical and unimplemented-feature gates.
 
 ## Current status
 
+The frozen post-PCG-reset [combined Z matrix](docs/TURBO_Z_COMBINED_STATUS.md)
+now passes all 120 cases and 8,960,000 independently regenerated RGB pixels.
+Its source binding is `d2df8a1`, not current RTC/D88/native/hardware acceptance.
+
 The [Turbo Z Kanji physical decoder](docs/TURBO_Z_KANJI_STORAGE_STATUS.md)
 now passes all 262,144 first/second-level byte addresses against the CZ-880
 ROM pins. It is standalone; machine level-2 storage and native glyph support
