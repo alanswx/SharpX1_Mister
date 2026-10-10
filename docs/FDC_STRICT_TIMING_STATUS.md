@@ -491,6 +491,10 @@ Main independently verifies all 702 frozen/live source entries, executable/
 ROM hashes, order uniqueness and twelve child terminal records. Inherited
 61/66 machine warnings remain under `-Wno-fatal`; no new fixture warning is
 identified, not a blanket lint-clean claim.
+The independent reviewer also regenerates all twelve uploaded IPL files
+byte-for-byte from the frozen emitter/driver and checks the six manifest/build
+orders and terminal records. The four negative executions exercise **one**
+clear-all mutation on both drives at both rates, not four distinct defects.
 
 `test-machine-fdc-timing-status` runs four bounded cases; `-status-full` adds
 the other four positives and all four negative rejections. The bounded target

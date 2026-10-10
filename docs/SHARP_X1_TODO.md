@@ -51,7 +51,7 @@ cached-stream reselection and pending-completion reset/remount. A further
 cancellation with uncancelled controls/five negatives. Split metadata/owned
 publication/high-address tests add 18 selected positives and three mutants.
 Active status-`10` preservation adds eight selected co-block/split normal/deleted
-write/rescan cases and four exact mutants. Other status policies, remaining
+write/rescan cases and four executions of one exact mutant. Other status policies, remaining
 combinations, native final-serialization timing and hardware gates
 remain open.
 Ordinary profiles stay disabled. A fixed-clock native CROSS Chase cold

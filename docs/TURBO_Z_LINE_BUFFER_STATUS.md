@@ -124,6 +124,37 @@ fixture SHA-256:
 
 ## Remaining full capture gates
 
+### Retention is measured from the last location write
+
+Follow-up visually re-reads the same manufacturer's PDF 33/34/37
+(printed 3-4/3-5/3-8), including waveform 83-003644B note 3. Main independently
+reads the saved full AC tables and re-read waveform. Repeated reads are
+guaranteed within **1 ms after writing that location**, absent overwrite;
+the reference does not document restarting that interval by RCK, WCK or RSTR.
+Running clocks during the disable waveforms establish cursor/output behavior,
+not indefinite refresh or guaranteed retention extension.
+
+Printed 3-5 note 6 additionally requires these bounds in one-line operation:
+
+```text
+tWEW + tRSTW + 910 * tWCK <= 1 ms
+tREW + tRSTR + 910 * tRCK <= 1 ms
+```
+
+The AC table gives a maximum WCK/RCK period of 1090 ns. The prototype's
+stopped-clock checks qualify digital pending-cycle retention and recovery,
+not operation within that native AC envelope. Keeping an FPGA RAM byte does
+not qualify an arbitrarily delayed native capture sample.
+
+A proposed reuse of unchanged cells for 32 NTSC lines would last about 2 ms
+and exceed the documented guarantee. This is an engineering constraint on
+the future capture schedule, **not proof that the native mosaic feature fails**:
+IC58 may rewrite/recirculate data or use another path. Establish actual
+write-to-read ages, QA/LMWCK gating and any rewrite path before using chip
+storage as a native capture oracle. Neither a deterministic 1-ms corruption
+model nor an assumed clock-driven refresh is supported by this evidence.
+Ignored visual evidence remains in `/tmp/x1-techknow-capture-review.t1WegK/`.
+
 ### Board control endpoints traced (October 10 follow-up)
 
 Re-rendered the same primary CZ-880 PDF page/printed sheet 46 at pin
