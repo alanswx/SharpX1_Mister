@@ -108,7 +108,21 @@ assets unchanged, but show only preparing / floppy-search screens and accept
 zero tape samples. This establishes native IPL initialization, not tape loading.
 The IPL menu dispatches ASCII C to cassette loading; the real-PS/2 follow-up
 first disables joystick emulation with F12, which otherwise consumes C.
-That longer probe is not yet an accepted tape boot.
+The ten-second follow-up now exits zero on an actual CMT-search frame and
+accepts 33,227 samples, with no underflow and all assets unchanged. Independent
+read-only auditing compares every accepted level against the original private
+TAP and requires consecutive cursors and exact 125-microsecond intervals.
+PLAY begins at 5.846650859375 seconds, before the first scheduled PS/2 byte at
+6.5 seconds: the initial transition is native floppy-search fallback, not
+evidence that the later C key caused it. Six real PS/2 bytes finish transmission;
+their native action is not otherwise qualified by this capture.
+
+Evidence: `/tmp/x1-native-rallyx-cassette-iFzAfm/run10-cmt/`. The mounted private
+TAP hash is `ca83e1a5b9e9443c20399e187373b8b5796f939e10b419740701cebafb7998b5`.
+The actual PNG says `IPL is looking for a program from CMT`, not a game screen.
+A fresh no-key 130-second probe is running under the same frozen executable
+in sibling `run130-autoload/`, covering the complete 119.964-second tape plus
+IPL startup. It is not yet terminal or a loading/gameplay qualification.
 
 Runner source / collector / executable SHA-256, respectively:
 

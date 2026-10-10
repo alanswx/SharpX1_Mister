@@ -239,7 +239,21 @@ drivers. Its complete observed input vector is:
 
 The output bank has 27 keepers/133 pins/85 driver records; no target replicas
 appear. This vector differs from the six allowed profiles and is not permission
-to mix arbitrary per-bit alternatives. Exact whole-bank guard qualification and
-same-fit path preservation are next. Strict production constraints are unchanged;
+to mix arbitrary per-bit alternatives. The exact seventh-bank proposal now
+passes all seven complete profile vectors, 140 fault checks and all 1,048,569
+mixed-profile rejections before any cut. Original Tcl session exits zero;
+log `/tmp/x1-hdmi-inactive-data-seven-profile.log`, SHA-256
+`a285e6d53adadf922c893cafd7bed52d353ac59db1aef393365377a3152452e2`.
+Candidate `b80a0946ca3b310f8e87254f587c26d9414292df24ddf247fd283cc1ab2dd6ad`
+and fixture `2cc95faf7eb8d585abee11b27e08e27063cce9c4c4462c3f6e3fc69abaf70064`
+remain unchanged afterward. The log creation-to-final-write span is 3,563
+seconds, not a separately timed process measurement. No cases are removed.
+
+The exact eleven-file/384-report context auditor passes synthetic preservation
+and rejecting controls, but that is not native TimeQuest acceptance. Native
+same-fit launch is deferred at 17:33:10 UTC because PID 2352689 is fitting
+SunSparcStation20; no competing job is launched. The prepared isolated study
+rejects escaping/database symlinks and preserves originals. Same-fit path
+preservation remains next. Strict production constraints are unchanged;
 complete constrained timing, a fresh full flow and hardware acceptance remain
 open. The assembled `9cc1141` RBF is still unaccepted and not deployed.
