@@ -143,3 +143,9 @@ ordinary fast-model gameplay checks on freshly native-booted states, not
 delay-aware commercial gameplay, full-game completion, Turbo/Z software,
 Quartus timing or physical MiSTer acceptance. Private states/media remain
 ignored and are neither converted nor bundled.
+
+The runner-only [scheduled joystick increment](JOYSTICK_SCHEDULE_STATUS.md)
+now passes focused real-CPU input and existing timing/key/snapshot checks.
+Three freshly frozen continuous delay-aware Xevious cold runs are launched,
+not yet accepted. The earlier completed fast five-title results retain their
+original frozen executable identity; no machine RTL/layout was changed.

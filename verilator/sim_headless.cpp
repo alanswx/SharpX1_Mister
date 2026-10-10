@@ -34,6 +34,7 @@
 #endif
 
 struct Download { uint8_t index; uint32_t address; uint8_t data; };
+struct JoystickEvent { uint64_t time; uint8_t port, value; };
 
 static std::vector<uint8_t> image(const std::string &path) {
     std::ifstream stream(path, std::ios::binary);
@@ -87,6 +88,8 @@ int main(int argc, char **argv) {
 #endif
         uint64_t joya = 0xff, joyb = 0xff;
         bool joya_override = false, joyb_override = false;
+        std::deque<JoystickEvent> joy_events;
+        uint64_t joy_events_applied = 0;
         const char *trace_path = nullptr;
         const char *rom_path = nullptr, *ram_path = nullptr, *font16_path = nullptr, *kanji_path = nullptr;
         uint64_t load_address = 0x8000, entry = 0x8000, peek_address = 0xf000;
@@ -121,6 +124,19 @@ int main(int argc, char **argv) {
             else if (!std::strcmp(argv[i], "--kanji-physical") && i + 1 < argc) kanji_path = argv[++i];
             else if (!std::strcmp(argv[i], "--joya") && i + 1 < argc) { joya = number(argv[++i]); joya_override = true; }
             else if (!std::strcmp(argv[i], "--joyb") && i + 1 < argc) { joyb = number(argv[++i]); joyb_override = true; }
+            else if (!std::strcmp(argv[i], "--joy-at") && i + 3 < argc) {
+                const uint64_t ms = number(argv[++i]);
+                const std::string port = argv[++i];
+                const uint64_t value = number(argv[++i]);
+                if (ms > 1000000 || (port != "A" && port != "B") || value > 255)
+                    throw std::runtime_error("joy-at requires MS <= 1000000, port A/B and active-low BYTE <= 255");
+                const uint64_t time = ms * 1000000000ULL;
+                if (!joy_events.empty() && time < joy_events.back().time)
+                    throw std::runtime_error("joy-at events must be ordered by time");
+                joy_events.push_back({time, static_cast<uint8_t>(port == "B"), static_cast<uint8_t>(value)});
+            }
+            else if (!std::strcmp(argv[i], "--joy-at"))
+                throw std::runtime_error("joy-at requires three arguments: MS A|B BYTE");
             else if (!std::strcmp(argv[i], "--rom") && i + 1 < argc) rom_path = argv[++i];
             else if (!std::strcmp(argv[i], "--ram") && i + 1 < argc) ram_path = argv[++i];
             else if (!std::strcmp(argv[i], "--load-address") && i + 1 < argc) load_address = number(argv[++i]);
@@ -150,6 +166,8 @@ int main(int argc, char **argv) {
         }
         if (joystick_keys && !interactive)
             throw std::runtime_error("--joystick-keys requires --interactive");
+        if (joystick_keys && !joy_events.empty())
+            throw std::runtime_error("joy-at cannot be combined with interactive joystick keys");
         if ((bus_events || bus_start_ms || bus_end_ms) && !bus_path)
             throw std::runtime_error("bus trace options require --bus-trace");
         if (bus_start_ms > 1000000000ULL || bus_end_ms > 1000000000ULL
@@ -462,6 +480,7 @@ int main(int argc, char **argv) {
             reset_cycles = 0; // Restored RTL retains reset counters and clock phase.
             context.time(resume_time);
             for (auto &event : keys) event.time += resume_time;
+            for (auto &event : joy_events) event.time += resume_time;
             evaluate();
         }
 #else
@@ -527,6 +546,7 @@ int main(int argc, char **argv) {
 #endif
             if (key_active) next = std::min(next, key_edge);
             else if (!keys.empty()) next = std::min(next, std::max(context.time() + 1, keys.front().time));
+            if (!joy_events.empty()) next = std::min(next, std::max(context.time() + 1, joy_events.front().time));
             if (next <= context.time()) throw std::runtime_error("scheduler did not advance");
             context.timeInc(next - context.time());
             // Warm resets are relative to this run/restore, with deterministic
@@ -622,6 +642,16 @@ int main(int argc, char **argv) {
                     } else top.ps2_data_in = (key_packet >> key_bit) & 1;
                 }
                 key_edge += 50000000;
+            }
+            // External active-low pins change before evaluation at the event
+            // timestamp, including during reset. Same-time events retain CLI
+            // ordering; unscripted/restored pins are otherwise left alone.
+            while (!joy_events.empty() && next >= joy_events.front().time) {
+                const auto event = joy_events.front();
+                joy_events.pop_front();
+                if (event.port) top.joyb_n = event.value;
+                else top.joya_n = event.value;
+                ++joy_events_applied;
             }
             evaluate();
             if (!audio.path.empty() && next == audio.next_time()) {
@@ -731,8 +761,8 @@ int main(int argc, char **argv) {
 #ifdef X1_SAVABLE
         if (save_path) {
             if (context.time() % 31250 || top.reset || disk_active || disk_cooldown
-                    || key_active || !keys.empty() || top.sd_rd || top.sd_wr || top.ioctl_download)
-                throw std::runtime_error("snapshot requires a running falling edge and quiescent disk/keyboard/download host");
+                    || key_active || !keys.empty() || !joy_events.empty() || top.sd_rd || top.sd_wr || top.ioctl_download)
+                throw std::runtime_error("snapshot requires a running falling edge and quiescent disk/keyboard/joystick/download host");
             VerilatedSave state;
             disk_fingerprint = 14695981039346656037ULL;
             for (auto byte : disk) { disk_fingerprint ^= byte; disk_fingerprint *= 1099511628211ULL; }
@@ -997,7 +1027,7 @@ int main(int argc, char **argv) {
                     "\"reset_edges\":%llu,\"cpu_enables\":%llu,\"delayed_sys_edges\":%llu,"
                     "\"hs_edges\":%llu,\"vs_edges\":%llu,\"hs_period_ps\":%llu,\"vs_period_ps\":%llu,\"video_hash\":\"%016llx\","
                     "\"download_bytes\":%llu,\"cpu_address\":%u,\"halted\":%s,\"peek\":\"%s\","
-                    "\"ps2_bytes_sent\":%llu,\"disk_requests\":%llu,\"disk_writes\":%llu,\"frames\":%llu,\"frame_width\":%u,\"frame_height\":%u,\"frame_hash\":\"%016llx\","
+                    "\"ps2_bytes_sent\":%llu,\"joystick_events_applied\":%llu,\"joystick_events_pending\":%llu,\"joya_n\":%u,\"joyb_n\":%u,\"disk_requests\":%llu,\"disk_writes\":%llu,\"frames\":%llu,\"frame_width\":%u,\"frame_height\":%u,\"frame_hash\":\"%016llx\","
                     "\"sub_pc\":%u,\"sub_address\":%u,\"sub_control\":%u,\"sub_running\":%s,\"sub_tx_busy\":%s,\"sub_rx_empty\":%s,"
                     "\"dma_grants\":%llu,\"dma_reads\":%llu,\"dma_writes\":%llu,\"cpu_fdc_data_reads\":%llu,\"cpu_fdc_data_writes\":%llu%s}\n",
                     turbo_foundation, turbo_video_master, turbo_dma, turbo_dma_irq, turbo_kanji, turbo_fm_cpu, z_palette_cpu, z_video, z_multimode, z_internal8, z_text_cpu, VM_TIMING ? "true" : "false",
@@ -1009,6 +1039,8 @@ int main(int argc, char **argv) {
                     (unsigned long long)hs_period_ps, (unsigned long long)vs_period_ps, (unsigned long long)hash,
                     (unsigned long long)downloads.size(), top.cpu_address, top.cpu_halt_n ? "false" : "true", peek.c_str(),
                     (unsigned long long)ps2_bytes_sent,
+                    (unsigned long long)joy_events_applied, (unsigned long long)joy_events.size(),
+                    unsigned(top.joya_n), unsigned(top.joyb_n),
                     (unsigned long long)disk_requests,(unsigned long long)disk_writes,(unsigned long long)frame.frames,frame.width,frame.height,
                     (unsigned long long)frame.hash,
                     top.sub_pc,top.sub_address,top.sub_control,

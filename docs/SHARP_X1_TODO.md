@@ -146,6 +146,12 @@ manifest still matches after completion. This closes the fresh ordinary
 five-title requalification gate, not Turbo/Z gameplay, whole-game completion
 or any physical/timing gate. See `BASELINE_V17_STATUS.md` for exact scope.
 
+The runner now accepts scheduled external A/B joystick events. Focused
+real-CPU input, reset, retained-B restore and pending-event save rejection
+pass alongside existing clock/key/snapshot checks. Three new continuous
+delay-aware Xevious cold boots are running, not completed; see
+`JOYSTICK_SCHEDULE_STATUS.md`. Native Turbo/Z and physical gates stay open.
+
 Fresh extracted native-policy runs now check 396 held-mode changes while
 blanked with a closed output clock, including synthetic delayed-policy cases.
 Minimum quiet time is 96,873 ps, above the three-control-period requirement;

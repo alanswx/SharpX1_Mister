@@ -855,6 +855,10 @@ PS/2 set-2 bytes, `--frame` captures actual RGB pixels to PPM, `--bus-trace`
 writes CSV and `--dump` saves main/text/attribute RAM. `--audio` captures mono
 48 kHz WAV. `--joya`/`--joyb` set raw active-low X1 joystick pin bytes (default
 `0xff`); explicit values override saved inputs when restoring a snapshot.
+Repeated `--joy-at MS A|B BYTE` schedules raw joystick pin changes relative
+to this run/restore, including during reset. See
+[scheduled input acceptance](docs/JOYSTICK_SCHEDULE_STATUS.md); continuous
+delay-aware commercial qualification is running, not yet completed.
 Repeated `--reset-at MS` with `--reset-for-us US` inject warm machine resets,
 relative to this run/restore, without reloading the core or assets.
 Key scripts contain `milliseconds hex-byte` lines and now support `#` full-line

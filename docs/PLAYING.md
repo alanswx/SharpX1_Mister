@@ -94,6 +94,16 @@ not implement a real X1 mouse or physical SDL gamepad input.
 
 ## Remaining limits
 
+For deterministic cold boots without fast snapshots, repeated
+`--joy-at MS A|B BYTE` supplies scheduled active-low PSG joystick pins. For
+example, `--joy-at 16000 A 0xdf --joy-at 16500 A 0xff` presses and releases
+button 1 at 16.0/16.5 seconds. Events are relative to the current invocation
+or restore, not wall time; they continue during machine reset. Unscripted
+restored ports are retained. This cannot be combined with live joystick-key
+mode, and saving with unconsumed scheduled events is rejected. See
+[tests and limits](JOYSTICK_SCHEDULE_STATUS.md). It is host input, not a native
+mouse protocol or evidence of hardware/game compatibility.
+
 Playable input is a bring-up milestone, not a compatibility certificate.
 Generated floppy read/write/error and PSG tone/noise/envelope diagnostics now
 exist; exact controller timing, native PCG scanline waits, full keyboard
