@@ -61,8 +61,14 @@ test-fdc-address-width:
 test-fdc-default-state:
 	python3 tests/test_fdc_default_state.py --baseline 3c34dd0
 test-fdc-capacity-class:
-	python3 tests/test_fdc_capacity_class.py --vendor-sha 2affa0bd8a6bf504247dd917a86902508c1efb8f5e6143f2e90706f438a6b75a
+	python3 tests/test_fdc_capacity_class.py --vendor-sha $(FDC_TIMING_VENDOR_SHA)
 .PHONY: test-fdc-capacity-class
+FDC_TIMING_VENDOR_SHA := e04791cce6887ef5c3981f0c9c1cf6b5efe083bbd43813845afaca3dc25ca820
+test-fdc-strict-timing:
+	python3 tests/test_fdc_strict_timing.py --vendor-sha $(FDC_TIMING_VENDOR_SHA)
+test-fdc-strict-legacy:
+	python3 tests/test_fdc_strict_legacy.py --vendor-sha $(FDC_TIMING_VENDOR_SHA)
+.PHONY: test-fdc-strict-timing test-fdc-strict-legacy
 test-fdc-byte-slots:
 	python3 tests/test_fdc_byte_slots.py
 .PHONY: test-fdc-byte-slots

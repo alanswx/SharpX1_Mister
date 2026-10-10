@@ -29,7 +29,7 @@
 // rejects selected FM access rather than silently reading an MFM sector.
 module wd1793 #(parameter RWMODE=0, EDSK=1, HEADLOAD_STATUS=0, INDEX_CYCLES=35001,
                D88_ONLY=0, PHYSICAL_DRIVES=1, ADDRESS_BITS=20, MAX_SECTORS=1992,
-               D88_CAPACITY_CHECK=0)
+               D88_CAPACITY_CHECK=0, STRICT_D88_TIMING=0)
 (
 	input        clk_sys,     // sys clock
 	input        ce,          // ce at CPU clock rate
@@ -108,7 +108,8 @@ module wd1793 #(parameter RWMODE=0, EDSK=1, HEADLOAD_STATUS=0, INDEX_CYCLES=3500
 	output[ADDRESS_BITS-1:0] buff_addr,	  // buffer RAM address
 	output       buff_read,	  // buffer RAM read enable
 	input  [7:0] buff_din,    // buffer RAM data input
-	input        hd_selected // opt-in D88 capacity class; unused by defaults
+	input        hd_selected, // opt-in D88 capacity class; unused by defaults
+	input        fdc_ce      // explicit nominal chip-clock event; timing opt-in only
 );
 
 localparam SECTOR_INDEX_BITS = 37 + ADDRESS_BITS;
@@ -122,6 +123,8 @@ initial begin
         $fatal(1, "wd1793 MAX_SECTORS must be 1..4095");
     if (D88_CAPACITY_CHECK && (!D88_ONLY || !EDSK))
         $fatal(1, "D88 capacity matching requires the strict D88 indexed profile");
+    if (STRICT_D88_TIMING && (!RWMODE || !EDSK || !D88_ONLY))
+        $fatal(1, "STRICT_D88_TIMING requires SD indexed strict D88");
 end
 wire capacity_matches;
 // Constant/dead in default profiles; state identity is separately checked.
@@ -136,7 +139,7 @@ assign capacity_matches=!D88_CAPACITY_CHECK || (hd_selected ?
 // 3:  5 x 1024 = 5.0KB
 // 4: 10 x 512  = 5.0KB
 
-assign dout      = q;
+assign dout      = STRICT_D88_TIMING ? timing_bus_value : q;
 assign drq       = s_drq;
 assign busy      = s_busy;
 assign intrq     = s_intrq;
@@ -185,7 +188,7 @@ reg metadata_dirty;
 reg write_byte_seen;
 reg write_data;
 wire metadata_cancel_event = reset || (D88_ONLY && (img_mounted || mount_pending)) ||
-                             (ce && wre && addr == A_COMMAND && din[7:4] == 4'hD);
+                             (ce && (STRICT_D88_TIMING ? timing_write_accept : wre) && addr == A_COMMAND && din[7:4] == 4'hD);
 wire metadata_cancel = metadata_cancel_event || metadata_aborted;
 wire metadata_commit = metadata_inflight && ack[5:4] == 2'b10 &&
                        !metadata_invalid && !img_mounted && !mount_pending && !scan_active;
@@ -198,7 +201,7 @@ wire metadata_edit = ce && !metadata_cancel &&
 wire zero_write_byte = D88_ONLY && ce && !metadata_cancel && state == STATE_WRITE_2 &&
                        s_drq && watchdog_bark && !write_byte_seen && !write_data && !wre &&
                        data_length != sector_size;
-wire cpu_buffer_write = wre && buff_wr && addr == A_DATA && !scan_active &&
+wire cpu_buffer_write = !STRICT_D88_TIMING && wre && buff_wr && addr == A_DATA && !scan_active &&
                         (!D88_ONLY || (state == STATE_WRITE_2 && s_drq && !metadata_cancel));
 generate
 	if(RWMODE) begin
@@ -213,12 +216,13 @@ generate
 
 			.address_b(scan_active ? {2'b00, scan_addr[8:0]} :
 			           metadata_busy ? {2'b00, (state == STATE_METADATA_STATUS ||
-			              state == STATE_METADATA_STATUS_SETTLE ? metadata_mark_address[8:0] + 9'd1 : metadata_address[8:0])} : byte_addr),
+			              state == STATE_METADATA_STATUS_SETTLE ? metadata_mark_address[8:0] + 9'd1 : metadata_address[8:0])} :
+                       STRICT_D88_TIMING && state == STATE_TIMING_WAIT ? timing_buffer_address : byte_addr),
 			.data_b(metadata_edit ? (state == STATE_METADATA_MARK ?
 			        (metadata_deleted ? 8'h10 : 8'h00) :
 			        (buff_dout == 8'hb0 ? 8'h00 : buff_dout)) :
-			        (format || zero_write_byte ? 8'd0 : din)),
-			.wren_b(cpu_buffer_write || metadata_edit || zero_write_byte),
+			        (timing_buffer_store ? timing_write_byte : (format || zero_write_byte ? 8'd0 : din))),
+			.wren_b(cpu_buffer_write || metadata_edit || zero_write_byte || timing_buffer_store),
 			.q_b(buff_dout)
 		);
 	end else begin
@@ -342,7 +346,9 @@ typedef enum
 	STATE_METADATA_WRITE,
 	STATE_METADATA_WRITE_WAIT,
 	STATE_METADATA_NEXT,
-	STATE_WRITE_COMPLETE
+	STATE_WRITE_COMPLETE,
+    // Append only: inherited enum identities and process-local state stay put.
+    STATE_TIMING_WAIT
 } io_state_t;
 
 
@@ -367,7 +373,7 @@ reg 			s_wpe;
 
 // DRQ/BUSY are always going together
 reg	[1:0]	s_drq_busy;
-wire			s_drq  = s_drq_busy[1];
+wire			s_drq  = STRICT_D88_TIMING && state == STATE_TIMING_WAIT ? timing_drq : s_drq_busy[1];
 wire			s_busy = s_drq_busy[0];
 reg         s_intrq;
 // X1 Type IV conditions: Fujitsu MB8876A/MB8877A datasheet pp. 5-6;
@@ -398,7 +404,8 @@ reg   [7:0] wdreg_data;
 // deciding what it can load reads the difference.
 wire  [7:0] wdreg_status = cmd_mode == 0 ?
 	{~media_ready, s_readonly & s_wpe, (HEADLOAD_STATUS != 0) && s_headloaded, s_seekerr, s_crcerr, !disk_track, s_index, s_busy}:
-	{~media_ready, s_readonly & s_wpe, s_wrfault, s_seekerr, s_crcerr, s_lostdata,  s_drq,   s_busy};
+	{~media_ready, s_readonly & s_wpe, s_wrfault, s_seekerr, s_crcerr,
+     s_lostdata | (STRICT_D88_TIMING && state == STATE_TIMING_WAIT && timing_lost), s_drq, s_busy};
 
 reg   [7:0] read_addr[6];
 reg   [7:0] q;
@@ -407,7 +414,7 @@ always @* begin
 		A_STATUS: q = wdreg_status;
 		A_TRACK:  q = wdreg_track;
 		A_SECTOR: q = wdreg_sector;
-		A_DATA:   q = (state == STATE_IDLE) ? wdreg_data : buff_rd ? (RWMODE ? buff_dout : buff_din) : read_addr[byte_addr[2:0]];
+		A_DATA:   q = (STRICT_D88_TIMING || state == STATE_IDLE) ? wdreg_data : buff_rd ? (RWMODE ? buff_dout : buff_din) : read_addr[byte_addr[2:0]];
 	endcase
 end
 
@@ -524,6 +531,90 @@ wire [15:0] id_crc = crc16_ccitt(crc16_ccitt(crc16_ccitt(crc16_ccitt(
 
 wire        rde = rd & io_en;
 wire        wre = wr & io_en;
+// Original default-off nominal MFM timing bridge. No capacity/CPU-clock
+// inference, native ID gap, RPM, recovered RCLK or board timing claim.
+wire timing_read_accept, timing_write_accept;
+wire [7:0] timing_bus_value, timing_write_value;
+wire timing_drq, timing_lost, timing_read_load, timing_read_first, timing_taken, timing_result_lost, timing_result_abort;
+wire [7:0] timing_read_value, timing_write_byte;
+wire [10:0] timing_buffer_address;
+wire timing_buffer_store;
+wire timing_replace = STRICT_D88_TIMING && timing_write_accept && addr == A_COMMAND &&
+                      ((state == STATE_IDLE && transport_idle) || din[7:4] == 4'hD);
+wire timing_cancel = reset || img_mounted || mount_pending || timing_replace;
+generate
+    if (STRICT_D88_TIMING) begin : strict_timing
+        wire begin_read = ce && state == STATE_READ && !timing_cancel;
+        wire arm_write = ce && state == STATE_WRITE && !timing_cancel;
+        reg [5:0] prefill_left = 0;
+        reg previous_rd = 0;
+        wire active, armed, done, initial_abort, write_emit;
+        wire [10:0] byte_index, write_index;
+        wire launch = armed && fdc_ce && prefill_left == 6'd1 && !timing_cancel;
+        // EXPLICIT EXPERIMENT: 32 FUTURE chip edges after arm (which is
+        // after full-sector prefetch). Early DATA acceptance never rephases
+        // launch. Missing prefill aborts with loss and NO payload/metadata
+        // writes. This is not the native ID-CRC-to-write-gate interval.
+        always @(posedge clk_sys) begin
+            previous_rd <= rd;
+            if (timing_cancel) prefill_left <= 0;
+            else if (arm_write) prefill_left <= 6'd32;
+            else if (armed && fdc_ce && prefill_left != 0)
+                prefill_left <= prefill_left - 6'd1;
+        end
+        x1_fdc_bus_events bus_events (
+            .clk(clk_sys), .reset(reset), .bus_ce(ce), .selected(io_en),
+            .rd(rd), .wr(wr), .response(q), .write_value(din),
+            .read_accept(timing_read_accept), .write_accept(timing_write_accept),
+            .read_value(timing_bus_value), .captured_write(),
+            .accepted_write_value(timing_write_value)
+        );
+        x1_fdc_stream_adapter #(.EXTERNAL_DR(1)) stream (
+            .clk(clk_sys), .reset(reset), .fdc_ce(fdc_ce),
+            .begin_read(begin_read), .arm_write(arm_write), .launch_write(launch),
+            .stop(timing_cancel), .length(data_length),
+            .source_byte(buff_rd ? buff_dout : (byte_index < 6 ? read_addr[byte_index[2:0]] : 8'd0)),
+            .read_accept(timing_read_accept && addr == A_DATA),
+            .read_release(previous_rd && !rd),
+            .write_accept(timing_write_accept && addr == A_DATA),
+            .write_value(timing_write_value), .physical_dr(wdreg_data),
+            .read_dr_load(timing_read_load), .read_dr_value(timing_read_value),
+            .dr_value(), .drq(timing_drq), .active(active), .armed(armed),
+            .lost(timing_lost), .done(done), .initial_abort(initial_abort),
+            .byte_index(byte_index), .generation(), .response_valid(),
+            .response_data(), .response_generation(), .read_ack(), .arrival(),
+            .write_emit(write_emit), .write_byte(timing_write_byte), .write_index(write_index)
+        );
+        x1_fdc_completion completion (
+            .clk(clk_sys), .reset(reset), .cancel(timing_cancel), .complete(done),
+            .lost(timing_lost), .initial_abort(initial_abort),
+            .consume(ce && state == STATE_TIMING_WAIT), .valid(),
+            .result_lost(timing_result_lost), .result_abort(timing_result_abort), .taken(timing_taken)
+        );
+        // RAM port B is synchronous. Index changes only at a chip slot;
+        // 32 future CE edges allow its read to settle even with CE every SYS.
+        // Registered write_emit retires on SYS, not the slow controller CE.
+        assign timing_buffer_address = {2'd0, buff_a[8:0]} + (write_emit ? write_index : byte_index);
+        assign timing_buffer_store = write_emit && state == STATE_TIMING_WAIT && !timing_cancel;
+        assign timing_read_first = byte_index == 0;
+    end else begin : legacy_timing
+        assign timing_read_accept = 0;
+        assign timing_write_accept = 0;
+        assign timing_bus_value = 0;
+        assign timing_write_value = 0;
+        assign timing_drq = 0;
+        assign timing_lost = 0;
+        assign timing_read_load = 0;
+        assign timing_read_first = 0;
+        assign timing_read_value = 0;
+        assign timing_write_byte = 0;
+        assign timing_taken = 0;
+        assign timing_result_lost = 0;
+        assign timing_result_abort = 0;
+        assign timing_buffer_address = 0;
+        assign timing_buffer_store = 0;
+    end
+endgenerate
 always @(posedge clk_sys) begin
 	reg old_wr, old_rd;
 
@@ -630,6 +721,16 @@ always @(posedge clk_sys) begin
 		metadata_busy <= 0;
 		metadata_aborted <= 0;
 	end
+    // Keep the physical DR in THIS existing owner. Arrival beats a tied CPU
+    // DATA store (explicit digital tie policy, not measured native priority).
+    // Underrun zero is a DSR/buffer byte and NEVER stores into physical DR.
+    if (STRICT_D88_TIMING && !reset) begin
+        if (timing_read_accept && addr == A_STATUS && !force_mask[3]) s_intrq <= 0;
+        if (timing_read_load) begin
+            wdreg_data <= timing_read_value;
+            if (!buff_rd && timing_read_first) wdreg_sector <= read_addr[0];
+        end
+    end
 	if((reset || (D88_ONLY && (img_mounted || mount_pending))) & ~scan_active) begin
 		read_data <= 0;
 		write_data <= 0;
@@ -716,13 +817,13 @@ always @(posedge clk_sys) begin
 		if((!old_rd && rde) || (!old_wr && wre)) cur_addr <= addr;
 
 		//Register read operations
-		if(old_rd && !rde && (cur_addr == A_STATUS) && !force_mask[3]) s_intrq <= 0;
+		if(!STRICT_D88_TIMING && old_rd && !rde && (cur_addr == A_STATUS) && !force_mask[3]) s_intrq <= 0;
 
 		//end of data reading
-		if(old_rd && !rde && (cur_addr == A_DATA)) read_data <=1;
+		if(!STRICT_D88_TIMING && old_rd && !rde && (cur_addr == A_DATA)) read_data <=1;
 
 		//end of data writing
-		if(old_wr && !wre && (cur_addr == A_DATA)) write_data <=1;
+		if(!STRICT_D88_TIMING && old_wr && !wre && (cur_addr == A_DATA)) write_data <=1;
 
 		case (state)
 			/* Idle state or buffer to host transfer */
@@ -873,9 +974,12 @@ always @(posedge clk_sys) begin
 
 			STATE_READ:
 				begin
+					if (STRICT_D88_TIMING) state <= STATE_TIMING_WAIT;
+					else begin
 					watchdog_set <= 1;
 					read_timer <= 15;
 					state <= STATE_READ_1;
+					end
 				end
 			STATE_READ_1:
 				begin
@@ -986,10 +1090,25 @@ always @(posedge clk_sys) begin
 				end
 			STATE_WRITE:
 				begin
+					if (STRICT_D88_TIMING) state <= STATE_TIMING_WAIT;
+					else begin
 					watchdog_set <= 1;
 					read_timer <= 15;
 					state <= STATE_WRITE_1;
+					end
 				end
+            STATE_TIMING_WAIT: if (STRICT_D88_TIMING && timing_taken) begin
+                s_lostdata <= s_lostdata | timing_result_lost;
+                if (write) state <= timing_result_abort ? STATE_ENDCOMMAND : STATE_WAIT_WRITE;
+                else begin
+                    s_crcerr <= s_crcerr | pending_read_crc;
+                    pending_read_crc <= 0;
+                    if (multisector) begin
+                        wdreg_sector <= wdreg_sector + 1'b1;
+                        state <= STATE_SEARCH;
+                    end else state <= STATE_ENDCOMMAND;
+                end
+            end
 			STATE_WRITE_1:
 				begin
 					read_timer <= read_timer - 1'b1;
@@ -1141,7 +1260,7 @@ always @(posedge clk_sys) begin
 		endcase
 
 		/* Register write operations */
-		if (!old_wr & wre) begin
+		if (STRICT_D88_TIMING ? timing_write_accept : (!old_wr & wre)) begin
 			case (addr)
 				A_COMMAND:
 					begin
@@ -1351,7 +1470,7 @@ always @(posedge clk_sys) begin
 `endif
 				end
 				A_DATA: begin
-					wdreg_data <= din;
+					if (!STRICT_D88_TIMING || !timing_read_load) wdreg_data <= din;
 					if(D88_ONLY && state == STATE_WRITE_2 && s_drq) write_byte_seen <= 1;
 				end
 			endcase

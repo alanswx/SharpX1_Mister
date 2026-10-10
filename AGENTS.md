@@ -246,6 +246,15 @@ writes. Freeze/hash each runner before a long test, not after another build
 may have replaced it. Older frozen game qualifications remain historical.
 Simulator disk writes require `--disk-output NEW_COPY`; private originals and
 snapshots remain ignored. See `docs/DISK_STATUS.md` for tested and missing cases.
+Vendor `STRICT_D88_TIMING=1` is a separate default-off SD/register experiment,
+not an enabled shared-machine or board profile. It requires explicit synchronous
+`fdc_ce`; ordinary machine wiring ties this input to zero to preserve v17 state.
+See `docs/FDC_STRICT_TIMING_STATUS.md`: 32-enable MFM slots, initial prefill/tail
+and collision policies are experimental, not native failure-edge timing. Keep
+physical DR in its existing SYS owner; underrun zero must not update it. Serial
+staging and held completion must work with controller CE stopped, while actual
+SD ACK ownership survives cancellation/reset. Standalone positives/negatives
+do not establish CPU/DMA, dual-drive, native clock or hardware acceptance.
 `turbo-wide-d88` separately enables 24-bit byte addresses and 4,095 sector
 entries with a 12-bit index; ordinary profiles/boards remain 20-bit/1,992.
 It is non-savable and does not implement native density/FDCCLK/RPM/format.

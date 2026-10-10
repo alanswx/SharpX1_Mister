@@ -786,7 +786,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         initial $fatal(1,"shared D88 addressing permits ordinary20 or experimental24 only");
     end endgenerate
     wd1793 #(.RWMODE(1), .EDSK(1), .HEADLOAD_STATUS(1), .INDEX_CYCLES(800000), .D88_ONLY(1), .PHYSICAL_DRIVES(2), .ADDRESS_BITS(D88_ADDRESS_BITS), .MAX_SECTORS(D88_ADDRESS_BITS==24 ? 4095 : 1992), .D88_CAPACITY_CHECK(TURBO_HD_MEDIA)) fdc (
-        .clk_sys(clk_sys), .ce(pe4M4), .reset(core_reset),
+        .clk_sys(clk_sys), .ce(pe4M4), .reset(core_reset), .fdc_ce(1'b0),
         .io_en(!dam && a[15:2] == 14'h03fe), .rd(io_read), .wr(io_write),
         .addr(a[1:0]), .din(data_out), .dout(fdc_data),
         .drq(fdc_drq), .intrq(), .busy(), .wp(selected_wp || fdc_fmt_wp), .fmt_wp(fdc_fmt_wp),

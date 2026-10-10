@@ -19,15 +19,18 @@ the remaining physical and unimplemented-feature gates.
 ## Current status
 
 The standalone [FDC byte-slot scheduler](docs/FDC_BYTE_SLOT_STATUS.md) passes
-exact enable-boundary and rejecting-negative checks. Controller integration,
+exact enable-boundary and rejecting-negative checks. Enabled machine integration,
 native clock routing and actual read/write deadlines remain open.
 Its separate [bus-capture prerequisite](docs/FDC_BUS_EVENTS_STATUS.md) passes
 held-response/one-event checks and three rejecting controls; it is not yet
 connected to the machine.
 The [fixed-slot stream prototype](docs/FDC_STREAM_ADAPTER_STATUS.md) also
 passes missed-byte/held-response/reset tests at nominal 1/2 MHz. Separate
-shared-DR/raw-bus and held-completion gates also pass. WD/SD and
-actual CPU/DMA integration remain open; no board enables these helpers.
+shared-DR/raw-bus and held-completion gates also pass. The default-off
+[WD/SD integration](docs/FDC_STRICT_TIMING_STATUS.md) now passes 408 counted
+standalone cases and nine rejecting controls. Actual CPU/DMA and native timing
+integration remain open; no board enables it. Ordinary generated state and
+the 144-gate fast/snapshot regression remain intact.
 
 The separate non-savable `turbo-hd-media` experiment now connects capacity
 selection to D88 medium matching. Original CPU cases pass wrong-class RNF
