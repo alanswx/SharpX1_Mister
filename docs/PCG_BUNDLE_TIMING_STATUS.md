@@ -169,6 +169,16 @@ checkout is now at `8034078` with the reporting tools present; preflight
 passes (`/tmp/x1-quartus-8034078-preflight.log`), but no flow is started while
 other users' active Quartus jobs occupy the host.
 
+The fresh full ordinary suite subsequently completes with observed exit zero
+and **143 PASS reports** in `/tmp/x1-pcg-reset-full-baseline.log`. Final runner
+SHA-256 matches the initial `dd6d2f5c...da6439` identity above. Coverage includes
+40/80-column RGB/text/PCG/blink and mixed-mode transitions, PS/2 cold/steady/
+overlapping IRQ ordering, retained-asset warm reset, timing/determinism/FST,
+memory/bus/sub-CPU/PSG, drive selection/dual media and disk metadata/write/
+protection/side-ID cases, followed by the prescribed loader/joystick/PCG/
+disk-control/index fixtures. These are the existing ordinary diagnostics,
+not native software, a Turbo/Z matrix pass, analog fidelity or FPGA acceptance.
+
 ### Stopped-clock reset cancellation follow-up
 
 The strengthened `test-turbo-pcg-native-windows` completes zero in

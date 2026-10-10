@@ -55,3 +55,18 @@ gameplay, not full-game completion, delay-aware gameplay or native FM/SIO/Z.
 
 Full work groups 1–6 and Turbo Z remain open, including native/physical
 device gates, Arcus/Bastard Special and analog/IRQ FM acceptance.
+
+## Fresh ordinary regression after local-reset PCG repair
+
+`make -C verilator test HEADLESS_DIR=obj_dir_headless/pcg-reset-baseline`
+now finishes with an observed exit zero and **143 PASS reports** in
+`/tmp/x1-pcg-reset-full-baseline.log`. The final delay-aware runner SHA-256
+matches its initial identity:
+`dd6d2f5c1f00dee4372765c2a0d8b210ceda8ba3853c74578cca6e1b3fda6439`.
+Ordinary clocks remain SYS=32 MHz/VID=28,571,428 Hz. This freshly executes
+the prescribed video/transition/peripheral/disk/helper suite on the current
+PCG source; it does not rerun the five commercial collectors or qualify
+native Turbo/Z, FPGA timing or physical behavior. X3 separately requires
+revision-3 snapshot identity; ordinary v17 identity remains unchanged.
+See [the PCG repair evidence](PCG_BUNDLE_TIMING_STATUS.md) for scope,
+snapshot checks and remaining source-bound fitting/hardware gates.

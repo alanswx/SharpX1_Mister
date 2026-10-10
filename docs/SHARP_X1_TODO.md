@@ -128,6 +128,10 @@ Fresh revision-3 X3 pending-CRTC snapshots now pass nine real CPU states and
 ordinary delay-aware suite is running, not completed; fresh fitting is still
 waiting for an idle build host. These checks do not complete the broader
 Turbo/Z native or physical acceptance gates.
+The separate fresh full ordinary delay-aware suite now completes zero with
+143 PASS reports and an unchanged final runner hash. Video/transition,
+keyboard/reset, PSG, memory/bus, dual-media and disk/loader/helper checks pass;
+this does not replace fresh Turbo/Z pixel, native software or FPGA gates.
 
 Fresh extracted native-policy runs now check 396 held-mode changes while
 blanked with a closed output clock, including synthetic delayed-policy cases.

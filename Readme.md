@@ -115,6 +115,9 @@ The subsequent source repair uses the existing local video reset alone for
 PCG write permission, retaining ordinary reset behavior. Fresh X3 continuation
 and actual old-state rejection pass with revision-3 snapshot identity; fitted
 write-enable timing and current-machine pixels/hardware remain unqualified.
+The fresh full ordinary delay-aware regression also finishes zero with 143
+PASS reports and an unchanged runner hash; Turbo/Z native and hardware
+acceptance remain separate. See [baseline evidence](docs/BASELINE_V17_STATUS.md).
 
 Its isolated real-PLL controller maps/fits; a fitted-feedback audit led to an
 explicit falling-edge closure witness. Current native cases pass, while raw
