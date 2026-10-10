@@ -35,14 +35,16 @@ shared-machine candidate builds at explicit 1/2-MHz enables and its actual-CPU
 The original shared-machine matrix also qualifies 128 CPU/DMA cases, 28 owned-
 transport/reset cases and three rejecting controls. CPU2M coverage is deliberate
 loss plus DMA recovery. A separate 24-case public-port fixture now adds
-cached-stream reselection and pending-completion reset/remount; metadata,
+cached-stream reselection and pending-completion reset/remount. A further
+24-case fixture qualifies consumer-CE, pending-store and prefill cancellation
+with uncancelled controls and five rejecting mutations; metadata,
 high-address and native timing gates stay open. No board enables it.
 Ordinary generated state and
 the fresh 144-gate fast/snapshot regression remain intact. The fresh ordinary
 delay-aware rerun also passes all 149 reports after updating the intentional
 runner-recipe inventory guard. Native CROSS Chase reaches a real game screen
-through the 1-MHz candidate; a second cold run qualifies real PS/2 movement
-and changed RGB. Controlled repeatability remains open.
+through the 1-MHz candidate; real PS/2 movement changes RGB and now cold-repeats
+exactly across the full log and six output dumps, with input hashes unchanged.
 These ordinary regressions do not enable the experimental bridge.
 
 The separate non-savable `turbo-hd-media` experiment now connects capacity

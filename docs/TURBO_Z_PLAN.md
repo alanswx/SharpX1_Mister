@@ -246,6 +246,10 @@ extra GRAM. The digital RGB output reduces analog multi-mode colors to eight
   passes every code/absence combination; actual ADC clocks, ASIC packing and
   GRAM sequencing remain unresolved. Do not model the line buffers as direct
   ADC FIFOs without tracing those intervening controls.
+  The [line-buffer follow-up](TURBO_Z_LINE_BUFFER_STATUS.md) now traces RCK
+  to inverted QA from IC27/IC26, correcting the earlier OA transcription.
+  Divider/gating and LMWCK/ADCCLK generation remain unresolved; do not assign
+  direct X3 edges. A separate physical LMWCK pin-number discrepancy is recorded.
 - [ ] Z9: native software acceptance, analog/multi-mode test programs and
   diagnostic input patterns; cold/warm reset during palette/capture/SD/DMA,
   unchanged assets and repeatable input/audio/screens. Record source-bound

@@ -406,3 +406,21 @@ Checkpoint `9cc1141` is pushed. Idle-only host observations through 14:22:37 UTC
 find competing MacPPC/Quartus activity, so no new native/fit launch occurs.
 Fresh committed-source native checks, fit, exact consumer/HPS topology,
 complete constraints, timing/MTBF/I/O and hardware acceptance remain required.
+
+### Fresh 9cc1141 source-bound qualification
+
+After competing jobs finish, exact
+`9cc1141a61875896df192585b12810c5dd76d94c` passes the source-bound native
+96 reset, six normal and six synthetic-skew cases, all reported terminal zero
+with unchanged source/runtime manifests. Independent raw-log review follows
+separately; these are clock-policy gates, not full-machine or routed timing.
+The full `sharpx1_turbo_z_handoff` flow starts 14:36:31 UTC. Main independently
+checks live flow PID 2236298, mapper 2236328, launcher 2232818 and helper 2235001
+at about 1m04s into compilation. Build session 30275 remains active.
+Frozen source:
+`/home/alans/mister/SharpX1_Mister/output_files/handoff-9cc1141-ENfxtIwd/worktree/output_files/quartus-linux-58JhGiQL/source`.
+Input-manifest SHA-256:
+`6ad47ea2a3b5504f8184dbe9e38c8047c79cfcc6a9a23d49c87fc12912c6f23f`.
+Live driver log: `/tmp/x1-quartus-9cc1141-handoff-i3oFPnDY.log`.
+No terminal fit/constraints/timing result is claimed yet. Other jobs, the
+primary checkout and historical fits are preserved; no MiSTer is loaded.

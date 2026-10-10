@@ -134,16 +134,16 @@ between pin 6 (read reset), pin 8 (read clock) and pin 17 (write clock).
 
 | IC56 and IC57 input | Device pin | Traced shared connection |
 | --- | --- | --- |
-| RCK | 8 | `OA` net, also IC58 pin 61; distinct from ADCCLK |
-| WCK | 17 | IC58 `LMWCK`, pin 68 |
+| RCK | 8 | Inverted `QA` net (earlier transcribed `OA`), also IC58 pin 61; distinct from ADCCLK |
+| WCK | 17 | IC58 `LMWCK`; physical pin-number transcription remains unresolved below |
 | RSTR (active low) | 6 | IC58 RSTR, pin 66 |
 | RSTW (active low) | 19 | IC58 RSTW, pin 67 |
 | RE (active low) | 5 | IC58 RE, pin 64 |
 | WE (active low) | 20 | IC58 WE, pin 69 |
 
 Both buffers share these six controls. This is a connectivity trace, **not**
-a claim that every listed IC58 pin is an output: OA's ultimate driver,
-frequency and phase still require adjoining-sheet tracing. ADCCLK is a
+a claim that every listed IC58 pin is an output. The subsequent adjoining-sheet
+trace below establishes the QA source/inversion, not its waveform. ADCCLK is a
 separate net at IC58 pin 91. No divider or direct X3 assignment is justified
 by these endpoints. The drawing labels the buffers uPD41101C / IX0860CE;
 it does not establish a numeric speed suffix.
@@ -161,6 +161,43 @@ This closes the six **endpoint** mappings, not their waveform generation or
 machine integration. Keep independent storage clocks in the device model;
 a future single-master implementation needs measured/traced event enables,
 not interchangeable ADCCLK/RCK/WCK assumptions.
+
+### Read-clock source and inversion follow-up
+
+The same hashed primary scan's sheets 45/46 and IC pin drawings 67/68/70 were
+rendered and visually cross-checked. The dedicated IX0866CE pin drawing names
+pin 54 **QA** and pin 52 QD; earlier `OA`/`OD` readings of the scan must not
+be treated as different nets. Sheet 45 routes IC27 QA (54) through IC26
+ALS1004 inverter input 1/output 2 to the overbar-QA net. Sheet 46 connects
+that inverted net to both line-buffer RCK inputs (8) and IC58 (61). Sheet 70's
+ALS1004 drawing independently confirms the inverter and its pin pair.
+
+Thus (digital connectivity inference, excluding propagation delay) a rising
+line-buffer RCK corresponds to a falling IC27 QA, **not** to a rising raw
+42.95454-MHz oscillator edge. X1's 42.95454-MHz crystal is connected to
+IC27 VCK (13); the custom ASIC's QA divider/gating, scan-mode dependence and
+phase remain unresolved. This trace closes the read-clock driver/polarity
+endpoint, not frequency, duty cycle or any fixed X3 enable assignment.
+LMWCK, ADCCLK and reset/enable generation still require their own contracts.
+
+The re-rendered sheet-46 LMWCK pin label appears `88`, whereas the earlier
+endpoint table transcribed `68`. No independent IX0871CE pin drawing or board
+continuity measurement has reconciled that physical number, so it is now
+explicitly unresolved rather than silently choosing one. The named LMWCK
+route to both WCK inputs (17) is still traced. This does not alter RTL.
+
+Ignored rendered evidence:
+`/tmp/x1-z-oa-source-sheet45.png` SHA-256
+`5d4a4e1eb78ff951f830d7f05d1c601c0a329ff4408d074c2c13356b3da4198d`;
+`/tmp/x1-z-rck-bar-sheet46.png` SHA-256
+`04dde96ddf28d9202628f1198c659fc5f9a648ef629efe185303ff4d14bdec2c`.
+The original PDF remains unchanged and ignored. No clock producer, machine
+capture, palette/GRAM write, native rate or hardware result is inferred.
+Independent visual review of the four schematic/pin-map renders agrees with
+the QA source/inversion and unresolved LMWCK number. The unchanged line-buffer,
+ADC and effect-control positive/negative gates also complete zero in
+`/tmp/x1-z-capture-clock-adjacent-main.log`; all three RTL hashes remain those
+documented above. These regressions do not resolve ASIC clock generation.
 
 Trace actual WCK/RCK/reset/enable nets and speed grade, reconcile custom ASIC
 packing/control phases, implement deterministic ADC-to-buffer-to-GRAM

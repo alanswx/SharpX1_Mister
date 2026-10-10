@@ -254,7 +254,12 @@ CPU1M polling succeeds; CPU2M tests deliberate loss plus DMA recovery, not
 general successful polling. `test-machine-fdc-timing-media` / `-media-full`
 add separate cached-stream reselection and real pending-completion reset/mount
 coverage. Do not infer stopped-CE retention from its short normal consumer
-window. Write-prefill/final-store boundaries, metadata/high-address/native
+window. `test-machine-fdc-timing-boundary` / `-boundary-full` qualify actual
+consumer-CE/public-mount collision, pending final store and armed prefill,
+with uncancelled controls and five matched mutations. Never substitute reset
+for that CE collision: it can remove the divider event. Pending CPU reselection
+remains source-derived phase analysis, not an executed case. Native final
+serialization boundaries, metadata/high-address/native
 and hardware gates remain open. `turbo-fdc-timing` is non-savable,
 with isolated directories per `FDC_CLOCK_HZ=1000000/2000000` and `FDC_TIMING_DMA`.
 It requires Turbo/SYS32, rejects single-clock/other rates, and does not infer

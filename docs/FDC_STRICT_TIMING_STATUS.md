@@ -213,13 +213,13 @@ existing authorized read-only disk. SYS=32 MHz, video=28,571,428 Hz, reset spans
 no writes. Standard startup PS/2 input sends 24 bytes; actual RGB captures 926
 frames at 320x200. Main verifies release-specific RAM player `(22,14,1)` and
 the real text-RAM `*` at that coordinate, then visually inspects the PNG.
-This is a native game-screen boot, not repeatability acceptance or a
-commercial-game count. A second cold 15-second run with late I/J input now
+This is a native game-screen boot, not a commercial-game count.
+A second cold 15-second run with late I/J input now
 terminates exit zero: 30 PS/2 bytes, the same 763 SD requests/no writes and
 926 frames. Main checks the player moves from `(22,14,1)` to `(21,13,1)`,
 the corresponding real text-RAM `*`, and changed captured RGB bytes. This
-qualifies actual keyboard movement through this frozen candidate, not exact
-controlled repeatability, native timing or hardware acceptance.
+qualifies actual keyboard movement through this frozen candidate, not native
+timing or hardware acceptance.
 
 Ignored evidence: `output_files/fdc-native-cross-7Ri8Vj/`, including inputs,
 log, RAM/text dumps and original PPM/converted PNG. All four before/after input
@@ -232,6 +232,16 @@ Movement PNG SHA-256
 `aa4d9a1411348998fe247510bb7a1290c5049e237ff386361d13fcd5625f0f25`;
 PPM SHA-256
 `2c8614bffc839be168f1d59d4b7ffcfc43c51e27fa6b70968a483074ecc064a9`.
+
+A separate 15-second cold repeat terminates zero (Main session 99080), with
+the same frozen executable, ROM, disk and late-key script. The retained
+`check_repeat.py` checker also terminates zero: full progress/JSON log and all
+six outputs (RAM, text, attributes, CPU, sub-CPU RAM and PPM) match byte-for-byte.
+Player `(21,13,1)`, actual text marker, 763 reads/no writes, 30 PS/2 bytes,
+926 frames and frame hash `d54e64069df6d555` match. All four input hashes still
+match; no snapshots are loaded or converted. Repeat log SHA-256
+`d6e8b1b6d8e8892376fc8dde4e26510f687cd231e8a8b03bb8626f0595eee879`.
+This establishes exact cold repeatability for this one homebrew/profile only.
 
 ## Actual CPU/DMA fixed-clock qualification
 
@@ -335,10 +345,54 @@ Main separately inspects all four fresh artifact sets: 452 live/frozen source
 comparisons, 26 ROM hashes, four executable hashes and every terminal record
 match, with only the explicitly recorded negative source allowed to differ.
 
+## Exact consumer-CE, final-store and prefill boundaries
+
+The separate original boundary fixture/checker now pass 24 positives: six
+scenarios on both drives at 1 MHz/20-bit and 2 MHz/24-bit, plus five exact
+rejecting mutations. Production RTL and both older qualified fixture pairs
+are unchanged and hash-protected. Source hashes:
+SV `3499bdf58335f5da14b79a8b4ec9aa4fb8c1247ad1d5054a44eca892598bb4ac`;
+driver `26f9b5d428f4d7cdfe0799c695578b7e2761a1a0855ccdce86d2164135896bcb`.
+
+Read/write consumer collisions prove real `valid && ce && taken` eligibility,
+then apply only active-drive mount before that same SYS edge. The fixture
+requires `valid && ce && cancel`, suppressed taken, a cleared lease and no
+old publication. Pending-final-store cancellation observes emit/index255
+with 255 retired stores, mounts before the next retirement and suppresses
+store256. Prefill cancellation observes armed/DRQ before the deadline, with
+zero accepted DATA writes/emits/stores, then requires arming to clear. No
+runtime reset, forced CE/state, invented Ready or private RAM injection is used.
+
+Uncancelled controls require completion consumption and all 256 stores;
+distinct final-byte sentinels, real CPU readback/guards and independent
+per-block/whole-medium/padding ledgers prevent cancellation from hiding an
+already-broken write path. Five matched mutants reject cancelled taken,
+cancelled final-store eligibility, retained prefill arming, last-byte
+misaddressing and payload corruption at exact runtime assertions.
+
+Worker handoff `/tmp/x1-fdc-boundary-HANDOFF.md` records seven terminal-zero
+drivers and their frozen folders. Main independently checks 805 source
+comparisons, 29 byte-exact IPL regenerations from frozen checker/emitter,
+seven executable hashes, every terminal result and exact single mutations.
+Main's fresh complete positive reruns also terminate zero: sessions 43604 /
+91318, frozen `x1-fdc-boundary-machine-mhk0qxn7` / `qckgl17q`, logs
+`/tmp/x1-fdc-boundary-main-1000000.log` / `-2000000.log`.
+Warning inventories retain the preceding media fixture's 61/66 warnings,
+not warning-clean acceptance. `test-machine-fdc-timing-boundary` runs both
+positive profiles; `-boundary-full` adds all five negatives. CI schedules the
+positive target; no hosted result is claimed.
+
+This is the fixed-divider low-address experiment, not a native boundary tie,
+high-address, 2HD, hardware or stopped-consumer retention qualification.
+Pending CPU reselection has a source-derived phase constraint: the lease is
+captured at phase1 and consumed at phase4, while a newly issued phase4 CPU
+OUT is sampled at phase5. This is not an executed impossibility proof; the
+public mount cases must not be labeled CPU-reselection coverage.
+
 ## Remaining acceptance
 
-Add write-prefill/final-store boundary cases, pending CPU reselection,
-cancellation coincident with consumer CE, metadata/CRC ACK phases,
+Add final serialization/native boundary-tie qualification, pending CPU
+reselection phase qualification, metadata/CRC ACK phases,
 high-address media, READY/Type-IV and native clock/firmware/hardware
 qualification. The new cached and pending cases do not cover every
 idle-transport stream phase. Recheck ordinary state after any further

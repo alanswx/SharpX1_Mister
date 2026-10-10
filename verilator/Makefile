@@ -75,6 +75,13 @@ test-machine-fdc-timing-media-full: test-machine-fdc-timing-media
 	python3 tests/test_machine_fdc_timing_media.py --machine-sha $(FDC_TIMING_MACHINE_SHA) --negative cached-cancel
 	python3 tests/test_machine_fdc_timing_media.py --machine-sha $(FDC_TIMING_MACHINE_SHA) --negative completion-cancel
 .PHONY: test-machine-fdc-timing-media test-machine-fdc-timing-media-full
+test-machine-fdc-timing-boundary:
+	python3 -B tests/test_machine_fdc_timing_boundary.py --machine-sha $(FDC_TIMING_MACHINE_SHA)
+	python3 -B tests/test_machine_fdc_timing_boundary.py --machine-sha $(FDC_TIMING_MACHINE_SHA) --rate 2000000 --width 24
+test-machine-fdc-timing-boundary-full: test-machine-fdc-timing-boundary
+	@for fault in consumer-taken final-store prefill-stop last-byte ledger; do \
+	  python3 -B tests/test_machine_fdc_timing_boundary.py --machine-sha $(FDC_TIMING_MACHINE_SHA) --negative $$fault || exit $$?; done
+.PHONY: test-machine-fdc-timing-boundary test-machine-fdc-timing-boundary-full
 HD_MEDIA_DIR ?= obj_dir_v17_hd_media
 turbo-hd-media: $(HD_MEDIA_DIR)/Vtop
 $(HD_MEDIA_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
