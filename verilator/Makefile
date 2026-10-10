@@ -1685,6 +1685,9 @@ test-probe-timeout:
 test-basic-native-probe:
 	python3 -B tests/test_basic_native_probe.py
 .PHONY: test-basic-native-probe
+test-basic-print42-oracle:
+	python3 -B tests/test_basic_print42_oracle.py
+.PHONY: test-basic-print42-oracle
 
 test-hps-video-cdc: $(HEADLESS_DIR)/hps-video-cdc/Vhps_video_cdc_tb
 	./$(HEADLESS_DIR)/hps-video-cdc/Vhps_video_cdc_tb

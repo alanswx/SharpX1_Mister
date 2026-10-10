@@ -48,7 +48,7 @@ terminal comparison subsequently rejects 64 differing pixels. It must not
 stand in for the final frame; both captures are preserved, and the new terminal
 conversion passes the unchanged exact-pixel comparator without tolerance.
 
-A separate twelve-second cold/repeat command probe starts as session 79875:
+A separate twelve-second cold/repeat command probe completes zero as session 79875:
 `output_files/basic-print42-fdc-20261010/`, log
 `/tmp/x1-basic-print42-fdc-20261010.log`. The original
 `verilator/tests/basic_print_42.keys` sends IPL F, then held-Shift letters,
@@ -56,6 +56,56 @@ space/digits/keypad multiply and Enter for `PRINT 6*7` beginning at nine seconds
 It uses the inherited PS/2 mapping rather than guessed locale punctuation.
 Neither an echoed command nor collector repeatability establishes arithmetic;
 require a separate native result line `42` and return to `Ok`.
+The command cold child now completes: text rows 13/14/15 contain exact
+`print 6*7`, ` 42` and `Ok`. Main's independent ANK oracle checks **15,360**
+pixels across all three complete 80-column rows, including glyph backgrounds,
+with 164 foreground pixels. The final terminal checker qualifies both cold
+and repeat: **30,720 exact RGB pixels**, identical reports/all six dumps and
+unchanged input/runner hashes. Each runs twelve seconds / 384,000,000 SYS
+edges, 36 PS/2 bytes, 936 SD requests, zero disk writes and 741 frames. An
+independent read-only reviewer verifies the cold text/RGB and keyboard-source
+explanation. This is arithmetic acceptance in this profile, not program
+save/load/graphics or general BASIC compatibility.
+
+The first prototype oracle incorrectly required uppercase command echo and
+rejects the actual lowercase row. Source inspection explains the case before
+changing the expectation: inherited startup sets active-low Caps ON (`FFF7`),
+then alphabet conversion XORs case for Caps and Shift. Held Shift therefore
+produces lowercase. The checker now requires that exact lowercase echo rather
+than accepting arbitrary case variants; the independent arithmetic result and
+pixel checks are unchanged. Keypad `7C` emits `*` in both mapping tables.
+No RTL, firmware, key stream or private media is changed to obtain this result.
+`check_basic_print42.py` requires terminal paired evidence, current asset/
+runner/artifact hashes, fixed clocks/profile and all 36 PS/2 bytes before it
+can qualify both native command runs. Its synthetic unit gate is separate.
+Nine synthetic oracle tests pass locally, including wrong/missing/duplicate
+results, uppercase echo, displaced text, missing/corrupt raster and full-row
+padding, plus terminal/profile/hash/command/input-manifest rejections. Review
+found an empty input map could initially bypass source checks; the final
+checker requires a nonempty map and all three actual ROM/disk/key command
+paths within it. Restore/RAM injection/writable output are rejected. Main's
+fresh `test-basic-print42-oracle` Make target also completes zero (41425).
+CI schedules that asset-free unit gate, not private native BASIC execution.
+
+Accepted checker/ANK copies are retained beside native evidence **after** this
+exploratory cold/repeat observation; this is not a claim that the newly written
+checker was frozen before the initial cold run. Future regressions must freeze
+the accepted oracle before collecting new runs. The frozen checker independently
+passes both terminal runs in `/tmp/x1-basic-print42-native-acceptance.log`.
+Checker SHA-256:
+`913aa2364bb2e35e08d283da9092ae1ea336c2d3bed9fb892d706dd026184d8b`;
+font source:
+`68aa689abd81c1a620980b5318b669b292a72d4877916ec43dc2461d713c831b`;
+terminal cold PNG (128,000-pixel exact PPM comparison passes):
+`68baad2e45d0dad1ac94dc0c0196fd4100dbd27c74e3115254ac55b0a9907be1`.
+
+The next sixteen-second cold/repeat probe is running as session 29038:
+`output_files/basic-list-run-fdc-20261010/`, log
+`/tmp/x1-basic-list-run-fdc-20261010.log`. `basic_list_run.keys` enters
+`10 PRINT 9`, then `LIST` and `RUN`, without Shift under startup Caps ON.
+Require separately listed program text and a result `9` after RUN; echoed
+input alone cannot establish stored-program execution. No result is claimed
+while this native probe remains active.
 
 `make -C verilator test-basic-native-probe` exercises the collector using
 temporary synthetic files and a fake executable. Seven test methods/twelve
