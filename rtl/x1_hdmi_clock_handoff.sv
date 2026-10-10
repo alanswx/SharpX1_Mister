@@ -24,7 +24,11 @@ module x1_hdmi_clock_handoff(
     reg blank_ack = 0;
     reg [3:0] blank_age = 0;
     reg generation = 0, generation_meta = 0, generation_sample = 0, seen_generation = 0;
-    reg completed_generation = 1, completed_meta = 1, completed_sample = 1;
+    // Keep the completion source scalar too: aa05's router-created replica
+    // fails the exact input inventory. This requests one source, not relaxed
+    // constraints or acceptance of replica control equivalence. Re-fit to prove.
+    (* dont_replicate *) reg completed_generation = 1;
+    reg completed_meta = 1, completed_sample = 1;
     reg ack_meta = 0, ack_sample = 0, gate_meta = 0, gate_sample = 0;
     reg [2:0] pending_mode = 0;
     reg [2:0] state = 0;

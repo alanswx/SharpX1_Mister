@@ -38,7 +38,9 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
-          fetch-depth: 2
+          # Historical fit-integrity fixtures read immutable source commits;
+          # never substitute current RTL for those fitted inputs.
+          fetch-depth: 0
       - name: Install build dependencies
         run: |
           sudo apt-get update

@@ -19,7 +19,9 @@ def assignments(path, stack=()):
 
 new = root / "sharpx1_turbo_z_handoff.qsf"
 controller = (root / "rtl/x1_hdmi_clock_handoff.sv").read_text()
-assert re.findall(r'\(\*\s*dont_replicate\s*\*\)\s*reg\s+([^;]+);', controller) == ["gate_request = 0"], "replication prevention must stay on the single gate-enable source"
+assert re.findall(r'\(\*\s*dont_replicate\s*\*\)\s*reg\s+([^;]+);', controller) == [
+    "gate_request = 0", "completed_generation = 1"
+], "replication prevention must stay on the two exact guarded sources"
 for path in root.glob("*.qsf"):
     assert ("SDC_FILE", "scripts/constraints/hdmi_output_joint_probe.sdc") not in assignments(path), "unqualified joint proposal became board-selected"
     if path != new:

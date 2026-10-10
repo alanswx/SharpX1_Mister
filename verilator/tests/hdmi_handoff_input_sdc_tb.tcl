@@ -21,6 +21,7 @@ proc get_registers {args} {
     global fault base prefix
     if {[lindex $args 0] ne {-no_duplicates}} {
         if {$fault eq "replica"} {return [concat $base [list "${prefix}ack_meta~DUPLICATE"]]}
+        if {$fault eq "completion_replica"} {return [concat $base [list "${prefix}completed_generation~DUPLICATE"]]}
         return $base
     }
     set name [lindex [lindex $args end] 0]
@@ -64,7 +65,7 @@ proc get_fanouts {collection} {
     return $result
 }
 proc set_false_path {args} {lappend ::cuts $args}
-foreach fault {missing ambiguous alias replica wrong_driver extra_driver wrong_consumer extra_consumer no_consumer} {
+foreach fault {missing ambiguous alias replica completion_replica wrong_driver extra_driver wrong_consumer extra_consumer no_consumer} {
     set cuts {}
     if {![catch {source $candidate} problem]} {error "invalid candidate scope accepted: $fault"}
     if {[llength $cuts]} {error "partial candidate exceptions applied: $fault"}
@@ -77,4 +78,4 @@ foreach {from first second} $triples {
     lappend expected [list -from [list "$prefix$from"] -to [list "$prefix$first"]]
 }
 if {$cuts ne $expected} {error "candidate cut more/less than six exact first-stage inputs"}
-puts "PASS: mock first-stage candidate; six exact cuts, nine invalid inventories reject before any exceptions"
+puts "PASS: mock first-stage candidate; six exact cuts, ten invalid inventories reject before any exceptions"

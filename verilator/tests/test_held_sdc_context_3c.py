@@ -3,6 +3,7 @@ import contextlib
 import hashlib
 import io
 import pathlib
+import subprocess
 import sys
 import tempfile
 
@@ -35,7 +36,20 @@ with tempfile.TemporaryDirectory(prefix="held-context-3c-") as temporary:
         "quartus_held_sdc_context_probe.tcl")]
     names += [f"output_files/sharpx1_turbo_z_handoff.{ext}"
               for ext in ("fit.rpt", "fit.summary", "sta.rpt", "sta.summary", "rbf")]
-    values = [hashlib.sha256((ROOT / name).read_bytes()).hexdigest() for name in paths]
+    # This fixture qualifies an old fitted database, not today's controller.
+    # Keep its original fit and diagnostic inputs bound to immutable commits;
+    # the auditor's independent literal hashes must not follow current RTL.
+    revisions = ["3c6242e771446dc11843cc8f4b7d4c58430b8f17"] * 3 + [
+        "cef2210c8609d7850dbc9a615d280514e66c52ba"] * 3
+    historical = {name: subprocess.check_output(
+        ["git", "show", f"{revision}:{name}"], cwd=ROOT)
+        for revision, name in zip(revisions, paths)}
+    source_root = root / "source"
+    for name, contents in historical.items():
+        copied = source_root / name
+        copied.parent.mkdir(parents=True, exist_ok=True)
+        copied.write_bytes(contents)
+    values = [hashlib.sha256(historical[name]).hexdigest() for name in paths]
     values += [
         "1f1c32f1bbd0720cb30f6ef3424abde76c6b1ddc7998e54d7ff1d0ddbfd657e8",
         "f2e9648892464210ff30e08dc26d78eb1ac96a7c099a7805517dbda3e5811212",
@@ -44,7 +58,7 @@ with tempfile.TemporaryDirectory(prefix="held-context-3c-") as temporary:
         "7f6a2009cbebe2caa34fec785bd39a19da0ba58e4f970f2ca80b9f0384d5a993"]
     lines = [f"{value}  {name}\n" for value, name in zip(values, names)]
     log.write_text("".join(lines * 2))
-    audit_sources_3c(log, ROOT)
+    audit_sources_3c(log, source_root)
     mutations = [lines, lines * 3, lines + list(reversed(lines))]
     for index in range(11):
         wrong = list(lines)
@@ -54,19 +68,13 @@ with tempfile.TemporaryDirectory(prefix="held-context-3c-") as temporary:
     for bad in mutations:
         log.write_text("".join(bad))
         try:
-            audit_sources_3c(log, ROOT)
+            audit_sources_3c(log, source_root)
         except AssertionError:
             pass
         else:
             raise AssertionError("invalid 3c fit/source provenance accepted")
 
     log.write_text("".join(lines * 2))
-    source_root = root / "source"
-    for name in sorted(set(paths)):
-        copied = source_root / name
-        copied.parent.mkdir(parents=True, exist_ok=True)
-        original = (ROOT / name).read_bytes()
-        copied.write_bytes(original)
     audit_sources_3c(log, source_root)
     for name in sorted(set(paths)):
         copied = source_root / name

@@ -180,3 +180,44 @@ and 409 frozen inputs verified. Preserved evidence:
 This tool failure supplies no omitted-control/promotion semantics. A documented
 ASCII ATM reporting alternative is under investigation; the guard remains closed.
 No SDC, new timing cut, full-flow acceptance or MiSTer loading follows the crash.
+
+### ASCII inventory and narrow replication-prevention candidate
+
+The reporting-only ASCII ATM export subsequently completes zero on the idle
+host, 12:28:25–12:28:33 UTC, without warnings or errors. Preserved evidence:
+`/tmp/x1-aa05dd2-topology.Eu3NqBQI/atom-ascii-aa05dd2-hZdVa5qZ`.
+Main reads the decoded completion-source records and verifies the raw ATM
+SHA-256 `a225ad159c8feeef873001bf377b8a7978cabf9127e14c871a597a4c80b3d216`
+and native log `ba0e5131eee2f4a27449c4ab10ed512f289e078a70a6a13fd71e31302cbcede2`.
+The primary and duplicate share represented CLK/SDATA/SLOAD and startup
+controls; the duplicate identifies the primary as its synthesis provenance.
+This still does not resolve omitted-control defaults or promotion semantics,
+and supplies no timing or replica-equivalence acceptance. Before/after
+artifact/source manifests remain unchanged.
+
+Instead of allowing that replica through the SDC, the candidate applies
+`(* dont_replicate *)` only to `completed_generation`, alongside the existing
+`gate_request` attribute. Scalar initial values and sequential logic are
+unchanged. The installed Quartus 17.0 Verilog template explicitly supports
+this variable-declaration syntax; the earlier fitted gate-request attribute
+maps to `ADV_NETLIST_OPT_ALLOWED = Never Allow`. Neither proves that a new
+fit will preserve the completion source or close timing.
+
+The SDC remains unchanged, with six exact source/first-stage cuts and all
+identity/driver/fanout guards before exceptions. A new mock negative models
+the exact `completed_generation~DUPLICATE` failure; ten invalid inventories
+reject before any cut. The board-profile check permits only the two exact
+attributed declarations. The historical 3c source-integrity fixture now reads
+immutable 3c fit/cef diagnostic sources, rather than misbinding a changed
+controller to old fitted results; the auditor's literal hashes and rejecting
+source controls are unchanged. Fresh native-primitive and full-flow fitted
+acceptance remain required. No new RBF is qualified or loaded by this edit.
+
+The connected local `test-hdmi-handoff-input-sdc` and
+`test-hdmi-handoff-board-profile` targets complete zero after the fixture
+repair. Log: `/tmp/x1-handoff-completed-no-replica-local-repaired.log`.
+The original attempt failed the historical source-binding assertion and is
+retained in `/tmp/x1-handoff-completed-no-replica-local.log`; this was not a
+native timing failure. Synthetic positives and rejecting controls do not
+replace a new fitted inventory. CI now fetches complete project history for
+the immutable historical fixture; no hosted CI result is claimed here.

@@ -99,6 +99,12 @@ the subsequent idle-host run completes with zero errors/warnings and preserves
 928 held-budget/6,624 active/raw/mode rows. Its 848 inactive rows are excluded,
 not passed. Full-flow timing, CDC/MTBF/I/O and hardware gates remain open.
 
+The newer aa05 fit is rejected by the exact completion-source replica guard.
+The follow-up narrowly prevents replication of `completed_generation`, without
+changing the SDC or scalar startup values. Its mock adds the exact replica
+negative. Fresh native-primitive/reset checks, fitted topology/timing and
+hardware acceptance remain open; see `HDMI_MEASUREMENT_CDC_STATUS.md`.
+
 Current Arcus follow-up distinguishes the combined 16-second CPU state
 (0AA0 output loop, interrupts enabled) from the historical 0EA0 interrupt
 handler. The collector now compares read-only video/CTC/opcode observations;
