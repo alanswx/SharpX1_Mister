@@ -23,8 +23,9 @@ See `FDC_BYTE_SLOT_STATUS.md`; this is not native disk timing acceptance.
 The separate bus helper now passes 260 read/write transactions each, held
 response/reselection/reset checks and three rejecting mutations. Real CPU/DMA,
 DR/DSR and SD integration remain open; see `FDC_BUS_EVENTS_STATUS.md`.
-The unconnected fixed-slot DR/DSR prototype now passes 33 payload cases at
-each nominal 1/2-MHz rate and four rejecting controls. Its internal holding
+The unconnected fixed-slot DR/DSR prototype now passes 34 payload cases at
+each nominal 1/2-MHz rate and five rejecting controls, including the repaired
+DRQ-low final-tail service bug. Its qualified internal holding
 register is not yet the WD physical DR; shared-register ownership, held SYS
 completion, actual raw-bus/SD/CPU/DMA and hardware gates remain open. See
 `FDC_STREAM_ADAPTER_STATUS.md`.

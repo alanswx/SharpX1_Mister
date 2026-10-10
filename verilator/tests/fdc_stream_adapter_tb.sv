@@ -10,6 +10,9 @@ module fdc_stream_adapter_tb;
     reg [10:0] length=0;
     reg [7:0] write_value=0;
     wire [7:0] source_byte, dr_value, response_data, write_byte;
+    wire [7:0] physical_dr=8'd0;
+    wire read_dr_load;
+    wire [7:0] read_dr_value;
     wire drq, active, armed, lost, done, initial_abort, response_valid;
     wire read_ack, arrival, write_emit;
     wire [10:0] byte_index, generation, response_generation, write_index;
@@ -41,7 +44,8 @@ module fdc_stream_adapter_tb;
         if(ce) chip_edges++;
         read_event=read_accept && (!r_response_valid || read_release);
         consume_read=read_event && !r_writing && r_full;
-        consume_write=write_accept && r_writing && (r_active || r_armed) && !r_full;
+        consume_write=write_accept && r_writing &&
+                      (r_armed || (r_active && r_remaining>0)) && !r_full;
         expect_arrival=0; expect_write=0; expect_ack=0; expect_done=0; expect_abort=0;
         expect_write_byte=0; expect_write_index=0;
         if(reset) begin
@@ -184,6 +188,21 @@ module fdc_stream_adapter_tb;
         // This adapter schedules opaque bytes; it does not compute ID CRC.
         reads(6,-1); reads(6,0); reads(6,3); reads(6,5);
         writes(1,-1); // no extra DRQ after sole first byte
+        // No outstanding write request in the last serialization slot. An
+        // unsolicited write must not refill this prototype's holding buffer.
+        // Native physical DR writes are a separate future owner contract.
+        length=1; arm_write=1; step(); put(8'h5d); launch_write=1; step();
+        begin : final_tail_write
+            integer anchor;
+            anchor=chip_edges;
+            assert(!drq && active && write_emit) else $fatal(1,"final write tail setup");
+            put(8'h9c);
+            assert(dr_value==8'h5d && !drq && !lost) else
+                $fatal(1,"DRQ-low tail write changed holding");
+            to_chip(anchor+32);
+            assert(done && !lost) else $fatal(1,"tail write delayed completion");
+            cases++;
+        end
         // Initial prefill miss aborts with zero stream bytes, even on CE edge.
         length=128; arm_write=1; step();
         begin : initial_miss

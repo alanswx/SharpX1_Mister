@@ -66,6 +66,39 @@ This is a functional prototype repair, not a native command-gap policy.
 
 ## Required connected architecture
 
+### Current request-eligibility repair and shared-DR work
+
+Review subsequently finds a bounded helper defect: during the final write
+serialization slot, active remains set but DRQ is low. The old service predicate
+nevertheless accepts another write and changes holding. The oracle duplicates
+that predicate, so earlier passes cannot qualify this case. Service now requires
+actual DRQ; the independently stated reference requires an outstanding request
+and remaining payload. A retained one-byte final-tail write must leave internal
+holding unchanged and cannot delay completion. A fifth disposable mutation
+restores exactly the old predicate and must fail the DR/index assertion.
+
+The current `EXTERNAL_DR=0` gate completes zero at both rates: 34 counted cases,
+7,717 arrivals, 5,767 emitted writes and 7,701 acknowledgements per rate, plus
+all five matched negatives. Actual Make target log:
+`/tmp/x1-fdc-stream-tail-final.log`; frozen sources/logs:
+`/var/folders/sv/859j7h856t5gzg1kv3nnqdj40000gn/T/x1-fdc-stream-adapter-zampflaa`.
+The preceding four-negative repair run also completes zero in
+`/tmp/x1-fdc-stream-tail-request-fixed.log`.
+
+This current source additionally introduces default-off `EXTERNAL_DR=1`,
+caller-owned physical DR and same-edge read-load intent/value. **The gate above
+does not enable or qualify that mode.** Shared-DR/raw-bus acceptance is still
+in progress; no WD/machine/manifest/board connection follows these results.
+The internal-mode tail rule is request servicing, not permission to discard
+native CPU DATA stores: the future physical DR owner must retain those stores
+independently, including DRQ-low writes. Current frozen hashes:
+
+| Source | SHA-256 |
+| --- | --- |
+| Stream prototype | `50a4007b51f9fd28bf804d5b50d42b51cea201b87b6fd76d20013da11c469372` |
+| Stream fixture | `1b0d238a4352bf4dddb506cd75c9e2fbd8d61930821b26b21ca70be121e2a9fb` |
+| Frozen checker | `2cfbe5bfb3d1add50351003112756e6548ddedbde0f1d0af4ee6f6018c0c6e98` |
+
 - Keep `wdreg_data` the single physical DR under its existing process owner.
   Separate DR contents from request validity/generation and serialized DSR.
   Idle/non-DRQ stores and early reads must remain coherent. An underrun's

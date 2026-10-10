@@ -17,17 +17,29 @@
 // can supply the DSR load on this edge. No claim of native failure-edge ties.
 // 27/23 chip-clock guaranteed MFM service maxima are NOT 32-clock exact loss
 // deadlines. Loss here marks unread replacement/final expiry or empty load.
+// EXTERNAL_DR=1: physical_dr is the authoritative caller-owned DR. Accepted
+// DATA stores update that owner even when idle or DRQ is low; this adapter
+// changes only full/generation on eligible service. read_dr_load/read_dr_value
+// are PRE-edge intent/value, for the owner's SYS process (not a CE-gated or
+// registered arrival mirror). Read-load vs DATA-store priority belongs to
+// that owner, not this module. Zero-filled DSR loads NEVER request a DR store.
+// A requested write bypasses same-edge DIN on eligible empty-DR service;
+// otherwise DSR samples pre-edge physical_dr, including non-DRQ stores made
+// on earlier edges. These are explicit digital policies, not native ties.
 // Held responses survive arrivals and stop, but reset/new command discard
 // them. Duplicate read accepts while response_valid are ignored unless the
 // previous response is released simultaneously. Writes accepted only at DRQ.
 `timescale 1ns/1ps
-module x1_fdc_stream_adapter (
+module x1_fdc_stream_adapter #(parameter EXTERNAL_DR=0) (
     input wire clk, reset, fdc_ce,
     input wire begin_read, arm_write, launch_write, stop,
     input wire [10:0] length,
     input wire [7:0] source_byte,
     input wire read_accept, read_release, write_accept,
     input wire [7:0] write_value,
+    input wire [7:0] physical_dr,
+    output wire read_dr_load,
+    output wire [7:0] read_dr_value,
     output wire [7:0] dr_value,
     output wire drq,
     output reg active = 1'b0,
@@ -54,11 +66,15 @@ module x1_fdc_stream_adapter (
     wire boundary;
     wire read_event = read_accept && (!response_valid || read_release);
     wire service_read = read_event && !writing && full;
-    wire service_write = write_accept && writing && (active || armed) && !full;
+    wire service_write = write_accept && writing && drq;
     wire launch = launch_write && armed;
     wire have_write = full || service_write;
-    wire [7:0] staged_write = service_write ? write_value : holding;
-    assign dr_value = holding; // pre-edge value for caller's bus response latch
+    wire [7:0] current_dr = EXTERNAL_DR ? physical_dr : holding;
+    wire [7:0] staged_write = service_write ? write_value : current_dr;
+    assign dr_value = current_dr; // pre-edge value for caller's response latch
+    assign read_dr_load = (EXTERNAL_DR != 0) && active && !writing && boundary &&
+                          remaining != 0 && !reset && !stop && !begin_read && !arm_write;
+    assign read_dr_value = source_byte;
     assign drq = writing ? ((armed || (active && remaining != 0)) && !full) : full;
     x1_fdc_byte_slots slots (
         .clk(clk), .reset(reset), .fdc_ce(fdc_ce),
@@ -84,7 +100,7 @@ module x1_fdc_stream_adapter (
             if (read_release) response_valid <= 1'b0;
             if (read_event) begin
                 response_valid <= 1'b1;
-                response_data <= holding;
+                response_data <= current_dr;
                 response_generation <= generation;
             end
             if (stop) begin
@@ -98,7 +114,10 @@ module x1_fdc_stream_adapter (
                 response_valid <= 1'b0;
             end else begin
                 if (service_read) begin full <= 1'b0; read_ack <= 1'b1; end
-                if (service_write) begin full <= 1'b1; holding <= write_value; end
+                if (service_write) begin
+                    full <= 1'b1;
+                    if (!EXTERNAL_DR) holding <= write_value;
+                end
                 if (launch) begin
                     armed <= 1'b0;
                     if (!have_write) begin
@@ -121,7 +140,8 @@ module x1_fdc_stream_adapter (
                             full <= 1'b0;
                             if (!have_write) lost <= 1'b1;
                         end else begin
-                            holding <= source_byte; full <= 1'b1; arrival <= 1'b1;
+                            if (!EXTERNAL_DR) holding <= source_byte;
+                            full <= 1'b1; arrival <= 1'b1;
                             if (full && !service_read) lost <= 1'b1;
                         end
                     end else begin

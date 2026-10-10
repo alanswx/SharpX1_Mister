@@ -37,6 +37,9 @@ def main():
          'held response/generation mismatch'),
         ('stale-zero', 'write_byte <= have_write ? staged_write : 8\'d0;',
          'write_byte <= have_write ? staged_write : holding;', 'captured write/zero/index mismatch'),
+        ('tail-refill', 'wire service_write = write_accept && writing && drq;',
+         'wire service_write = write_accept && writing && (active || armed) && !full;',
+         'DR/index mismatch'),
     ]
 
     def no_core():
