@@ -34,8 +34,10 @@ connected ownership/reset/CPU-control and wrapper-lint gates pass. A fresh
 frozen 120-case pixel matrix is running; fitted topology/timing and hardware
 remain open. See `HDMI_MEASUREMENT_CDC_STATUS.md`.
 The new opcode window passes actual CPU/full-bus oracle and native one-second
-cold/repeat checks. Protected Arcus 32-second cold/repeats are now running with
-31–32-second-only M1 populations; no result is inferred from launch.
+cold/repeat checks. Protected Arcus 32-second cold/repeats now finish with
+660,326 completed M1 fetches in the final second, all at 0E7C–0EFB. Inputs and
+artifacts repeat exactly and match the older non-fetch observer outputs. The
+frame remains black; native interrupt policy and gameplay remain open.
 
 The separately named non-savable RTC/X3/DMA/Kanji/FM runner now passes
 elapsed/warm calendar, six keyboard and four real RTC/FDC/DMA sector cases,

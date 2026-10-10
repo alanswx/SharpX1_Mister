@@ -87,13 +87,30 @@ inputs and eighteen matching artifacts per run. Every other artifact/report
 matches the earlier whole-invocation observer after removing only the three
 new explicit-window metadata fields. Log `/tmp/x1-arcus-opcode-window-smoke.log`.
 
-The new protected 32-second cold/repeat now runs with fetches limited to
+The new protected 32-second cold/repeat now completes with fetches limited to
 31,000–32,000 ms, matching its I/O trace window. Frozen executable SHA-256
 `1c28d702391672f656d11411a4783b75b0db67b4ac3e3165d5966d81a452e137`;
 collector and launch inputs are frozen in
 `verilator/obj_dir_v17_rtc_x3_dma_kanji_window/`, with output
 `arcus-late-m1-32s/` and log `/tmp/x1-arcus-late-m1-32s.log`.
-Its result remains pending; do not infer starvation or gameplay from launch.
+It finishes exit zero. Main independently verifies all eight protected input
+hashes and compares twenty machine artifacts plus stdout/stderr between cold
+and repeat. The final-second population contains **660,326 completed M1 fetches
+at 77 distinct addresses, all within 0E7C–0EFB**. CPU dump ends at PC `0E9E`,
+IFF1/IFF2=0, IM2/I=F0; CTC running/pending/service masks are all 2. JSON
+`cpu_address=7D25` is the bus address, not the stored PC. The final 640x400
+frame remains black, hash `03702d99714c4325`, after 76,800 real DMA pairs and
+2,971 disk requests with zero host writes.
+
+All nineteen non-fetch machine artifacts also match the earlier 32-second
+whole-invocation observer byte-for-byte, including the late I/O CSV. Thus this
+follow-up narrows actual execution to the final second without changing those
+outputs; it does not count boot-time fetches as late-run evidence. Together
+with the earlier handler disassembly/100-ms continuation below, this supports
+late-run handler occupancy without a state restore. Neither native interrupt
+pin policy, full-game playability nor current wide-D88/HD/hardware is qualified.
+Drive A=1/B=2 remains exploratory, not release-order verification. Do not drop
+pending IRQs or retime CTC just to escape the handler without native evidence.
 
 ## Shared-machine evidence
 
