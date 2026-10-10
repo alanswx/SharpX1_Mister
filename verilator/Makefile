@@ -1227,6 +1227,8 @@ test-hdmi-handoff-reset-audit:
 .PHONY: test-hdmi-handoff-reset-audit
 
 test-hdmi-handoff-board-inventory:
+	python3 tests/test_csync_board_inventory.py
+	python3 tests/test_hdmi_csync_reports.py
 	python3 tests/test_hdmi_handoff_board_inventory.py
 	python3 tests/test_hdmi_handoff_board_reports.py
 .PHONY: test-hdmi-handoff-board-inventory

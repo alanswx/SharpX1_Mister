@@ -817,6 +817,27 @@ a new full flow in `output_files/quartus-linux-Cx5S48qo/source`, exact commit
 global checks, MTBF/I/O and hardware acceptance are still unproven. No MiSTer
 has been loaded and no previous RBF is relabelled as this framework revision.
 
+### New csync fitted-scope reporter (prepared, not native-qualified)
+
+`scripts/quartus_hdmi_csync_inventory.tcl` inventories thirteen synchronous
+stage/capture/native-HS pairs, four raw crossings and both ready-return
+consumer cones across eight corners. Four exact first-stage fanout checks and
+four registered-data-driver checks run before creating any report directory.
+Missing/ambiguous/substituted scalars and unreviewed replicas abort; existing
+evidence destinations cannot be reused. It adds no constraints and does not
+silently drop failed or raw paths.
+
+`scripts/audit_hdmi_csync_reports.py` independently requires the entire
+320-report enumeration, exact source/target/domain coverage, nonnegative
+synchronous stage/consumer results, complete unsaturated consumer fanout,
+separate raw/global diagnostics, and matching before/after controller/
+framework/reporter/original STA/summary/RBF hashes. Mock testing passes 320
+ordered reports, six invalid native-inventory controls, 22 invalid scope/
+timing controls and four invalid provenance controls; these are **synthetic**
+checks, not native stage timing or a new RBF acceptance claim. They now run
+under CI's `test-hdmi-handoff-board-inventory` target. The current source-bound
+fit remains live; native execution must wait until its database is terminal.
+
 ## Next gates
 
 1. Establish an actually supported mode-sensitive STA method or a narrow

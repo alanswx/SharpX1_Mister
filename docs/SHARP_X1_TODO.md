@@ -43,6 +43,11 @@ synthetic delayed-policy profiles pass, and the matched epoch-only control
 fails early-unblank. Ordinary static policy checks still pass. Fresh stage/
 echo/raw-input timing and physical qualification remain open for this newer
 framework; it is not a completed Turbo Z work group or a qualified RBF.
+A new read-only fitted csync inventory/auditor covers all four new chains,
+native HS/CE captures, ready consumers and separate raw/global timing. Its
+320-report enumeration and invalid scope/provenance controls pass synthetically
+in CI's inventory target. Native results remain pending the active fit; these
+test passes do not complete timing or any hardware work group.
 
 The experimental [coherent CRTC transport](CRTC_WRITE_CDC_STATUS.md) now
 passes four helper clock ratios, three real-CPU clock ratios, five owned-DMA
