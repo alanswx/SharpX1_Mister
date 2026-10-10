@@ -64,6 +64,27 @@ before stopping, preserving the same period/synchronizer assertions.
 | HPS integration/measurement | `5881470b83532a7534b022542ed5f0faf19db36298057083aa4f9f13ad2c5d6a` |
 | Live measurement fixture | `bb4f363d15a17f30f2bb289e0b040f48183800e86fb6902485eda47da94df03f` |
 
+### Review-driven verification strengthening
+
+A separate read-only review identifies two gaps in that first fixture:
+correct period values can hide a consumer updating at the wrong edge, and
+forced register-mapping tests do not establish live HPS readout. The strengthened
+fixture varies source intervals and checks the actual period register on
+**every** 100-MHz edge against independently held expected data. It then
+generates an actual interval longer than 65,535 cycles and reads both HPS
+halves through the live snapshot/selector path, without forced registers.
+All three opt-in ratios and the unchanged legacy route pass.
+
+`test_hps_hdmi_consumer_negative.py` changes only the edge-detector input in
+a disposable source copy, leaving the dedicated sync signal intact. The
+same unchanged live oracle rejects this consumer-only bypass at its exact
+update-edge assertion. Production source and fixture hashes remain unchanged.
+This closes the observed test gap, not native fitted fanout or MTBF acceptance.
+Connected log `/tmp/x1-hps-hdmi-measure-consumer-final.log`, terminal zero;
+current strengthened fixture SHA-256:
+`232850a77e99ebe08144f64072ca90869dd5423a459f8ed70189f963e3966890`.
+The earlier table records the original fixture used by the earlier logs.
+
 The fresh combined Z pixel matrix has started from frozen runner
 `f6eb69653a34db659ce253ad1fde8f09e5cfcb23aea2d86bde9a68197c0124a6`
 under ignored `verilator/obj_dir_v17_z_reset_bypass/qualification-cfbnUw/`.
@@ -80,3 +101,8 @@ stage placement, downstream setup/hold and source pulse widths/MTBF. Any future
 input exception must be narrowly guarded against that fitted topology; no
 blanket measurement, reset-register or inter-clock cut is justified here.
 Global timing, PCG-WE, I/O, native measurement behavior and hardware remain open.
+
+The requested fresh `aa05dd2` full flow is not launched at the first host
+check, 10:30:32 UTC: DSPPC604 Quartus shell/fitter PIDs 2001830/2002631 are
+active. No source snapshot or probe is created and no competitor disturbed.
+This is a busy-host observation, not a compilation failure or timing pass.

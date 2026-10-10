@@ -175,6 +175,9 @@ The subsequent source repairs remove the raw-reset bypass into palette
 selection D inputs and add an opt-in two-stage HDMI measurement synchronizer.
 Their local tests pass; see `HDMI_MEASUREMENT_CDC_STATUS.md`. These do not
 alter the completed fifth-fit audit or qualify this DMA revision/new RBF.
+The fresh source-bound `aa05dd2` handoff build's initial 10:30:32-UTC check
+finds active DSPPC604 shell/fitter PIDs 2001830/2002631. No flow is launched
+or competitor disturbed at that check; native follow-up remains pending.
 
 The separately fitted `3c6242e` Z-handoff full flow's fifth physical HDMI
 profile now passes native reporting-only discovery and independent original

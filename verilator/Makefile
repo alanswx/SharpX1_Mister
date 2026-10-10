@@ -1546,6 +1546,7 @@ test-hps-hdmi-measure: $(HEADLESS_DIR)/hps-hdmi-measure/Vhps_hdmi_measure_tb $(H
 	  if ./$(HEADLESS_DIR)/hps-hdmi-measure-negative/Vhps_hdmi_measure_negative_tb >$$log 2>&1; then echo 'FAIL raw HDMI bypass accepted'; exit 1; fi; \
 	  rg -q 'HDMI input bypassed two-stage synchronizer' $$log || { echo 'FAIL unexpected HDMI negative'; exit 1; }; \
 	  echo 'PASS raw HDMI bypass rejected by unchanged two-stage oracle'
+	@ulimit -c 0; python3 tests/test_hps_hdmi_consumer_negative.py $(HEADLESS_DIR)/hps-hdmi-consumer-negative
 $(HEADLESS_DIR)/hps-hdmi-measure/Vhps_hdmi_measure_tb: ../sys/hps_io.sv ../rtl/x1_cdc_snapshot.sv tests/hps_hdmi_measure_tb.sv
 	$(V) --binary --timing --assert --top-module hps_hdmi_measure_tb --Mdir $(@D) \
 	  -j 4 ../sys/hps_io.sv ../rtl/x1_cdc_snapshot.sv tests/hps_hdmi_measure_tb.sv -Wno-fatal
