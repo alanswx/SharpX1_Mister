@@ -1869,6 +1869,11 @@ test-pcg-response-sdc:
 	tclsh tests/pcg_response_sdc_tb.tcl
 .PHONY: test-pcg-response-sdc
 
+test-pcg-reset-inventory:
+	@pcg_reset_scope_root=$$(mktemp -d $(HEADLESS_DIR)/pcg-reset-scope-XXXXXX); \
+	  tclsh tests/pcg_reset_inventory_tb.tcl $$pcg_reset_scope_root
+.PHONY: test-pcg-reset-inventory
+
 test-pcg-request-sdc:
 	tclsh tests/pcg_request_sdc_tb.tcl
 .PHONY: test-pcg-request-sdc

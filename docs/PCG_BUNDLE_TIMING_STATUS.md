@@ -122,6 +122,20 @@ Started is not passed. The build host has source `d2df8a1` preflighted but
 other users' active Quartus jobs prevent starting our fresh flow; none was
 stopped, and no MiSTer was loaded.
 
+`scripts/quartus_pcg_reset_inventory.tcl` now prepares a reporting-only
+fresh-fit check: twelve fitted WE keepers (four per physical plane), exact
+raw `ioctl_download` and both local-reset stages, native registered fan-ins,
+then 64 reports across eight corners. It separately reports raw-download,
+local-reset and all-source WE setup/hold, plus local-reset recovery/removal.
+The 10,000-path cap must be checked against actual counts before claiming
+coverage; absent raw paths alone do not establish removal or timing closure.
+No exceptions or project assignments are issued. Script SHA-256:
+`6817dc81f3c3ccc9221b1408b22720163c14f27c4ffa3df983b93e1918eda7f4`.
+`test-pcg-reset-inventory` passes the mocked 64-report plan and eleven invalid
+identity/count/alias/fan-in controls; invalid cases produce no report directory
+or partial evidence. It is selected in CI. Native execution and independent
+report/artifact-hash auditing remain pending a fresh completed fit.
+
 ### Stopped-clock reset cancellation follow-up
 
 The strengthened `test-turbo-pcg-native-windows` completes zero in

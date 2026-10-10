@@ -113,6 +113,10 @@ snapshot continuation and rejection of an actual previous-runner state pass
 with distinct revision-3 identity (bit 38). Fresh fitted RAM-WE source/timing
 and the full current-machine video matrix remain required; older frozen
 matrix results are historical, not qualification of the new source.
+The next read-only native check now enumerates all twelve fitted PCG RAM WE
+keepers, exact raw/local-reset sources and 64 corner reports. Its mocked
+scope/negative regression passes in CI's target; no native timing pass is
+claimed. Execute and independently audit it on the next completed fit.
 
 Fresh extracted native-policy runs now check 396 held-mode changes while
 blanked with a closed output clock, including synthetic delayed-policy cases.
