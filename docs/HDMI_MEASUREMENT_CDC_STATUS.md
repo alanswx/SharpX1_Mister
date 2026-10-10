@@ -251,3 +251,20 @@ Remote log: `/tmp/x1-quartus-16fa816-handoff-OcwH65RD.log`.
 Primary checkout remains unchanged and all SDCs match the prior source.
 Final topology, full timing/MTBF/I/O and RBF acceptance remain pending;
 no MiSTer is contacted or loaded for this build.
+
+The flow subsequently terminates **exit 3 at 12:52:48 UTC**, elapsed 8m27s.
+Main reads the actual stage outcomes: synthesis, fitting and assembly complete;
+final STA rejects a newly fitted whole-prefetch D/ASDATA profile. The previous
+completion-source replica rejection is not the reported failure on this fit,
+but full native topology remains an independent gate. No pin-profile guard or
+exception is relaxed. Partial STA reports setup -9.879 ns, incomplete setup/
+hold constraints and no design MTBF; because SDC loading failed, this is not
+an accepted final timing result.
+
+Main verifies completed driver-log SHA-256
+`74661c53a50c08777ee3808601eba58d1f7e1342f4aad990727599bd7d6ca68d`.
+The assembled but **unaccepted** RBF SHA-256 is
+`45110cb947f00fa690e2b28a24cf666fc363bf9b37513d151c270645dbb6f483`.
+It is not deployed. Reporting-only fitted discovery and before/after path
+preservation are next; the host's independently running MacPPC fit prevents
+launching another native probe until idle. Preserve that other build.

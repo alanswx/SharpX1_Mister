@@ -112,6 +112,12 @@ topology/timing and hardware remain unaccepted. The original MB4107 data-book
 scan is also retrieved, correcting DW pin 4 and resolving chip MIN polarity;
 Sharp capacity-to-MIN logic is still open. See `FDC_VFO_CLOCK_STATUS.md`.
 
+That 16fa816 flow now finishes synthesis/fit/assembly but exits 3 at a new
+whole-prefetch D/ASDATA profile guard, not the previous completion-source
+replica guard. Partial setup is -9.879 ns under failed SDC loading and is not
+final timing acceptance. The strict guard remains; fitted discovery/path
+preservation and hardware gates remain open. No rejected RBF is loaded.
+
 Current Arcus follow-up distinguishes the combined 16-second CPU state
 (0AA0 output loop, interrupts enabled) from the historical 0EA0 interrupt
 handler. The collector now compares read-only video/CTC/opcode observations;

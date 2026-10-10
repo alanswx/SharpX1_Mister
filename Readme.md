@@ -54,9 +54,10 @@ detection. Local live-signal/reset/control tests pass; fresh pixels and fitted
 CDC/timing acceptance remain separate. See
 [the follow-up](docs/HDMI_MEASUREMENT_CDC_STATUS.md).
 
-The latest experimental handoff fit rejects a duplicated completion source.
-A narrow replication-prevention candidate retains the strict SDC guards;
-fresh fitted timing and hardware acceptance are still required. Historical
+The completion-source replication-prevention candidate passes fresh native
+reset/policy checks. Its new fit is rejected by a whole-prefetch pin-profile
+guard; strict SDC guards remain intact and fitted timing/hardware acceptance
+are still required. Historical
 fit-integrity tests require Git history to bind their original source commits.
 
 The separate [RTC/X3/DMA/Kanji/FM profile](docs/RTC_DMA_KANJI_FM_STATUS.md)
