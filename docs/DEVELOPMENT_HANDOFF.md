@@ -21,7 +21,7 @@ Private ROMs/media, dumps, snapshots and native screenshots remain ignored.
 
 ## Worktree and live qualification
 
-Shared-machine Z Kanji integration is **uncommitted, not yet pixel-qualified**:
+Shared-machine Z Kanji integration is **uncommitted, partially qualified**:
 `rtl/sharpx1.v`, `rtl/x1_pcg_access.v`, `rtl/legacy/x1_vid.v`,
 `rtl/machine.qip`, and new machine fixtures. `TURBO_Z_KANJI` is default-off,
 requires the Turbo/X3/Kanji/render combination and excludes DMA. Ordinary
@@ -40,15 +40,23 @@ not eight different machine profiles or runtime snapshot acceptance. Evidence:
 `/tmp/x1-ordinary-state-e7c4f6a-latest.0gLaZm/`, report SHA-256
 `5e32e886bb0b9e6d1faf8383ca943f187f2e5a47f1b987a94f2f3b88b7b37b27`.
 Current enabled-Z lint, ordinary headless build/smoke and adjacent CG/WAIT/CPU
-checks pass. Machine CPU/pixel/loader/reset tests are being prepared, not passed.
+checks pass. The early frozen `zgfae1jf` probe/render80 collector completes;
+Main's independent read-only audit confirms 32 actual CPU reads, three frames,
+768,000 exact RGB pixels and frame periods with unchanged evidence. This is
+synthetic high-resolution normal-size Kanji, not native font or FPGA acceptance.
+The larger `hhofb8uy` collector has fourteen accepted bounded cases; its
+262,144-address CPU scan remains live (PID 74887). Whole-matrix acceptance and
+independent audit remain pending. Keep its source inputs frozen.
 
 Existing jobs must be polled, **not restarted because observation times out**:
 
 | Job | Handle / evidence | Last verified state |
 |---|---|---|
-| Native Rally-X, older frozen cassette runner | session `53472`; `/tmp/x1-native-rallyx-cassette-iFzAfm/run130-autoload/` | Live; actual frame says `IPL is loading RALLY-X`; not completed loading/gameplay |
-| Ordinary delay-aware regression | session `53793`; `/tmp/x1-z-kanji-ordinary-regression.log` | Live; no terminal suite result yet |
-| Ordinary fast/snapshot regression | session `26203`; `/tmp/x1-z-kanji-ordinary-fast.log` | Live; no terminal suite result yet |
+| Native Rally-X, older frozen cassette runner | session `53472`; `/tmp/x1-native-rallyx-cassette-iFzAfm/run130-autoload/` | Live; actual frame now shows score/map/car graphics; no terminal or controls/gameplay acceptance |
+| Ordinary delay-aware regression | session `53793`; `/tmp/x1-z-kanji-ordinary-regression.log` | Terminal exit zero; 164 PASS lines; pre-final Z-only repair source scope below |
+| Ordinary fast/snapshot regression | session `26203`; `/tmp/x1-z-kanji-ordinary-fast.log` | Terminal exit zero; 144 PASS lines |
+| Final-current ordinary delay-aware repeat | session `67295`; `/tmp/x1-z-kanji-final-current-regression.log` | Started after final Z-only repairs; result pending |
+| Exhaustive shared-machine Z Kanji | `hhofb8uy`, driver PID 71875 / child PID 74887 | Both verified live; original session handle missing, not a reason to restart |
 
 The delay-aware regression began before the final Z-only blanking/eligibility
 repair; its executable/source scope must be distinguished from final-current

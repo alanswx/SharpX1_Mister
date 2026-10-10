@@ -17,9 +17,13 @@ support before optional Turbo extensions.
 October 10 latest continuation: [development handoff](DEVELOPMENT_HANDOFF.md)
 records current commits and unfinished jobs. The cassette runner now passes
 25 generated diagnostics. Full-size Z Kanji selector/store components pass;
-their shared-machine CPU/pixel integration is in progress, not yet accepted.
-Both ordinary regressions and native Rally-X loading remain live, not terminal
-passes. No work group or Turbo Z milestone is newly declared complete.
+their early shared-machine probe/render80 independent audit confirms 32 CPU
+reads and 768,000 exact pixels with frame-period checks. The exhaustive machine
+matrix remains live, not accepted. Ordinary fast and delay-aware regressions
+finish zero; a final-current delay-aware repeat is now running because the older
+delay-aware source preceded the final Z-only repairs. Native Rally-X now shows
+score/map/car graphics but its long run and controls/gameplay remain unqualified.
+No work group or Turbo Z milestone is newly declared complete.
 
 The standalone fixed FDC byte-slot scheduler now passes twelve enable/density
 profiles, 96 start phases, 181 consumed boundaries, physical 1/2-MHz interval checks and a
