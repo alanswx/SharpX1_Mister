@@ -79,7 +79,12 @@ proc get_pins {args} {
     if {[llength $names] > 1} {
         if {$::fault eq "missing_pin"} {return [lsearch -all -inline -not -exact $::pins {d[23]|d}]}
         if {$::fault eq "duplicated_pin"} {return [concat $::pins {{d[23]|d}}]}
-        if {$::fault eq "prefetch_pin_change"} {return [lreplace $::pins [lsearch -exact $::pins {hdmi_dv_data[0]|asdata}] [lsearch -exact $::pins {hdmi_dv_data[0]|asdata}] {hdmi_dv_data[0]|d}]}
+        if {$::fault eq "prefetch_pin_change"} {
+            set old [expr {{hdmi_dv_data[0]} in $::packed_prefetch ? {hdmi_dv_data[0]|asdata} : {hdmi_dv_data[0]|d}}]
+            set new [expr {{hdmi_dv_data[0]} in $::packed_prefetch ? {hdmi_dv_data[0]|d} : {hdmi_dv_data[0]|asdata}}]
+            set index [lsearch -exact $::pins $old]
+            return [lreplace $::pins $index $index $new]
+        }
         return $::pins
     }
     if {[lindex $names 0] eq {d[23]|d} && $::fault eq "ambiguous_pin"} {return [concat $names $names]}
@@ -90,6 +95,18 @@ proc get_pin_info {option pin} {
     return $pin
 }
 proc set_false_path {args} {lappend ::cuts $args}
+set original_pins $pins
+set original_packed $packed_prefetch
+foreach profile {packed direct} {
+set pins $original_pins
+set packed_prefetch $original_packed
+if {$profile eq "direct"} {
+    foreach name $packed_prefetch {
+        set index [lsearch -exact $pins ${name}|asdata]
+        set pins [lreplace $pins $index $index ${name}|d]
+    }
+    set packed_prefetch {}
+}
 foreach fault {missing_clock duplicate_clock clock_alias clock_period prefetch_change replica missing duplicate keeper_alias driver_type bad_prefetch_driver multiple_prefetch_drivers wrong_driver missing_bank wrong_mode missing_pin duplicated_pin ambiguous_pin pin_alias prefetch_pin_change} {
     set cuts {}
     if {![catch {source $candidate} problem]} {error "invalid inactive-data scope accepted: $fault"}
@@ -113,3 +130,21 @@ foreach group {output prefetch} targets [list $outputs $prefetch] {
 }
 if {$cuts ne $expected || [llength $cuts] != 77} {error "inactive-data candidate cut unintended clocks/pins"}
 puts "PASS: 77 exact inactive DATA-pin cuts; twenty invalid clock/keeper/driver/pin scopes reject before constraints"
+}
+# Exhaust all 126 intermediate combinations of the seven changed pins.
+set fault {}
+for {set mask 1} {$mask < 127} {incr mask} {
+    set pins $original_pins
+    set bit 0
+    foreach name $original_packed {
+        if {$mask & (1 << $bit)} {
+            set index [lsearch -exact $pins ${name}|asdata]
+            set pins [lreplace $pins $index $index ${name}|d]
+        }
+        incr bit
+    }
+    set cuts {}
+    if {![catch {source $candidate} problem]} {error "mixed unreviewed packing accepted: $mask"}
+    if {[llength $cuts]} {error "partial constraints applied for mixed packing: $mask"}
+}
+puts "PASS: both exact native pin profiles; 126 unreviewed mixed profiles reject before any cut"

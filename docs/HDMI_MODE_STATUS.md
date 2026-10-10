@@ -1227,9 +1227,54 @@ database. The guard is applying a fitted pin contract too early in the flow.
 Logs: `/tmp/x1-hdmi-ce2eba8-fresh-synthesis-stage.log` and
 `/tmp/x1-hdmi-ce2eba8-fresh-synthesis-stage-with-id.log`; honest discovery:
 `/tmp/x1-hdmi-ce2eba8-genuine-mapped-discovery-v3.log`.
-An exact early/packed pin contract and its negative controls, plus native
-before/after active/raw scope auditing, remain required before another selected
-full build. No timing exception or guard was changed by this investigation.
+At this checkpoint, an exact early/packed pin contract and its negative
+controls, plus native before/after active/raw scope auditing, remained required
+before another selected full build. No timing exception or guard was changed
+by the discovery investigation; the subsequent repair is recorded below.
+
+### Exact whole-bank early/packed contract qualification
+
+The handoff-only inactive-data candidate now recognizes two **complete**
+observed prefetch pin profiles: all 24 DATA inputs on D, or exactly the seven
+listed inputs on ASDATA and the other 17 on D. It does not allow independent
+per-bit alternatives. All clock identities, exact register/driver inventory,
+output pins, replicas and opposite-parent alias checks remain enforced before
+any of the 77 cuts. No ordinary revision or machine RTL changes.
+
+`make -C verilator test-hdmi-handoff-input-sdc test-hdmi-handoff-board-profile`
+completes zero. Both exact positive profiles pass with independently compared
+complete cut lists; all original twenty invalid controls fail before cuts at
+both profiles, and all 126 intermediate seven-bit packing patterns fail
+before cuts. Log: `/tmp/x1-hdmi-two-pin-profiles.log`.
+
+The reporting-only `scripts/quartus_hdmi_pin_profile_check.tcl` loads assigned
+SDCs in their original order, replacing only this candidate in memory. It
+refuses a successful fitted database to avoid ignored `-post_map` queries.
+On the preserved failed `quartus-linux-H1XpgcbN/source` mapped database it
+terminates zero with the **direct** profile and all 77 cuts; five inherited
+PLL warnings remain. This proves native guard loading, not fitted route
+preservation or timing acceptance. Log:
+`/tmp/x1-hdmi-direct-native-guard-v3.log`.
+
+A separate native eight-corner before/after probe on the historical
+`quartus-linux-b8qkpvN8/source` completed fit terminates zero with no warnings
+and the **packed** profile. Its independent full source/artifact audit passes:
+384 reports, 848 original inactive rows explicitly excluded (not passed),
+6,400 active/raw/held-mode rows unchanged. The active HDMI setup violation
+remains -0.106 ns; global setup/hold remains -18.327/+0.057 ns in this probe.
+Before/after hashes of the controller, framework, candidate, reporter and
+original STA/report/RBF match. Candidate SHA-256:
+`8d668f295c026b5fa91e231d924c68e2990b337f2a06f6afab437cfcd475e28d`.
+Log: `/tmp/x1-hdmi-packed-native-preservation-v2.log`; ignored local reports:
+`output_files/hdmi-pin-contract-e111325/packed-profile-probe-v2/`.
+The first packed probe also completed but lacked pre-run provenance hashes;
+it is not substituted for the fully audited second probe.
+
+A fresh full source-bound fit must still prove its actual pin profile, PCG
+write-enable repair, active timing, CDC/MTBF and physical behavior. A third
+packing profile must fail and be rediscovered, not silently admitted. The
+build-host availability check found another project's active Quartus flow;
+no new full build was launched or competing process interrupted.
 
 ## Next gates
 

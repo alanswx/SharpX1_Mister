@@ -14,6 +14,16 @@ support before optional Turbo extensions.
 
 ## Active goal: items 1–6 and Turbo Z (October 6)
 
+The early/fitted HDMI pin-contract repair now qualifies two exact whole-bank
+profiles, with all 126 intermediate patterns rejected before cuts. Native
+mapped guard loading passes; a separate historical-fit eight-corner audit
+preserves 6,400 active/raw/mode rows and source/original artifact hashes.
+The 848 inactive rows are excluded, not timing passes. Fresh full fitting,
+PCG write-enable timing, CDC/MTBF and physical acceptance remain open.
+Another project's active Quartus flow currently prevents a new full build;
+no competing process or occupied MiSTer is disturbed. See
+[the exact scope and logs](HDMI_MODE_STATUS.md#exact-whole-bank-earlypacked-contract-qualification).
+
 Held-mode follow-up: complete fitted discovery independently audits 1,584
 rows across eight corners and finds the separate native-VID `dv_hs1` csync
 consumer (-7.247 ns setup), alongside selected-output and SYS consumers.

@@ -1,4 +1,4 @@
-# UNSELECTED source-bound proposal for the qualified held-selector experiment.
+# Experimental handoff-only source-bound proposal; not timing/hardware accepted.
 # Exclude only opposite-parent data at exact first-stage D/ASDATA pins, under
 # the inactive output clock alias. SYS mode, CLK/SLOAD, raw CDC, DDR/I/O and
 # same-parent transfers remain timed. Native X poisoning is functional evidence,
@@ -42,6 +42,31 @@ if {[lsort $x1_inactive_actual_prefetch] ne [lsort $x1_inactive_prefetch]} {
     error "physical DV bank changed; repeat discovery before updating scope"
 }
 set x1_inactive_pin_inventory [get_pins -compatibility_mode {hdmi_dv*|* d*|* hs*|* vs*|* de*|*}]
+# Two complete observed profiles, never independent per-bit alternatives.
+# Fresh ce2eba8/db2dc8c synthesis has all prefetch DATA on D. The completed
+# ce2eba8 fit packs exactly seven onto ASDATA. All other topology guards stay
+# unchanged; reject partial packing, replicas, missing or duplicated pins.
+set x1_inactive_packed_prefetch {
+    hdmi_dv_data[0] hdmi_dv_data[1] hdmi_dv_data[10] hdmi_dv_data[12]
+    hdmi_dv_data[15] hdmi_dv_data[16] hdmi_dv_data[21]
+}
+set x1_inactive_direct_pins {}
+set x1_inactive_packed_pins {}
+set x1_inactive_actual_pins {}
+foreach name $x1_inactive_prefetch {
+    lappend x1_inactive_direct_pins "${name}|d"
+    set port [expr {$name in $x1_inactive_packed_prefetch ? "asdata" : "d"}]
+    lappend x1_inactive_packed_pins "${name}|$port"
+    foreach_in_collection pin $x1_inactive_pin_inventory {
+        set actual [get_pin_info -name $pin]
+        if {$actual in [list "${name}|d" "${name}|asdata"]} {lappend x1_inactive_actual_pins $actual}
+    }
+}
+if {[lsort $x1_inactive_actual_pins] eq [lsort $x1_inactive_direct_pins]} {
+    set x1_inactive_pin_profile direct
+} elseif {[lsort $x1_inactive_actual_pins] eq [lsort $x1_inactive_packed_pins]} {
+    set x1_inactive_pin_profile packed
+} else {error "unreviewed whole-prefetch D/ASDATA profile; repeat discovery"}
 set x1_inactive_cuts {}
 foreach group {output prefetch} targets [list $x1_inactive_outputs $x1_inactive_prefetch] {
     foreach name $targets {
@@ -82,11 +107,8 @@ foreach group {output prefetch} targets [list $x1_inactive_outputs $x1_inactive_
         }
         set expected_pins [list "${name}|d"]
         if {$group eq "output" && $name ne "vs"} {lappend expected_pins "${name}|asdata"}
-        # Seven prefetch keepers pack their data onto ASDATA on this fit.
-        if {$group eq "prefetch" && $name in {
-            hdmi_dv_data[0] hdmi_dv_data[1] hdmi_dv_data[10] hdmi_dv_data[12]
-            hdmi_dv_data[15] hdmi_dv_data[16] hdmi_dv_data[21]
-        }} {set expected_pins [list "${name}|asdata"]}
+        if {$group eq "prefetch" && $x1_inactive_pin_profile eq "packed" &&
+            $name in $x1_inactive_packed_prefetch} {set expected_pins [list "${name}|asdata"]}
         if {[lsort $names] ne [lsort $expected_pins]} {
             error "inactive-data D/ASDATA pin topology changed at $name: actual $names expected $expected_pins; repeat discovery"
         }
@@ -102,6 +124,7 @@ foreach group {output prefetch} targets [list $x1_inactive_outputs $x1_inactive_
 }
 # All guards complete before any cut. -through is a DATA input, not CLK/Q or
 # SLOAD; -to is the opposite alias, not either master or all destination clocks.
+puts "INACTIVE DATA PIN PROFILE $x1_inactive_pin_profile"
 foreach cut $x1_inactive_cuts {
     lassign $cut group pin pin_name
     if {$group eq "output"} {

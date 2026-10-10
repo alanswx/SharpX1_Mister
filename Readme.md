@@ -18,6 +18,12 @@ the remaining physical and unimplemented-feature gates.
 
 ## Current status
 
+The experimental handoff revision's early/fitted HDMI pin guard now accepts
+two exact observed whole-bank profiles, not arbitrary per-bit alternatives.
+Native mapped guard loading and historical-fit active-path preservation pass;
+fresh fitting and timing/hardware acceptance remain open. See
+[scope and evidence](docs/HDMI_MODE_STATUS.md#exact-whole-bank-earlypacked-contract-qualification).
+
 For a blank screen on first launch, see [IPL loading](docs/IPL_LOADING.md):
 the RBF does not bundle the boot ROM. Load a matching raw `.rom` through
 **Load IPL**, or configure `boot.rom`/an explicit MGL upload. A game disk alone
