@@ -42,6 +42,16 @@ def synthetic_text():
     return text
 
 
+def synthetic_program_text():
+    text = bytearray(b' ' * 2048)
+    put_row(text, 0, b'SHARP-HuBASIC CZ-8FB01 V1.0')
+    # Independent literal transcript; do not build the fixture from SEQUENCES.
+    for row, value in enumerate((b'10 PRINT 9', b'LIST', b'10 PRINT 9',
+                                 b'Ok', b'RUN', b' 9', b'Ok'), start=10):
+        put_row(text, row, value)
+    return text
+
+
 def render(text, font):
     # External renderer: character-major ROM bytes, MSB at the leftmost dot.
     # Render every cell, independently of check_frame's candidate-row search.
@@ -252,6 +262,110 @@ class BasicPrint42OracleTests(unittest.TestCase):
                     self.assertNotEqual(result.returncode, 0)
                     self.assertIn(diagnostic, result.stderr)
                     path.write_bytes(original)
+
+    def test_program_complete_rows_positive(self):
+        text = synthetic_program_text()
+        result = checker.check_frame(bytes(text), render(text, self.font), self.glyphs, 'program')
+        self.assertEqual(result['command_row'], 10)
+        self.assertEqual(result['result_row'], 15)
+        self.assertEqual(result['prompt_row'], 16)
+        self.assertEqual(result['checked_pixels'], 35840)
+        # Count ink directly from all seven literal character rows.
+        expected_ink = sum(self.font[code * 8 + y].bit_count()
+                           for code in text[10 * 80:17 * 80] for y in range(8))
+        self.assertGreater(expected_ink, 0)
+        self.assertEqual(result['ink_pixels'], expected_ink)
+
+    def test_program_missing_commands_and_wrong_result(self):
+        for label, row, replacement in (
+            ('missing-LIST', 11, b''), ('missing-listed-line', 12, b''),
+            ('missing-RUN', 14, b''), ('wrong-result', 15, b' 8'),
+            ('wrong-listed-line', 12, b'10 PRINT 8'), ('missing-Ok', 16, b'')):
+            with self.subTest(label=label):
+                text = synthetic_program_text()
+                put_row(text, row, replacement)
+                with self.assertRaisesRegex(AssertionError, 'sequence absent or ambiguous'):
+                    checker.check_frame(bytes(text), render(text, self.font), self.glyphs, 'program')
+
+    def test_program_all_seven_row_backgrounds_and_result_glyph(self):
+        text = synthetic_program_text()
+        raster = render(text, self.font)
+        for row in range(10, 17):
+            with self.subTest(row=row):
+                ppm = bytearray(raster)
+                offset = len(HEADER) + (((row + 1) * 8 - 1) * 640 + 639) * 3
+                ppm[offset] = 255
+                with self.assertRaisesRegex(AssertionError, 'rendered glyph mismatch'):
+                    checker.check_frame(bytes(text), bytes(ppm), self.glyphs, 'program')
+        x, y = next((x, y) for y in range(8) for x in range(8)
+                    if self.font[ord('9') * 8 + y] & (128 >> x))
+        ppm = bytearray(raster)
+        offset = len(HEADER) + ((15 * 8 + y) * 640 + 8 + x) * 3
+        ppm[offset:offset + 3] = b'\x00' * 3
+        with self.assertRaisesRegex(AssertionError, 'rendered glyph mismatch'):
+            checker.check_frame(bytes(text), bytes(ppm), self.glyphs, 'program')
+
+    def test_program_cli_profile_duration_and_events(self):
+        with tempfile.TemporaryDirectory(prefix='basic-program-oracle-') as directory:
+            folder = Path(directory).resolve()
+            runner = folder / 'Vtop'
+            runner.write_bytes(b'non-executable original synthetic runner evidence')
+            inputs = {}
+            for flag in ('--rom', '--disk', '--keys'):
+                path = folder / ('synthetic' + flag[1:])
+                path.write_bytes(b'original synthetic input: ' + flag.encode())
+                inputs[flag] = path
+            text = bytes(synthetic_program_text())
+            ppm = render(text, self.font)
+            artifacts = {}
+            for suffix in SUFFIXES:
+                data = text if suffix == '.text' else ppm if suffix == '.ppm' else b'synthetic program artifact'
+                for name in ('cold', 'repeat'):
+                    (folder / (name + suffix)).write_bytes(data)
+                artifacts[suffix] = sha(folder / ('cold' + suffix))
+            report = dict(machine='sharpx1', ps2_bytes_sent=63, time_ps=16000000000000,
+                          sys_hz=32000000, video_hz=28571428, fdc_timing_experiment=True,
+                          fdc_clock_hz=1000000, disk_writes=0, frame_width=640, frame_height=200)
+            evidence = dict(phase='repeatable', unchanged_inputs=True, unchanged_runner=True,
+                            executable_sha256=sha(runner),
+                            inputs_sha256={str(path): sha(path) for path in (runner, *inputs.values())},
+                            runs=[dict(returncode=0, report=copy.deepcopy(report), artifacts=artifacts.copy(),
+                                       command=[str(runner), '--cycles', '512000000',
+                                                '--rom', str(inputs['--rom']), '--disk', str(inputs['--disk']),
+                                                '--keys', str(inputs['--keys']), '--dump', str(folder / name),
+                                                '--frame', str(folder / (name + '.ppm'))])
+                                  for name in ('cold', 'repeat')])
+
+            def invoke(value, sequence='program'):
+                path = folder / 'evidence.json'
+                path.write_text(json.dumps(value))
+                return subprocess.run([sys.executable, '-B', str(CHECKER), str(path),
+                                       '--sequence', sequence], capture_output=True, text=True, timeout=10)
+
+            result = invoke(evidence)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            output = json.loads(result.stdout.splitlines()[0])
+            self.assertEqual(output['sequence'], 'program')
+            self.assertEqual([run['checked_pixels'] for run in output['runs']], [35840, 35840])
+            self.assertIn('PASS native BASIC stores, LISTs and RUNs', result.stdout)
+            for field, value, diagnostic in (
+                ('ps2_bytes_sent', 36, 'unexpected machine/key sequence'),
+                ('ps2_bytes_sent', 62, 'unexpected machine/key sequence'),
+                ('time_ps', 12000000000000, 'unexpected native duration/clocks'),
+                ('time_ps', 16000000000001, 'unexpected native duration/clocks'),
+                ('fdc_clock_hz', 2000000, 'unexpected disk profile/write')):
+                with self.subTest(field=field, value=value):
+                    altered = copy.deepcopy(evidence)
+                    for run in altered['runs']:
+                        run['report'][field] = value
+                    result = invoke(altered)
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn(diagnostic, result.stderr)
+                    self.assertNotIn('PASS native BASIC', result.stdout)
+            result = invoke(evidence, 'arithmetic')
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('unexpected machine/key sequence', result.stderr)
+            self.assertNotIn('PASS native BASIC', result.stdout)
 
 
 if __name__ == '__main__':

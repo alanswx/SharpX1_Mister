@@ -2,7 +2,8 @@
 
 Requires terminal cold/repeat evidence, unchanged assets and the checked-in
 8x8 ANK source. No image editing, CPU injection or private BASIC bytes.
-This qualifies PRINT 6*7, not general BASIC, disk writes or Turbo Z.
+This qualifies the selected arithmetic or stored-program transcript, not
+general BASIC, disk writes or Turbo Z.
 """
 import argparse
 import hashlib
@@ -12,6 +13,11 @@ import re
 
 FONT_SHA = '68aa689abd81c1a620980b5318b669b292a72d4877916ec43dc2461d713c831b'
 REQUIRED_INPUT_FLAGS = ('--rom', '--disk', '--keys')
+SEQUENCES = {
+    'arithmetic': (b'print 6*7', b'42', b'Ok'),
+    'program': (b'10 PRINT 9', b'LIST', b'10 PRINT 9', b'Ok', b'RUN', b'9', b'Ok'),
+}
+PROFILES = {'arithmetic': (12, 36), 'program': (16, 63)}
 
 
 def digest(path):
@@ -26,24 +32,25 @@ def font_bytes(source):
     return glyphs
 
 
-def check_frame(text, ppm, glyphs):
+def check_frame(text, ppm, glyphs, sequence='arithmetic'):
+    assert sequence in SEQUENCES, 'unsupported BASIC acceptance sequence'
     assert len(text) == 2048, 'unexpected text-bank size'
     magic, dimensions, maximum, pixels = ppm.split(b'\n', 3)
     assert (magic, dimensions, maximum) == (b'P6', b'640 200', b'255'), 'unexpected native raster'
     assert len(pixels) == 640 * 200 * 3, 'incomplete native raster'
     rows = [text[i * 80:(i + 1) * 80] for i in range(25)]
     assert b'SHARP-HuBASIC CZ-8FB01 V1.0' in b''.join(rows), 'native BASIC banner absent'
-    # This key stream holds Shift with the inherited startup CAPS-on state.
-    # Pin its actual lowercase echo; do not accept arbitrary case variants.
-    candidates = [i for i in range(23) if rows[i].strip(b' ') == b'print 6*7'
-                  and rows[i + 1].strip(b' ') == b'42'
-                  and rows[i + 2].strip(b' ') == b'Ok']
+    # Arithmetic holds Shift with inherited startup CAPS-on; program does not.
+    # Pin each observed echo; do not accept arbitrary case variants.
+    expected_rows = SEQUENCES[sequence]
+    candidates = [i for i in range(26 - len(expected_rows))
+                  if all(rows[i + k].strip(b' ') == value for k, value in enumerate(expected_rows))]
     assert len(candidates) == 1, 'native command/result/prompt sequence absent or ambiguous'
     first = candidates[0]
-    # Independently render the three complete white-on-black ANK text rows.
-    # Raw text presence alone cannot qualify a visible arithmetic result.
+    # Independently render every complete white-on-black ANK transcript row.
+    # Raw text presence alone cannot qualify a visible execution result.
     checked, ink = 0, 0
-    for row in range(first, first + 3):
+    for row in range(first, first + len(expected_rows)):
         for column, character in enumerate(rows[row]):
             for y in range(8):
                 bits = glyphs[character * 8 + y]
@@ -56,15 +63,18 @@ def check_frame(text, ppm, glyphs):
                     checked += 1
                     ink += int(on)
     assert ink > 0, 'vacuous native glyph check'
-    return {'command_row': first, 'result_row': first + 1, 'prompt_row': first + 2,
+    return {'command_row': first, 'result_row': first + len(expected_rows) - 2,
+            'prompt_row': first + len(expected_rows) - 1,
             'checked_pixels': checked, 'ink_pixels': ink}
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('evidence', type=Path)
+    parser.add_argument('--sequence', choices=tuple(SEQUENCES), default='arithmetic')
     parser.add_argument('--font', type=Path, default=Path(__file__).resolve().parents[2] / 'rtl/legacy/x1_cg8.v')
     args = parser.parse_args()
+    seconds, key_bytes = PROFILES[args.sequence]
     evidence = json.loads(args.evidence.read_text())
     assert evidence['phase'] == 'repeatable' and evidence['unchanged_inputs'] and evidence['unchanged_runner'], 'non-terminal or changed native probe'
     assert len(evidence['runs']) == 2, 'cold/repeat pair required'
@@ -87,19 +97,21 @@ def main():
             path = command[command.index(flag) + 1]
             assert path in evidence['inputs_sha256'], ('native input absent from manifest', flag)
         report = run['report']
-        assert report['machine'] == 'sharpx1' and report['ps2_bytes_sent'] == 36, 'unexpected machine/key sequence'
-        assert report['time_ps'] == 12000000000000 and report['sys_hz'] == 32000000 and report['video_hz'] == 28571428, 'unexpected native duration/clocks'
+        assert report['machine'] == 'sharpx1' and report['ps2_bytes_sent'] == key_bytes, 'unexpected machine/key sequence'
+        assert report['time_ps'] == seconds * 1000000000000 and report['sys_hz'] == 32000000 and report['video_hz'] == 28571428, 'unexpected native duration/clocks'
         assert report['fdc_timing_experiment'] and report['fdc_clock_hz'] == 1000000 and report['disk_writes'] == 0, 'unexpected disk profile/write'
         assert (report['frame_width'], report['frame_height']) == (640, 200), 'unexpected native display'
         assert set(run['artifacts']) == {'.ram', '.text', '.attr', '.subram', '.cpu', '.ppm'}, 'incomplete native artifact manifest'
         for suffix, sha in run['artifacts'].items():
             assert digest(folder / (name + suffix)) == sha, ('native artifact changed', name, suffix)
         checks.append(check_frame((folder / (name + '.text')).read_bytes(),
-                                  (folder / (name + '.ppm')).read_bytes(), glyphs))
+                                  (folder / (name + '.ppm')).read_bytes(), glyphs, args.sequence))
     assert checks[0] == checks[1], 'native command acceptance differs'
-    print(json.dumps({'scope': 'CZ-8FB01 PRINT 6*7 cold/repeat CPU text and exact native RGB',
+    print(json.dumps({'scope': 'CZ-8FB01 cold/repeat CPU text and exact native RGB',
+                      'sequence': args.sequence,
                       'font_sha256': FONT_SHA, 'runs': checks}, sort_keys=True))
-    print('PASS native BASIC PRINT 6*7 produces visible 42 and returns to Ok')
+    print('PASS native BASIC PRINT 6*7 produces visible 42 and returns to Ok' if args.sequence == 'arithmetic'
+          else 'PASS native BASIC stores, LISTs and RUNs 10 PRINT 9 with visible result and Ok')
 
 
 if __name__ == '__main__':

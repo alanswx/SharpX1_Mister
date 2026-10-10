@@ -99,13 +99,39 @@ font source:
 terminal cold PNG (128,000-pixel exact PPM comparison passes):
 `68baad2e45d0dad1ac94dc0c0196fd4100dbd27c74e3115254ac55b0a9907be1`.
 
-The next sixteen-second cold/repeat probe is running as session 29038:
+The sixteen-second stored-program cold/repeat probe completes with exit zero:
 `output_files/basic-list-run-fdc-20261010/`, log
 `/tmp/x1-basic-list-run-fdc-20261010.log`. `basic_list_run.keys` enters
 `10 PRINT 9`, then `LIST` and `RUN`, without Shift under startup Caps ON.
-Require separately listed program text and a result `9` after RUN; echoed
-input alone cannot establish stored-program execution. No result is claimed
-while this native probe remains active.
+Both terminal runs separately show input `10 PRINT 9`, `LIST`, a listed
+`10 PRINT 9`, `Ok`, `RUN`, result `9`, then `Ok` (rows 13–19). This is not an
+echo-only pass. Reports and all six output dumps are identical; all seven input
+hashes and the frozen `c244826e...` executable remain unchanged. Each run uses
+16 seconds, 512 million SYS edges, 63 actual PS/2 bytes, 988 captured frames,
+32-MHz SYS/28,571,428-Hz VID and the separate 1-MHz FDC experiment. There are
+zero disk writes and no RAM injection or restored state.
+
+The generalized checker `--sequence program` independently checks every pixel
+of the seven complete transcript rows: 35,840 pixels/429 ink pixels per child,
+71,680/858 total. Log: `/tmp/x1-basic-program-native-acceptance.log`. The
+checker and ANK copies are frozen **after** the exploratory observation, not
+claimed as pre-run oracles. The earlier arithmetic checker copy stays intact.
+Current checker SHA-256:
+`1f11f6f1a811cd73266cd99652353d3d76e3b9a06573bd9fd21b586a02a2c687`;
+stored-program evidence JSON:
+`4d82797f3dd0b884c58fcff7e0cc3efd866aec87d1dc3bed12b1eab15f8f1076`;
+terminal cold PNG:
+`9c47e55048db6a6fc21e7b2d4cb098f791813c91b4fe0365fd19c76a8a83e000`.
+The PNG is a lossless conversion of actual native RGB; the exact 128,000-pixel
+PPM comparison passes with zero mismatches.
+
+`make -C verilator test-basic-print42-oracle` now passes thirteen synthetic
+unit methods: the original nine arithmetic tests plus four stored-program
+tests. These add missing LIST/listed-line/RUN/wrong-result, complete-row padding,
+result-glyph corruption and 16-second/63-event profile rejection coverage.
+This bounded CZ-8FB01 result is not general BASIC, other-model or hardware
+acceptance. Retained reset, native save/load and representative graphics tests
+remain required.
 
 `make -C verilator test-basic-native-probe` exercises the collector using
 temporary synthetic files and a fake executable. Seven test methods/twelve
