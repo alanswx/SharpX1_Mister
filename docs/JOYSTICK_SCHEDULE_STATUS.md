@@ -142,3 +142,30 @@ Logs: `/tmp/x1-{druaga,mappy,galaga}-continuous-timing.log`.
 Collector host timeout is 10,800 seconds per run, without shortened simulation
 durations or loosened assertions. Final executable/input manifests and actual
 reports/artifacts must be independently checked after terminal completion.
+
+Druaga and Mappy subsequently both terminate zero for all three actual runs
+and finish their collector acceptance. Independent inspection verifies each
+original/frozen executable and input hash, actual stdout profile/report,
+recorded artifact hashes, snapshot-free commands, changed RGB and identical
+controlled/repeat main/sub/text/attribute/CPU/frame bytes. Druaga moves
+`(68,32)` to `(67,32)` left across its 1,887-frame cold trial; Mappy moves
+`(129,84)` to `(126,84)` left across 1,687 frames. Both keep zero disk writes.
+The full **654-entry** frozen manifest also validates after these completions:
+`/tmp/x1-actions-cold-two-complete-inputs.log`. Galaga remains running, not a
+pass; final three-title manifest/acceptance and Shanghai's continuous pair
+removal remain open. Together with Xevious, three ordinary delay-aware cold
+action-game controls are now qualified, not full-game/Turbo/Z/hardware support.
+
+Galaga subsequently also completes all three runs and collector acceptance:
+native right movement `(32,24)` to `(40,24)` across 2,057 frames. Independent
+final inspection covers **all nine** actual native runs: exact ordinary
+delay-aware clocks/durations, six boot PS/2 bytes (twelve for Mappy), actual
+release-bound RAM coordinates, every artifact and source/media/executable hash,
+generated key-file identity, no snapshot/injection options, RGB change and
+byte-identical controlled/repeat dumps/reports. All three collectors report
+gameplay verified with zero writes and unchanged inputs. The entire **654-entry**
+manifest finally validates zero after all complete:
+`/tmp/x1-actions-cold-final-inputs.log`. Four ordinary delay-aware cold movement
+titles now pass including Xevious; Galaga enemy-wave/firing/travel and Shanghai
+continuous pair removal are still separate. The old fast five-title/firing/
+pair evidence is not relabelled as delay-aware or Turbo/Z/hardware acceptance.

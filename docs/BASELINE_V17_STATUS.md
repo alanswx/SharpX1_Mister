@@ -156,5 +156,13 @@ completes zero with 144 PASS reports and unchanged executable. Independent
 inspection confirms eighteen video/transition cases agree across these suites.
 Fresh frozen continuous Druaga/Mappy/Galaga runs are now started, not passed;
 see the scheduled-input evidence for exact startup durations and acceptance.
+Druaga and Mappy subsequently complete and pass independent actual-artifact/
+input audits, including repeatable native movement and changed RGB. Galaga
+remains live, not accepted; Shanghai's cold continuous pair test is still open.
+Galaga subsequently also completes and passes final independent inspection.
+All nine action-title runs and the full final 654-input manifest validate;
+four delay-aware continuous cold movement titles now pass including Xevious.
+Galaga firing/travel, Shanghai continuous pair removal and native Turbo/Z/
+hardware remain separate; see `JOYSTICK_SCHEDULE_STATUS.md` for exact scope.
 The earlier completed fast five-title results retain their
 original frozen executable identity; no machine RTL/layout was changed.

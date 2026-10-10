@@ -158,6 +158,14 @@ matching fast. Continuous cold Druaga/Mappy/Galaga runs are now started, not
 passed, from a separately checked frozen tree. See
 `JOYSTICK_SCHEDULE_STATUS.md`. Other delay-aware titles, native Turbo/Z and
 physical gates stay open.
+Druaga and Mappy subsequently complete zero and pass independent actual
+report/artifact and input audits; Galaga remains live. Together with Xevious,
+three continuous delay-aware ordinary action-title controls now pass, not
+Shanghai pair removal or native Turbo/Z/hardware acceptance.
+Galaga subsequently also completes; all nine native runs, actual artifacts
+and the final full frozen manifest pass independent inspection. Four continuous
+delay-aware cold movement titles now pass including Xevious. Galaga firing/
+travel and Shanghai continuous pair removal remain separate acceptance gates.
 
 Fresh extracted native-policy runs now check 396 held-mode changes while
 blanked with a closed output clock, including synthetic delayed-policy cases.
@@ -1273,6 +1281,10 @@ capability profile. The existing `TURBO=1` build is not Turbo Z support.
   A new native-calendar arithmetic backend passes exhaustive seconds/date/
   weekday and invalid-alias checks; oscillator, serial command/MCU integration,
   year handling and persistence remain open, so elapsed-time acceptance still fails.
+  An independent normal-mode counter backend now passes 1,201,499 SYS-edge
+  checks and three negative controls. It still needs a crystal-event producer,
+  serial/MCU integration and physical/storage qualification; it is not an RTC
+  enabled on any existing machine/board profile.
 - [ ] Research/implement capture quantization/inversion, mosaic, chroma key,
   extra scroll and superimpose/telopper, with a deterministic test video source.
   Primary encodings and a standalone decoder now pass exhaustive local checks;

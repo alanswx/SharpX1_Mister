@@ -1,8 +1,8 @@
 # Calendar/RTC contract and current missing-tick diagnostic
 
 October 9, 2026. The machine presently implements partial MR16 command
-storage, not a working battery-backed clock. No firmware/RTL/default profile
-has been changed in this investigation. Z7 and the sub-CPU milestone remain
+storage, not a working battery-backed clock. No active-machine firmware/RTL
+or default profile has been changed in this investigation. Z7 and the sub-CPU milestone remain
 open; the two physical 80C49 processors are not interchangeable with MR16.
 
 ## Primary chip contract
@@ -120,6 +120,42 @@ operations and resets TP on Register Hold, whereas primary group retention
 needs separate qualification. Its divider-reset comment/implementation also
 differs from the primary numbered-stage description. Do not copy those
 details, untested test-mode behavior or uPD4990 extensions as native acceptance.
+
+### Implemented independent normal-mode counter backend
+
+`rtl/x1_upd1990_counter.sv` now stores the tested packed calendar and counts
+qualified oscillator events independently of CPU/MR16 enable or mailbox state.
+Its caller must provide exactly one synchronous SYS event per crystal edge;
+it does **not** generate or synchronize a physical oscillator. Power/configuration
+reset produces explicitly invalid state, not an invented date. Do not wire
+ordinary warm machine reset to that input as a shortcut for retention.
+Time Set holds calendar advancement and preserves the specified lower divider
+stages. `load_time` is a caller-qualified one-SYS command pulse, admitted only
+in that mode. Raw CS/STB/CLK decode belongs to the future serial frontend.
+Invalid loaded bytes stay invalid under the continuing divider. Tick/month-wrap
+outputs are internal test interfaces, not claimed physical RTC pins.
+
+The final `make -C verilator test-upd1990-counter` completes zero without
+warning suppressions. Its separate integer-phase/original-calendar oracle
+checks **1,201,499** SYS edges: uninitialized operation, exact division, held
+low-stage wrap/release, two elapsed increments, midnight/month carry, manually
+loaded February 29, invalid state, stopped oscillator and power reset. Twenty
+additional load/hold/oscillator coincidence cases cover phases 1/1023/1024/
+31744/32767. The full count is asserted. Three matched mutations fail the
+unchanged oracle: gating crystal events on host activity, losing Time Set
+qualification, and retaining the wrong number of low divider stages.
+Log: `/tmp/x1-upd1990-counter-qualified.log`. Counter SHA-256:
+`ebc4ce607e589a6ff40d44fbe006cb6bb341b1f0868e800ecc8cc179de677b6d`;
+fixture:
+`c971a9a9d04ea26c31b4d271c29b14d961acccda51d95d109009a511b5118228`.
+The earlier calendar/negative target also passes again. CI schedules the new
+asset-free target; hosted execution is not inferred from local completion.
+
+This backend is not in `machine.qip` or any board/C++ profile. Serial and TP/
+test-mode behavior, a real clock-event producer, MCU byte/year integration,
+native physical phase, snapshots, fitted timing and battery persistence remain
+required. The whole-machine EC..EF elapsed-time test still fails on the
+unchanged machine; these event-count tests do not fix or qualify that path.
 
 ### Remaining integration order
 

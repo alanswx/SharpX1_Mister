@@ -1623,6 +1623,22 @@ $(HEADLESS_DIR)/upd1990-calendar/Vupd1990_calendar_tb: tests/upd1990_calendar_tb
 	  -j 4 tests/upd1990_calendar_tb.sv ../rtl/x1_upd1990_calendar.sv
 .PHONY: test-upd1990-calendar
 
+test-upd1990-counter: $(HEADLESS_DIR)/upd1990-counter/Vupd1990_counter_tb
+	./$(HEADLESS_DIR)/upd1990-counter/Vupd1990_counter_tb
+	@for fault in CPU HOLD PHASE; do \
+	  negative_log=$$(mktemp $(HEADLESS_DIR)/upd1990-counter/negative-XXXXXX); \
+	  if (ulimit -c 0; ./$(HEADLESS_DIR)/upd1990-counter/Vupd1990_counter_tb +NEGATIVE_$$fault) >$$negative_log 2>&1; then \
+	    echo "FAIL: counter negative $$fault accepted"; exit 1; \
+	  fi; \
+	  rg -q 'counter .* mismatch' $$negative_log || { echo 'FAIL: unexpected counter negative failure'; exit 1; }; \
+	  echo "PASS: unchanged oscillator oracle rejects $$fault fault"; \
+	done
+$(HEADLESS_DIR)/upd1990-counter/Vupd1990_counter_tb: tests/upd1990_counter_tb.sv ../rtl/x1_upd1990_counter.sv ../rtl/x1_upd1990_calendar.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module upd1990_counter_tb --Mdir $(@D) \
+	  -j 4 tests/upd1990_counter_tb.sv ../rtl/x1_upd1990_counter.sv ../rtl/x1_upd1990_calendar.sv
+.PHONY: test-upd1990-counter
+
 test: headless test-rgb12 test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner test-d88-crc test-d88-metadata test-cpu-busreq
 	python3 tests/test_joystick_schedule.py ./$(HEADLESS_EXE)
 	python3 tests/test_key_script.py ./$(HEADLESS_EXE) $(VIDEO_TEST_FLAGS)
