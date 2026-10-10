@@ -75,6 +75,10 @@ owned reset, blocked firmware/clock/IPL uploads, stopped SYS recovery and a
 second retained-IPL Z80 boot with actual calendar reads and full DMA payload.
 Six cases and two admitted-traffic rejecting controls pass; other target,
 Ready/IRQ, FDC/PS2/serial coexistence and board gates remain open.
+The separate delay-aware C++ RTC runner now builds with explicit controller
+upload and fail-closed snapshot rejection; actual elapsed/warm IPL collectors
+now complete zero with independent frozen-source auditing. Rebuilt ordinary runners pass real keyboard and
+unmodified pre-RTC snapshot continuity, and remain RTC-disabled.
 
 The RTC firmware rebuild dependency now has a tested restricted replacement
 assembler: the unchanged inherited source reproduces all 4,096 ROM bytes,
@@ -1365,6 +1369,13 @@ capability profile. The existing `TURBO=1` build is not Turbo Z support.
 - [ ] Integrate standard stereo YM2151 FM, CTC/IRQ and PSG mixing.
 - [ ] Qualify switchable dual 2HD/2D drives and native HD software.
 - [ ] Add second-level Kanji, mouse/serial and RTC/control-processor behavior.
+  Current RTC evidence supersedes the historical driver-only checkpoints below:
+  the default-off shared RTC profile passes real Z80 EC..EF elapsed time,
+  retained-IPL warm reset and bounded real memory-DMA/reset/upload tests.
+  The separate C++ runner passes elapsed-time and retained warm-reset execution
+  with independent source/asset auditing. Ordinary profiles retain the static-clock defect. Native
+  year/power, other target/device coexistence, second-level Kanji/mouse and
+  physical gates remain open; these passes do not complete Z7.
   Original real-CPU EC..EF diagnostics now reproduce the missing clock tick
   after exact command storage/readback; see `RTC_COMMAND_STATUS.md`. A primary
   NEC reference is retained locally. No running/battery-backed RTC is implemented

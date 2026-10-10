@@ -25,6 +25,20 @@ $(FM_RUNNER_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h
 		$(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 .PHONY: turbo-fm
 
+# Explicit delay-aware RTC profile; no snapshots or ordinary board changes.
+RTC_RUNNER_DIR ?= obj_dir_v17_rtc
+rtc: $(RTC_RUNNER_DIR)/Vtop
+$(RTC_RUNNER_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
+	mkdir -p $(@D)
+	$(V) --cc --exe --build --timing --trace-fst --top-module top --Mdir $(@D) -j 4 \
+		-GTURBO=1 -GRTC_ENABLE=1 $(TURBO_DSW_FLAGS) \
+		-CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_RTC_EXPERIMENT" \
+		$(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
+.PHONY: rtc
+test-rtc-runner: rtc
+	python3 tests/test_rtc_runner.py $(RTC_RUNNER_DIR)/Vtop
+.PHONY: test-rtc-runner
+
 test-psg-mix: $(HEADLESS_DIR)/psg-mix/Vpsg_mix_tb
 	./$(HEADLESS_DIR)/psg-mix/Vpsg_mix_tb
 $(HEADLESS_DIR)/psg-mix/Vpsg_mix_tb: tests/psg_mix_tb.sv ../rtl/x1_psg_signed.sv ../rtl/x1_fm_mix.sv ../rtl/x1_audio_mix.sv Makefile

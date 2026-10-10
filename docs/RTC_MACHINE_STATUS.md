@@ -2,8 +2,8 @@
 
 This is an experimental replacement-MR16 integration, not native 80C49 firmware
 or complete CZ-880 calendar compatibility. `RTC_ENABLE=1` is currently selected
-only by original SystemVerilog diagnostics. Ordinary machine, C++ runner and
-FPGA revisions remain disabled. The default machine still has the static-clock
+by original SystemVerilog diagnostics and a separately qualified C++ runner.
+Ordinary machine/C++ and FPGA revisions remain disabled. The default machine still has the static-clock
 defect; the new profile is non-savable and has no accepted RBF.
 
 ## Architecture and upload contract
@@ -202,6 +202,50 @@ native calendar/year, stopped-FPGA battery time or physical hardware.
 
 ## Default regression and remaining gates
 
+### Separate non-savable C++ runner qualification
+
+`make -C verilator rtc` now builds a separate delay-aware Turbo/RTC runner in
+ignored `obj_dir_v17_rtc/`, not an ordinary profile or Turbo Z identification.
+It requires `--rtc-controller` with an explicit local packed 8,192-byte image.
+Cold launch sends one index-7 initialization token, then uploads that image;
+scheduled warm resets neither reload it nor issue storage-loss tokens.
+Enabled output JSON identifies `rtc_experiment` and the controller byte count.
+Both snapshot options fail before touching a state file. No enabled snapshot
+identity or serialization compatibility is inferred.
+
+Build log `/tmp/x1-rtc-runner-build-first.log` completes zero. The frozen
+`test-rtc-runner` collector in `/tmp/x1-rtc-runner-first.log` has passed missing/
+short-image and save/restore rejection controls with an unchanged sentinel.
+Both actual IPL executions now finish successfully and the collector terminates
+zero. Elapsed-time execution runs for 2.2 seconds, stores `31 C6 99 12 34 57`
+after initial `31 C6 99 12 34 56`, and halts with `RTC2`. The dual-boot case runs
+for 3.75 seconds, holds scheduled warm reset at 2.5–3.5 seconds, then stores
+`31 C6 00 12 34 59` and halts with `RTC3`. Download counts are exactly 8,193
+controller/token bytes plus the emitted IPL length; no assets are reuploaded
+during reset. This runner uses SYS 32 MHz and independent VID 28.571428 MHz.
+
+Frozen evidence: `verilator/obj_dir_v17_rtc/qualified-8_zqm99d/`.
+Independent auditing proves all 137 current/frozen inputs, executable copies,
+all three emitted assets, identical before/after manifests, both real CPU
+execution logs, four rejection logs and the unchanged state-file sentinel.
+This qualifies the explicit non-savable Turbo/RTC runner subset, not native
+CZ-880 firmware/calendar, video modes, enabled DMA/serial/FM coexistence or
+physical hardware. It does not close Z7 or enable ordinary board profiles.
+The derived image stays local/ignored, with inherited restrictions preserved.
+
+After adding the default-off simulator parameter, the default runner rebuilds
+and passes actual pre-RTC state restore, normal snapshot tests, real E7/E8/
+PS2 and all six keyboard polling cases. Evidence:
+`obj_dir_rtc_disabled_fast/rtc-disabled-state-gii5lylw/`; logs
+`/tmp/x1-rtc-runner-default-builds.log`,
+`/tmp/x1-rtc-runner-default-cross-snapshot.log`,
+`/tmp/x1-rtc-runner-default-snapshot.log`,
+`/tmp/x1-rtc-runner-default-subcpu.log`,
+`/tmp/x1-rtc-runner-default-keyboard.log`.
+Default `--rtc-controller` also rejects before opening a nonexistent asset.
+
+### Earlier default checkpoint and remaining gates
+
 The RTC-disabled delay-aware build passes actual E7/E8/PS2 and six cold/steady
 Caps/Shift cases. CTC/IRQ tests, three real-MR16 stretched-ACK clock cases and
 the original/receive-only keyboard stream regression also pass. Logs:
@@ -222,7 +266,7 @@ logs `/tmp/x1-rtc-default-connected-snapshot.log` and
 interface check (`/tmp/x1-rtc-default-wrapper-lint.log`), using the PLL stand-in.
 It is not synthesis, timing or hardware acceptance.
 
-Still required: enabled C++ runner/identity or explicit save rejection;
+Still required: native/software qualification of the enabled runner;
 short/in-flight shared-Z80 reset; partial/malformed upload and
 other owned-DMA target/drain combinations; real DMA/FDC/PS2/IRQ coexistence; native host byte-order/year/
 carry/leap/power policy; native BASIC/software; other clock/profile combinations;

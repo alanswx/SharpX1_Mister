@@ -125,7 +125,12 @@ See `docs/TURBO_Z_PAIRED_VIDEO_STATUS.md` for current composition and running
 pixel gates. This diagnostic does not qualify rendered pixels or hardware CDC placement.
 
 `RTC_ENABLE=1` is a separate non-savable shared-machine experiment, enabled
-only in SV diagnostics, not C++ or board revisions. See `docs/RTC_MACHINE_STATUS.md`.
+in SV diagnostics and the separate `make -C verilator rtc` C++ profile, not
+ordinary runners or board revisions. See `docs/RTC_MACHINE_STATUS.md`.
+The RTC runner requires explicit `--rtc-controller` and rejects both snapshot
+options before file access; actual generated-IPL elapsed/warm-reset execution
+now passes, not native firmware/calendar or complete device coexistence.
+Cold initialization must occur only at launch, never on scheduled warm reset.
 Index 6 uploads the local derived 8-KiB controller image only during drained
 `core_reset`; index 7/address 0/value 1 explicitly denotes simulated clock
 storage loss, not native I/O or warm reset. Do not embed derived firmware or

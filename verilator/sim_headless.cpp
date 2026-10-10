@@ -92,6 +92,7 @@ int main(int argc, char **argv) {
         uint64_t joy_events_applied = 0;
         const char *trace_path = nullptr;
         const char *rom_path = nullptr, *ram_path = nullptr, *font16_path = nullptr, *kanji_path = nullptr;
+        const char *rtc_controller_path = nullptr;
         uint64_t load_address = 0x8000, entry = 0x8000, peek_address = 0xf000;
         const char *bus_path = nullptr;
         uint64_t bus_start_ms = 0, bus_end_ms = 0;
@@ -122,6 +123,7 @@ int main(int argc, char **argv) {
             else if (!std::strcmp(argv[i], "--video-hz") && i + 1 < argc) video_hz = number(argv[++i]);
             else if (!std::strcmp(argv[i], "--font16") && i + 1 < argc) font16_path = argv[++i];
             else if (!std::strcmp(argv[i], "--kanji-physical") && i + 1 < argc) kanji_path = argv[++i];
+            else if (!std::strcmp(argv[i], "--rtc-controller") && i + 1 < argc) rtc_controller_path = argv[++i];
             else if (!std::strcmp(argv[i], "--joya") && i + 1 < argc) { joya = number(argv[++i]); joya_override = true; }
             else if (!std::strcmp(argv[i], "--joyb") && i + 1 < argc) { joyb = number(argv[++i]); joyb_override = true; }
             else if (!std::strcmp(argv[i], "--joy-at") && i + 3 < argc) {
@@ -164,6 +166,17 @@ int main(int argc, char **argv) {
             else if (argv[i][0] != '-') cycles = number(argv[i]);
             else throw std::runtime_error("usage: Vtop [cycles] [--cycles N] [--reset-cycles N] [--reset-at MS (repeatable) --reset-for-us US] [--video-hz N] [--trace output.fst] [--rom IMAGE] [--ram IMAGE --load-address A --entry A] [--disk IMAGE --disk-output NEW_COPY] [--disk-b IMAGE --disk-b-output NEW_COPY] [--keys SCRIPT] [--frame IMAGE.ppm] [--audio OUTPUT.wav] [--dump PREFIX] [--video-dump PREFIX] [--peek A] [--bus-trace CSV --io-only --bus-events --bus-start-ms N --bus-end-ms N] [--progress] [--interactive [--joystick-keys]] [--save-state FILE] [--restore-state FILE] [--joya BYTE --joyb BYTE]");
         }
+#ifdef X1_RTC_EXPERIMENT
+        // Fail before opening any snapshot or producing a state file. The
+        // enabled storage/clock serializer identity is not yet qualified.
+        if (save_path || restore_path)
+            throw std::runtime_error("RTC experiment is non-savable; snapshots are rejected");
+        if (!rtc_controller_path)
+            throw std::runtime_error("RTC experiment requires --rtc-controller packed 8192-byte image");
+#else
+        if (rtc_controller_path)
+            throw std::runtime_error("rtc-controller requires the separate RTC experiment");
+#endif
         if (joystick_keys && !interactive)
             throw std::runtime_error("--joystick-keys requires --interactive");
         if (joystick_keys && !joy_events.empty())
@@ -199,6 +212,17 @@ int main(int argc, char **argv) {
             for (size_t i = 0; i < bytes.size(); ++i)
                 downloads.push_back({index, start + static_cast<uint32_t>(i), bytes[i]});
         };
+        if (rtc_controller_path) {
+#ifdef X1_RTC_EXPERIMENT
+            auto bytes = image(rtc_controller_path);
+            if (bytes.size() != 8192)
+                throw std::runtime_error("RTC controller must contain exactly 8192 packed little-endian bytes");
+            // Explicit cold launch only. Scheduled warm resets do NOT enqueue
+            // index 7, reinitialize storage or reload controller assets.
+            enqueue(7, 0, {1}, 1);
+            enqueue(6, 0, bytes, 8192);
+#endif
+        }
         if (kanji_path) {
 #ifdef X1_TURBO_KANJI
             auto bytes = image(kanji_path);
@@ -1021,6 +1045,9 @@ int main(int argc, char **argv) {
                 unsigned(root->top__DOT__machine__DOT__display__DOT__crtc6845s__DOT__mpu_if__DOT__R_Nr));
             crtc_observation = observation;
         }
+#endif
+#ifdef X1_RTC_EXPERIMENT
+        crtc_observation += ",\"rtc_experiment\":true,\"rtc_controller_bytes\":8192";
 #endif
         std::printf("{\"machine\":\"sharpx1\",\"turbo_foundation\":%s,\"turbo_video_master\":%s,\"turbo_dma\":%s,\"turbo_dma_irq\":%s,\"turbo_kanji\":%s,\"turbo_fm_cpu\":%s,\"z_palette_cpu_experiment\":%s,\"z_video_experiment\":%s,\"z_multimode_experiment\":%s,\"z_internal8_experiment\":%s,\"z_text_cpu_experiment\":%s,\"intra_assignment_delays\":%s,\"sys_hz\":%llu,\"video_hz\":%llu,"
                     "\"time_ps\":%llu,\"sys_edges\":%llu,\"video_edges\":%llu,"

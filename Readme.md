@@ -45,6 +45,10 @@ negative controls; it does not by itself validate partial firmware or owned-DMA 
 A bounded RTC-enabled memory-DMA reset test now also passes both owned phases,
 blocked firmware/clock/IPL traffic, stopped SYS recovery and native Z80 reboot;
 other DMA targets, Ready/IRQ and hardware coexistence remain open.
+The separate `make -C verilator rtc` headless runner now builds and rejects
+enabled snapshots/missing or short controller images. Its actual CPU elapsed/
+warm-reset qualification passes with frozen provenance; ordinary runners stay
+RTC-disabled, and native calendar/firmware/hardware gates remain open.
 
 The experimental handoff revision's early/fitted HDMI pin guard now accepts
 four exact observed whole-bank profiles, not arbitrary per-bit alternatives.
