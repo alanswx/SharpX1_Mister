@@ -474,6 +474,31 @@ delay-aware gameplay and MiSTer verification remain open.
 | Arcus (X1turbo) | Fresh native IPL/Disk 1 probe; loading message observed through 16 seconds | No gameplay or disk-change evidence; Turbo foundation exists but full compatibility remains open | No |
 | Bastard Special | Fresh native IPL/D88 probe; actual RGB title observed through 16 seconds | No start/playfield/control acceptance yet | No |
 
+## Current RTC-enabled probes: running, not gameplay acceptance
+
+After the separate delay-aware RTC runner qualification at `8480899`, new
+sixteen-second cold/repeat probes launch with explicit local source-derived
+controller upload, supplied Turbo IPL/4,096-byte ANK and protected original
+game disks. No state restore, RAM injection, disk writes or game patches are
+requested. The probe now accepts `--rtc-controller` and rejects its combination
+with `--save-state` before asset/output access; that parser control passes.
+
+Ignored outputs:
+`verilator/obj_dir_v17_rtc/special-probes/arcus-rtc-8480899-16s/` and
+`verilator/obj_dir_v17_rtc/special-probes/bastard-rtc-8480899-16s/`;
+logs `/tmp/x1-arcus-rtc-8480899-16s.log` and
+`/tmp/x1-bastard-rtc-8480899-16s.log`. Each probe freezes its actual executable
+before launch and requires identical cold/repeat results and unchanged media.
+Arcus Disk 1 in A / Disk 2 in B is explicitly exploratory, not verified disk
+order. The controller's completed RTC qualification and hash are recorded in
+[RTC status](RTC_MACHINE_STATUS.md).
+
+These runs are still live; no native game boot or gameplay is claimed. This
+runner uses SYS 32 MHz / VID 28.571428 MHz, without the separate X3/video-master
+option. High-scan software output cannot inherit nominal X3 or hardware
+acceptance from this clock/profile. Native rendered frames, handlers/disk
+traffic and actual game controls must be inspected after successful completion.
+
 ## Arcus and Bastard Special: private native probes
 
 These additional titles are locally supplied archives, outside the top-32

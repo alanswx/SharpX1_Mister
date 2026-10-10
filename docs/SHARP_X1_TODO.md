@@ -79,6 +79,10 @@ The separate delay-aware C++ RTC runner now builds with explicit controller
 upload and fail-closed snapshot rejection; actual elapsed/warm IPL collectors
 now complete zero with independent frozen-source auditing. Rebuilt ordinary runners pass real keyboard and
 unmodified pre-RTC snapshot continuity, and remain RTC-disabled.
+Fresh protected Arcus/Bastard probes now run with the qualified frozen RTC
+runner and local Turbo IPL/ANK. They are sixteen-second cold/repeat probes,
+not completed game boot/playability or X3-clock qualification. Arcus A1/B2
+remains exploratory. See [software evidence](COMMERCIAL_COMPATIBILITY.md).
 
 The RTC firmware rebuild dependency now has a tested restricted replacement
 assembler: the unchanged inherited source reproduces all 4,096 ROM bytes,

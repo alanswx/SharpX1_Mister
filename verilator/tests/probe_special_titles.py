@@ -36,6 +36,8 @@ def main():
     parser.add_argument("--bus-end-ms", type=int, default=0)
     parser.add_argument("--timeout", type=float, default=1800)
     parser.add_argument("--font16", type=pathlib.Path, help="local character-major 4096-byte Turbo ANK font")
+    parser.add_argument("--rtc-controller", type=pathlib.Path,
+                        help="local packed 8192-byte RTC controller for the separate non-savable runner")
     parser.add_argument("--kanji-physical", type=pathlib.Path,
                         help="authorized 131072-byte first-level physical Kanji candidate; opt-in runner only")
     parser.add_argument("--joya", type=lambda value: int(value, 0), help="exploratory held active-low joystick A pins")
@@ -44,6 +46,8 @@ def main():
         parser.error("--seconds must be positive")
     if args.timeout <= 0:
         parser.error("--timeout must be positive")
+    if args.rtc_controller and args.save_state:
+        parser.error("RTC probes are non-savable; do not request --save-state")
     if args.joya is not None and not 0 <= args.joya <= 255:
         parser.error("joya must fit one byte")
     if (args.bus_events or args.bus_start_ms or args.bus_end_ms) and not args.io_trace:
@@ -71,6 +75,11 @@ def main():
             parser.error("staged B disk differs from manifest")
     exe, rom, keys = (p.resolve() for p in (args.executable, args.rom, args.keys))
     originals = {str(p): digest(p) for p in (disk, rom, keys, manifest)}
+    rtc_controller = args.rtc_controller.resolve() if args.rtc_controller else None
+    if rtc_controller:
+        if rtc_controller.stat().st_size != 8192:
+            parser.error("RTC controller must contain exactly 8192 packed bytes")
+        originals[str(rtc_controller)] = digest(rtc_controller)
     font16 = args.font16.resolve() if args.font16 else None
     if font16:
         if font16.stat().st_size != 4096:
@@ -108,6 +117,8 @@ def main():
             command += ["--disk-b", str(disk_b)]
         if font16:
             command += ["--font16", str(font16)]
+        if rtc_controller:
+            command += ["--rtc-controller", str(rtc_controller)]
         if kanji:
             command += ["--kanji-physical", str(kanji)]
         if args.joya is not None:
@@ -147,6 +158,7 @@ def main():
                 "archive_sha256": row.get("archive_sha256"), "inputs_sha256": originals,
                 "executable_sha256": executable_sha, "cycles_reference_hz": 32000000,
                 "duration_seconds": args.seconds, "runs": runs,
+                "rtc_controller_used": bool(rtc_controller),
                 "unchanged_inputs": unchanged, "repeatable": repeated,
                 "boot_observation": "requires inspection of native PPM; execution is not game boot",
                 "gameplay_verified": False}
