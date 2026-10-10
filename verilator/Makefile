@@ -623,6 +623,11 @@ $(HEADLESS_DIR)/z-kanji-address/Vz_kanji_address_tb: tests/z_kanji_address_tb.sv
 		-j 4 tests/z_kanji_address_tb.sv ../rtl/x1_z_kanji_address.sv
 .PHONY: test-z-kanji-address
 
+# Full physical selector/store diagnostics, not native or FPGA qualification.
+test-z-kanji-components:
+	ulimit -c 0; python3 -B tests/test_z_kanji_components.py
+.PHONY: test-z-kanji-components
+
 test-kanji-decode: $(HEADLESS_DIR)/kanji-decode/Vkanji_decode_tb
 	./$(HEADLESS_DIR)/kanji-decode/Vkanji_decode_tb
 $(HEADLESS_DIR)/kanji-decode/Vkanji_decode_tb: tests/kanji_decode_tb.sv ../rtl/x1_kanji_decode.sv ../rtl/x1_kanji_address.sv Makefile

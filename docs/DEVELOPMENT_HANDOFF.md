@@ -1,6 +1,6 @@
 # Sharp X1 development handoff
 
-Updated October 10, 2026, 18:29 UTC. The active goal remains **unfinished**:
+Updated October 10, 2026, 18:45 UTC. The active goal remains **unfinished**:
 complete work groups 1–6 and documented Turbo Z. Component diagnostics,
 historical game screenshots and a fitted RBF do not close that goal.
 
@@ -69,7 +69,7 @@ Existing jobs must be polled, **not restarted because observation times out**:
 | Native Rally-X exploratory keyboard / no-input control | sessions `21805` / `56833`; `run83-input` / `run83-control` under same native folder | Live cold probes, same immutable executable/assets and 83-second duration; key meanings not verified release instructions |
 | Ordinary delay-aware regression | session `53793`; `/tmp/x1-z-kanji-ordinary-regression.log` | Terminal exit zero; 164 PASS lines; pre-final Z-only repair source scope below |
 | Ordinary fast/snapshot regression | session `26203`; `/tmp/x1-z-kanji-ordinary-fast.log` | Terminal exit zero; 144 PASS lines |
-| Final-current ordinary delay-aware repeat | session `67295`; `/tmp/x1-z-kanji-final-current-regression.log` | Started after final Z-only repairs; result pending |
+| Final-current ordinary delay-aware repeat | session `67295`; `/tmp/x1-z-kanji-final-current-regression.log` | Terminal exit zero, 164 PASS reports after final Z-only repairs |
 | Exhaustive shared-machine Z Kanji | `hhofb8uy`; Main audit log `/tmp/x1-z-kanji-full-main-audit.log` | Terminal collector and independent audit pass, not hardware/native acceptance |
 
 The delay-aware regression began before the final Z-only blanking/eligibility
@@ -80,8 +80,14 @@ job uses an older immutable executable/assets and is unaffected by these edits.
 
 Full-font external backing work is now described in
 `TURBO_Z_EXTERNAL_FONT_PLAN.md`. Original standalone DDR backend and tests are
-being developed outside the machine manifest; no display cache, native write-
+being developed outside the machine manifest. Initial full-font 32/100-MHz
+checks and seven rejecting mutants pass; focused admission/cancellation/base-
+address tests are being expanded before its checkpoint. No display cache, native write-
 visibility policy or board integration is yet qualified.
+
+The new `make -C verilator test-z-kanji-components` entry completes zero:
+both clock-rate component scans and three matched mutants remain intact.
+CI now schedules this asset-free entry; a hosted result is not inferred.
 
 Uncommitted HDMI work remains separate: exact seventh whole-prefetch SDC bank,
 strict 9cc provenance/report auditor, mock and CI time-budget changes. Original

@@ -154,7 +154,7 @@ exposed `TIMESCALEMOD` on existing `x1_z_effect_registers.sv`. No warning-clean
 claim is made; this is not an additional new-fixture or Kanji-module warning.
 Ordinary base/Turbo generated state
 is unchanged, and ordinary fast/snapshot checks complete zero. Final-current
-delay-aware regression remains in progress. See `DEVELOPMENT_HANDOFF.md` for
+delay-aware regression now completes zero with 164 PASS reports. See `DEVELOPMENT_HANDOFF.md` for
 job identities and source scope. No existing board or ordinary runner enables
 the Z store; external FPGA backing memory remains mandatory.
 
