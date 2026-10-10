@@ -5,6 +5,39 @@ Arcus is not accepted gameplay. This follows the
 and start inputs remain exploratory. No original ROM/font/media/state bytes
 are patched or bundled.
 
+## New RTC/X3/DMA/Kanji stage (October 10)
+
+The completed 16-second combined cold/repeat, frozen runner
+`bbfe27a755994dfd75da58d7f5fb95cb5184ec48ae82b8c0fb7a0101bc555988`,
+ends on a black 640x400 frame after 57,344 actual DMA pairs. Its actual CPU
+dump says **PC=0AA0, IFF1=IFF2=1, IM2, I=F0**, not the historical 0EA0
+handler state below. The report's `cpu_address=0A9F` is a bus observation,
+not a replacement for PC. Private cold/repeat RAM and CPU dumps match.
+
+Read-only `z80dasm -a -t -g 0` examination of that RAM finds `INC B` at
+0A9F, `OUTI` at 0AA0, a call to 0909 at 0AA2, then a counted output loop.
+The 0909 helper advances the output address and its alternate-bank row/plane
+counters. This endpoint is compatible with graphics output, but it alone
+does not establish forward progress, a wait cause, or a rendering defect.
+It must not be classified as the old interrupt-starvation case.
+
+`probe_special_titles.py --video-observations` now requests the existing
+read-only `--video-dump` interface and includes all planes, palette, sample
+counts, CRTC and opcode populations in cold/repeat hash comparison. Turbo
+reports additionally require controls and CTC dumps. Four synthetic collector
+contract tests pass, including missing-output and changed-CTC rejection;
+they are not machine tests. The one-second real combined observer smoke
+completes zero with identical reports and all eighteen artifacts per run.
+Independent input/executable/artifact rehashing also passes. This is an
+observation/repeat gate, not game boot. Its no-observation counterpart and
+the 32-second observed native cold/repeat are still running under separate
+protected output directories; no result is inferred from their launch.
+
+Outputs: `verilator/obj_dir_v17_rtc_x3_dma_kanji/special-probes/`
+`arcus-observer-smoke-1s/` and `arcus-dma-rtc-x3-kanji-observed-32s/`.
+Logs: `/tmp/x1-arcus-observer-smoke-1s.log` and
+`/tmp/x1-arcus-dma-rtc-kanji-observed-32s.log`.
+
 ## Shared-machine evidence
 
 `--video-dump` now exposes Turbo CTC control/constant/down-count/prescaler

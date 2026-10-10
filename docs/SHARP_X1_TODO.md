@@ -14,6 +14,13 @@ support before optional Turbo extensions.
 
 ## Active goal: items 1–6 and Turbo Z (October 6)
 
+Current Arcus follow-up distinguishes the combined 16-second CPU state
+(0AA0 output loop, interrupts enabled) from the historical 0EA0 interrupt
+handler. The collector now compares read-only video/CTC/opcode observations;
+four collector contract checks and a one-second real cold/repeat pass.
+The longer native repeat and an observation-disabled control are running,
+not completed gameplay gates. See `ARCUS_INTERRUPT_STATUS.md`.
+
 The separate DMA/Kanji shared-bus diagnostic passes eight loaded/absent-font
 CPU payload/owned-reset cases, stopped SYS/VID and a default-profile rejecting
 control. It fixes upload START bypassing `ioctl_wait` during reset drain.

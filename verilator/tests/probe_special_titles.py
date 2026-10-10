@@ -31,6 +31,8 @@ def main():
     parser.add_argument("--output", type=pathlib.Path, required=True,
                         help="new ignored directory; contains private RAM/frame evidence")
     parser.add_argument("--io-trace", action="store_true")
+    parser.add_argument("--video-observations", action="store_true",
+                        help="read-only planes, CRTC, palette, opcode populations and Turbo CTC; compared across cold runs")
     parser.add_argument("--bus-events", action="store_true", help="last sample per held bus transaction")
     parser.add_argument("--bus-start-ms", type=int, default=0)
     parser.add_argument("--bus-end-ms", type=int, default=0)
@@ -106,6 +108,9 @@ def main():
         artifacts += (".state",)
     if args.io_trace:
         artifacts += (".csv",)
+    if args.video_observations:
+        artifacts += (".gram-b", ".gram-r", ".gram-g", ".pcg-b", ".pcg-r", ".pcg-g",
+                      ".video-palette", ".video-samples", ".crtc", ".cpu-fetches")
     for name in ("cold", "repeat"):
         prefix = folder / name
         command = [str(frozen), "--cycles", str(args.seconds * 32000000),
@@ -123,6 +128,8 @@ def main():
             command += ["--kanji-physical", str(kanji)]
         if args.joya is not None:
             command += ["--joya", str(args.joya)]
+        if args.video_observations:
+            command += ["--video-dump", str(prefix)]
         if args.io_trace:
             command += ["--bus-trace", str(prefix) + ".csv", "--io-only"]
             if args.bus_events:
@@ -143,8 +150,11 @@ def main():
         record = {"command": command, "returncode": result.returncode}
         if result.returncode == 0:
             report = json.loads(result.stdout.splitlines()[-1])
+            run_artifacts = artifacts
+            if args.video_observations and report.get("turbo_foundation"):
+                run_artifacts += (".video-controls", ".ctc")
             record.update(report=report, artifacts={suffix: digest(pathlib.Path(str(prefix) + suffix))
-                                                   for suffix in artifacts})
+                                                   for suffix in run_artifacts})
             if report["disk_writes"] != 0:
                 raise RuntimeError("protected native probe wrote disk")
         runs.append(record)
@@ -159,6 +169,7 @@ def main():
                 "executable_sha256": executable_sha, "cycles_reference_hz": 32000000,
                 "duration_seconds": args.seconds, "runs": runs,
                 "rtc_controller_used": bool(rtc_controller),
+                "video_observations": args.video_observations,
                 "unchanged_inputs": unchanged, "repeatable": repeated,
                 "boot_observation": "requires inspection of native PPM; execution is not game boot",
                 "gameplay_verified": False}

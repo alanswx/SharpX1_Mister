@@ -1721,6 +1721,10 @@ test-commercial-cold-plan:
 	python3 tests/test_commercial_cold_plan.py
 .PHONY: test-commercial-cold-plan
 
+test-special-probe-observations:
+	python3 tests/test_special_probe_observations.py
+.PHONY: test-special-probe-observations
+
 test-upd1990-calendar: $(HEADLESS_DIR)/upd1990-calendar/Vupd1990_calendar_tb
 	./$(HEADLESS_DIR)/upd1990-calendar/Vupd1990_calendar_tb
 	@for fault in BCD LEAP INVALID; do \
@@ -1935,7 +1939,7 @@ $(HEADLESS_DIR)/z-effect-machine-%/Vz_effect_machine_tb: tests/z_effect_machine_
 	  -GEFFECT_ENABLED=$* -j 4 tests/z_effect_machine_tb.sv $(MACHINE_SRC) -Wno-fatal
 .PHONY: test-machine-z-effects
 
-test: headless test-rgb12 test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner test-d88-crc test-d88-metadata test-cpu-busreq
+test: headless test-rgb12 test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner test-d88-crc test-d88-metadata test-cpu-busreq test-special-probe-observations
 	python3 tests/test_joystick_schedule.py ./$(HEADLESS_EXE)
 	python3 tests/test_key_script.py ./$(HEADLESS_EXE) $(VIDEO_TEST_FLAGS)
 	python3 tests/test_video_modes.py ./$(HEADLESS_EXE) $(VIDEO_TEST_FLAGS)
