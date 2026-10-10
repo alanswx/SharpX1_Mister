@@ -419,6 +419,16 @@ $(HEADLESS_DIR)/kanji-address/Vkanji_address_tb: tests/kanji_address_tb.sv ../rt
 		-j 4 tests/kanji_address_tb.sv ../rtl/x1_kanji_address.sv
 .PHONY: test-kanji-address
 
+test-z-kanji-address: $(HEADLESS_DIR)/z-kanji-address/Vz_kanji_address_tb
+	./$(HEADLESS_DIR)/z-kanji-address/Vz_kanji_address_tb
+	@ulimit -c 0; if ./$(HEADLESS_DIR)/z-kanji-address/Vz_kanji_address_tb +FAULT=1 > $(HEADLESS_DIR)/z-kanji-address/negative.log 2>&1; then echo 'FAIL: earlier-model layout passed Z pins'; exit 1; fi
+	@grep -q 'Z ROM pin address/selection' $(HEADLESS_DIR)/z-kanji-address/negative.log
+$(HEADLESS_DIR)/z-kanji-address/Vz_kanji_address_tb: tests/z_kanji_address_tb.sv ../rtl/x1_z_kanji_address.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module z_kanji_address_tb --Mdir $(HEADLESS_DIR)/z-kanji-address \
+		-j 4 tests/z_kanji_address_tb.sv ../rtl/x1_z_kanji_address.sv
+.PHONY: test-z-kanji-address
+
 test-kanji-decode: $(HEADLESS_DIR)/kanji-decode/Vkanji_decode_tb
 	./$(HEADLESS_DIR)/kanji-decode/Vkanji_decode_tb
 $(HEADLESS_DIR)/kanji-decode/Vkanji_decode_tb: tests/kanji_decode_tb.sv ../rtl/x1_kanji_decode.sv ../rtl/x1_kanji_address.sv Makefile

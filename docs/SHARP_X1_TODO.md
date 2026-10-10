@@ -14,10 +14,17 @@ support before optional Turbo extensions.
 
 ## Active goal: items 1–6 and Turbo Z (October 6)
 
+The standalone CZ-880 Kanji pin decoder now passes 262,144 unique addresses
+and disabled/dual-select/earlier-layout negative checks; see
+`TURBO_Z_KANJI_STORAGE_STATUS.md`. It does not add machine level-2 storage or
+resolve the external-memory/ASIC/native-font gates. Capture line-buffer
+research is separately recorded in `TURBO_Z_LINE_BUFFER_STATUS.md`.
+
 The full default D88-container regression completes zero. Correct-clock
 Arcus/Bastard cold/repeat probes also complete with identical protected media
 and pixels to the earlier clock: neither is playable yet. Exploratory later
-key trials are running. A new isolated RTC+X3+Kanji build passes ten synthetic
+key trials also finish deterministically with unchanged final pixels; Arcus's
+real mailbox receives Enter. A new isolated RTC+X3+Kanji build passes ten synthetic
 CPU/pixel cases with independently audited 1,536,000 pixels; combined calendar
 elapsed/reset and six-key/absent-key gates also complete with independent
 138/136-input auditing. Fresh protected native probes with the private
@@ -29,7 +36,8 @@ Current continuation: the separate RTC+nominal-X3 runner passes actual CPU
 elapsed-time, retained-IPL reset and six-key/absent-key qualification, with
 independent frozen-input auditing. Its original protected Arcus/Bastard
 cold/repeat probes finish deterministically but are not gameplay acceptance;
-the late-input and combined-Kanji follow-ups remain running.
+the late-input follow-ups also finish without gameplay acceptance, while
+combined-Kanji native trials remain running.
 Ordinary-clock short reset during RTC/keyboard polling also passes three keys
 and a no-reset rejecting control, with two actual command boots and no asset
 reupload. Its X3 repeat also passes with independent auditing. The ordinary-clock
@@ -1466,6 +1474,8 @@ capability profile. The existing `TURBO=1` build is not Turbo Z support.
   line-buffer/GRAM ownership, actual effects and native/physical gates remain open.
   The follow-up primary ADC wiring audit and digital adapter exhaust all
   code/validity combinations; they do not implement analog sampling or capture.
+  The manufacturer line-buffer reference is now retrieved/read; see
+  `TURBO_Z_LINE_BUFFER_STATUS.md` for the pin contract and implementation gates.
 
 The reset helper now prepares repeated physical OSD menu checks with exact
 active-set refusal and distinct image evidence. Asset-free safety tests and

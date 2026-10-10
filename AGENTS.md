@@ -48,6 +48,10 @@ retention, Main/OSD dispatch or simultaneous disk/IRQ behavior.
 emitter, shared source graph and controller before the ten-case matrix. Do
 not infer native font/game, level-2 Kanji, simultaneous calendar commands or
 board acceptance from those synthetic pixels.
+`test-z-kanji-address` covers only the CZ-880 physical pin decoder, not a
+machine profile. Its local ROM format interleaves half at A0 and differs from
+the existing four-chip half-major loader. See `TURBO_Z_KANJI_STORAGE_STATUS.md`;
+do not silently accept earlier raw dumps or truncate glyph exports for it.
 
 From the repository root:
 

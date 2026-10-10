@@ -540,15 +540,17 @@ not a proven disk-controller hang. Bastard's sampled PC is a counted delay
 loop, not by itself evidence of a deadlock. No game code or RAM was patched.
 New exploratory `tests/special_titles_late_start.keys` retains boot input and
 adds Enter/Space after 8/10/12 seconds. Two cold/repeat probes using this script
-are running in `arcus-rtc-x3-late-start-16s/` and
+now complete zero in `arcus-rtc-x3-late-start-16s/` and
 `bastard-rtc-x3-late-start-16s/`, logs `/tmp/x1-arcus-rtc-x3-late-start-16s.log`
 and `/tmp/x1-bastard-rtc-x3-late-start-16s.log`. They use the same qualified
 frozen pre-container-repair runner to isolate input, not current-RTL or verified
 release instructions. Native Kanji is disabled in that runner; its dialog
 cannot qualify Kanji text.
 
-The first cold late-input capture still has the same final RGB as its original
-probe; its repeat remains running. Arcus's real bus trace observes one `0D`
+Independent auditing verifies both exact reports, every cold/repeat artifact,
+frozen executable and unchanged protected inputs. Both late-input runs still
+have the same final RGB as their original probes and remain
+`gameplay_verified: false`. Arcus's real bus trace observes one `0D`
 read at port `1900` at 8001.287390625 ms, so the later Enter does reach the
 actual host mailbox. Bastard makes no `1900` accesses in this bounded window.
 Neither observation establishes why the software stays at dialog/title.

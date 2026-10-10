@@ -18,6 +18,13 @@ the remaining physical and unimplemented-feature gates.
 
 ## Current status
 
+The [Turbo Z Kanji physical decoder](docs/TURBO_Z_KANJI_STORAGE_STATUS.md)
+now passes all 262,144 first/second-level byte addresses against the CZ-880
+ROM pins. It is standalone; machine level-2 storage and native glyph support
+remain open. The [line-buffer audit](docs/TURBO_Z_LINE_BUFFER_STATUS.md)
+also records the newly retrieved NEC capture-memory reference and remaining
+implementation gates, not a functioning digitizer.
+
 Large concatenated D88 files now mount when their selected first volume fits
 the controller's address space. Host/scanner and real Z80 read/write checks
 pass, preserving all trailing volumes. Selected volumes still must be below

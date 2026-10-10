@@ -1,5 +1,17 @@
 # Downloaded Sharp X1 documentation
 
+## NEC capture line-buffer manufacturer reference
+
+Retrieved `NEC_1986_Memory_Data_Book.pdf` from the
+[Bitsavers mirror](https://ftpmirror.your.org/pub/misc/bitsavers/components/nec/_dataBooks/1986_NEC_Memory_Data_Book.pdf):
+14,399,588 bytes, 433 pages, SHA-256
+`1da5cf7a4a74ce268fefda3d3c90dd3c945d9f4c7b1d14137a74b0cf3f1d03c7`.
+The uPD41101 pin/counter and reset/disable diagrams on PDF 30/31/38/39
+were rendered and visually inspected. See
+[line-buffer requirements and remaining gates](../../docs/TURBO_Z_LINE_BUFFER_STATUS.md).
+The original PDF stays ignored with its notices intact; no implementation or
+capture qualification is inferred from retrieval.
+
 ## NEC calendar manufacturer reference
 
 Sharp YEAR follow-up: CZ-856C BASIC reference PDF pages 411/413 (printed

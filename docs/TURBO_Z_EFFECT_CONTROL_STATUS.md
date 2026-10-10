@@ -64,6 +64,11 @@ hosted results are separate from this local pass.
 
 ## Implementation still required
 
+The [manufacturer line-buffer follow-up](TURBO_Z_LINE_BUFFER_STATUS.md) now
+retains the NEC device reference and exact chip-model acceptance sequence.
+This changes the future buffer contract, not the current machine: no capture
+or effect renderer is implemented by that research.
+
 The subsequent [CPU-storage experiment](TURBO_Z_EFFECT_CPU_STATUS.md) now
 qualifies actual Z80 `1FC1..1FC4` transactions, AEN/DAM/neighbor isolation and
 retained-IPL reset under explicit provisional policies. It connects no
