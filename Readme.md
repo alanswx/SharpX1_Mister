@@ -97,7 +97,9 @@ identifies an extra `vs_d1` consumer replica; a narrowly scoped experimental
 replication-prevention candidate passes source/interface checks. The fresh
 `9cc1141` fit now passes that strict VSYNC guard, then stops at a new whole-
 prefetch pin profile. Incomplete-constraint timing is not accepted; reporting-
-only inventory is next. Its assembled RBF is not accepted or deployed. Historical
+only inventory now identifies the complete new bank, with original fit files
+unchanged. Exact guard qualification and same-fit preservation are next.
+Its assembled RBF is not accepted or deployed. Historical
 fit-integrity tests require Git history to bind their original source commits.
 
 The separate [RTC/X3/DMA/Kanji/FM profile](docs/RTC_DMA_KANJI_FM_STATUS.md)

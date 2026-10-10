@@ -102,8 +102,10 @@ at the VSYNC-fanout identity guard. Reporting-only topology discovery now
 identifies the extra `vs_d1~DUPLICATE` consumer; a narrowly guarded `vs_d1`
 replication-prevention candidate passes interface/source-scope checks and an
 exact duplicate-rejecting SDC mock. Fresh `9cc1141` fitting passes the strict
-VSYNC guard, then stops at a new whole-prefetch profile; same-fit reporting-only
-discovery is next. Strict constraints remain unchanged; complete timing/
+VSYNC guard, then stops at a new whole-prefetch profile; reporting-only discovery
+now completes with original fit inputs/artifacts/database unchanged. Whole-bank
+guard qualification and same-fit preservation are next. Strict constraints remain
+unchanged; complete timing/
 hardware acceptance remain open.
 The scope only permits whole
 observed banks, not arbitrary per-bit packing.

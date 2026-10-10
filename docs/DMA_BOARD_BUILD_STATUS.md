@@ -220,3 +220,26 @@ remain excluded, not passed. Global setup **still fails at -9.659 ns**
 (hold +0.010 ns). See the native fifth-profile evidence in
 `HDMI_MODE_STATUS.md`. This does not qualify this DMA board, a fresh full
 flow or any new RBF. Original artifacts are preserved; no MiSTer is loaded.
+
+The exact `9cc1141` fit's reporting-only whole-bank inventory subsequently
+finishes on the idle host at 16:19:39–16:19:43 UTC, exit zero, no errors/warnings.
+It uses an isolated fitted database and no SDC, not a compile or timing pass.
+Local evidence: `/tmp/x1-9cc-prefetch-inventory-N9cG4eJw/`; raw log SHA-256
+`4c7f6fbd6d356f18fe57c0e242b683b33fafd28ef0e54ac171f98857fb015942`.
+Main independently checks the terminal record and exact before/after manifests:
+415 source inputs, five artifacts and 511 original database files are unchanged.
+
+The whole prefetch bank has 24 keepers, 72 pins and 24 canonical registered
+drivers. Its complete observed input vector is:
+
+- ASDATA: `hs`, `vs`, `de`, data bits 0/1/5/7/12/16/17/19/23.
+- D: data bits 2/3/6/9/10/11/13/14/15/18/21/22.
+- Physical prefetch keepers absent: data bits 4/8/20; output aliases remain
+  4←0, 8←12, 20←16.
+
+The output bank has 27 keepers/133 pins/85 driver records; no target replicas
+appear. This vector differs from the six allowed profiles and is not permission
+to mix arbitrary per-bit alternatives. Exact whole-bank guard qualification and
+same-fit path preservation are next. Strict production constraints are unchanged;
+complete constrained timing, a fresh full flow and hardware acceptance remain
+open. The assembled `9cc1141` RBF is still unaccepted and not deployed.
