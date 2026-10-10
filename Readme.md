@@ -34,8 +34,9 @@ shared-machine candidate builds at explicit 1/2-MHz enables and its actual-CPU
 1-MHz disk suite now passes 40 reports, including writes/readback and metadata.
 The original shared-machine matrix also qualifies 128 CPU/DMA cases, 28 owned-
 transport/reset cases and three rejecting controls. CPU2M coverage is deliberate
-loss plus DMA recovery; native timing and remaining cancellation phases stay
-open. No board enables it.
+loss plus DMA recovery. A separate 24-case public-port fixture now adds
+cached-stream reselection and pending-completion reset/remount; metadata,
+high-address and native timing gates stay open. No board enables it.
 Ordinary generated state and
 the fresh 144-gate fast/snapshot regression remain intact. The fresh ordinary
 delay-aware rerun also passes all 149 reports after updating the intentional

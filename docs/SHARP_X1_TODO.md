@@ -45,8 +45,10 @@ The default-off WD/SD bridge now passes four nominal-rate/address profiles,
 qualification is advancing: the complete 1-MHz actual-CPU disk suite passes
 40 reports. The separate original matrix now passes 128 CPU/DMA and 28 owned-
 transport/reset cases plus three rejecting controls; CPU2M deliberately tests
-loss and DMA recovery. Cached-stream/pending-completion/metadata/native timing
-and hardware gates remain open.
+loss and DMA recovery. A separate 24-case public-port fixture now adds
+cached-stream reselection and pending-completion reset/remount. Write-prefill/
+final-store boundaries, metadata/high-address/native timing and hardware gates
+remain open.
 Ordinary profiles stay disabled. An explicit
 inactive clock-input tie repairs an otherwise
 changed default saved-state layout: all eight base/Turbo generated headers/

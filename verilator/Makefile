@@ -68,6 +68,13 @@ test-machine-fdc-timing-full:
 	python3 tests/test_machine_fdc_timing.py --machine-sha $(FDC_TIMING_MACHINE_SHA) --negative wrong-rate
 	python3 tests/test_machine_fdc_timing.py --machine-sha $(FDC_TIMING_MACHINE_SHA) --negative force-ready
 .PHONY: test-machine-fdc-timing test-machine-fdc-timing-full
+test-machine-fdc-timing-media:
+	python3 tests/test_machine_fdc_timing_media.py --machine-sha $(FDC_TIMING_MACHINE_SHA)
+	python3 tests/test_machine_fdc_timing_media.py --machine-sha $(FDC_TIMING_MACHINE_SHA) --rate 2000000 --width 24
+test-machine-fdc-timing-media-full: test-machine-fdc-timing-media
+	python3 tests/test_machine_fdc_timing_media.py --machine-sha $(FDC_TIMING_MACHINE_SHA) --negative cached-cancel
+	python3 tests/test_machine_fdc_timing_media.py --machine-sha $(FDC_TIMING_MACHINE_SHA) --negative completion-cancel
+.PHONY: test-machine-fdc-timing-media test-machine-fdc-timing-media-full
 HD_MEDIA_DIR ?= obj_dir_v17_hd_media
 turbo-hd-media: $(HD_MEDIA_DIR)/Vtop
 $(HD_MEDIA_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)

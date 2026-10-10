@@ -399,5 +399,10 @@ fourth-consumer replica among 20 negative inventories before any cuts.
 this is an interface stand-in, not Intel PLL or hardware verification.
 Main logs: `/tmp/x1-vsync-consumer-scope-main.log` and
 `/tmp/x1-vsync-consumer-lint-correct.log`.
+The ordinary synchronizer's functional/control regressions also complete
+zero in `/tmp/x1-vsync-consumer-functional-main.log`, including raw/early-stage
+rejecting controls. They do not synthesize the framework declaration attribute.
+Checkpoint `9cc1141` is pushed. Idle-only host observations through 14:22:37 UTC
+find competing MacPPC/Quartus activity, so no new native/fit launch occurs.
 Fresh committed-source native checks, fit, exact consumer/HPS topology,
 complete constraints, timing/MTBF/I/O and hardware acceptance remain required.

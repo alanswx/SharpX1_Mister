@@ -251,7 +251,10 @@ Vendor `STRICT_D88_TIMING=1` is a separate default-off SD/register experiment.
 `test-machine-fdc-timing` / `test-machine-fdc-timing-full`: 128 CPU/DMA cases,
 28 owned-transport/reset cases and three rejecting controls are qualified.
 CPU1M polling succeeds; CPU2M tests deliberate loss plus DMA recovery, not
-general successful polling. Cached-stream/pending-completion/metadata/native
+general successful polling. `test-machine-fdc-timing-media` / `-media-full`
+add separate cached-stream reselection and real pending-completion reset/mount
+coverage. Do not infer stopped-CE retention from its short normal consumer
+window. Write-prefill/final-store boundaries, metadata/high-address/native
 and hardware gates remain open. `turbo-fdc-timing` is non-savable,
 with isolated directories per `FDC_CLOCK_HZ=1000000/2000000` and `FDC_TIMING_DMA`.
 It requires Turbo/SYS32, rejects single-clock/other rates, and does not infer

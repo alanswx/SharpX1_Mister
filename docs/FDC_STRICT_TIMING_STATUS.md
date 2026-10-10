@@ -285,12 +285,63 @@ DRQ-to-accepted-DATA maxima are 16.09375/17.84375 us (read/write), from SYS
 observations, not native pin timing or silicon failure-edge measurements.
 Earlier failed fixtures and changed assertions remain documented in the handoff.
 
+## Cached-stream and pending-completion cancellation
+
+The separate original `fdc_timing_media_machine_tb.sv` fixture and frozen
+`test_machine_fdc_timing_media.py` driver pass 24 cases: both drives at 1 MHz/
+20-bit and 2 MHz/24-bit. They use public ioctl, mount/reset and SD pins with
+genuine CPU firmware; hierarchy is read-only coverage observation. No private
+RAM, state, CE, Ready or CPU transactions are injected. Sources are held stable:
+SV SHA-256 `cc031203eaec8ab3c97c639a4e553a2fcd44a6d462f002ecd1d5c6d6cb5750f6`;
+driver SHA-256 `f47ae3911ec93b0eddd1c3d7147a0abf4c27a18a7fad52c79124a2bd42d7e808`.
+
+Cached read/write cases require CPU reselection with host transport idle and
+the stream still active, partially serialized, without a pending completion.
+Pending read/write cases first observe an actual valid completion before its
+normal controller consumer CE, then drive public reset or active-drive mount.
+They require no stale consume/store/arrival and no unpublished prelude flush.
+This exercises the real short completion window, not artificially stopped CE.
+Recovery reads both original media, writes/readbacks the selected payload,
+checks RAM guards/status and independently predicts every published SD byte.
+Both whole media are checked against that publication ledger; neither observed
+DUT data nor metadata seeds the prediction. CPU2M uses real DMA, including
+exactly two initial stores for cached-write service, not a general polling pass.
+
+Worker terminal exits zero: sessions 92281/27898, frozen
+`x1-fdc-media-machine-7p_v8fh1` / `5ivhv6hr` under the system temporary directory.
+Cached-cancel and completion-cancel mutated-source controls reject at their
+specific cancellation assertions (sessions 92671/7014, `mfd92akc`/`78r53ixs`),
+not compilation failures or timeouts. Main's fresh 12-case 1-MHz rerun also
+terminates zero with final source checks, frozen `pifrywv2`, log
+`/tmp/x1-fdc-media-main-fresh.log`. Main's fresh 2-MHz/24-bit 12-case rerun also
+terminates zero with final source checks: `_5ayo1oi`, session 87672, log
+`/tmp/x1-fdc-media-main-fresh-2m.log`. Both fresh rejecting-control drivers
+terminate zero after the intended runtime assertion: cached `dbdsqcxm` /
+session 80841 and completion `9xb2jo8u` / session 86166. Logs are
+`/tmp/x1-fdc-media-main-negative-cached-cancel.log` and
+`/tmp/x1-fdc-media-main-negative-completion-cancel.log`.
+Independent review finds no blocking defect for this bounded claim, verifies
+the worker's four folders (452 source comparisons, byte-exact regeneration of
+all 26 IPLs from frozen emitters, four executable hashes, order/arguments and
+exact terminal markers). Build logs contain 61/66 warnings; none name the new
+fixture/helpers or missing `fdc_ce`, but this is not warning-clean acceptance.
+Earlier failed CPU2M-prefill and erroneous zero-length
+DMA fixture attempts remain preserved; production RTL is unchanged.
+
+`test-machine-fdc-timing-media` runs both complete positive profiles;
+`test-machine-fdc-timing-media-full` additionally runs both rejecting controls.
+The positive target is scheduled in CI, not claimed as a hosted result.
+Main separately inspects all four fresh artifact sets: 452 live/frozen source
+comparisons, 26 ROM hashes, four executable hashes and every terminal record
+match, with only the explicitly recorded negative source allowed to differ.
+
 ## Remaining acceptance
 
-Add cached-stream reselection, pending-completion cancellation, metadata/CRC
-ACK phases, high-address media, READY/Type-IV and native clock/firmware/hardware
-qualification. The current reset/selection cases exercise owned host traffic,
-not all idle-transport stream phases. Recheck ordinary state after any further
+Add write-prefill/final-store boundary cases, pending CPU reselection,
+cancellation coincident with consumer CE, metadata/CRC ACK phases,
+high-address media, READY/Type-IV and native clock/firmware/hardware
+qualification. The new cached and pending cases do not cover every
+idle-transport stream phase. Recheck ordinary state after any further
 manifest/profile connection; preserve measured scope rather than inferring it
 from standalone register tasks or generated machine diagnostics.
 

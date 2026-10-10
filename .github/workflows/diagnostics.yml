@@ -68,7 +68,8 @@ jobs:
       - name: Run original standalone and shared-machine fixtures
         run: |
           for target in \
-            test-hps-hdmi-measure test-hps-video-cdc test-opcode-window test-runner-build-isolation \
+            test-hps-hdmi-measure test-hps-video-cdc test-opcode-window test-runner-build-isolation test-vsync-consumer-replication \
+            test-machine-fdc-timing-media \
             test-fdc-byte-slots test-fdc-bus-events test-fdc-stream-adapter test-fdc-stream-external-dr test-fdc-completion \
             test-fdc-strict-timing test-fdc-strict-legacy test-machine-fdc-default-state test-machine-fdc-timing \
             test-sio-decode test-sio-clock-select test-sio-edge-clock test-sio-ctc-clock \
@@ -110,6 +111,9 @@ jobs:
             # Bound each original fixture without changing its assertions or
             # simulated duration. A stall must fail with an identifiable target.
             limit_s=180
+            # Both complete nominal-rate media-cancellation matrices; retain
+            # all cases and their independent whole-medium assertions.
+            if [ "${target}" = test-machine-fdc-timing-media ]; then limit_s=600; fi
             # This fixture retains its full 65,537-byte/wrap cases at all CEs;
             # allow its unoptimized build/run extra time, not fewer cycles.
             if [ "${target}" = test-dma ]; then limit_s=600; fi
