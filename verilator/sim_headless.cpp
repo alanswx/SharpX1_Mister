@@ -20,6 +20,9 @@
 #include "verilated_fst_c.h"
 #include "Vtop.h"
 #include "Vtop___024root.h"
+#if defined(X1_DMA_KANJI_EXPERIMENT) && (defined(X1_SAVABLE) || !defined(X1_RTC_EXPERIMENT) || !defined(X1_TURBO_DMA) || !defined(X1_TURBO_KANJI_RENDER) || !defined(X1_TURBO_VIDEO_MASTER))
+#error "DMA/Kanji runner requires non-savable RTC/DMA/render/X3 profile"
+#endif
 #if defined(X1_Z_PALETTE_CPU) && defined(X1_SAVABLE)
 #error "CPU-only Z palette experiment has no qualified snapshot layout"
 #endif
@@ -1050,6 +1053,9 @@ int main(int argc, char **argv) {
 #endif
 #ifdef X1_RTC_EXPERIMENT
         crtc_observation += ",\"rtc_experiment\":true,\"rtc_controller_bytes\":8192";
+#endif
+#ifdef X1_DMA_KANJI_EXPERIMENT
+        crtc_observation += ",\"dma_kanji_experiment\":true";
 #endif
         std::printf("{\"machine\":\"sharpx1\",\"turbo_foundation\":%s,\"turbo_video_master\":%s,\"turbo_dma\":%s,\"turbo_dma_irq\":%s,\"turbo_kanji\":%s,\"turbo_fm_cpu\":%s,\"z_palette_cpu_experiment\":%s,\"z_video_experiment\":%s,\"z_multimode_experiment\":%s,\"z_internal8_experiment\":%s,\"z_text_cpu_experiment\":%s,\"intra_assignment_delays\":%s,\"sys_hz\":%llu,\"video_hz\":%llu,"
                     "\"time_ps\":%llu,\"sys_edges\":%llu,\"video_edges\":%llu,"

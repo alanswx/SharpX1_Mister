@@ -72,6 +72,24 @@ test-rtc-x3-kanji-keyboard: rtc-x3-kanji
 	python3 tests/test_rtc_keyboard.py $(RTC_KANJI_RUNNER_DIR)/Vtop --x3 --kanji
 .PHONY: rtc-x3-kanji test-rtc-x3-kanji-runner test-rtc-x3-kanji-keyboard
 
+# Explicit combined diagnostic, non-savable; no ordinary runner/board changes.
+RTC_DMA_KANJI_DIR ?= obj_dir_v17_rtc_x3_dma_kanji
+rtc-x3-dma-kanji: $(RTC_DMA_KANJI_DIR)/Vtop
+$(RTC_DMA_KANJI_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
+	mkdir -p $(@D)
+	$(V) --cc --exe --build --timing --trace-fst --top-module top --Mdir $(@D) -j 4 \
+		-GTURBO=1 -GRTC_ENABLE=1 -GTURBO_VIDEO_MASTER=1 -GTURBO_KANJI=1 -GTURBO_KANJI_RENDER=1 \
+		-GTURBO_DMA=1 -GTURBO_DMA_KANJI_EXPERIMENT=1 $(TURBO_DSW_FLAGS) \
+		-CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_RTC_EXPERIMENT -DX1_TURBO_VIDEO_MASTER -DX1_TURBO_KANJI -DX1_TURBO_KANJI_RENDER -DX1_TURBO_DMA -DX1_DMA_KANJI_EXPERIMENT" \
+		$(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
+test-rtc-x3-dma-kanji-runner: rtc-x3-dma-kanji
+	python3 tests/test_rtc_runner.py $(RTC_DMA_KANJI_DIR)/Vtop --x3 --kanji --dma
+test-rtc-x3-dma-kanji-keyboard: rtc-x3-dma-kanji
+	python3 tests/test_rtc_keyboard.py $(RTC_DMA_KANJI_DIR)/Vtop --x3 --kanji --dma
+test-rtc-x3-dma-kanji-pixels: rtc-x3-dma-kanji
+	python3 tests/test_rtc_kanji_pixels.py $(RTC_DMA_KANJI_DIR)/Vtop --dma
+.PHONY: rtc-x3-dma-kanji test-rtc-x3-dma-kanji-runner test-rtc-x3-dma-kanji-keyboard test-rtc-x3-dma-kanji-pixels
+
 test-psg-mix: $(HEADLESS_DIR)/psg-mix/Vpsg_mix_tb
 	./$(HEADLESS_DIR)/psg-mix/Vpsg_mix_tb
 $(HEADLESS_DIR)/psg-mix/Vpsg_mix_tb: tests/psg_mix_tb.sv ../rtl/x1_psg_signed.sv ../rtl/x1_fm_mix.sv ../rtl/x1_audio_mix.sv Makefile

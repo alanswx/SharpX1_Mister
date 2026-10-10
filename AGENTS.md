@@ -53,9 +53,13 @@ machine profile. Its local ROM format interleaves half at A0 and differs from
 the existing four-chip half-major loader. See `TURBO_Z_KANJI_STORAGE_STATUS.md`;
 do not silently accept earlier raw dumps or truncate glyph exports for it.
 
-`TURBO_DMA_KANJI_EXPERIMENT` is an SV-only, default-off shared-bus qualification
+`TURBO_DMA_KANJI_EXPERIMENT` is a default-off shared-bus qualification
 profile. Use `test-machine-dma-kanji`; see `docs/DMA_KANJI_MACHINE_STATUS.md`.
 It does not enable ordinary runners/boards or define a combined snapshot model.
+`rtc-x3-dma-kanji` separately opts into a non-savable C++ combination; JSON
+must report `dma_kanji_experiment`. Use the explicit `--dma --kanji --x3`
+RTC collectors and frozen `test_rtc_dma_fdc.py`; distinguish enabled-but-idle
+DMA pixel/keyboard cases from active FDC/clock transfers and native games.
 Upload START changes font readiness and must honor `ioctl_wait`, not only WR.
 The pending DMA read counter counts the strobe start before WAIT completes.
 

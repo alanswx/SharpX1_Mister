@@ -65,7 +65,9 @@ def main():
                         help="optional authorized 131072-byte physical candidate, not an emulator export")
     parser.add_argument("--rtc-controller", type=pathlib.Path,
                         help="explicit packed 8192-byte controller for the separate RTC combination")
+    parser.add_argument("--dma", action="store_true", help="require explicit combined DMA/Kanji/RTC profile")
     args = parser.parse_args()
+    if args.dma and not args.rtc_controller:parser.error('--dma requires --rtc-controller')
     controller = args.rtc_controller.resolve() if args.rtc_controller else None
     controller_hash = hashlib.sha256(controller.read_bytes()).hexdigest() if controller else None
     if controller:assert controller.stat().st_size == 8192
@@ -107,6 +109,7 @@ def main():
             report = json.loads(result.stdout.splitlines()[-1])
             assert report["halted"] and report["peek"].startswith(b"KPIX".hex()), report
             assert report["turbo_kanji"] and report["frames"] >= 3, report
+            assert report['turbo_dma']==args.dma and report.get('dma_kanji_experiment',False)==args.dma, report
             if controller:
                 assert report["rtc_experiment"] and report["rtc_controller_bytes"] == 8192
             assert (report["sys_hz"], report["video_hz"]) == (32000000, 42954540), report

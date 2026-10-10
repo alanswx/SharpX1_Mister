@@ -22,8 +22,10 @@ def main():
     parser.add_argument('runner',type=pathlib.Path)
     parser.add_argument('--x3',action='store_true',help='require the separate nominal X3 video clock profile')
     parser.add_argument('--kanji',action='store_true',help='require the separate X3/Kanji combination')
+    parser.add_argument('--dma',action='store_true',help='require explicit non-savable DMA/Kanji combination')
     args=parser.parse_args()
     if args.kanji and not args.x3:parser.error('--kanji qualification requires --x3')
+    if args.dma and not args.kanji:parser.error('--dma qualification requires --kanji --x3')
     runner=args.runner.resolve()
     folder=pathlib.Path(tempfile.mkdtemp(prefix='qualified-',dir=runner.parent))
     inputs=[pathlib.Path(__file__).resolve(),ROOT/'verilator/tests/test_rtc_commands.py',
@@ -43,7 +45,7 @@ def main():
     elapsed=folder/'elapsed.bin';elapsed.write_bytes(elapsed_fixture())
     warm=folder/'warm.bin';warm.write_bytes(warm_fixture())
     assets={str(path):digest(path) for path in (controller,elapsed,warm)}
-    manifest={'inputs':hashes,'assets':assets,'x3_requested':args.x3,'kanji_requested':args.kanji,'scope':'non-savable Turbo RTC runner, real IPL elapsed/warm CPU execution; no Kanji pixels/native calendar/DMA/hardware acceptance'}
+    manifest={'inputs':hashes,'assets':assets,'x3_requested':args.x3,'kanji_requested':args.kanji,'dma_requested':args.dma,'scope':'non-savable Turbo RTC runner, real IPL elapsed/warm CPU execution; no Kanji pixels/native calendar/DMA/hardware acceptance'}
     (folder/'manifest-before.json').write_text(json.dumps(manifest,indent=2)+'\n')
     sentinel=folder/'do-not-overwrite.state';sentinel.write_bytes(b'original sentinel, not an RTL state')
     short=folder/'short-controller.bin';short.write_bytes(image[:-1])
@@ -66,7 +68,8 @@ def main():
         assert result.returncode==0,(folder,result.stdout,result.stderr)
         report=json.loads(result.stdout.splitlines()[-1]);memory=(folder/f'{name}.ram').read_bytes()
         assert report['rtc_experiment'] and report['rtc_controller_bytes']==8192
-        assert report['turbo_foundation'] and not report['turbo_dma'] and report['intra_assignment_delays']
+        assert report['turbo_foundation'] and report['turbo_dma']==args.dma and report['intra_assignment_delays']
+        assert report.get('dma_kanji_experiment',False)==args.dma,'wrong combined profile'
         assert report['turbo_video_master']==args.x3,'wrong video clock profile'
         assert report['turbo_kanji']==args.kanji,'wrong Kanji profile'
         assert report['sys_hz']==32000000 and report['video_hz']==(42954540 if args.x3 else 28571428) and report['halted']

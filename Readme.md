@@ -24,6 +24,12 @@ default-profile control. It fixes a blocked upload-start invalidating a live
 font during reset drain. Renderer/RTC/FDC/native-game and hardware coexistence
 remain open; no ordinary runner or board enables the combination.
 
+The separately named non-savable `rtc-x3-dma-kanji` follow-up now passes ten
+original pixel and six keyboard cases, plus four actual CPU RTC/FDC/DMA cold/
+warm transfers. Elapsed/warm calendar and four rejection gates also pass.
+Pixels and active disk/clock tests are separate bounded gates; protected
+native probes are running, not game/hardware acceptance.
+
 The frozen post-PCG-reset [combined Z matrix](docs/TURBO_Z_COMBINED_STATUS.md)
 now passes all 120 cases and 8,960,000 independently regenerated RGB pixels.
 Its source binding is `d2df8a1`, not current RTC/D88/native/hardware acceptance.

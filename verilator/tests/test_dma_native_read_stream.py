@@ -12,7 +12,7 @@ import tempfile
 from test_machine_dma import Fixture
 
 
-def diagnostic():
+def diagnostic(explicit_wr3=False, with_rtc=False):
     payload = bytes((i * 37 + (i >> 8) * 13 + 29) & 255 for i in range(1024))
     image = bytearray(688)
     struct.pack_into("<I", image, 32, 688)
@@ -23,6 +23,26 @@ def diagnostic():
     image.extend(header + payload)
     struct.pack_into("<I", image, 28, len(image))
     f = Fixture()
+    serial = 0
+    def rtc_send(value):
+        nonlocal serial
+        serial += 1; label = f'rtc-write-{serial}'
+        f.p.word(0x01, 0x1a01); f.p.label(label)
+        f.p.emit(0xed, 0x78, 0xe6, 0x40); f.p.jump(0xc2, label)
+        f.out(0x1900, value)
+    def rtc_read(address):
+        nonlocal serial
+        rtc_send(0xef)
+        for i in range(3):
+            serial += 1; label = f'rtc-read-{serial}'
+            f.p.word(0x01, 0x1a01); f.p.label(label)
+            f.p.emit(0xed, 0x78, 0xe6, 0x20); f.p.jump(0xc2, label)
+            f.p.word(0x01, 0x1900); f.p.emit(0xed, 0x78); f.p.word(0x32, address+i)
+    if with_rtc:
+        f.out(0x1a03, 0x82)
+        f.p.word(0x01, 0x1a02); f.p.emit(0xed, 0x78)  # Clear DAM.
+        for value in (0xee, 0x12, 0x34, 0x56):rtc_send(value)
+        rtc_read(0xf100)
     f.p.word(0x11, 16000)
     f.p.label("mount")
     f.p.emit(0x1B, 0x7A, 0xB3)
@@ -30,11 +50,19 @@ def diagnostic():
     f.out(0x0FFC, 0x80)
     f.poll(0x0FF8, 0x80, 0)
     # Exact observed setup, LOAD, and ENABLE; no force-ready or fake grant.
-    for byte in (0xC3, 0x83, 0x7D, 0xFB, 0x0F, 0xFF, 0x03,
-                 0x2C, 0x10, 0x8D, 0x00, 0x80, 0x92, 0xCF, 0x87):
+    stream = (0xC3, 0x83, 0x7D, 0xFB, 0x0F, 0xFF, 0x03, 0x2C, 0x10)
+    stream += (0x80,) if explicit_wr3 else ()  # New sixteen-byte Arcus observation.
+    stream += (0x8D, 0x00, 0x80, 0x92, 0xCF, 0x87)
+    for byte in stream:
         f.out(0x1F80, byte)
     f.out(0x0FFA, 4)
     f.out(0x0FF8, 0x80)
+    if with_rtc:
+        rtc_read(0xf110)
+        # CPU completes a real clock command before sector completion.
+        f.check(0x0ff8, 1, 1)
+        for address in (0xf100, 0xf110):
+            for i, value in enumerate((0x12, 0x34, 0x56)):f.p.compare_memory(address+i, value)
     f.poll(0x0FF8, 1, 0)
     f.check(0x0FF8, 0, 0x9C)
     f.check(0x1F80, 0, 0x20)

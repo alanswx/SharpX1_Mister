@@ -20,6 +20,13 @@ control. It fixes upload START bypassing `ioctl_wait` during reset drain.
 Combined renderer/RTC/FDC/native and hardware gates remain; see
 `DMA_KANJI_MACHINE_STATUS.md`. It does not complete groups 1–6 or Turbo Z.
 
+The explicit non-savable RTC/X3/DMA/Kanji runner subsequently passes ten
+original pixel cases (independent 1,536,000-pixel audit), six keyboard cases
+and four active CPU RTC/FDC/DMA cold/warm sector transfers. Elapsed/warm
+calendar and four rejection gates also pass with 138-input auditing. Fresh
+protected native Arcus/Bastard trials remain running; no gameplay or
+hardware qualification is inferred. These do not close full device coexistence.
+
 The post-PCG-reset combined Z matrix now completes all 120 cases with
 independent regeneration of 8,960,000 pixels and all CPU programs. Its 135
 RTL/seven support copies match `d2df8a1`; this is a source-bound historical

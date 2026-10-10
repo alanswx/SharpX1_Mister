@@ -1,4 +1,5 @@
 """Freeze actual-CPU Kanji pixel collector and source-derived RTC combination."""
+import argparse
 import hashlib
 import json
 import pathlib
@@ -16,7 +17,11 @@ def digest(p):
     return hashlib.sha256(p.read_bytes()).hexdigest()
 
 def main():
-    runner = pathlib.Path(sys.argv[1]).resolve()
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('runner',type=pathlib.Path)
+    parser.add_argument('--dma',action='store_true')
+    args=parser.parse_args()
+    runner = args.runner.resolve()
     folder = pathlib.Path(tempfile.mkdtemp(prefix='kanji-pixels-', dir=runner.parent))
     inputs = [pathlib.Path(__file__).resolve(), ROOT/'verilator/tests/test_machine_kanji_render.py',
               ROOT/'verilator/tests/z80_fixture.py', ROOT/'scripts/build_mr16_rtc_firmware.py',
@@ -41,7 +46,8 @@ def main():
                 'scope': 'synthetic original-CPU Kanji pixels with RTC controller running; no native game/ASIC/battery/hardware acceptance'}
     (folder/'manifest-before.json').write_text(json.dumps(manifest, indent=2)+'\n')
     result = subprocess.run([sys.executable, str(folder/'test_machine_kanji_render.py'),
-        str(frozen), '--rtc-controller', str(controller), '--output', str(folder/'pixels')],
+        str(frozen), '--rtc-controller', str(controller), '--output', str(folder/'pixels'),
+        *(['--dma'] if args.dma else [])],
         capture_output=True, text=True, cwd=ROOT/'verilator')
     (folder/'pixels.log').write_text(result.stdout+result.stderr)
     print(result.stdout, end='', flush=True)
