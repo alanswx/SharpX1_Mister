@@ -28,13 +28,21 @@ no restored state, RAM injection, writable disk output or private asset patch
 is used. `probe_basic_native.py` explicitly checks the chosen executable hash;
 its observations do not independently establish build provenance.
 
-The initial eight-second cold/repeat probe is running as session 65306:
+The initial eight-second cold/repeat probe completes zero as session 65306:
 `output_files/basic-native-fdc-20261010/`, log
-`/tmp/x1-basic-native-fdc-20261010.log`. The cold child now completes and its
-actual RGB/text shows the banner, `20989 Bytes free` and an `Ok` prompt;
-the repeat remains running. `interim.png` is a pixel-exact conversion of the
+`/tmp/x1-basic-native-fdc-20261010.log`. Both children complete with identical
+reports and all six output dumps; Main independently verifies actual artifact
+and input hashes. The RGB/text shows the banner, `20989 Bytes free` and an
+`Ok` prompt. Each executes exactly eight seconds / 256,000,000 SYS edges,
+with 936 SD requests, zero disk writes, 494 frames and six PS/2 bytes. This
+qualifies repeatable native prompt boot in this profile, not command or model
+compatibility. `interim.png` is a pixel-exact conversion of the
 captured PPM, checked against all 128,000 RGB pixels. It is not generated or
 retouched imagery, a hardware screenshot or BASIC command acceptance.
+PNG SHA-256:
+`e5c391017db6ebb357e73931877db75cbc3bb65577a67dec29d9e528fb0f20e0`;
+final cold PPM:
+`fed26d19f86ce01de365cb26b7edd9a1246f4637130775c395439f2d06d72aff`.
 
 A separate twelve-second cold/repeat command probe starts as session 79875:
 `output_files/basic-print42-fdc-20261010/`, log

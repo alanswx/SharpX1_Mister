@@ -315,15 +315,17 @@ not fit in the inherited firmware's 22 free bytes; a compact driver/verified
 ROM-budget solution and EC..EF integration still need implementation. This
 fixture does not patch the firmware, change machine behavior or close Z7.
 
-### Opt-in MR16 response retention experiment
+### Historical standalone MR16 response retention experiment
 
-The sparse-CE diagnostic now has a default-off `RETAIN_RESPONSE` option in
+At the original standalone checkpoint, the sparse-CE diagnostic added a
+default-off `RETAIN_RESPONSE` option in
 `rtl/mr16_x1.v`. The ordinary mux remains a direct alias of its original raw
 response. When selected, the experiment captures the one-SYS response tail
 on the first stopped edge after an enabled instruction edge and holds it
-until the next instruction enable. Reset clears validity. This does not
+until the next instruction enable. That historical reset cleared validity. This did not
 invent a main-CPU port, gate the RTC clock, modify firmware or introduce a
-native bus WAIT model. Every existing machine/board instantiation leaves it off.
+native bus WAIT model. Machine/board instantiations at that checkpoint left it off;
+the later RTC integration below supersedes that selection/reset description.
 
 The RTC fixture also now requires actual writes to all 40 RAM result slots,
 not only final bytes that might accidentally match untouched zeros. Frozen
@@ -342,7 +344,7 @@ fourteen frozen source/executable inputs. The final collection therefore
 qualifies six positive profiles and three expected failures without changing
 the binaries or test oracle after freezing.
 
-Current RTL SHA-256:
+Historical standalone RTL SHA-256:
 `ab8cabbd687abb8b1c5cf540bff0c4de17bf2ae6081115601180973d5998dbdd`;
 fixture:
 `b613c190981d4569fa05986f6c65d5feb8f630e4b0a15b4ac594cb3d37429051`.
@@ -354,13 +356,26 @@ bounded keyboard/IRQ behavior, not all ordinary games or snapshot layouts.
 
 Enabled-profile reset/stack/RAM-read/IRQ now has the separate bounded gate
 below; snapshots, inherited firmware/connected-machine behavior, native timing
-and fitted hardware still need qualification before any shared profile selects
-this option. The fixture demonstrates a response-retention/cadence problem in
+and fitted hardware still need broader qualification. The fixture demonstrates
+a response-retention/cadence problem in
 its explicit controller/memory configuration, not native RTC or whole-machine
-compatibility. The real-CPU EC..EF clock test remains unfixed; controller
-driver/ROM-budget integration is still the next machine-level dependency.
+compatibility. At that historical checkpoint the real-CPU EC..EF test remained
+unfixed; the subsequent implementation and current machine evidence are in
+`RTC_MACHINE_STATUS.md`, not established by that older standalone fixture.
 
 ### Standalone retained-response reset/stack/IRQ recovery
+
+Current source audit finds that `rtl/sub_cpu.v` already selects
+`.RETAIN_RESPONSE(RTC_ENABLE)` in the separate RTC profile (integration
+`048d996`); ordinary profiles and boards still leave RTC disabled. The later
+`ae32598` reset repair retains the settled reset-vector response with valid
+set, rather than the original standalone validity-clear policy. Current
+`rtl/mr16_x1.v` SHA-256 is
+`b4f746ddd377130eafecae4d84db1720ac566047cefdf32335862942d96f26c3`.
+The new gate below tests that current source, not the historical `ab8cabbd`
+fixture. This audit corrects stale selection/reset text without changing RTL
+or relabeling older qualification. Connected RTC/native scope remains as
+documented in `RTC_MACHINE_STATUS.md`.
 
 The new original `mr16_retained_response_tb.sv` and frozen-assembler driver
 use public memory/GPIO/interrupt/reset/enable pins only, without hierarchical

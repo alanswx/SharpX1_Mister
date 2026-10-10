@@ -1672,9 +1672,11 @@ capability profile. The existing `TURBO=1` build is not Turbo Z support.
   A default-off MR16 response-retention candidate now passes the stronger
   actual-store fixture at five cadences, while the unretained sparse-CE control
   fails. A standalone reset/stack/RAM-read/IRQ follow-up now passes twelve
-  public-bus cases and three executions of one corruption control. Existing
-  profiles leave it off; inherited firmware, snapshot, connected-machine and
-  hardware gates still need checks before machine integration.
+  public-bus cases and three executions of one corruption control. Current
+  source already selects retention in the separate RTC experiment; ordinary
+  profiles and boards leave it off. Broader inherited firmware, snapshots,
+  connected-machine contention and hardware gates remain; do not confuse the
+  historical standalone validity-clear policy with current reset-vector retention.
 - [ ] Research/implement capture quantization/inversion, mosaic, chroma key,
   extra scroll and superimpose/telopper, with a deterministic test video source.
   Primary encodings and a standalone decoder now pass exhaustive local checks;

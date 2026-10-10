@@ -5,6 +5,10 @@ or complete CZ-880 calendar compatibility. `RTC_ENABLE=1` is currently selected
 by original SystemVerilog diagnostics and a separately qualified C++ runner.
 Ordinary machine/C++ and FPGA revisions remain disabled. The default machine still has the static-clock
 defect; the new profile is non-savable and has no accepted RBF.
+The RTC sub-controller already selects MR16 response retention; ordinary
+profiles leave it disabled. Current reset-vector retention has the separate
+bounded public-bus reset/stack/IRQ gate in `RTC_COMMAND_STATUS.md`. That gate
+does not broaden the connected-machine/native/hardware scope recorded here.
 
 ## Concurrent real keyboard/mailbox qualification
 
