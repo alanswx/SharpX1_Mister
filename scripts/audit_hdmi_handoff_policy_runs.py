@@ -9,7 +9,7 @@ import re
 def audit(log, source_root, fixture):
     text = log.read_text()
     profiles = re.findall(r"^POLICY_DIAGNOSTIC_PROFILE=(\S+)$", text, re.M)
-    assert len(profiles) == 1 and profiles[0] in {"normal", "skew"}, "wrong/missing qualification profile"
+    assert len(profiles) == 1 and profiles[0] in {"normal", "skew", "poison"}, "wrong/missing qualification profile"
     found = re.findall(r"^# PASS: actual HDMI handoff policy video_half=(\d+) hdmi_half=(\d+) checks=(\d+)$", text, re.M)
     assert [(int(v), int(h)) for v, h, _ in found] == list(itertools.product((11640, 17500), (3366, 6250, 10000))), "missing/repeated/out-of-order native profiles"
     assert all(int(n) > 0 for _, _, n in found), "empty pixel checks"
@@ -21,6 +21,9 @@ def audit(log, source_root, fixture):
     assert all(int(t) >= 93750 for _, t in blanks), "short gate-closure acknowledgement settling"
     native_hs = re.findall(r"^# NATIVE_HS_CHECKS=(\d+)$", text, re.M)
     assert len(native_hs) == 6 and all(int(n) >= 100 for n in native_hs), "missing native HS CE/consumed-policy coverage"
+    poison = re.findall(r"^# INACTIVE_POISON_ENABLED=([01]) CHECKS=(\d+)$", text, re.M)
+    enabled = profiles[0] == "poison"
+    assert poison == [(str(int(enabled)), n if enabled else "0") for _, _, n in found], "missing/mismatched inactive-poison coverage"
     assert len(re.findall(r"^# Errors: 0, Warnings: 7$", text, re.M)) == 6
     assert not re.search(r"\*\* (?:Fatal|Error):|Errors: [1-9]|^Error\b", text, re.M)
     warnings = re.findall(r"^# \*\* Warning: (.+)$", text, re.M)
@@ -40,6 +43,8 @@ def audit(log, source_root, fixture):
     print(f"PASS: six ordered native policy profiles, {sum(int(n) for _, _, n in found)} exact output checks, {sum(int(n) for n, _ in holds)} first-edge holds, minimum {min(int(t) for _, t in holds)} ps")
     print(f"PASS: {sum(int(n) for n in native_hs)} extracted native HS CE/pipeline/consumed-policy checks")
     print(f"PASS: {sum(int(n) for n, _ in blanks)} blank/closed-clock mode checks, minimum quiet {min(int(t) for _, t in blanks)} ps")
+    if enabled:
+        print(f"PASS: {sum(int(n) for _, n in poison)} known visible outputs with inactive banks poisoned to X")
     print(f"PROFILE: {profiles[0]}; skew is a synthetic transport-delay diagnostic, not routed timing")
     print("SCOPE: extracted policy only; native VID csync timing, full upstream/DDR/PHY and physical acceptance remain open")
 

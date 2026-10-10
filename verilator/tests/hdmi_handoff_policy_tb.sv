@@ -7,10 +7,17 @@ module hdmi_handoff_policy_tb;
     int unsigned qualification_complete=0;
     bit direct_video=0,vga_fb=0,csync_en=0;
     bit ce_pix=1;
+    bit poison_inactive=0;
+    int poisoned_checks=0;
+    wire [2:0] fixture_mode;
     logic [23:0] dv_data=24'ha50000,hdmi_data_osd=24'h5a0000;
-    wire dv_hs=dv_data[0],dv_vs=dv_data[1],dv_de=dv_data[2];
-    wire hdmi_hs_osd=hdmi_data_osd[0],hdmi_vs_osd=hdmi_data_osd[1],hdmi_de_osd=hdmi_data_osd[2];
-    wire hdmi_cs_osd=~hdmi_data_osd[0];
+    // Poison only the unselected bank. A transition must flush old/unknown
+    // samples before unblanking; four-state simulation, not physical MTBF.
+    wire [23:0] video_bus = poison_inactive && !fixture_mode[0] ? 24'hxxxxxx : dv_data;
+    wire [23:0] hdmi_bus = poison_inactive && fixture_mode[0] ? 24'hxxxxxx : hdmi_data_osd;
+    wire dv_hs=video_bus[0],dv_vs=video_bus[1],dv_de=video_bus[2];
+    wire hdmi_hs_osd=hdmi_bus[0],hdmi_vs_osd=hdmi_bus[1],hdmi_de_osd=hdmi_bus[2];
+    wire hdmi_cs_osd=~hdmi_bus[0];
     wire fixture_clk,fixture_blank,fixture_busy;
     wire fixture_csync,fixture_native_hs;
     wire vga_hs_osd=dv_data[3],vga_cs_osd=~dv_data[3];
@@ -18,7 +25,6 @@ module hdmi_handoff_policy_tb;
     // incorrectly coerce the diagnostic wire's initial X to a valid zero.
     logic native_hs_first=0,native_hs_second=0,native_hs_third=0;
     int native_hs_checks=0,native_edges=0;
-    wire [2:0] fixture_mode;
     wire hs,vs,de;
     wire [23:0] data_out;
     logic [26:0] history[0:2];
@@ -27,7 +33,8 @@ module hdmi_handoff_policy_tb;
     bit mode_pending_edge=0;
     int held_mode_checks=0;
     int mode_blank_checks=0;
-    hdmi_policy_fixture dut(.*,.HDMI_TX_HS(hs),.HDMI_TX_VS(vs),.HDMI_TX_DE(de),.HDMI_TX_D(data_out));
+    hdmi_policy_fixture dut(.*,.dv_data(video_bus),.hdmi_data_osd(hdmi_bus),
+        .HDMI_TX_HS(hs),.HDMI_TX_VS(vs),.HDMI_TX_DE(de),.HDMI_TX_D(data_out));
     always #15625 clk_control=~clk_control;
     initial begin #1; forever #(video_half) clk_vid=~clk_vid; end
     initial begin #2; forever #(hdmi_half) clk_hdmi=~clk_hdmi; end
@@ -74,8 +81,8 @@ module hdmi_handoff_policy_tb;
             held_mode_checks++;
             mode_pending_edge=0;
         end
-        if(fixture_mode[0]) sample={dv_hs,dv_vs,dv_de,dv_data};
-        else sample={(fixture_mode[2] && fixture_mode[1] ? hdmi_cs_osd : hdmi_hs_osd),hdmi_vs_osd,hdmi_de_osd,hdmi_data_osd};
+        if(fixture_mode[0]) sample={dv_hs,dv_vs,dv_de,video_bus};
+        else sample={(fixture_mode[2] && fixture_mode[1] ? hdmi_cs_osd : hdmi_hs_osd),hdmi_vs_osd,hdmi_de_osd,hdmi_bus};
         history[2]=history[1]; history[1]=history[0]; history[0]=sample;
         expected=history[fixture_mode[0] ? 2 : 1];
         #1;
@@ -83,12 +90,17 @@ module hdmi_handoff_policy_tb;
             assert(de===0 && data_out===0) else $fatal(1,"actual HDMI output not blanked");
         end else begin
             assert({hs,vs,de,data_out}===expected) else $fatal(1,"actual HDMI handoff pipeline mismatch");
+            if(poison_inactive) begin
+                assert(!$isunknown({hs,vs,de,data_out})) else $fatal(1,"inactive unknown data escaped transition blank/flush");
+                poisoned_checks++;
+            end
             checked++;
         end
     end
     initial begin
         void'($value$plusargs("HDMI_HALF=%d",hdmi_half));
         void'($value$plusargs("VIDEO_HALF=%d",video_half));
+        void'($value$plusargs("POISON_INACTIVE=%d",poison_inactive));
         foreach(history[i]) history[i]=0;
         wait(!fixture_busy && !fixture_blank);
         // A stopped pixel enable must NOT fabricate upstream-policy readiness.
@@ -135,6 +147,7 @@ module hdmi_handoff_policy_tb;
         $display("MODE_HOLD_CHECKS=%0d MINIMUM_MODE_HOLD_PS=%0d",held_mode_checks,minimum_mode_hold);
         $display("MODE_BLANK_CHECKS=%0d MINIMUM_MODE_QUIET_PS=%0d",mode_blank_checks,minimum_mode_quiet);
         $display("NATIVE_HS_CHECKS=%0d",native_hs_checks);
+        $display("INACTIVE_POISON_ENABLED=%0d CHECKS=%0d",poison_inactive,poisoned_checks);
         $finish;
     end
     initial begin #100000000; $fatal(1,"actual-policy timeout"); end

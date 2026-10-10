@@ -73,6 +73,15 @@ still fails -12.149 ns at inactive HDMI-to-video-selected data paths; no
 ordinary clock-domain cuts or new board selection is made. Qualify clock
 selection/closure and inactive data-branch sensitization before acceptance.
 
+The current-fit gate/witness audit now passes 208 bounded rows at eight corners
+(+2.148/+0.174 ns setup/hold), with original artifacts unchanged. Six native
+inactive-bank-X profiles pass 5,030 known/correct visible-output checks through
+existing transitions and blank/flush; a matched raw-selector control fails.
+Fitted inactive-bank discovery independently audits 51 physical targets and
+848 rows in 32 reports. Wrong-parent/output-alias setup still reports -12.149
+and -7.999 ns; no exclusions are applied or board timing acceptance inferred.
+Next derive exact clock-qualified pin scope and prove active routes unchanged.
+
 Fresh extracted native-policy runs now check 396 held-mode changes while
 blanked with a closed output clock, including synthetic delayed-policy cases.
 Minimum quiet time is 96,873 ps, above the three-control-period requirement;

@@ -96,6 +96,10 @@ See [the fitted evidence](docs/HDMI_MODE_STATUS.md#single-sample-fit-and-native-
 An unselected 29-pair held-output-mux proposal now passes independent native
 before/after auditing while preserving other mode/raw-input timing. Global
 setup still fails -12.149 ns; no new RBF or hardware acceptance is inferred.
+Fresh native tests also pass 5,030 known/correct visible outputs with inactive
+banks poisoned to X. Fitted inactive-bank discovery covers all 51 physical
+targets without adding exclusions; active-route and physical qualification
+remain open.
 
 Its isolated real-PLL controller maps/fits; a fitted-feedback audit led to an
 explicit falling-edge closure witness. Current native cases pass, while raw

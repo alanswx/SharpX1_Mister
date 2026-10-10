@@ -29,6 +29,7 @@ for v, h in itertools.product((11640, 17500), (3366, 6250, 10000)):
     profiles += "# MODE_HOLD_CHECKS=33 MINIMUM_MODE_HOLD_PS=169791\nPOLICY_COMPLETION=1\n# Errors: 0, Warnings: 7\n"
     profiles += "# NATIVE_HS_CHECKS=150\n"
     profiles += "# MODE_BLANK_CHECKS=33 MINIMUM_MODE_QUIET_PS=95000\n"
+    profiles += "# INACTIVE_POISON_ENABLED=0 CHECKS=0\n"
     profiles += "# ** Warning: (vsim-3116) Problem reading symbols from ABI library\n" * 7
 text = "POLICY_DIAGNOSTIC_PROFILE=normal\n" + metadata + hashes + profiles + hashes + metadata
 
@@ -41,7 +42,13 @@ def check(candidate):
 
 
 check(text)
+poison_text = text.replace("PROFILE=normal", "PROFILE=poison").replace("INACTIVE_POISON_ENABLED=0 CHECKS=0", "INACTIVE_POISON_ENABLED=1 CHECKS=700")
+check(poison_text)
 bad = [text.replace("checks=700", "checks=0", 1),
+       text.replace("# INACTIVE_POISON_ENABLED=0 CHECKS=0\n", "", 1),
+       text.replace("INACTIVE_POISON_ENABLED=0", "INACTIVE_POISON_ENABLED=1", 1),
+       poison_text.replace("CHECKS=700", "CHECKS=699", 1),
+       poison_text.replace("INACTIVE_POISON_ENABLED=1", "INACTIVE_POISON_ENABLED=0", 1),
        text.replace("POLICY_DIAGNOSTIC_PROFILE=normal", "POLICY_DIAGNOSTIC_PROFILE=skew-noecho", 1),
        text.replace("video_half=11640 hdmi_half=3366", "video_half=17500 hdmi_half=3366", 1),
        text.replace("POLICY_COMPLETION=1", "POLICY_COMPLETION=0", 1),
@@ -68,4 +75,4 @@ except AssertionError:
     pass
 else:
     raise AssertionError("wrong extracted source accepted")
-print("PASS: synthetic six-profile policy positive and fifteen invalid profile/settle/closure/native-HS/warning/completion/source controls")
+print("PASS: synthetic normal/poison six-profile positives and nineteen invalid profile/poison/settle/closure/native-HS/warning/completion/source controls")

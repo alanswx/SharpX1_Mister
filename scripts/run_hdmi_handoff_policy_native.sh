@@ -2,7 +2,7 @@
 # Native extracted-policy qualification only; never deploys or installs tools.
 set -euo pipefail
 [[ $# == 2 || $# == 3 ]] || {
-  echo 'usage: bash scripts/run_hdmi_handoff_policy_native.sh MODELSIM_BIN ABI5_DEPENDENCIES [normal|skew|skew-noecho|raw-policy]' >&2
+  echo 'usage: bash scripts/run_hdmi_handoff_policy_native.sh MODELSIM_BIN ABI5_DEPENDENCIES [normal|skew|skew-noecho|raw-policy|poison|poison-raw]' >&2
   exit 2
 }
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -10,11 +10,14 @@ model_bin="$(cd "$1" && pwd)"
 abi_root="$(cd "$2" && pwd)"
 profile="${3:-normal}"
 emitter_flags=(--native-handoff)
+bench_flags=()
 case "$profile" in
   normal) ;;
   skew) emitter_flags+=(--csync-skew-ps 3000000) ;;
   skew-noecho) emitter_flags+=(--csync-skew-ps 3000000 --without-csync-echo) ;;
   raw-policy) emitter_flags+=(--raw-policy) ;;
+  poison) bench_flags+=(+POISON_INACTIVE=1) ;;
+  poison-raw) emitter_flags+=(--raw-policy); bench_flags+=(+POISON_INACTIVE=1) ;;
   *) echo 'Invalid native policy profile' >&2; exit 2 ;;
 esac
 for program in vlib vlog vsim; do [[ -x "$model_bin/$program" ]]; done
@@ -47,6 +50,7 @@ matrix() {
     for hdmi_half in 3366 6250 10000; do
       "$model_bin/vsim" -c -L cyclonev_ver hdmi_handoff_policy_tb \
         "+VIDEO_HALF=$video_half" "+HDMI_HALF=$hdmi_half" \
+        "${bench_flags[@]}" \
         -do hdmi_handoff_policy.do || return "$?"
     done
   done

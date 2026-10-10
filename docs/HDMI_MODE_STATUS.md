@@ -1005,6 +1005,72 @@ four invalid source/artifact controls. Those synthetic checks are not native
 timing evidence. The candidate remains absent from every QSF/SDC include;
 fresh fitting, controller/clock-pin and physical qualification remain open.
 
+## Current-fit gate/witness and inactive-bank discovery
+
+The existing read-only controller inventory repeats on the preserved
+`ce2eba8` full fit. Native execution completes zero with zero warnings;
+current-source/hash and independent eight-corner audits pass **208 stage/
+witness/native-gate rows**, minimum setup/hold **+2.148/+0.174 ns**. Exact
+first-stage and gate-enable fanout checks pass. Global timing remains
+**-18.327/+0.009 ns**; this is not physical gate readback or board acceptance.
+Log: `/tmp/x1-handoff-board-inventory-ce2eba8-v1.log`; local ignored copy:
+`output_files/hdmi-csync-board-ce2eba8/handoff-board-inventory-v1/`.
+
+The extracted native-policy bench additionally supports `POISON_INACTIVE=1`:
+the video input bank is X when HDMI is selected, and the HDMI bank is X when
+video is selected. Every unblanked visible output must remain known and match
+the selected-bank/pipeline oracle. Six native clock profiles pass **5,030
+visible-output checks**, 204 first-edge/closed-mode checks and 10,273 native
+HS checks. This includes all existing mode/reset/stopped-CE transitions and
+the real ten-edge output flush; it is four-state masking/flush evidence, not
+an analog metastability or routed-timing model.
+
+Fresh normal/skew repeats also pass on this new bench hash
+`f9ed1f639ce8c9113754124965faa016c27e9de093f91520abd48e8c55838816`:
+normal retains 5,030 words/204 holds/10,273 HS checks, skew 5,032 words/192
+holds/13,143 HS checks. Local independent audits require frozen input hashes
+and explicit poison enable/check counts matching every visible-output count.
+Logs: `/tmp/x1-inactive-{poison,normal,skew}-native-v1.log`; fixtures copied
+to ignored `output_files/hdmi-inactive-poison/{poison,normal,skew}/`.
+The matched `poison-raw` diagnostic bypasses held selectors and exits 1 at
+the pipeline assertion with completion zero, rather than a successful matrix;
+`/tmp/x1-inactive-poison-raw-negative-v1.log`. It does not specifically reach
+the unknown-output assertion. Synthetic auditor normal/poison positives and
+nineteen invalid evidence controls pass in CI's reset-audit target.
+
+`scripts/quartus_hdmi_inactive_data_inventory.tcl` discovers fitted drivers,
+pins and both wrong-parent/output-alias directions without new constraints.
+Its first attempt fails a Tcl scalar/array collision; the second fails its
+assumption that every logical prefetch RGB bit has a separate keeper. Both
+failed scripts/logs remain preserved; neither is counted as timing evidence.
+The revised discovery enumerates every physical prefetch keeper (including
+potential replicas), plus every canonical first-stage output keeper.
+
+Native v3 completes zero with zero warnings. Independent auditing checks
+**32 reports, 51 physical targets and 848 rows** at all eight corners, exact
+clock identities, target coverage, physical D pins, registered drivers and
+unchanged original artifacts. There are 27 output targets and 24 prefetch
+targets (21 RGB and three sync/DE); logical bits 4/8/20 have no separate
+prefetch keeper on this fit. Driver discovery retains their actual shared
+routes; do not infer a general RGB width or treat those missing keepers as
+missing logical functionality.
+
+| Inactive direction | Setup minimum | Hold minimum |
+| --- | ---: | ---: |
+| HDMI master to video-selected output alias | -12.149 ns | +0.009 ns |
+| Video master to HDMI-selected output alias | -7.999 ns | +0.454 ns |
+
+These are **discovery**, not accepted or excluded timing paths. Source-bound
+native log: `/tmp/x1-inactive-data-inventory-ce2eba8-v3.log`; local reports:
+`output_files/hdmi-csync-board-ce2eba8/inactive-data-inventory-v3/`.
+Reporter SHA-256:
+`4c9475d07f0bfa08f7519daf5920893ac08c969de75e23bc4f8dde9cfdfc106a`.
+The inventory auditor's synthetic 32-report positive, nineteen invalid
+scope/pin/driver/corner/report controls and four provenance controls pass in
+CI's board-inventory target. No inactive-data exceptions or source RTL changes
+are made; exact clock-qualified pin scoping, active-path preservation, fresh
+fitting and physical output remain next gates.
+
 ## Next gates
 
 1. Establish an actually supported mode-sensitive STA method or a narrow
