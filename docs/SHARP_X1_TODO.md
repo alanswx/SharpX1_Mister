@@ -90,6 +90,14 @@ Its fitted ASDATA packing and failed/intermediate scope probes are recorded
 in `HDMI_MODE_STATUS.md`. Qualify this alongside the held-mode proposal before
 fresh selection/fitting; no ordinary board, timing or hardware gate is complete.
 
+Joint scope now passes independently: 928 held-mode budget rows, 848 inactive
+rows explicitly excluded, and 5,472 other active/raw/mode rows unchanged in
+384 native reports. Global setup still fails -10.797 ns at download/reset
+gating of PCG RAM write enables; active HDMI -0.106 ns also remains visible.
+Only the separate handoff revision now selects the two qualified proposals;
+joint diagnostic and ordinary boards stay unchanged. Fresh fit/pin topology,
+PCG local-reset/write gating, raw synchronizers and hardware remain next gates.
+
 Fresh extracted native-policy runs now check 396 held-mode changes while
 blanked with a closed output clock, including synthetic delayed-policy cases.
 Minimum quiet time is 96,873 ps, above the three-control-period requirement;

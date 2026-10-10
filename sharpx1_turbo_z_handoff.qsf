@@ -13,3 +13,6 @@ set_global_assignment -name SDC_FILE scripts/constraints/scaler_reset_input_cand
 set_global_assignment -name SDC_FILE scripts/constraints/hdmi_handoff_mux_candidate.sdc
 set_global_assignment -name SDC_FILE scripts/constraints/vsync_sys_input_candidate.sdc
 set_global_assignment -name SDC_FILE scripts/constraints/hdmi_handoff_input_candidate.sdc
+# Qualified before/after scope on ce2eba8; fresh fit and physical gates remain.
+set_global_assignment -name SDC_FILE scripts/constraints/hdmi_held_mode_candidate.sdc
+set_global_assignment -name SDC_FILE scripts/constraints/hdmi_inactive_data_candidate.sdc

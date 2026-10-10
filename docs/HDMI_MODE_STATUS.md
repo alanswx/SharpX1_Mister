@@ -1131,6 +1131,46 @@ twenty-one invalid preservation/report controls and four invalid provenance
 controls. The profile test requires this candidate to remain absent from all
 QSF includes. These synthetic tests do not replace the native evidence above.
 
+## Joint output proposal and experimental selection
+
+The unselected joint diagnostic sources the frozen held-mode and inactive-
+data proposals without changing either standalone reporter or the preserved
+fit. `--joint` auditing requires a separate nine-file before/after manifest,
+the exact held-budget marker, all 77 pin cuts, and full held-mode scope; joint
+evidence cannot qualify the standalone protocol.
+
+Native execution completes zero with zero warnings. Independent auditing
+passes **384 reports**, **928 exact held-mode budget rows** (minimum setup/
+hold **+22.776/+29.856 ns**), **848 inactive rows explicitly EXCLUDED**, and
+**5,472 active/raw/unbudgeted-mode rows unchanged**. All physical held-data
+routes match before/after. Original controller/framework/STA/summary/RBF
+hashes are unchanged. Active HDMI still reports **-0.106 ns** setup; this
+joint proposal does not mask or fix that real active-path violation.
+
+Global after-probe setup/hold is **-10.797/+0.057 ns**. The setup leader is
+`ioctl_download` reaching PCG RAM write-enable keepers. Wrapper/source
+inspection connects download to machine reset, while `x1_pcg_access` gates
+video RAM writes with both CPU reset and local video reset. This identifies
+the next reset/data-domain investigation, not measured corruption or a
+qualified fix. The four raw csync/epoch inputs also remain timed; no new
+reset, PCG, whole-clock or raw-synchronizer exclusions are added here.
+
+Native log: `/tmp/x1-joint-output-probe-ce2eba8-v1.log`; local ignored reports:
+`output_files/hdmi-csync-board-ce2eba8/joint-output-probe-v1/`.
+Joint diagnostic SHA-256:
+`6b4d7092539d95d50a73ef159f9a388a95ea9f95674be0cd8163e2886992241b`.
+The auditor's separate joint synthetic positive, ten invalid scope/budget/
+preservation/protocol controls and four invalid provenance controls pass;
+the original standalone controls still pass unchanged.
+
+Following that joint scope qualification, **only**
+`sharpx1_turbo_z_handoff.qsf` now selects the two individual proposals after
+its six-input candidate. The diagnostic joint wrapper remains unselected;
+all other revisions retain their prior constraints/features. This is an
+experimental build selection, not fitted timing or physical acceptance.
+A fresh exact-source full flow must reprove keeper/pin packing and stage/
+active timing; previous fitted topology is not automatically inherited.
+
 ## Next gates
 
 1. Establish an actually supported mode-sensitive STA method or a narrow

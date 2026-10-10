@@ -21,9 +21,10 @@ new = root / "sharpx1_turbo_z_handoff.qsf"
 controller = (root / "rtl/x1_hdmi_clock_handoff.sv").read_text()
 assert re.findall(r'\(\*\s*dont_replicate\s*\*\)\s*reg\s+([^;]+);', controller) == ["gate_request = 0"], "replication prevention must stay on the single gate-enable source"
 for path in root.glob("*.qsf"):
-    assert ("SDC_FILE", "scripts/constraints/hdmi_held_mode_candidate.sdc") not in assignments(path), "unqualified held-mux proposal became board-selected"
-    assert ("SDC_FILE", "scripts/constraints/hdmi_inactive_data_candidate.sdc") not in assignments(path), "unqualified inactive-data proposal became board-selected"
+    assert ("SDC_FILE", "scripts/constraints/hdmi_output_joint_probe.sdc") not in assignments(path), "unqualified joint proposal became board-selected"
     if path != new:
+        assert ("SDC_FILE", "scripts/constraints/hdmi_held_mode_candidate.sdc") not in assignments(path), "other revision enabled held-mux budgets"
+        assert ("SDC_FILE", "scripts/constraints/hdmi_inactive_data_candidate.sdc") not in assignments(path), "other revision enabled inactive-data cuts"
         assert not any(key == "VERILOG_MACRO" and "X1_HDMI_HANDOFF_EXPERIMENT" in value
                        for key, value in assignments(path)), "ordinary revision enabled handoff"
         assert ("SDC_FILE", "scripts/constraints/hdmi_handoff_input_candidate.sdc") not in assignments(path), "other revision enabled handoff input cuts"
@@ -31,9 +32,12 @@ baseline = assignments(root / "sharpx1_turbo_z_video.qsf")
 candidate = assignments(new)
 old_sdc = [value for key, value in baseline if key == "SDC_FILE"]
 new_sdc = [value for key, value in candidate if key == "SDC_FILE"]
-assert new_sdc == [value.replace("hdmi_mux_candidate.sdc", "hdmi_handoff_mux_candidate.sdc") for value in old_sdc] + ["scripts/constraints/hdmi_handoff_input_candidate.sdc"]
+assert new_sdc == [value.replace("hdmi_mux_candidate.sdc", "hdmi_handoff_mux_candidate.sdc") for value in old_sdc] + [
+    "scripts/constraints/hdmi_handoff_input_candidate.sdc",
+    "scripts/constraints/hdmi_held_mode_candidate.sdc",
+    "scripts/constraints/hdmi_inactive_data_candidate.sdc"]
 old_macros = [value for key, value in baseline if key == "VERILOG_MACRO"]
 new_macros = [value for key, value in candidate if key == "VERILOG_MACRO"]
 assert new_macros == old_macros + ["X1_HDMI_HANDOFF_EXPERIMENT=1"]
 assert [value for key, value in candidate if key == "ALLOW_POWER_UP_DONT_CARE"][-1] == "OFF"
-print("PASS: separate handoff QSF preserves Z features/other constraints, adds only six-input candidate; all other revisions remain disabled")
+print("PASS: separate handoff QSF selects only qualified input/held/inactive proposals; other revisions and joint diagnostic remain disabled")

@@ -7,11 +7,11 @@ import sys
 import tempfile
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2] / "scripts"))
-from audit_hdmi_inactive_data_probe import audit, audit_sources, CLOCKS, OUTPUTS, PREFETCH, PACKED_PREFETCH, INPUTS, PAIRS, SYS, VID, PREFIX
+from audit_hdmi_inactive_data_probe import audit, audit_sources, CLOCKS, OUTPUTS, PREFETCH, PACKED_PREFETCH, INPUTS, PAIRS, SYS, VID, PREFIX, HELD_KEYS
 
 
-def row(source, target, launch, latch, slack=1):
-    return f"; {slack} ; {source} ; {target} ; {launch} ; {latch} ; 10 ; 0.1 ; 2 ;\n"
+def row(source, target, launch, latch, slack=1, relationship=10):
+    return f"; {slack} ; {source} ; {target} ; {launch} ; {latch} ; {relationship} ; 0.1 ; 2 ;\n"
 
 
 def report(check, body):
@@ -109,4 +109,69 @@ with tempfile.TemporaryDirectory(prefix="inactive-probe-controls-") as temporary
             pass
         else:
             raise AssertionError("invalid provenance accepted")
+    # Separate joint protocol: full held-mux scope, with all other mode rows
+    # still compared exactly. No relaxed standalone evidence is accepted.
+    joint_originals = originals.copy()
+    held_label = "HELD MUX CANDIDATE: 29 exact D-route pairs; max 31.25 ns/min -31.25; raw inputs and clock pins untouched\n"
+    joint_originals[log] = held_label + originals[log]
+    for phase in ("before", "after"):
+        for model in ("slow", "fast"):
+            for temperature in (-40, 0, 85, 100):
+                for check in ("setup", "hold"):
+                    relationship = (31.25 if check == "setup" else -31.25) if phase == "after" else 10
+                    selected = [row(*key, 1 if phase == "after" else -3, relationship) for key in sorted(HELD_KEYS)]
+                    other = row(PREFIX + "active_mode[0]", PREFIX + "state.RUN", SYS, SYS)
+                    joint_originals[root / f"{phase}_{model}_{temperature}_mode_{check}.rpt"] = report(check, selected + [other])
+    for path, content in joint_originals.items():
+        path.write_text(content)
+    with contextlib.redirect_stdout(io.StringIO()):
+        result = audit(root, log, joint=True)
+    assert result[:2] == (816, 928) and result[4] == 928
+    budget = root / "after_slow_-40_mode_setup.rpt"
+    joint_mutations = [
+        (log, joint_originals[log].replace(held_label, "")),
+        (log, joint_originals[log] + held_label),
+        (budget, joint_originals[budget].replace("; 1 ;", "; -1 ;", 1)),
+        (budget, joint_originals[budget].replace("; 31.25 ;", "; 100 ;", 1)),
+        (budget, joint_originals[budget].replace("; 2 ;", "; 3 ;", 1)),
+        (budget, joint_originals[budget].replace("d[0]", "unreviewed_target")),
+        (budget, joint_originals[budget].replace("state.RUN", "state.RELEASE")),
+        (active, joint_originals[active].replace("; 1 ;", "; 2 ;", 1)),
+        (raw, joint_originals[raw].replace("; -3 ;", "; -2 ;", 1)),
+    ]
+    for path, content in joint_mutations:
+        path.write_text(content)
+        try:
+            with contextlib.redirect_stdout(io.StringIO()):
+                audit(root, log, joint=True)
+        except AssertionError:
+            pass
+        else:
+            raise AssertionError(f"invalid joint proposal accepted: {path}")
+        finally:
+            path.write_text(joint_originals[path])
+    try:
+        with contextlib.redirect_stdout(io.StringIO()):
+            audit(root, log)
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError("joint evidence accepted as standalone")
+    names = ["rtl/x1_hdmi_clock_handoff.sv", "sys/sys_top.v", "joint-proposal-v1/hdmi_inactive_data_candidate.sdc", "quartus_hdmi_inactive_data_probe.tcl",
+             "joint-proposal-v1/hdmi_held_mode_candidate.sdc", "joint-proposal-v1/hdmi_output_joint_probe.sdc"]
+    paths = names[:2] + ["scripts/constraints/hdmi_inactive_data_candidate.sdc", "scripts/quartus_hdmi_inactive_data_probe.tcl",
+                        "scripts/constraints/hdmi_held_mode_candidate.sdc", "scripts/constraints/hdmi_output_joint_probe.sdc"]
+    hashes = "".join(f"{hashlib.sha256((repo / p).read_bytes()).hexdigest()}  {n}\n" for n, p in zip(names, paths))
+    hashes += "".join(f"{'a'*64}  output_files/sharpx1_turbo_z_handoff.{ext}\n" for ext in ("sta.rpt", "sta.summary", "rbf"))
+    log.write_text(hashes * 2)
+    audit_sources(log, repo, joint=True)
+    for bad in (hashes, hashes * 3, hashes + hashes.replace('a'*64, 'b'*64), (hashes * 2).replace("hdmi_held_mode_candidate.sdc", "other.sdc")):
+        log.write_text(bad)
+        try:
+            audit_sources(log, repo, joint=True)
+        except AssertionError:
+            pass
+        else:
+            raise AssertionError("invalid joint provenance accepted")
 print(f"PASS: synthetic 384-report preservation positive; {len(mutations)} invalid scope/report/active/raw/mode controls and four provenance controls")
+print("PASS: separate joint 384-report positive; ten invalid scope/budget/preservation/protocol controls and four provenance controls")

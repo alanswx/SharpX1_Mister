@@ -8,6 +8,7 @@ import re
 from audit_vsync_sys_reports import rows
 from audit_hdmi_csync_reports import PAIRS, INPUTS, VID, SYS, PREFIX
 from audit_hdmi_inactive_data_inventory import HDMI, OUTPUTS
+from audit_hdmi_held_mode_probe import KEYS as HELD_KEYS
 
 PREFETCH = {"hdmi_dv_hs", "hdmi_dv_vs", "hdmi_dv_de"} | {
     f"hdmi_dv_data[{i}]" for i in range(24) if i not in (4, 8, 20)}
@@ -22,14 +23,19 @@ CLOCKS = {
 PACKED_PREFETCH = {f"hdmi_dv_data[{i}]" for i in (0, 1, 10, 12, 15, 16, 21)}
 
 
-def audit_sources(log, root):
+def audit_sources(log, root, joint=False):
     names = ["rtl/x1_hdmi_clock_handoff.sv", "sys/sys_top.v", "hdmi_inactive_data_candidate.sdc", "quartus_hdmi_inactive_data_probe.tcl"]
-    names += [f"output_files/sharpx1_turbo_z_handoff.{ext}" for ext in ("sta.rpt", "sta.summary", "rbf")]
-    hashes = re.findall(r"^([0-9a-f]{64})  (\S+)$", log.read_text(), re.M)
-    assert len(hashes) == 14 and [n for _, n in hashes] == names * 2, "missing/reordered provenance"
-    assert hashes[:7] == hashes[7:], "source/original artifacts changed"
     paths = names[:2] + ["scripts/constraints/hdmi_inactive_data_candidate.sdc", "scripts/quartus_hdmi_inactive_data_probe.tcl"]
-    assert [h for h, _ in hashes[:4]] == [hashlib.sha256((root / n).read_bytes()).hexdigest() for n in paths], "current source mismatch"
+    if joint:
+        names[2] = "joint-proposal-v1/hdmi_inactive_data_candidate.sdc"
+        names += ["joint-proposal-v1/hdmi_held_mode_candidate.sdc", "joint-proposal-v1/hdmi_output_joint_probe.sdc"]
+        paths += ["scripts/constraints/hdmi_held_mode_candidate.sdc", "scripts/constraints/hdmi_output_joint_probe.sdc"]
+    names += [f"output_files/sharpx1_turbo_z_handoff.{ext}" for ext in ("sta.rpt", "sta.summary", "rbf")]
+    size = len(names)
+    hashes = re.findall(r"^([0-9a-f]{64})  (\S+)$", log.read_text(), re.M)
+    assert len(hashes) == size * 2 and [n for _, n in hashes] == names * 2, "missing/reordered provenance"
+    assert hashes[:size] == hashes[size:], "source/original artifacts changed"
+    assert [h for h, _ in hashes[:len(paths)]] == [hashlib.sha256((root / n).read_bytes()).hexdigest() for n in paths], "current source mismatch"
 
 
 def checked_rows(path, check, limit):
@@ -39,12 +45,13 @@ def checked_rows(path, check, limit):
     return report
 
 
-def audit(directory, log):
+def audit(directory, log, joint=False):
     text = log.read_text()
     assert text.count("TimeQuest Timing Analyzer was successful. 0 errors, 0 warnings") == 1
     assert not re.search(r"^\s*(?:Error|Warning|Critical Warning)\b", text, re.M)
     assert text.count("INACTIVE DATA CANDIDATE: opposite-parent exact DATA pins only; active routes and raw inputs untouched") == 1
     assert text.count("INACTIVE PROBE COMPLETE: diagnostic only; no board selection or timing acceptance") == 1
+    assert text.count("HELD MUX CANDIDATE: 29 exact D-route pairs; max 31.25 ns/min -31.25; raw inputs and clock pins untouched") == int(joint), "wrong standalone/joint proposal scope"
     cuts = re.findall(r"^INACTIVE DATA CUT (output|prefetch) \{?([^{}\s]+)\}?$", text, re.M)
     expected = {(g, f"{n}|{pin}") for g, names in (("output", OUTPUTS), ("prefetch", PREFETCH))
                 for n in names for pin in (("d", "asdata") if g == "output" and n != "vs"
@@ -53,6 +60,8 @@ def audit(directory, log):
     corners = [(m, str(t)) for m in ("slow", "fast") for t in (-40, 0, 85, 100)]
     assert re.findall(r"^INACTIVE PROBE CORNER (before|after) (slow|fast) (-?\d+) 1100$", text, re.M) == [(p, *c) for p in ("before", "after") for c in corners]
     excluded = preserved = 0
+    budgeted = 0
+    held_minima = {c: float("inf") for c in ("setup", "hold")}
     reference = {}
     minima = {c: float("inf") for c in ("setup", "hold")}
     active_minima = {}
@@ -95,6 +104,20 @@ def audit(directory, log):
                         assert all(r[1] in {PREFIX + f"active_mode[{i}]" for i in range(3)} and r[3] == SYS for r in report), "wrong held-mode scope"
                     if phase == "before":
                         originals[kind] = report
+                    elif joint and kind == "mode":
+                        old = originals[kind]
+                        selected = [r for r in report if tuple(r[1:5]) in HELD_KEYS]
+                        old_selected = [r for r in old if tuple(r[1:5]) in HELD_KEYS]
+                        assert len(selected) == len(old_selected) == 58 and {tuple(r[1:5]) for r in selected} == HELD_KEYS, "incomplete held-mode budgets"
+                        assert collections.Counter(tuple(r[1:5] + [r[7]]) for r in selected) == collections.Counter(tuple(r[1:5] + [r[7]]) for r in old_selected), "held-mode physical route changed"
+                        relationship = 31.25 if check == "setup" else -31.25
+                        assert all(float(r[0]) >= 0 and 0 <= float(r[7]) < 31.25 and float(r[5]) == relationship for r in selected), "held-mode joint budget failure"
+                        other = [r for r in report if tuple(r[1:5]) not in HELD_KEYS]
+                        old_other = [r for r in old if tuple(r[1:5]) not in HELD_KEYS]
+                        assert collections.Counter(map(tuple, other)) == collections.Counter(map(tuple, old_other)), "unbudgeted held-mode/control timing changed"
+                        preserved += len(other)
+                        budgeted += len(selected)
+                        held_minima[check] = min(held_minima[check], *(float(r[0]) for r in selected))
                     else:
                         assert collections.Counter(map(tuple, report)) == collections.Counter(map(tuple, originals[kind])), "raw input/held-mode timing changed"
                         preserved += len(report)
@@ -103,8 +126,11 @@ def audit(directory, log):
                 if phase == "after":
                     minima[check] = min(minima[check], *(float(r[0]) for r in global_rows))
     print(f"PASS preservation: 384 reports; 77 exact pin cuts, {excluded} original inactive rows EXCLUDED, {preserved} active/raw/mode rows unchanged")
+    if joint:
+        print(f"PASS joint: {budgeted} exact held-mode budget rows {held_minima}; unbudgeted control/raw rows unchanged")
     print(f"OPEN: global after {minima}; active-bank/pipe minima {active_minima}; exclusions are not timing passes or hardware acceptance")
-    return excluded, preserved, minima, active_minima
+    result = (excluded, preserved, minima, active_minima)
+    return (*result, budgeted, held_minima) if joint else result
 
 
 if __name__ == "__main__":
@@ -112,6 +138,7 @@ if __name__ == "__main__":
     parser.add_argument("directory", type=pathlib.Path)
     parser.add_argument("--native-log", required=True, type=pathlib.Path)
     parser.add_argument("--source-root", required=True, type=pathlib.Path)
+    parser.add_argument("--joint", action="store_true", help="require both frozen proposals and exact held-mode budgets")
     args = parser.parse_args()
-    audit_sources(args.native_log, args.source_root)
-    audit(args.directory, args.native_log)
+    audit_sources(args.native_log, args.source_root, args.joint)
+    audit(args.directory, args.native_log, args.joint)
