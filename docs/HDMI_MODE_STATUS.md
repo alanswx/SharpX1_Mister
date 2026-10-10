@@ -1071,6 +1071,66 @@ CI's board-inventory target. No inactive-data exceptions or source RTL changes
 are made; exact clock-qualified pin scoping, active-path preservation, fresh
 fitting and physical output remain next gates.
 
+## Clock-qualified inactive DATA-pin proposal (unselected)
+
+Installed Quartus 17 `set_false_path` help confirms clock-qualified `-from`
+and `-to` with a single through-pin collection; recorded without opening a
+project in `/tmp/x1-hdmi-delay-help-v2.log`. The new unselected
+`scripts/constraints/hdmi_inactive_data_candidate.sdc` scopes only the
+opposite-parent path through exact first-stage D/ASDATA pins to the inactive
+output clock alias. It does not group master clocks or cut CLK, SLOAD, Q,
+SYS-held mode data, synchronizer inputs, downstream DDR or active data paths.
+The prior four-state native masking/flush qualification supplies its functional
+contract; physical behavior and MTBF remain separate.
+
+Its guards require the discovered 27 output and 24 prefetch keepers, exact
+registered driver families and held selector inputs, absence of unreviewed
+replicas, and four clock identities/periods. Every guard completes before
+any exception. The current fit has 53 output D/ASDATA pins and 24 prefetch
+data pins. Prefetch bits **0/1/10/12/15/16/21** pack onto ASDATA rather than D;
+the other prefetch data inputs use D. A changed physical bank or pin packing
+must stop the candidate for new discovery, not silently broaden the scope.
+
+The first native run completes but a mock negative finds its pin-layout guard
+too permissive. The strengthened second run rejects its incorrect assumption
+that every prefetch input uses D. The third corrects that layout and completes,
+but logs opaque Quartus collection handles instead of independently verifiable
+pin names. These intermediate scripts/logs are preserved and are **not**
+counted as qualification. The fourth logs each verified physical pin name;
+its constraints have the same intended scope, with strict topology guards.
+
+Native v4 completes zero with zero warnings. Independent auditing checks
+**384 before/after reports**, **77 exact pin cuts**, and explicitly identifies
+**848 original inactive timing rows as EXCLUDED, not passing timing**. It
+preserves **6,400 active/raw-input/held-mode rows**, including physical delays,
+slacks and clock relationships. Original controller/framework/STA/summary/RBF
+hashes match before and after; this diagnostic neither rebuilds nor deploys
+an RBF.
+
+| Preserved active group | Setup minimum | Hold minimum |
+| --- | ---: | ---: |
+| HDMI master to HDMI-selected input bank | -0.106 ns | +1.234 ns |
+| Video master to video-selected prefetch | +14.082 ns | +1.679 ns |
+| HDMI-selected output pipeline | +1.890 ns | +0.182 ns |
+| Video-selected output pipeline | +10.201 ns | +0.182 ns |
+
+The active HDMI csync-to-HS setup violation remains visible. Global after-probe
+setup/hold is **-18.327/+0.057 ns**; the independently tested held-mode proposal
+is not applied in this probe. Neither this global result nor the excluded
+inactive rows establishes closure. Next qualify both proposals together,
+preserve all unrelated routes, then fit a source-bound experimental revision
+and resolve the remaining active paths. Ordinary boards remain unchanged.
+
+Candidate SHA-256:
+`5e4195b520ca0b56f8a83d45be1f7842bd08cbbe75d9a35d1224fa32b7f6deaa`.
+Native log: `/tmp/x1-inactive-data-probe-ce2eba8-v4.log`; local ignored reports:
+`output_files/hdmi-csync-board-ce2eba8/inactive-data-probe-v4/`.
+CI's input-SDC target adds a 77-cut exact-scope mock with twenty invalid
+clock/keeper/driver/pin controls, plus a synthetic 384-report auditor positive,
+twenty-one invalid preservation/report controls and four invalid provenance
+controls. The profile test requires this candidate to remain absent from all
+QSF includes. These synthetic tests do not replace the native evidence above.
+
 ## Next gates
 
 1. Establish an actually supported mode-sensitive STA method or a narrow

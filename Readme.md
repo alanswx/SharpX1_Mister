@@ -100,6 +100,10 @@ Fresh native tests also pass 5,030 known/correct visible outputs with inactive
 banks poisoned to X. Fitted inactive-bank discovery covers all 51 physical
 targets without adding exclusions; active-route and physical qualification
 remain open.
+An unselected exact-pin inactive-branch probe now excludes 848 inactive rows
+while preserving 6,400 active/raw/held-mode rows. The active HDMI -0.106 ns
+setup violation remains visible; joint-proposal fitting and hardware remain
+unqualified.
 
 Its isolated real-PLL controller maps/fits; a fitted-feedback audit led to an
 explicit falling-edge closure witness. Current native cases pass, while raw

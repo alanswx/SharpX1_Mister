@@ -82,6 +82,14 @@ Fitted inactive-bank discovery independently audits 51 physical targets and
 and -7.999 ns; no exclusions are applied or board timing acceptance inferred.
 Next derive exact clock-qualified pin scope and prove active routes unchanged.
 
+The unselected inactive DATA-pin proposal now passes strict native before/after
+auditing: 384 reports, 77 exact cuts, 848 original inactive rows explicitly
+excluded (not passed), and 6,400 active/raw/held-mode rows unchanged. The active
+HDMI setup violation -0.106 ns is preserved; original artifacts are unchanged.
+Its fitted ASDATA packing and failed/intermediate scope probes are recorded
+in `HDMI_MODE_STATUS.md`. Qualify this alongside the held-mode proposal before
+fresh selection/fitting; no ordinary board, timing or hardware gate is complete.
+
 Fresh extracted native-policy runs now check 396 held-mode changes while
 blanked with a closed output clock, including synthetic delayed-policy cases.
 Minimum quiet time is 96,873 ps, above the three-control-period requirement;
