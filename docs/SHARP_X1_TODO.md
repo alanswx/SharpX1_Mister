@@ -1448,8 +1448,9 @@ Preserve each frozen runner; do not rebuild historical v05.
 - [ ] Validate exact soft-sync/scanline timing and optional AUTO_WAIT trap
   against hardware; test PCG raster images and Turbo high-speed addressing.
 - [ ] Complete cassette transport and baud/timing behavior.
-  The bounded TAP parser now passes 324 synthetic and sanitizer checks; it is
-  not connected to the machine. Format-1 waveform semantics, real firmware
+  The bounded TAP parser now passes 356 synthetic and sanitizer checks; it is
+  not connected to the machine. Format-1 fixed-rate samples are corroborated
+  by a second emulator. Other formats/rates, real firmware
   transport/status, PPI input and native loading remain open. See
   [cassette status and connected gates](CASSETTE_STATUS.md).
 - [x] Connect PSG audio output and verify deterministic 1 kHz WAV waveform.

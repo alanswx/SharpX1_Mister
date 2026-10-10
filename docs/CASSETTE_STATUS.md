@@ -8,7 +8,8 @@ consumer. Firmware E9/EA/EB command storage is not a working deck.
 
 `verilator/x1_tap_image.h` is original C++20 code. The format layout reference
 is the existing local MAME `src/lib/formats/x1_tap.cpp` (BSD-3-Clause, Barry
-Rodewald); no implementation was copied. It accepts old four-byte sampling-rate
+Rodewald) and Common Source Project `src/vm/datarec.cpp`; no implementation was
+copied. It accepts old four-byte sampling-rate
 headers and new forty-byte `TAPE` headers, retaining title/reserved/flag bytes.
 Ordinary 8,000-Hz waveform samples are MSB first. Samples are not decoded tape
 bytes and the sampling rate is not the native baud rate.
@@ -19,15 +20,19 @@ source copy. Zero-length images and position-at-EOF are representable.
 Unsupported rates and unknown flags are rejected explicitly. Reserved bytes
 and fixed-width titles are retained without guessing their encoding.
 
-Format bit 0 is documented by MAME as “speed limit sampling method.” Metadata
-with this bit is accepted, but waveform access explicitly rejects its unresolved
-semantics. MAME ignores this flag; that is not enough to establish compatibility.
-Read-only archive inspection found this flag in all eight sampled new headers,
-including seven 8-kHz tapes and one 44.1-kHz tape. Therefore this prerequisite
-does **not** establish that those local commercial tapes can be played.
+The initial parser rejected format-1 waveform access because MAME calls it
+“speed limit sampling method.” Follow-up inspection resolves this discrepancy:
+Common Source Project `datarec.cpp:1172` quotes the t-tune format as
+`01H=定速サンプリング方法` (constant-rate sampling), explicitly accepts format
+`01` and decodes MSB-first samples at the stored frequency. Its loader at
+lines 1178–1227 was read, not built. The parser now accepts format-1 8-kHz
+waveforms; new-header format zero remains metadata-only/explicitly unsupported.
+Read-only archive inspection found format 1 in all eight sampled new headers,
+including seven 8-kHz tapes and one still-unsupported 44.1-kHz tape. This
+prerequisite does **not** establish that those commercial tapes can be played.
 Private archives were not extracted, modified or committed for these tests.
 
-`make -C verilator test-tap-image` passes 324 synthetic checks with C++20,
+`make -C verilator test-tap-image` passes 356 synthetic checks with C++20,
 `-Wall -Wextra -Werror`. An independent AddressSanitizer/UndefinedBehaviorSanitizer
 build also completes zero without diagnostics. Coverage includes old/new
 headers, lengths/counts, truncation, counts 0–17, sample order, excluded padding,
@@ -36,13 +41,18 @@ is scheduled in CI; no hosted result is claimed here.
 
 Checked source SHA-256:
 
-- Parser: `7846bdb47ece393325ee320b7d784f75ab8c54b787e797532bd70a693585e6ed`
-- Fixture: `5001bb038a5ad86344cd795b534b6dfc89c2294767957ad4153174938f17dddc`
+- Parser: `765cfb59718e96fdf53dfa0334edca78e1cc67995ec97d738b1eabcb2df3c8f1`
+- Fixture: `fc74f3c1bc7a627fd4288695b0767646c902e89a1af857c0d3492542e6ec1f67`
+
+Second implementation inspected SHA-256:
+`6c7167cc7bb9ff529b91481bb5ea0c80b6355b836e55c205b443a093d4049636`.
+The original 324-check checkpoint is historical; the fixed-rate follow-up adds
+an independent modern-header waveform vector and unsupported-format-zero check.
 
 ## Connected implementation and acceptance still required
 
-1. Resolve format-1 waveform semantics using a second implementation or original
-   format documentation; qualify explicit vectors before admitting these files.
+1. Connect the qualified format-1/old-header parser; retain explicit unsupported
+   policies for other formats/rates until their vectors and timing are tested.
 2. Implement SYS-timed sampling independent of CPU/MR16 enables, bounded host
    buffering, pause/resume/EOF and reset policy. Connect actual waveform levels
    to PPI PB1; do not deliver decoded bytes directly to CPU memory.

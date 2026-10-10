@@ -24,6 +24,7 @@ static void le32(std::vector<std::uint8_t>& b, std::size_t at, std::uint32_t n) 
 static std::vector<std::uint8_t> modern(std::uint32_t bits, std::uint32_t position = 0) {
     std::vector<std::uint8_t> b(40 + (bits / 8) + (bits % 8 != 0), 0);
     b[0] = 'T'; b[1] = 'A'; b[2] = 'P'; b[3] = 'E';
+    b[27] = 1; // Fixed-rate sample format; independent CSP format reference.
     le32(b, 28, 8000); le32(b, 32, bits); le32(b, 36, position);
     return b;
 }
@@ -45,6 +46,13 @@ int main() {
         rejects<std::out_of_range>([&]{ tape.seek(UINT64_MAX); }, "TAP position outside samples");
         tape.reset(); check(tape.position() == 0);
         old[4] = 0; check(tape.sample(0)); // Owned copy, not a live source view.
+        auto fixed = modern(16, 3); fixed[40] = 0xa6; fixed[41] = 0x59;
+        X1TapImage fixed_rate(fixed);
+        for (std::size_t i = 0; i < oracle.size(); ++i) {
+            check(fixed_rate.sample(i) == oracle[i]);
+            if (i >= 3) check(fixed_rate.next_sample() == oracle[i]);
+        }
+        check(fixed_rate.eof()); fixed_rate.reset(); check(fixed_rate.position() == 3);
         for (unsigned bits = 0; bits <= 17; ++bits) {
             auto b = modern(bits, bits);
             for (std::size_t i = 40; i < b.size(); ++i) b[i] = 0xff;
@@ -64,10 +72,11 @@ int main() {
         check(partial.metadata().write_protected() && partial.position() == 3);
         check(!partial.sample(8)); // Only MSB of final byte; low padding bits ignored.
         partial.next_sample(); partial.reset(); check(partial.position() == 3);
-        b[27] = 1; X1TapImage speed(b);
-        check(speed.metadata().speed_limit_method() && !speed.sampling_supported());
-        rejects<std::runtime_error>([&]{ speed.next_sample(); }, "speed-limit waveform semantics unresolved");
-        check(speed.position() == 3);
+        check(partial.metadata().constant_rate_sampling() && partial.sampling_supported());
+        b[27] = 0; X1TapImage unknown(b);
+        check(!unknown.metadata().constant_rate_sampling() && !unknown.sampling_supported());
+        rejects<std::runtime_error>([&]{ unknown.next_sample(); }, "new-header format-zero waveform semantics unresolved");
+        check(unknown.position() == 3);
         for (unsigned n = 0; n < 4; ++n) {
             std::vector<std::uint8_t> short_old(n);
             rejects<std::invalid_argument>([&]{ X1TapImage t(short_old); }, "truncated header");

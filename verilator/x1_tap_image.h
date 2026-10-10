@@ -1,5 +1,6 @@
 // Original bounded TAP preflight/sample accessor. Layout reference: local
-// MAME src/lib/formats/x1_tap.cpp (BSD-3-Clause, Barry Rodewald); no copied code.
+// MAME src/lib/formats/x1_tap.cpp (BSD-3-Clause, Barry Rodewald) and CSP
+// src/vm/datarec.cpp load_tap_image (format-1 fixed-rate samples); no copied code.
 // Samples are waveform levels, not decoded cassette bytes or baud timing.
 #pragma once
 #include <array>
@@ -22,7 +23,7 @@ public:
         std::uint64_t sample_count = 0;
         std::uint64_t start_position = 0;
         bool write_protected() const { return (write_protect_flags & 0x10) != 0; }
-        bool speed_limit_method() const { return (format_flags & 1) != 0; }
+        bool constant_rate_sampling() const { return !new_header || format_flags == 1; }
     };
 
     explicit X1TapImage(std::span<const std::uint8_t> input) {
@@ -63,7 +64,7 @@ public:
     }
 
     const Metadata& metadata() const { return meta_; }
-    bool sampling_supported() const { return !meta_.speed_limit_method(); }
+    bool sampling_supported() const { return meta_.constant_rate_sampling(); }
     std::uint64_t position() const { return position_; }
     bool eof() const { return position_ == meta_.sample_count; }
     void reset() { position_ = meta_.start_position; }
@@ -74,7 +75,7 @@ public:
     }
     bool sample(std::uint64_t index) const {
         if (index >= meta_.sample_count) throw std::out_of_range("TAP sample index outside samples");
-        if (!sampling_supported()) unsupported("speed-limit waveform semantics unresolved");
+        if (!sampling_supported()) unsupported("new-header format-zero waveform semantics unresolved");
         return (bytes_.at(payload_offset_ + std::size_t(index / 8)) &
                 (std::uint8_t(0x80) >> unsigned(index % 8))) != 0;
     }

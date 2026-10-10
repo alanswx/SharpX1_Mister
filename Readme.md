@@ -15,7 +15,8 @@ devices and full Turbo Z remain unqualified on hardware.
 The initial [native BASIC probe](docs/BASIC_NATIVE_STATUS.md) reaches a
 CZ-8FB01 V1.0 `Ok` prompt and cold-repeats exactly in the fixed-FDC simulation;
 Actual PS/2 `print 6*7` also cold-repeats with visible `42` and exact glyph
-pixels; stored-program/model acceptance remains in progress, not full BASIC compatibility.
+pixels. `10 PRINT 9` also stores, LISTs and RUNs with exact cold/repeat transcript
+pixels; model/reset/save-load acceptance remains open, not full BASIC compatibility.
 The [DMA-build feature matrix](docs/HARDWARE_DMA_FEATURE_MATRIX_STATUS.md)
 adds exact base-video pixels before/after retained-asset warm reset and tracks
 the remaining physical and unimplemented-feature gates.
@@ -23,7 +24,8 @@ the remaining physical and unimplemented-feature gates.
 ## Current status
 
 The [cassette prerequisite](docs/CASSETTE_STATUS.md) now has a bounded TAP
-parser with 324 synthetic checks. Waveform-format research and real
+parser with 356 synthetic checks. Format-1 fixed-rate sampling is corroborated
+by a second emulator; other rates/formats and real
 transport/firmware/PPI integration remain open; this is not tape loading.
 
 The standalone [FDC byte-slot scheduler](docs/FDC_BYTE_SLOT_STATUS.md) passes
