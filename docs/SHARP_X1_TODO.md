@@ -1294,6 +1294,11 @@ capability profile. The existing `TURBO=1` build is not Turbo Z support.
   frequency profiles with connected serial/calendar consumers, including
   midnight/December carry and wrong-rate/host-gating controls. Machine driver,
   initialization/retention, native phase, snapshots and physical gates remain open.
+  A 572-word original real-MR16 diagnostic now passes actual P1 programming,
+  two-second advancement with controller CE stopped and all 40 T1 bits stored
+  in RAM. This is proposed replacement GPIO wiring, not shared firmware/native
+  MCU acceptance. Resolve driver ROM budget and the separate failed sparse-CE
+  response-retention experiment before advertising broader cadence support.
 - [ ] Research/implement capture quantization/inversion, mosaic, chroma key,
   extra scroll and superimpose/telopper, with a deterministic test video source.
   Primary encodings and a standalone decoder now pass exhaustive local checks;

@@ -272,6 +272,45 @@ acceptance remains failing until a verified controller driver connects them.
 These tests do not establish host-time initialization, battery persistence,
 native pin phase, FPGA fitting or hardware RTC acceptance.
 
+### Original real-MR16 driver diagnostic
+
+`test-rtc-mr16-driver` now runs an original 572-word diagnostic ROM through
+the actual `rtl/mr16_x1.v` / `rtl/mr16core.v`, with synchronous ROM/work-RAM
+access and a real reset vector. Its explicit instruction encodings are derived
+from the checked-in `MR16.MAC` operand tables, not a retrieved AASM executable
+or a claim that the complete inherited assembler workflow now works. The ROM
+size is asserted; no CPU registers, RTC internals or RAM result bytes are forced.
+
+The proposed replacement-controller connections use the existing **unused
+OP5 output** for native P1 bits, and spare **IP1 bit 5** for the resolved T1
+input. This is test wiring only, not a newly invented main-CPU device port or
+a native 80C49 pin claim. The driver executes real STM writes for serial
+programming, a firmware-ready polling loop, Time Read/Shift commands and real
+LDM reads stored into ordinary RAM. After programming `C6 31 12 34 56`, the
+controller enable is stopped for exactly 64,000,000 SYS edges while the
+32-MHz-derived RTC continues. The calendar must become `C6 31 12 34 58`;
+after resuming, all 40 resolved T1 bits must match in RAM.
+
+The final target terminates zero with the inherited controller running at its
+ordinary full-SYS instruction cadence. Inverted T1 and gating RTC events on
+the stopped controller both fail the unchanged oracle. Log:
+`/tmp/x1-rtc-mr16-driver-qualified.log`. Fixture SHA-256:
+`8c8e516e1d720ca2d2018e16c1f861b3472ea11b563c0bb0224325b80ea9e442`.
+The fixture adds no warning suppressions; its target uses the existing style
+of `-Wno-fatal` for inherited MR16 missing debug pins, vector/timer widths,
+casex and incomplete-case warnings. No warnings originate in the new fixture.
+CI schedules this asset-free target; hosted success is not inferred.
+
+An earlier fixture with a 1-in-32 instruction enable failed real GPIO readback,
+returning the read opcode instead of the input (`/tmp/x1-rtc-mr16-driver.log`).
+It is retained as an unresolved response-retention/cadence experiment, not
+silently counted as passing and **not yet proven a whole-machine defect**.
+The successful ordinary-cadence diagnostic does not qualify arbitrary CE gaps,
+electrical pulse widths or native controller firmware. The 572 words also do
+not fit in the inherited firmware's 22 free bytes; a compact driver/verified
+ROM-budget solution and EC..EF integration still need implementation. This
+fixture does not patch the firmware, change machine behavior or close Z7.
+
 ### Remaining integration order
 
 1. Finish tracing controller year storage and power retention; reconcile

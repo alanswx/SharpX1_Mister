@@ -1671,6 +1671,22 @@ $(HEADLESS_DIR)/rtc-clock-enable/Vrtc_clock_enable_tb: tests/rtc_clock_enable_tb
 	  -j 4 tests/rtc_clock_enable_tb.sv ../rtl/x1_rtc_clock_enable.sv ../rtl/x1_cz880_rtc.sv ../rtl/x1_upd1990_counter.sv ../rtl/x1_upd1990_calendar.sv
 .PHONY: test-rtc-clock-enable
 
+test-rtc-mr16-driver: $(HEADLESS_DIR)/rtc-mr16-driver/Vrtc_mr16_driver_tb
+	./$(HEADLESS_DIR)/rtc-mr16-driver/Vrtc_mr16_driver_tb
+	@for fault in T1 CLOCK; do \
+	  negative_log=$$(mktemp $(HEADLESS_DIR)/rtc-mr16-driver/negative-XXXXXX); \
+	  if (ulimit -c 0; ./$(HEADLESS_DIR)/rtc-mr16-driver/Vrtc_mr16_driver_tb +NEGATIVE_$$fault) >$$negative_log 2>&1; then \
+	    echo "FAIL: MR16 RTC negative $$fault accepted"; exit 1; \
+	  fi; \
+	  rg -q 'MR16 RTC .* mismatch' $$negative_log || { echo 'FAIL: unexpected MR16 RTC negative failure'; exit 1; }; \
+	  echo "PASS: unchanged MR16 RTC oracle rejects $$fault fault"; \
+	done
+$(HEADLESS_DIR)/rtc-mr16-driver/Vrtc_mr16_driver_tb: tests/rtc_mr16_driver_tb.sv ../rtl/mr16core.v ../rtl/mr16_x1.v ../rtl/x1_rtc_clock_enable.sv ../rtl/x1_cz880_rtc.sv ../rtl/x1_upd1990_counter.sv ../rtl/x1_upd1990_calendar.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module rtc_mr16_driver_tb --Mdir $(@D) \
+	  -j 4 tests/rtc_mr16_driver_tb.sv ../rtl/mr16core.v ../rtl/mr16_x1.v ../rtl/x1_rtc_clock_enable.sv ../rtl/x1_cz880_rtc.sv ../rtl/x1_upd1990_counter.sv ../rtl/x1_upd1990_calendar.sv -Wno-fatal
+.PHONY: test-rtc-mr16-driver
+
 test: headless test-rgb12 test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner test-d88-crc test-d88-metadata test-cpu-busreq
 	python3 tests/test_joystick_schedule.py ./$(HEADLESS_EXE)
 	python3 tests/test_key_script.py ./$(HEADLESS_EXE) $(VIDEO_TEST_FLAGS)
