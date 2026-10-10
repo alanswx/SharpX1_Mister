@@ -171,6 +171,11 @@ compatibility, physical keyboard or native Turbo firmware acceptance. No five
 commercial games are newly qualified by this single homebrew trial.
 ## October 10 fitted-profile follow-up
 
+The subsequent source repairs remove the raw-reset bypass into palette
+selection D inputs and add an opt-in two-stage HDMI measurement synchronizer.
+Their local tests pass; see `HDMI_MEASUREMENT_CDC_STATUS.md`. These do not
+alter the completed fifth-fit audit or qualify this DMA revision/new RBF.
+
 The separately fitted `3c6242e` Z-handoff full flow's fifth physical HDMI
 profile now passes native reporting-only discovery and independent original
 artifact/source preservation auditing. The experimental guard recognizes

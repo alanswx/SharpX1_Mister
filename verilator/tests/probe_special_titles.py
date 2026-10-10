@@ -33,6 +33,10 @@ def main():
     parser.add_argument("--io-trace", action="store_true")
     parser.add_argument("--video-observations", action="store_true",
                         help="read-only planes, CRTC, palette, opcode populations and Turbo CTC; compared across cold runs")
+    parser.add_argument("--fetch-start-ms", type=int, default=0,
+                        help="opcode observation start relative to invocation; requires --video-observations")
+    parser.add_argument("--fetch-end-ms", type=int, default=0,
+                        help="exclusive opcode observation end; zero is unbounded")
     parser.add_argument("--bus-events", action="store_true", help="last sample per held bus transaction")
     parser.add_argument("--bus-start-ms", type=int, default=0)
     parser.add_argument("--bus-end-ms", type=int, default=0)
@@ -54,6 +58,11 @@ def main():
         parser.error("joya must fit one byte")
     if (args.bus_events or args.bus_start_ms or args.bus_end_ms) and not args.io_trace:
         parser.error("bus options require --io-trace")
+    if (args.fetch_start_ms or args.fetch_end_ms) and not args.video_observations:
+        parser.error("fetch window options require --video-observations")
+    if not 0 <= args.fetch_start_ms <= 1000000000 or not 0 <= args.fetch_end_ms <= 1000000000 \
+            or (args.fetch_end_ms and args.fetch_end_ms <= args.fetch_start_ms):
+        parser.error("require 0 <= fetch-start-ms < fetch-end-ms <= 1000000000 (end 0 means unbounded)")
     manifest = args.manifest.resolve()
     row = next(r for r in json.loads(manifest.read_text())["games"] if r["slug"] == args.title)
     candidates = sorted((f for f in row["files"] if f["native_candidate"]), key=lambda f: f["member"])
@@ -130,6 +139,8 @@ def main():
             command += ["--joya", str(args.joya)]
         if args.video_observations:
             command += ["--video-dump", str(prefix)]
+            if args.fetch_start_ms or args.fetch_end_ms:
+                command += ["--fetch-start-ms", str(args.fetch_start_ms), "--fetch-end-ms", str(args.fetch_end_ms)]
         if args.io_trace:
             command += ["--bus-trace", str(prefix) + ".csv", "--io-only"]
             if args.bus_events:
@@ -150,6 +161,11 @@ def main():
         record = {"command": command, "returncode": result.returncode}
         if result.returncode == 0:
             report = json.loads(result.stdout.splitlines()[-1])
+            if args.fetch_start_ms or args.fetch_end_ms:
+                if report.get("fetch_start_ms") != args.fetch_start_ms \
+                        or report.get("fetch_end_ms") != args.fetch_end_ms \
+                        or report.get("fetch_window_policy") != "whole_completed_m1_half_open":
+                    raise RuntimeError("runner did not qualify the requested opcode observation window")
             run_artifacts = artifacts
             if args.video_observations and report.get("turbo_foundation"):
                 run_artifacts += (".video-controls", ".ctc")

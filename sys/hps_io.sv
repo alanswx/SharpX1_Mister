@@ -906,6 +906,7 @@ wire [31:0] sys_hcnt, sys_vcnt, sys_htime, sys_vtime, sys_pix, sys_vtime_hdmi;
 wire [7:0] sys_nres;
 wire [1:0] sys_int;
 wire measured_new_vmode;
+wire measured_hdmi_vs;
 generate
 if(COHERENT_SNAPSHOTS) begin : coherent_measurements
 	wire [73:0] video_snapshot;
@@ -928,10 +929,20 @@ if(COHERENT_SNAPSHOTS) begin : coherent_measurements
 		mode_sync <= mode_meta;
 	end
 	assign measured_new_vmode = mode_sync;
+	// Sharp X1 opt-in: the HDMI-selected clock is unrelated to clk_100.
+	// The first sample may feed ONLY the second sample, never edge detection.
+	// Preserve stage identities for subsequent fitted fanout/MTBF auditing.
+	(* preserve, async_reg = "true" *) reg hdmi_vs_meta = 0, hdmi_vs_sync = 0;
+	always @(posedge clk_100) begin
+		hdmi_vs_meta <= vs_hdmi;
+		hdmi_vs_sync <= hdmi_vs_meta;
+	end
+	assign measured_hdmi_vs = hdmi_vs_sync;
 end else begin : legacy_measurements
 	assign {sys_hcnt,sys_vcnt,sys_nres,sys_int} = {vid_hcnt,vid_vcnt,vid_nres,vid_int};
 	assign {sys_htime,sys_vtime,sys_pix,sys_vtime_hdmi} = {vid_htime,vid_vtime,vid_pix,vid_vtime_hdmi};
 	assign measured_new_vmode = new_vmode;
+	assign measured_hdmi_vs = vs_hdmi;
 end
 endgenerate
 
@@ -1015,7 +1026,7 @@ always @(posedge clk_100) begin
 	integer vtime;
 	reg old_vs, old_vs2;
 
-	old_vs <= vs_hdmi;
+	old_vs <= measured_hdmi_vs;
 	old_vs2 <= old_vs;
 
 	vtime <= vtime + 1'd1;

@@ -14,6 +14,16 @@ support before optional Turbo extensions.
 
 ## Active goal: items 1–6 and Turbo Z (October 6)
 
+The fifth-fit worst paths now have concrete RTL repairs: palette display
+permission no longer bypasses video-local reset, and opt-in HPS HDMI-period
+measurement consumes only the second synchronized VS stage. Live measurement,
+connected ownership/reset/CPU-control and wrapper-lint gates pass. A fresh
+frozen 120-case pixel matrix is running; fitted topology/timing and hardware
+remain open. See `HDMI_MEASUREMENT_CDC_STATUS.md`.
+The new opcode window passes actual CPU/full-bus oracle and native one-second
+cold/repeat checks. Protected Arcus 32-second cold/repeats are now running with
+31–32-second-only M1 populations; no result is inferred from launch.
+
 The separately named non-savable RTC/X3/DMA/Kanji/FM runner now passes
 elapsed/warm calendar, six keyboard and four real RTC/FDC/DMA sector cases,
 with independent frozen-input/RAM auditing. Actual CPU-programmed mixed sound
@@ -28,7 +38,8 @@ make -B on all shared C++ runner recipes. Actual isolation/default-headless/
 ordinary-FM sound checks pass; the fixed nested combined executable hash is
 identical to its frozen qualification. See `RUNNER_BUILD_ISOLATION_STATUS.md`.
 Arcus's first observed 32-second cold run now reaches the historical CTC
-handler state on black; its repeat remains pending, not gameplay acceptance.
+handler state on black; its repeat subsequently finishes with identical
+reports/nineteen artifacts and unchanged protected inputs, not gameplay.
 
 The fresh 3c6242e fitted-profile discovery now completes with independent
 51-keeper/205-pin/109-driver and original-hash auditing. Only its exact fifth
@@ -49,8 +60,9 @@ Current Arcus follow-up distinguishes the combined 16-second CPU state
 handler. The collector now compares read-only video/CTC/opcode observations;
 four collector contract checks and a one-second real cold/repeat pass.
 The observation-disabled control now completes with identical reports and
-six machine artifacts; the longer native repeat is still running, not a
-completed gameplay gate. See `ARCUS_INTERRUPT_STATUS.md`.
+six machine artifacts; the longer native repeat now finishes deterministically
+at the historical handler-stage endpoint, not a gameplay gate. See
+`ARCUS_INTERRUPT_STATUS.md`.
 
 The separate DMA/Kanji shared-bus diagnostic passes eight loaded/absent-font
 CPU payload/owned-reset cases, stopped SYS/VID and a default-profile rejecting

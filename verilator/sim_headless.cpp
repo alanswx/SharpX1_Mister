@@ -102,11 +102,14 @@ int main(int argc, char **argv) {
         bool bus_events = false;
         const char *disk_path = nullptr, *keys_path = nullptr, *dump_path = nullptr;
         const char *video_dump_path = nullptr;
+        uint64_t fetch_start_ms = 0, fetch_end_ms = 0;
+        bool fetch_window_requested = false;
         uint64_t video_samples = 0, visible_samples = 0, visible_nonzero = 0;
         uint64_t layer_samples = 0, graphics_selected = 0;
         std::array<uint64_t, 8> graphics_colors{}, text_colors{};
         std::array<uint64_t, 65536> opcode_fetches{};
         bool opcode_pending = false;
+        bool opcode_eligible = false;
         uint16_t opcode_address = 0;
         const char *disk_output = nullptr;
         const char *disk_b_path = nullptr, *disk_b_output = nullptr;
@@ -160,6 +163,12 @@ int main(int argc, char **argv) {
             else if (!std::strcmp(argv[i], "--audio") && i + 1 < argc) audio.path = argv[++i];
             else if (!std::strcmp(argv[i], "--dump") && i + 1 < argc) dump_path = argv[++i];
             else if (!std::strcmp(argv[i], "--video-dump") && i + 1 < argc) video_dump_path = argv[++i];
+            else if (!std::strcmp(argv[i], "--fetch-start-ms") && i + 1 < argc) {
+                fetch_window_requested = true; fetch_start_ms = number(argv[++i]);
+            }
+            else if (!std::strcmp(argv[i], "--fetch-end-ms") && i + 1 < argc) {
+                fetch_window_requested = true; fetch_end_ms = number(argv[++i]);
+            }
             else if (!std::strcmp(argv[i], "--progress")) progress = true;
             else if (!std::strcmp(argv[i], "--io-only")) io_only = true;
             else if (!std::strcmp(argv[i], "--interactive")) interactive = true;
@@ -167,7 +176,7 @@ int main(int argc, char **argv) {
             else if (!std::strcmp(argv[i], "--save-state") && i + 1 < argc) save_path = argv[++i];
             else if (!std::strcmp(argv[i], "--restore-state") && i + 1 < argc) restore_path = argv[++i];
             else if (argv[i][0] != '-') cycles = number(argv[i]);
-            else throw std::runtime_error("usage: Vtop [cycles] [--cycles N] [--reset-cycles N] [--reset-at MS (repeatable) --reset-for-us US] [--video-hz N] [--trace output.fst] [--rom IMAGE] [--ram IMAGE --load-address A --entry A] [--disk IMAGE --disk-output NEW_COPY] [--disk-b IMAGE --disk-b-output NEW_COPY] [--keys SCRIPT] [--frame IMAGE.ppm] [--audio OUTPUT.wav] [--dump PREFIX] [--video-dump PREFIX] [--peek A] [--bus-trace CSV --io-only --bus-events --bus-start-ms N --bus-end-ms N] [--progress] [--interactive [--joystick-keys]] [--save-state FILE] [--restore-state FILE] [--joya BYTE --joyb BYTE]");
+            else throw std::runtime_error("usage: Vtop [cycles] [--cycles N] [--reset-cycles N] [--reset-at MS (repeatable) --reset-for-us US] [--video-hz N] [--trace output.fst] [--rom IMAGE] [--ram IMAGE --load-address A --entry A] [--disk IMAGE --disk-output NEW_COPY] [--disk-b IMAGE --disk-b-output NEW_COPY] [--keys SCRIPT] [--frame IMAGE.ppm] [--audio OUTPUT.wav] [--dump PREFIX] [--video-dump PREFIX [--fetch-start-ms N --fetch-end-ms N]] [--peek A] [--bus-trace CSV --io-only --bus-events --bus-start-ms N --bus-end-ms N] [--progress] [--interactive [--joystick-keys]] [--save-state FILE] [--restore-state FILE] [--joya BYTE --joyb BYTE]");
         }
 #ifdef X1_RTC_EXPERIMENT
         // Fail before opening any snapshot or producing a state file. The
@@ -189,6 +198,11 @@ int main(int argc, char **argv) {
         if (bus_start_ms > 1000000000ULL || bus_end_ms > 1000000000ULL
                 || (bus_end_ms && bus_end_ms <= bus_start_ms))
             throw std::runtime_error("require bus-start-ms < bus-end-ms <= 1000000000 (end 0 means unbounded)");
+        if (fetch_window_requested && !video_dump_path)
+            throw std::runtime_error("fetch window options require --video-dump");
+        if (fetch_start_ms > 1000000000ULL || fetch_end_ms > 1000000000ULL
+                || (fetch_end_ms && fetch_end_ms <= fetch_start_ms))
+            throw std::runtime_error("require fetch-start-ms < fetch-end-ms <= 1000000000 (end 0 means unbounded)");
         // Bound time arithmetic and avoid an entirely reset-only smoke run.
         if ((!restore_path && (cycles <= reset_cycles || reset_cycles == 0)) || cycles > 1000000000000ULL)
             throw std::runtime_error("require 0 < reset-cycles < cycles <= 1000000000000");
@@ -739,10 +753,16 @@ int main(int argc, char **argv) {
                         && !top.rootp->top__DOT__machine__DOT__Cpu__DOT__Z80CPU__DOT__i_tv80_core__DOT__BusAck
 #endif
                         && !top.cpu_mreq_n && !top.cpu_rd_n && top.cpu_iorq_n;
-                    if (opcode_pending && !fetch && !top.reset)
+                    const bool in_window = context.time() >= fetch_start_ms * 1000000000ULL
+                        && (!fetch_end_ms || context.time() < fetch_end_ms * 1000000000ULL);
+                    if (opcode_pending && !fetch && !top.reset && opcode_eligible && in_window)
                         ++opcode_fetches[opcode_address];
                     // Count only completed M1 memory-read windows. A final
                     // partial fetch, refresh, operand, DMA or ACK is not one.
+                    // Every sampled fetch edge AND its completion must lie in
+                    // [start,end). Do not count a fetch already active at start
+                    // or still active at end; reset discards pending windows.
+                    if (fetch) opcode_eligible = opcode_pending ? opcode_eligible && in_window : in_window;
                     opcode_pending = fetch;
                     if (fetch) opcode_address = top.cpu_address;
                 }
@@ -1057,6 +1077,10 @@ int main(int argc, char **argv) {
 #ifdef X1_DMA_KANJI_EXPERIMENT
         crtc_observation += ",\"dma_kanji_experiment\":true";
 #endif
+        if (fetch_window_requested)
+            crtc_observation += ",\"fetch_start_ms\":" + std::to_string(fetch_start_ms)
+                + ",\"fetch_end_ms\":" + std::to_string(fetch_end_ms)
+                + ",\"fetch_window_policy\":\"whole_completed_m1_half_open\"";
         std::printf("{\"machine\":\"sharpx1\",\"turbo_foundation\":%s,\"turbo_video_master\":%s,\"turbo_dma\":%s,\"turbo_dma_irq\":%s,\"turbo_kanji\":%s,\"turbo_fm_cpu\":%s,\"z_palette_cpu_experiment\":%s,\"z_video_experiment\":%s,\"z_multimode_experiment\":%s,\"z_internal8_experiment\":%s,\"z_text_cpu_experiment\":%s,\"intra_assignment_delays\":%s,\"sys_hz\":%llu,\"video_hz\":%llu,"
                     "\"time_ps\":%llu,\"sys_edges\":%llu,\"video_edges\":%llu,"
                     "\"reset_edges\":%llu,\"cpu_enables\":%llu,\"delayed_sys_edges\":%llu,"

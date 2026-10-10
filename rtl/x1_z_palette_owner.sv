@@ -50,5 +50,9 @@ module x1_z_palette_owner #(parameter LOCAL_RESET_RELEASE = 0) (
     // operation from treating the previous grant's delayed deassertion as its
     // own lease. Video resumes only after the synchronized request falls.
     assign cpu_permit=!reset && !cpu_reset && state==OWNED && grant_sync[1] && cpu_request;
-    assign display_allowed=!reset && !video_reset && !video_grant;
+    // video_reset already asserts asynchronously from reset. Masking reset
+    // again here bypasses destination-local release and sends raw SYS reset
+    // through display_read into video-domain palette selection D pins.
+    // Compatible mode is unchanged: its video_reset is exactly raw reset.
+    assign display_allowed=!video_reset && !video_grant;
 endmodule

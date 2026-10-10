@@ -33,7 +33,7 @@ observation/repeat gate, not game boot. Its no-observation counterpart also
 completes zero. Independent rehashing and cross-comparison prove identical
 protected inputs/executable, reports and all six ordinary machine artifacts
 with observations on/off, in both cold runs. The 32-second observed native
-cold/repeat is still running; no result is inferred from its launch.
+cold/repeat subsequently completes zero.
 
 The first 32-second cold run subsequently finishes (repeat still running).
 Its executable and protected inputs rehash identically to the 16-second
@@ -47,12 +47,53 @@ The all-invocation `.cpu-fetches` population includes boot/foreground work.
 The 31–32-second trace has 160,677 I/O events, mostly graphics, but is I/O-only
 and cannot substitute for late-only M1 fetch observations. Its actual PNG
 is visually black and matches all 256,000 source RGB pixels exactly.
-No repeatability/gameplay verdict is issued until the repeat terminates.
+The repeat subsequently terminates zero with identical reports and all
+nineteen artifacts, including the late I/O trace. Independent rehashing
+passes all eight protected inputs, the frozen runner and every artifact
+in both runs. This is repeatability of the black handler-stage endpoint,
+not gameplay acceptance or late-only opcode-starvation proof.
 
 Outputs: `verilator/obj_dir_v17_rtc_x3_dma_kanji/special-probes/`
 `arcus-observer-smoke-1s/` and `arcus-dma-rtc-x3-kanji-observed-32s/`.
 Logs: `/tmp/x1-arcus-observer-smoke-1s.log` and
 `/tmp/x1-arcus-dma-rtc-kanji-observed-32s.log`.
+
+### Time-windowed opcode follow-up
+
+The runner now accepts `--fetch-start-ms`/`--fetch-end-ms` with `--video-dump`.
+The half-open window counts only whole completed M1 memory reads: every
+sample and completion must lie inside it. Reads straddling either boundary,
+reset-cancelled reads and unfinished final reads are excluded. Default zero/
+zero retains the existing whole-invocation behavior and report shape.
+Explicit windows report their bounds and `whole_completed_m1_half_open`;
+the native collector rejects a runner that does not acknowledge that policy.
+
+`test-opcode-window` passes with an original CPU JP-0000 program and an
+independent full-bus-sample oracle, including partial boundaries, empty future
+windows, identical other machine outputs and rejecting CLI controls.
+Six synthetic collector contracts pass separately. Log
+`/tmp/x1-opcode-window-first.log`, terminal zero; frozen ordinary runner
+`bbcdfd196e63e245947d4c25099127774cc59e47ed19c20a7a437484b35d6448`.
+This is observation validation, not a CTC-policy or CPU execution change.
+The subsequent explicit-zero recheck also passes a full-window metadata case
+and four CLI rejections, including zero-valued options without a video dump.
+Log `/tmp/x1-opcode-window-explicit-zero.log`, terminal zero; its frozen runner
+is `de3ffc34dfec79d5fa44c6e602b4e6e3c0dd3c72d471841209af853cdaba3681`.
+When options are omitted, the existing default report shape is unchanged.
+
+The actual combined one-second cold/repeat with a 500–1000-ms opcode window
+also completes zero. Independent auditing proves eight unchanged private
+inputs and eighteen matching artifacts per run. Every other artifact/report
+matches the earlier whole-invocation observer after removing only the three
+new explicit-window metadata fields. Log `/tmp/x1-arcus-opcode-window-smoke.log`.
+
+The new protected 32-second cold/repeat now runs with fetches limited to
+31,000–32,000 ms, matching its I/O trace window. Frozen executable SHA-256
+`1c28d702391672f656d11411a4783b75b0db67b4ac3e3165d5966d81a452e137`;
+collector and launch inputs are frozen in
+`verilator/obj_dir_v17_rtc_x3_dma_kanji_window/`, with output
+`arcus-late-m1-32s/` and log `/tmp/x1-arcus-late-m1-32s.log`.
+Its result remains pending; do not infer starvation or gameplay from launch.
 
 ## Shared-machine evidence
 

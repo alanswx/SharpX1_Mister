@@ -12,7 +12,7 @@ import probe_special_titles as probe
 
 
 class ObservationContract(unittest.TestCase):
-    def collect(self, turbo, fault=None):
+    def collect(self, turbo, fault=None, window=False):
         with tempfile.TemporaryDirectory(prefix="x1-probe-contract-") as directory:
             root = pathlib.Path(directory)
             for name in ("runner", "rom", "keys", "disk"):
@@ -25,6 +25,8 @@ class ObservationContract(unittest.TestCase):
                     "--rom", str(root / "rom"), "--keys", str(root / "keys"),
                     "--seconds", "1", "--output", str(root / "output"),
                     "--video-observations"]
+            if window:
+                argv += ["--fetch-start-ms", "2", "--fetch-end-ms", "5"]
 
             def run(command, **kwargs):
                 self.assertIn("--video-dump", command)
@@ -43,6 +45,11 @@ class ObservationContract(unittest.TestCase):
                         data += b"changed"
                     pathlib.Path(str(prefix) + suffix).write_bytes(data)
                 report = {"disk_writes": 0, "turbo_foundation": turbo}
+                if window and fault != 'ignored-window':
+                    self.assertEqual(command[command.index('--fetch-start-ms') + 1], '2')
+                    self.assertEqual(command[command.index('--fetch-end-ms') + 1], '5')
+                    report.update(fetch_start_ms=2, fetch_end_ms=5,
+                                  fetch_window_policy='whole_completed_m1_half_open')
                 return probe.subprocess.CompletedProcess(command, 0, json.dumps(report), "")
 
             with patch("sys.argv", argv), patch.object(probe.subprocess, "run", run), \
@@ -59,6 +66,13 @@ class ObservationContract(unittest.TestCase):
 
     def test_turbo(self):
         self.collect(True)
+
+    def test_window(self):
+        self.collect(True, window=True)
+
+    def test_ignored_window_rejected(self):
+        with self.assertRaisesRegex(RuntimeError, 'requested opcode observation window'):
+            self.collect(True, 'ignored-window', window=True)
 
     def test_missing_observation_rejected(self):
         with self.assertRaises(FileNotFoundError):

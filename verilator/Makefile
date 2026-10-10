@@ -1540,6 +1540,20 @@ $(HEADLESS_DIR)/hps-video-cdc/Vhps_video_cdc_tb: ../sys/hps_io.sv ../rtl/x1_cdc_
 
 .PHONY: test-hps-video-cdc
 
+test-hps-hdmi-measure: $(HEADLESS_DIR)/hps-hdmi-measure/Vhps_hdmi_measure_tb $(HEADLESS_DIR)/hps-hdmi-measure-negative/Vhps_hdmi_measure_negative_tb
+	./$(HEADLESS_DIR)/hps-hdmi-measure/Vhps_hdmi_measure_tb
+	@ulimit -c 0; log=$(HEADLESS_DIR)/hps-hdmi-measure-negative/negative.log; \
+	  if ./$(HEADLESS_DIR)/hps-hdmi-measure-negative/Vhps_hdmi_measure_negative_tb >$$log 2>&1; then echo 'FAIL raw HDMI bypass accepted'; exit 1; fi; \
+	  rg -q 'HDMI input bypassed two-stage synchronizer' $$log || { echo 'FAIL unexpected HDMI negative'; exit 1; }; \
+	  echo 'PASS raw HDMI bypass rejected by unchanged two-stage oracle'
+$(HEADLESS_DIR)/hps-hdmi-measure/Vhps_hdmi_measure_tb: ../sys/hps_io.sv ../rtl/x1_cdc_snapshot.sv tests/hps_hdmi_measure_tb.sv
+	$(V) --binary --timing --assert --top-module hps_hdmi_measure_tb --Mdir $(@D) \
+	  -j 4 ../sys/hps_io.sv ../rtl/x1_cdc_snapshot.sv tests/hps_hdmi_measure_tb.sv -Wno-fatal
+$(HEADLESS_DIR)/hps-hdmi-measure-negative/Vhps_hdmi_measure_negative_tb: ../sys/hps_io.sv ../rtl/x1_cdc_snapshot.sv tests/hps_hdmi_measure_tb.sv
+	$(V) --binary --timing --assert --top-module hps_hdmi_measure_negative_tb --Mdir $(@D) \
+	  -j 4 ../sys/hps_io.sv ../rtl/x1_cdc_snapshot.sv tests/hps_hdmi_measure_tb.sv -Wno-fatal
+.PHONY: test-hps-hdmi-measure
+
 # Native-software probes without snapshots; --timing remains the diagnostic
 # reference. Keep this separate from the base savable gameplay executable.
 obj_dir_turbo_fast/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
@@ -1747,6 +1761,10 @@ test-commercial-cold-plan:
 test-special-probe-observations:
 	python3 tests/test_special_probe_observations.py
 .PHONY: test-special-probe-observations
+
+test-opcode-window: headless
+	python3 tests/test_opcode_window.py ./$(HEADLESS_EXE)
+.PHONY: test-opcode-window
 
 test-runner-build-isolation:
 	mkdir -p $(HEADLESS_DIR)
@@ -1967,7 +1985,7 @@ $(HEADLESS_DIR)/z-effect-machine-%/Vz_effect_machine_tb: tests/z_effect_machine_
 	  -GEFFECT_ENABLED=$* -j 4 tests/z_effect_machine_tb.sv $(MACHINE_SRC) -Wno-fatal
 .PHONY: test-machine-z-effects
 
-test: headless test-rgb12 test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner test-d88-crc test-d88-metadata test-cpu-busreq test-special-probe-observations test-runner-build-isolation
+test: headless test-rgb12 test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner test-d88-crc test-d88-metadata test-cpu-busreq test-special-probe-observations test-runner-build-isolation test-opcode-window
 	python3 tests/test_joystick_schedule.py ./$(HEADLESS_EXE)
 	python3 tests/test_key_script.py ./$(HEADLESS_EXE) $(VIDEO_TEST_FLAGS)
 	python3 tests/test_video_modes.py ./$(HEADLESS_EXE) $(VIDEO_TEST_FLAGS)

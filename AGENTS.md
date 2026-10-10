@@ -95,6 +95,15 @@ Use `test-runner-build-isolation`; see `docs/RUNNER_BUILD_ISOLATION_STATUS.md`.
 Outer make remains incremental. Preserve rejected/counterfactual artifacts;
 never feed assets merely to make a wrong-profile executable run.
 
+`--fetch-start-ms`/`--fetch-end-ms` require `--video-dump`; explicit windows
+count only whole completed M1 reads inside the half-open interval. Default
+zero/zero preserves whole-invocation observations. Use `test-opcode-window`
+and collector policy metadata before interpreting late native handler counts.
+The experimental palette owner's display permission must use video-local
+reset, not a raw SYS reset bypass. Opt-in HPS HDMI-period measurement consumes
+only its second VS sample; keep the first-stage fanout isolated. See
+`docs/HDMI_MEASUREMENT_CDC_STATUS.md` for local versus physical gates.
+
 The timing regression checks independent clocks, deterministic reset/divider
 phase, delayed events, repeatability, and FST output. The video clock defaults
 to the checked-in PLL's 28.571428 MHz, not the intended 28.636 MHz; the PLL

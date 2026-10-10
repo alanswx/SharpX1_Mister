@@ -18,6 +18,12 @@ the remaining physical and unimplemented-feature gates.
 
 ## Current status
 
+The experimental palette owner no longer bypasses video-local reset release,
+and HDMI period measurement now synchronizes its raw VS input before edge
+detection. Local live-signal/reset/control tests pass; fresh pixels and fitted
+CDC/timing acceptance remain separate. See
+[the follow-up](docs/HDMI_MEASUREMENT_CDC_STATUS.md).
+
 The separate [RTC/X3/DMA/Kanji/FM profile](docs/RTC_DMA_KANJI_FM_STATUS.md)
 now passes elapsed/reset, six keyboard and four active RTC/FDC/DMA checks.
 Actual CPU-programmed mixed PSG/FM sound also cold-repeats exactly with
