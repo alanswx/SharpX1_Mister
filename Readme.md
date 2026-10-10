@@ -149,6 +149,9 @@ separate crossings, I/O and hardware acceptance remain open.
 See the [chip-by-chip implementation survey](docs/CORE_STATUS.md) for the
 current wiring audit and [downloaded hardware manuals](references/manuals/README.md)
 for schematics and machine documentation.
+The [Turbo Z effect-control audit](docs/TURBO_Z_EFFECT_CONTROL_STATUS.md)
+now includes a standalone exhaustively tested programming decoder. Actual
+capture, mosaic/key/scroll rendering and input-video integration remain unimplemented.
 The standalone [SIO clock-event adapter](docs/SIO_EDGE_CLOCK_STATUS.md) now
 preserves serial edges and sampled RX data across enable gaps; independent
 queue tests and real CTC/SIO diagnostics pass. Shared event routing is opt-in;

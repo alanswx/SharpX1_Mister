@@ -220,6 +220,11 @@ extra GRAM. The digital RGB output reduces analog multi-mode colors to eight
   normal/inverse chroma key and horizontal/vertical mosaic dimensions listed
   on page 5. Test physical video input separately; an absent input must not
   masquerade as a working digitizer.
+  The [primary effect-control audit](TURBO_Z_EFFECT_CONTROL_STATUS.md) now
+  resolves programming encodings from printed pages 280–282. Its separate
+  original decoder passes 264,192 configurations and two negative controls;
+  it is not integrated CPU storage, capture, mosaic/key/scroll rendering or
+  physical input. Follow its explicit pipeline/ownership gates before integration.
 - [ ] Z9: native software acceptance, analog/multi-mode test programs and
   diagnostic input patterns; cold/warm reset during palette/capture/SD/DMA,
   unchanged assets and repeatable input/audio/screens. Record source-bound

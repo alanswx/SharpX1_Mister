@@ -234,6 +234,22 @@ $(HEADLESS_DIR)/z-layer-order/Vz_layer_order_tb: tests/z_layer_order_tb.sv ../rt
 	$(V) --binary --timing --assert --top-module z_layer_order_tb --Mdir $(@D) \
 	  -j 4 tests/z_layer_order_tb.sv ../rtl/x1_z_layer_order.sv
 .PHONY: test-z-layer-order
+test-z-effect-control: $(HEADLESS_DIR)/z-effect-control/Vz_effect_control_tb
+	./$(HEADLESS_DIR)/z-effect-control/Vz_effect_control_tb
+	@for fault in QUANT SCROLL; do \
+	  negative_log=$$(mktemp $(HEADLESS_DIR)/z-effect-control/negative-XXXXXX); \
+	  if (ulimit -c 0; ./$(HEADLESS_DIR)/z-effect-control/Vz_effect_control_tb +NEGATIVE_$$fault) >$$negative_log 2>&1; then \
+	    echo "FAIL: effect decoder negative $$fault accepted"; exit 1; \
+	  fi; \
+	  case $$fault in QUANT) message=quantization;; SCROLL) message='scroll activation/control';; esac; \
+	  rg -q "$$message" $$negative_log || { echo 'FAIL: unexpected negative failure'; exit 1; }; \
+	  echo "PASS: unchanged effect oracle rejects $$fault fault"; \
+	done
+$(HEADLESS_DIR)/z-effect-control/Vz_effect_control_tb: tests/z_effect_control_tb.sv ../rtl/x1_z_effect_control.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module z_effect_control_tb --Mdir $(@D) \
+	  -j 4 tests/z_effect_control_tb.sv ../rtl/x1_z_effect_control.sv
+.PHONY: test-z-effect-control
 test-z-priority-register: $(HEADLESS_DIR)/z-priority-register/Vz_priority_register_tb
 	@for hold in 1 4 7; do ./$(HEADLESS_DIR)/z-priority-register/Vz_priority_register_tb +HOLD_EDGES=$$hold || exit 1; done
 $(HEADLESS_DIR)/z-priority-register/Vz_priority_register_tb: tests/z_priority_register_tb.sv ../rtl/x1_z_priority_register.sv Makefile

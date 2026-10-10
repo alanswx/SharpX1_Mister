@@ -1254,5 +1254,8 @@ capability profile. The existing `TURBO=1` build is not Turbo Z support.
 - [ ] Add second-level Kanji, mouse/serial and RTC/control-processor behavior.
 - [ ] Research/implement capture quantization/inversion, mosaic, chroma key,
   extra scroll and superimpose/telopper, with a deterministic test video source.
+  Primary encodings and a standalone decoder now pass exhaustive local checks;
+  see `TURBO_Z_EFFECT_CONTROL_STATUS.md`. Input sampling, CPU integration,
+  line-buffer/GRAM ownership, actual effects and native/physical gates remain open.
 - [ ] Validate native Z software, pending-operation resets, Quartus/CDC and
   physical video/input/audio. EMM/SASI remain separately scoped expansions.
