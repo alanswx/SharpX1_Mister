@@ -1409,6 +1409,9 @@ Preserve each frozen runner; do not rebuild historical v05.
   2 KiB per PCG plane and 16 KiB per GRAM plane; RAM/GRAM diagnostics pass.
 - [x] Boot the checked-in IPL and capture native IPL/game frames.
 - [ ] Resolve IPL/BASIC licensing/provenance and verify BASIC compatibility.
+  The initial protected native HuBASIC probe is running; release identification,
+  prompt/command acceptance and model comparisons remain open. See
+  `BASIC_NATIVE_STATUS.md`; deterministic execution is not BASIC compatibility.
 - [x] Boot one native D88 game (CROSS Chase) and verify repeatable PS/2 movement.
 - [ ] Add memory/I/O bus assertions for unmapped accesses and contention.
 - [ ] Compare CPU-visible behavior against MAME traces for a short boot window.

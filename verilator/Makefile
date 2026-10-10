@@ -1682,6 +1682,9 @@ test-probe-timeout:
 	python3 tests/test_probe_timeout.py
 
 .PHONY: test-probe-timeout
+test-basic-native-probe:
+	python3 -B tests/test_basic_native_probe.py
+.PHONY: test-basic-native-probe
 
 test-hps-video-cdc: $(HEADLESS_DIR)/hps-video-cdc/Vhps_video_cdc_tb
 	./$(HEADLESS_DIR)/hps-video-cdc/Vhps_video_cdc_tb

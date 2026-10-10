@@ -194,6 +194,35 @@ fixture SHA-256:
 The adjacent exhaustive control/negative target also repeats successfully
 (`/tmp/x1-z-adc-adjacent-controls.log`).
 
+### FIFO destination and unresolved capture significance
+
+A further sheet-45/46 and IC-pin-map audit binds the destination after the
+line buffers. Main independently reads the saved IC55 and FIFO/IC58 crops;
+the three source-PDF hashes above are unchanged. The FIFO outputs feed
+**IC55 IX0867CE**, not a demonstrated second input stage inside IC58.
+
+| Channel | ADC D1..D4 into IC58 | IC58 into FIFO | FIFO output into IC55 |
+| --- | --- | --- | --- |
+| Blue | BD11/21/31/41, pins 21/22/23/24 | BD12/22/32/42, pins 76/74/72/70; IC57 DIN0..3 | BDO0..3, pins 9/11/13/17 |
+| Red | RD11/21/31/41, pins 17/18/19/20 | RD12/22/32/42, pins 59/58/57/56; IC57 DIN4..7 | RDO0..3, pins 18/19/20/21 |
+| Green | GD11/21/31/41, pins 12/13/15/16 | GD12/22/32/42, pins 77/75/73/71; IC56 DIN0..3 | GDO0..3, pins 8/10/12/16 |
+
+The manufacturer establishes ADC D1 as MSB, but this does not label Techknow's
+capture D0. The full-color source diagrams (printed 121/122, figures 4-9/4-10)
+and palette table 4-22 (printed 156) establish GRAM/display-source significance:
+the first blue display source addresses PA0, corresponding to CPU DB7 and
+logical blue bit 3. They do **not** establish the capture transformations from
+ADC inputs through IC58, nor FIFO channels through IC55 into GRAM source planes.
+Consequently neither logical palette bit 0 nor the first FIFO channel may be
+silently substituted for the documented chroma-key capture bit0.
+
+The remaining binding needs an explicit ASIC description or native capture
+with controlled component codes, CPU GRAM readback and displayed pixels that
+distinguish permutations and the published reductions. The existing MAME
+logging-only handlers cannot supply that evidence. Ignored pin-detail renders:
+`/tmp/x1-capture-bitbinding.S9v1MJ/`. No numeric quantizer, key comparator,
+capture write or new capability is implemented by this external wiring audit.
+
 A web follow-up also inspected the [eX1 developer's own WIP page](https://takeda-toshiya.my.coocan.jp/x1twin/index.html).
 Its 2017-05-15 entry explicitly describes mosaic-related functions as
 unimplemented and asks for 64-/4096-color verification. Do not use its

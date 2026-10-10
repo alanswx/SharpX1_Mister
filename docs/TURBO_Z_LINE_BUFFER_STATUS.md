@@ -187,6 +187,10 @@ do not infer a native tie value or valid capture data from them. The twelve
 buffer-input nets are IC58 pins 76/74/72/70, 59/58/57/56 and 77/75/73/71.
 The upstream ADC-to-ASIC transformation is still unresolved: matching suffix
 names do not prove inversion, quantization or sample phase.
+The subsequent destination audit traces BDO/RDO/GDO0..3 to IC55 IX0867CE,
+not back into a demonstrated IC58 input stage; see the explicit endpoint table
+in `TURBO_Z_EFFECT_CONTROL_STATUS.md`. IC55's internal capture-to-GRAM packing
+is a separate unresolved boundary from IC58's ADC-to-FIFO transformation.
 
 This closes the six **endpoint** mappings, not their waveform generation or
 machine integration. Keep independent storage clocks in the device model;
