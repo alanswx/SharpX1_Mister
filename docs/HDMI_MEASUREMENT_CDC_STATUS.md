@@ -91,7 +91,11 @@ under ignored `verilator/obj_dir_v17_z_reset_bypass/qualification-cfbnUw/`.
 All seven requested profile flags and SYS32/VID42.954540 pass actual preflight.
 Runner/oracle/emitter/ANK are frozen before execution, alongside a source
 archive; `all-120/completed.json` is the incremental authority. Log
-`/tmp/x1-z-reset-bypass-all-120.log`. Launch/preflight is not pixel acceptance.
+`/tmp/x1-z-reset-bypass-all-120.log`. It now terminates zero with all 120 cases;
+independent regeneration qualifies 8,960,000 RGB pixels, all CPU programs and
+60 retained-reset traces. The exact historical RTL/runner source distinction
+is recorded in [combined qualification](TURBO_Z_COMBINED_STATUS.md#completed-palette-local-reset--measurement-cdc-checkpoint).
+This does not qualify later machine changes, native Z software or hardware.
 
 ## Remaining physical gates
 

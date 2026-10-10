@@ -1,5 +1,63 @@
 # Combined experimental Turbo Z video qualification
 
+## Completed palette-local-reset / measurement-CDC checkpoint
+
+October 10: the frozen reset-bypass follow-up now exits zero with all 120
+original cases under
+`verilator/obj_dir_v17_z_reset_bypass/qualification-cfbnUw/all-120/`.
+Log: `/tmp/x1-z-reset-bypass-all-120.log`. Runner SHA-256:
+`f6eb69653a34db659ce253ad1fde8f09e5cfcb23aea2d86bde9a68197c0124a6`.
+
+Independent read-only auditing regenerates all 120 CPU programs and
+**8,960,000 RGB pixels**, checks exact ordered case/completion rosters,
+before/after frozen hashes, all seven actual feature flags, SYS32/VID42.954540,
+halted CPU completion, frame timing and the 60 warm-reset traces. The warm
+traces require actual CRTC/PPI reinitialization and no palette/GRAM/text refill.
+Actual and saved-expected PPMs must both match the regenerated oracle, not just
+each other. All evidence bytes remain unchanged throughout the audit.
+Independent audit log: `/tmp/x1-z-reset-bypass-independent-audit.log`.
+
+The checked-in read-only auditor additionally requires the exact physical
+four/five-second durations and SYS/VID edge counts. Its complete rerun exits
+zero in `/tmp/x1-z-reset-bypass-tracked-audit.log`. Eight disposable evidence
+controls reject executable drift, incomplete completion, reordered cases,
+changed input manifests/programs/actual pixels/saved expected pixels and a
+warm-reset GRAM refill. The originals are never edited. Control log:
+`/tmp/x1-z-reset-bypass-auditor-controls.log`.
+
+```sh
+python3 -B verilator/tests/audit_z_reset_bypass_matrix.py \
+  verilator/obj_dir_v17_z_reset_bypass/qualification-cfbnUw
+python3 -B verilator/tests/test_z_reset_bypass_auditor.py \
+  verilator/obj_dir_v17_z_reset_bypass/qualification-cfbnUw
+```
+
+The auditor is deliberately bound to this exact historical diagnostic, not a
+generic newer runner or an asset-free CI fixture. Auditor SHA-256:
+`911b8b8b9c1499777aeab09d04423af838f5b8e3bfdbb2f7ce7f526b2a8df1ee`.
+
+The source archive SHA-256 is
+`d2bf1d0a82cbb9f3c8c8069231a48980500e3aeded119bfeec0db4a8189c6e2c`.
+All **145 real archived RTL files**, plus the simulator top and Makefile, match
+`git show aa05dd2` byte-for-byte (AppleDouble metadata is not HDL). The archived
+C++ runner instead has the pre-commit optional opcode-observer argument policy;
+its SHA-256 is
+`4b095b40df525e172a9f8a8b12f67cd4bbe1a49ce79208b3544d15cd3a2ca3a8`.
+It is therefore not a claim of complete `aa05dd2` source identity. Those
+observer options are unused by this matrix. Later RTC/FDC/cassette changes
+are not qualified by this historical video checkpoint.
+
+Frozen oracle/emitter/scheduler/ANK SHA-256, respectively:
+
+- `1e03a9ecd39af3f049ef924db059c5bd5827c10879e479a593181da517009117`
+- `8dcc3c61cf7127ef36e374f8926ac6face79f36e588506cc5c39f0c9e1fc5ee2`
+- `638fd9ef33f6e316a5ff7435683362f2c5a92614f1eb13a92793d6e460e5f1df`
+- `68aa689abd81c1a620980b5318b669b292a72d4877916ec43dc2461d713c831b`
+
+This is bounded generated CPU/video acceptance, not native ASIC policy,
+Turbo Z software, capture/effects, source-bound Quartus timing or hardware
+acceptance. No new RBF or enabled ordinary profile follows from this result.
+
 ## Completed PCG-local-reset 120-case checkpoint
 
 October 10: the frozen `d2df8a1` matrix now terminates zero with all 120

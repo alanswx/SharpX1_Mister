@@ -85,7 +85,10 @@ native 2HD density or mechanical timing. See
 The experimental palette owner no longer bypasses video-local reset release,
 and HDMI period measurement now synchronizes its raw VS input before edge
 detection. Local live-signal/reset/control tests pass; fresh pixels and fitted
-CDC/timing acceptance remain separate. See
+CDC/timing acceptance remain separate. The frozen combined-video follow-up
+now passes all 120 cases and independent regeneration of 8,960,000 RGB pixels;
+its exact historical source binding is recorded separately, not current-machine
+or hardware acceptance. See
 [the follow-up](docs/HDMI_MEASUREMENT_CDC_STATUS.md).
 
 The completion-source replication-prevention candidate passes fresh native

@@ -91,8 +91,10 @@ native density/FDCCLK/RPM/format or software/hardware HD acceptance; see
 The fifth-fit worst paths now have concrete RTL repairs: palette display
 permission no longer bypasses video-local reset, and opt-in HPS HDMI-period
 measurement consumes only the second synchronized VS stage. Live measurement,
-connected ownership/reset/CPU-control and wrapper-lint gates pass. A fresh
-frozen 120-case pixel matrix is running; fitted topology/timing and hardware
+connected ownership/reset/CPU-control and wrapper-lint gates pass. The frozen
+120-case pixel matrix now exits zero, with independent regeneration of all
+8,960,000 RGB pixels and 60 warm-reset traces. It qualifies its archived
+historical source only; fitted topology/timing, later machine changes and hardware
 remain open. See `HDMI_MEASUREMENT_CDC_STATUS.md`.
 The replication-prevention fit now has an exact same-fit sixth-bank constraint
 qualification: 384 reports preserve active/raw/mode rows and all eleven bound
