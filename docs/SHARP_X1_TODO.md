@@ -132,6 +132,11 @@ The separate fresh full ordinary delay-aware suite now completes zero with
 143 PASS reports and an unchanged final runner hash. Video/transition,
 keyboard/reset, PSG, memory/bus, dual-media and disk/loader/helper checks pass;
 this does not replace fresh Turbo/Z pixel, native software or FPGA gates.
+The fresh full ordinary fast/snapshot/SDL suite also completes zero with
+140 PASS reports and unchanged executable hash. Its eighteen video/transition
+reports match the fresh delay-aware run. Five new release-bound native-boot
+commercial collectors are now running from a checked frozen input tree;
+they are started, not yet gameplay passes. See `BASELINE_V17_STATUS.md`.
 
 Fresh extracted native-policy runs now check 396 held-mode changes while
 blanked with a closed output clock, including synthetic delayed-policy cases.

@@ -84,3 +84,37 @@ fast-suite acceptance, bytewise frame-file comparison, native gameplay or
 FPGA behavior. An early comparison rejected the live log's missing final
 transition case; no coverage assertion was loosened. CI's synthetic audit
 passes nineteen invalid profile/input/timing/coverage controls.
+
+The fresh full `test-fast` subsequently completes with observed exit zero
+and **140 PASS reports** (`/tmp/x1-pcg-reset-full-fast.log`). Final executable
+hash matches its initial `88bb30c8...f45ac69` identity above. This includes
+the existing ordinary snapshot continuation/old-header/clock/joystick and
+SDL-adapter tests, along with video/transitions, reset/keyboard, PSG,
+memory/bus/sub-CPU and disk/helper diagnostics. It remains a no-delay model,
+not the timing reference; the separately completed fresh delay-aware suite
+and eighteen-case video comparison qualify their stated diagnostic scopes.
+
+## Fresh five-title launch after local-reset repair
+
+All five original collectors are now running from ignored frozen root
+`verilator/obj_dir_headless/pcg-reset-games-RVmiod/`, on the current ordinary
+fast runner hash above. Source/runner/collector/key/font/BIOS/vendor copies
+are frozen; all **646** entries in `inputs.sha256` pass before launch and
+again during native boot (`/tmp/x1-pcg-reset-games-{initial,live}-inputs.log`).
+An initial shell enumeration failed to generate a hash manifest, before any
+collector launch; its empty manifest is preserved at
+`/tmp/x1-pcg-reset-games-failed-initial-manifest.sha256`. The corrected
+enumeration is fully checked rather than treating that failed attempt as
+provenance.
+
+Collectors use the same existing authorized release-bound disk images, native
+IPL and original controls for Xevious, Tower of Druaga, Mappy, Galaga and
+Shanghai. Each starts anew with `--boot-chunk-ms 8000 --timeout 7200`; the
+16-second native boot and later simulated control durations are unchanged.
+Shanghai retains native cursor-feedback preparation; Galaga retains firing
+checks. Each collector makes its own runner copy and hashes original assets
+and actual native prefix states. No old state conversion or game-byte patch
+is used. Logs: `/tmp/x1-pcg-reset-games-{xevious,druaga,mappy,galaga,shanghai}.log`.
+Started is not gameplay acceptance. Earlier five-title passes remain
+historical for their frozen runners; these new results, full input checks,
+Turbo/Z native software and hardware gates remain separate.
