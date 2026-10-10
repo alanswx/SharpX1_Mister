@@ -124,6 +124,15 @@ The PPI width latch is retained during this reset; do not assume it clears.
 See `docs/TURBO_Z_PAIRED_VIDEO_STATUS.md` for current composition and running
 pixel gates. This diagnostic does not qualify rendered pixels or hardware CDC placement.
 
+`RTC_ENABLE=1` is a separate non-savable shared-machine experiment, enabled
+only in SV diagnostics, not C++ or board revisions. See `docs/RTC_MACHINE_STATUS.md`.
+Index 6 uploads the local derived 8-KiB controller image only during drained
+`core_reset`; index 7/address 0/value 1 explicitly denotes simulated clock
+storage loss, not native I/O or warm reset. Do not embed derived firmware or
+wire chip power reset to ordinary reset. Enabled DMA/upload/snapshot/native
+year and whole-Z80 warm-reset gates remain open. Disabled profiles retain v17;
+their actual pre-RTC generated-state restore is separately checked.
+
 Snapshot format v17 rejects older states after the signed shared FM audio
 interface/state increment (v16 added the FM bus; v15 the shared serial interface).
 X3 additionally requires revision 3 (identity bit 38) after

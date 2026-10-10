@@ -44,6 +44,13 @@ both unchanged-firmware and extended-firmware startup pass. No ordinary
 machine/board enables this firmware or experimental response path. Real Z80
 mailbox timing, IRQ/FDC/DMA coexistence, short/in-flight resets, year/power and
 native acceptance still prevent closing RTC/Z7.
+The subsequent opt-in `x1_sub` and shared-machine RTC integration now passes
+public firmware upload/readback, host commands, timer IRQs and retained-clock
+reset at all three SYS frequencies. Actual shared Z80/PPI EC..EF execution
+passes elapsed seconds with the original defect diagnostic; the disabled
+control still fails correctly. Ordinary boards/runners stay disabled. Native
+year/power, full Z80 reset/DMA coexistence, snapshots of an enabled profile,
+Quartus and hardware remain open. See [current RTC gates](RTC_MACHINE_STATUS.md).
 
 The RTC firmware rebuild dependency now has a tested restricted replacement
 assembler: the unchanged inherited source reproduces all 4,096 ROM bytes,

@@ -33,6 +33,11 @@ mailbox routines with the new callbacks at CE=1/32, including elapsed seconds
 and retained-clock warm reset. A reset-vector retention repair is confined to
 the opt-in response experiment. Actual Z80/sub-CPU integration, native year/
 power policy and interrupt/FDC/DMA coexistence remain open.
+The new default-off [shared RTC profile](docs/RTC_MACHINE_STATUS.md) now passes
+actual Z80 EC..EF elapsed seconds using an original ioctl-loaded IPL. Its
+sub-controller also passes public upload/readback, running timer IRQs and
+retained-clock reset at three frequencies. Ordinary profiles stay disabled;
+native year/power, full-machine reset/DMA and hardware acceptance remain open.
 
 The experimental handoff revision's early/fitted HDMI pin guard now accepts
 three exact observed whole-bank profiles, not arbitrary per-bit alternatives.

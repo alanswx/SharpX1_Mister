@@ -39,6 +39,11 @@ set_global_assignment -name VERILOG_FILE rtl/tv80/tv80_mcode.v
 set_global_assignment -name VERILOG_FILE rtl/tv80/tv80_alu.v
 set_global_assignment -name VERILOG_FILE rtl/tv80/tv80_reg.v
 set_global_assignment -name VERILOG_FILE rtl/sub_cpu.v
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_mr16_rom_decode.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_rtc_clock_enable.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_cz880_rtc.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_upd1990_counter.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_upd1990_calendar.sv
 set_global_assignment -name VERILOG_FILE rtl/sub_rom.v
 set_global_assignment -name VERILOG_FILE rtl/mr16_x1.v
 set_global_assignment -name VERILOG_FILE rtl/mr16core.v

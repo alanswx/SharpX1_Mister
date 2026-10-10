@@ -1,6 +1,6 @@
 // Sharp X1 base-machine integration. Shared by MiSTer and simulation.
 // See docs/BASE_X1_CONTRACT.md for address-map sources and limitations.
-module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0, TURBO_DSW = 241, TURBO_DMA_RESTART_IRQ = 0, TURBO_Z_PALETTE_CPU = 0, TURBO_Z_VIDEO = 0, TURBO_Z_MULTIMODE = 0, TURBO_Z_INTERNAL8 = 0, TURBO_Z_TEXT_CPU = 0, TURBO_SIO = 0, TURBO_FM_CPU = 0) (
+module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0, TURBO_DSW = 241, TURBO_DMA_RESTART_IRQ = 0, TURBO_Z_PALETTE_CPU = 0, TURBO_Z_VIDEO = 0, TURBO_Z_MULTIMODE = 0, TURBO_Z_INTERNAL8 = 0, TURBO_Z_TEXT_CPU = 0, TURBO_SIO = 0, TURBO_FM_CPU = 0, RTC_ENABLE = 0) (
     input clk_sys, clk_28636, reset,
     input pal, scandouble,
     input ioctl_download,
@@ -623,10 +623,18 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     end else begin : compatible_blink
         assign display_blink=clk1;
     end endgenerate
-    x1_sub #(.CLOCK_HZ(SINGLE_CLOCK ? MASTER_HZ : 32000000), .PS2_RECEIVE_ONLY(1), .IRQ_ACK_ONCE(TURBO)) subCPU (
-        .I_reset(core_reset), .I_clk(clk_sys), .I_cs(sub_cs),
-        .I_rd(io_read), .I_wr(io_write), .I_M1_n(m1),
-        .I_D(data_out), .O_D(sub_data), .O_DOE(), .O_clk1(clk1),
+    // Default-off, non-savable RTC integration. Index 6 is the local derived
+    // controller image. Index 7/address 0/value 1 explicitly denotes simulated
+    // configuration/storage loss, NOT native CPU I/O or ordinary warm reset.
+    // Neither upload is accepted before the owned reset drain completes.
+    wire rtc_firmware_load = RTC_ENABLE && core_reset && !ioctl_wait &&
+        ioctl_download && ioctl_wr && ioctl_index==6 && ioctl_addr<8192;
+    wire rtc_power_reset = RTC_ENABLE && core_reset && !ioctl_wait &&
+        ioctl_download && ioctl_wr && ioctl_index==7 && ioctl_addr==0 && ioctl_dout==1;
+    x1_sub #(.CLOCK_HZ(SINGLE_CLOCK ? MASTER_HZ : 32000000), .PS2_RECEIVE_ONLY(1), .IRQ_ACK_ONCE(TURBO), .RTC_ENABLE(RTC_ENABLE)) subCPU (
+        .I_reset(core_reset), .I_rtc_power_reset(rtc_power_reset), .I_clk(clk_sys), .I_cs(sub_cs),
+        .I_rd(io_read), .I_wr(io_write || rtc_firmware_load), .I_M1_n(m1),
+        .I_D(rtc_firmware_load ? ioctl_dout : data_out), .O_D(sub_data), .O_DOE(), .O_clk1(clk1),
         .O_FDC_DRQ_n(), .I_FDCS(1'b0), .I_RFSH_n(1'b1),
         .I_RFSH_STB_n(1'b1), .I_DMA_CS(1'b0),
         .O_DMA_BANK(), .O_DMA_A(), .I_DMA_D(8'hff), .O_DMA_D(),
@@ -634,7 +642,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         .O_DMA_BUSRQ_n(), .I_DMA_BUSAK_n(1'b1), .I_DMA_RDY(1'b0),
         .I_DMA_WAIT_n(1'b1), .I_DMA_IEI(1'b1),
         .O_DMA_INT_n(), .O_DMA_IEO(), .O_PCM(), .O_FD_LAMP(),
-        .I_fa(13'd0), .I_fcs(1'b0), .I_PS2C(ps2_clk_in), .I_PS2D(ps2_data_in),
+        .I_fa(RTC_ENABLE ? ioctl_addr[12:0] : 13'd0), .I_fcs(rtc_firmware_load), .I_PS2C(ps2_clk_in), .I_PS2D(ps2_data_in),
         .O_PS2CT(), .O_PS2DT(), .O_TX_BSY(sub_tx_busy), .O_RX_BSY(sub_rx_busy),
         .O_KEY_BRK_n(), .I_SPM1(TURBO ? keyboard_ack : !m1 && !iorq), .I_RETI(1'b0),
         .I_IEI(1'b1), .O_INT_n(sub_int_n), .O_JOY_A(), .O_JOY_B(),

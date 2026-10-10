@@ -5,7 +5,7 @@ module keyboard_receiver_tb #(parameter CLOCK_HZ = 32000000,
     reg clk = 0, reset = 1, ps2_clk = 1, ps2_data = 1;
     always #(500000000.0/CLOCK_HZ) clk = !clk;
     x1_sub #(.CLOCK_HZ(CLOCK_HZ), .PS2_RECEIVE_ONLY(RECEIVE_ONLY)) dut(
-        .I_reset(reset), .I_clk(clk), .I_cs(1'b0), .I_rd(1'b0), .I_wr(1'b0),
+        .I_reset(reset), .I_rtc_power_reset(1'b0), .I_clk(clk), .I_cs(1'b0), .I_rd(1'b0), .I_wr(1'b0),
         .I_M1_n(1'b1), .I_D(8'd0), .O_D(), .O_DOE(), .O_clk1(),
         .O_FDC_DRQ_n(), .I_FDCS(1'b0), .I_RFSH_n(1'b1), .I_RFSH_STB_n(1'b1),
         .I_DMA_CS(1'b0), .O_DMA_BANK(), .O_DMA_A(), .I_DMA_D(8'd0), .O_DMA_D(),

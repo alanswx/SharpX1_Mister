@@ -76,6 +76,7 @@ verilator/obj_dir_turbo_dma/
 verilator/obj_dir_turbo_dma_irq/
 verilator/obj_dir_turbo_dsw_f5_fast/
 verilator/obj_dir_qualification_fast/
+verilator/obj_dir_rtc_disabled_fast/
 verilator/obj_dir_v14_*/
 verilator/obj_dir_v15_*/
 verilator/obj_dir_v16_*/

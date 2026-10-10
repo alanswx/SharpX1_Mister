@@ -696,6 +696,7 @@ assign dma_sel = (~ZRFSH_n | ~ZBUSAK_n) & ~firm_en;
 
 x1_sub #(11,1) x1_sub(
   .I_reset(sub_reset),
+  .I_rtc_power_reset(1'b0),
 // SUBCPU (DMAC) basic clock
   .I_clk(clk32M),
 // Z80 system bus

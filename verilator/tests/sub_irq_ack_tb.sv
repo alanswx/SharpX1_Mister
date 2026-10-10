@@ -27,7 +27,7 @@ module sub_irq_ack_tb #(parameter CLOCK_HZ = 32000000);
         .ctc_reti(ctc_reti), .ctc_selected(ctc_selected), .ack_vector(ack_vector)
     );
     x1_sub #(.CLOCK_HZ(CLOCK_HZ), .PS2_RECEIVE_ONLY(1), .IRQ_ACK_ONCE(1)) dut (
-        .I_reset(reset), .I_clk(clk), .I_cs(cs), .I_rd(rd), .I_wr(wr),
+        .I_reset(reset), .I_rtc_power_reset(1'b0), .I_clk(clk), .I_cs(cs), .I_rd(rd), .I_wr(wr),
         .I_M1_n(m1_n), .I_D(host_data), .O_D(sub_data), .O_DOE(), .O_clk1(),
         .O_FDC_DRQ_n(), .I_FDCS(1'b0), .I_RFSH_n(1'b1), .I_RFSH_STB_n(1'b1),
         .I_DMA_CS(1'b0), .O_DMA_BANK(), .O_DMA_A(), .I_DMA_D(8'hff), .O_DMA_D(),

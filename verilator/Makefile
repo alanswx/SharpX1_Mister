@@ -1756,6 +1756,24 @@ test-rtc-mr16-firmware-control: $(HEADLESS_DIR)/rtc-mr16-firmware-1/Vrtc_mr16_fi
 	ulimit -c 0; python3 tests/test_rtc_mr16_firmware.py --control $^
 .PHONY: test-rtc-mr16-firmware-control
 
+SUB_RTC_SOURCES = tests/sub_rtc_tb.sv ../rtl/sub_cpu.v ../rtl/sub_rom.v ../rtl/dpram.sv $(filter-out tests/rtc_mr16_compact_tb.sv,$(RTC_COMPACT_SOURCES))
+SUB_RTC_HZ = 32000000 28636364 28571428
+test-sub-rtc: $(foreach hz,$(SUB_RTC_HZ),$(HEADLESS_DIR)/sub-rtc-$(hz)/Vsub_rtc_tb)
+	ulimit -c 0; python3 tests/test_sub_rtc.py $^
+$(HEADLESS_DIR)/sub-rtc-%/Vsub_rtc_tb: $(SUB_RTC_SOURCES) Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module sub_rtc_tb --Mdir $(@D) \
+	  -GCLOCK_HZ=$* -j 4 $(SUB_RTC_SOURCES) -Wno-fatal
+.PHONY: test-sub-rtc
+
+test-machine-rtc: $(HEADLESS_DIR)/machine-rtc-1/Vmachine_rtc_tb $(HEADLESS_DIR)/machine-rtc-0/Vmachine_rtc_tb
+	ulimit -c 0; python3 tests/test_machine_rtc.py $^
+$(HEADLESS_DIR)/machine-rtc-%/Vmachine_rtc_tb: tests/machine_rtc_tb.sv $(MACHINE_SRC) $(MACHINE_MANIFEST) Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module machine_rtc_tb --Mdir $(@D) \
+	  -GRTC_ENABLED=$* -j 4 tests/machine_rtc_tb.sv $(MACHINE_SRC) -Wno-fatal
+.PHONY: test-machine-rtc
+
 test: headless test-rgb12 test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner test-d88-crc test-d88-metadata test-cpu-busreq
 	python3 tests/test_joystick_schedule.py ./$(HEADLESS_EXE)
 	python3 tests/test_key_script.py ./$(HEADLESS_EXE) $(VIDEO_TEST_FLAGS)

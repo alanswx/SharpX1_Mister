@@ -1,5 +1,9 @@
 # Calendar/RTC contract and current missing-tick diagnostic
 
+The ordinary profile still reproduces the defect below. The new default-off
+sub-controller/shared-Z80 integration passes a separate elapsed-time gate;
+see [current integration and remaining gates](RTC_MACHINE_STATUS.md).
+
 October 9, 2026. The machine presently implements partial MR16 command
 storage, not a working battery-backed clock. No active-machine firmware/RTL
 or default profile has been changed in this investigation. Z7 and the sub-CPU milestone remain
