@@ -1,5 +1,22 @@
 # DMA single-clock FPGA qualification revision
 
+## October 10 current-source build gate
+
+The latest guarded idle-host check permits a fresh Quartus 17.0.2 full flow
+at 08:02:29 UTC, source `3c6242e771446dc11843cc8f4b7d4c58430b8f17`.
+This is the separate `sharpx1_turbo_z_handoff` revision, **not** a rebuild or
+new qualification of the DMA single-clock revision below. Frozen remote root:
+`/home/alans/mister/SharpX1_Mister/output_files/quartus-linux-VlAoOluh/source`;
+input-manifest SHA-256:
+`5643c4693d104110957118b0b62b93ccb13fcd1b836d7434a61bec9a5a841219`.
+Launcher PID 1836585/session 39592 and live synthesis are observed; local log
+`/tmp/x1-quartus-3c6242e-handoff-local.XhSvnjgI`. It remains running, with no
+terminal flow, timing or hardware acceptance. The C++ RTC/X3/Kanji profile
+does not enable those devices in this board revision. Older outputs and
+other cores/media are preserved; no MiSTer is loaded or reset.
+
+## Earlier DMA source-bound qualification
+
 October 8, 2026. `sharpx1_turbo_dma_single` is a separate opt-in FPGA revision,
 inheriting `sharpx1_turbo_single` and enabling the existing shared-machine DMA,
 completion IRQ and EOB-only restart IRQ. SYS/video use the checked-in actual

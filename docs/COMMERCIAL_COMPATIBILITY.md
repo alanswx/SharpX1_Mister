@@ -545,7 +545,14 @@ are running in `arcus-rtc-x3-late-start-16s/` and
 and `/tmp/x1-bastard-rtc-x3-late-start-16s.log`. They use the same qualified
 frozen pre-container-repair runner to isolate input, not current-RTL or verified
 release instructions. Native Kanji is disabled in that runner; its dialog
-cannot qualify Kanji text. Combined RTC/X3/Kanji elapsed/reset/keyboard and
+cannot qualify Kanji text.
+
+The first cold late-input capture still has the same final RGB as its original
+probe; its repeat remains running. Arcus's real bus trace observes one `0D`
+read at port `1900` at 8001.287390625 ms, so the later Enter does reach the
+actual host mailbox. Bastard makes no `1900` accesses in this bounded window.
+Neither observation establishes why the software stays at dialog/title.
+Combined RTC/X3/Kanji elapsed/reset/keyboard and
 ten synthetic pixel diagnostics now pass with independent auditing; see
 `RTC_MACHINE_STATUS.md`. Fresh sixteen-second cold/repeat trials are running
 under `obj_dir_v17_rtc_x3_kanji/special-probes/`, directories
