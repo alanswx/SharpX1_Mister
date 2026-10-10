@@ -174,9 +174,10 @@ Four disposable evidence mutations reject at the exact pixel, retained-phase,
 held-waveform and plain-C-false-stop assertions. This strengthens artifact/
 oracle integrity; it is not a second simulator execution or native acceptance.
 
-The live older frozen 130-second native probe now visibly says `IPL is loading
-RALLY-X`; header recognition is not completed loading or gameplay. Its binary
-and assets are unchanged by this runner extension. Native cold repeats,
+The live older frozen 130-second native probe has progressed beyond the
+`IPL is loading RALLY-X` display to score/map/car graphics. The observed PNG is
+private ignored evidence, not a terminal loading or controls/gameplay pass.
+Its binary and assets are unchanged by this runner extension. Native cold repeats,
 loading/game input, recording/APSS and hardware remain separate gates. No
 existing RBF enables cassette.
 

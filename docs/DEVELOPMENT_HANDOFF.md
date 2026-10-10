@@ -1,6 +1,6 @@
 # Sharp X1 development handoff
 
-Updated October 10, 2026, 18:16 UTC. The active goal remains **unfinished**:
+Updated October 10, 2026, 18:29 UTC. The active goal remains **unfinished**:
 complete work groups 1–6 and documented Turbo Z. Component diagnostics,
 historical game screenshots and a fitted RBF do not close that goal.
 
@@ -79,10 +79,15 @@ No load/reset/input was sent during this follow-up. Coordinate operator
 availability before changing it. Leave `mister192` untouched; `mister14` last
 had another core and has not been used in this follow-up.
 
-At 18:16:22 UTC the build host still has foreign `quartus_fit` PID 2352689,
-`SunSparcStation -c SunSparcStation20`. Do not interrupt it or launch competing
+At the 18:29 UTC read-only check the build host still has foreign `quartus_fit`
+PID 2352689, `SunSparcStation -c SunSparcStation20`, plus a `MacPPC7300`
+compile/map (PIDs 2435380/2435412). Do not interrupt them or launch competing
 Quartus work. The isolated 9cc timing-study launcher remains deferred, not
 completed. Primary remote checkout and fitted originals must remain preserved.
+
+The current local TAP parser rerun completes zero with 356 synthetic checks
+(`/tmp/x1-z-kanji-continuation-tap-parser.log`); transport/native loading is
+not inferred from parser success.
 
 Latest hardware-tested DMA RBF and scope are in
 [the hardware feature matrix](HARDWARE_DMA_FEATURE_MATRIX_STATUS.md) and

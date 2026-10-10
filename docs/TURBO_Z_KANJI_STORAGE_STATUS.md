@@ -1,9 +1,10 @@
 # Turbo Z Kanji physical storage contract
 
 October 10, 2026. The physical decoder and full-size selector/store components
-are implemented/tested;
-second-level machine storage, native font loading and glyph rendering remain
-unimplemented. This does not complete work group 3 or Z7.
+are implemented/tested. Default-off second-level machine storage and normal-size
+glyph rendering now have an early synthetic CPU/pixel pass; full-matrix,
+native-font and FPGA backing-storage acceptance remain open. This does not
+complete work group 3 or Z7.
 
 ## Primary pin trace
 
@@ -123,7 +124,29 @@ Qualified selector/store SHA-256:
 - `690d71fcf8fdbaaaece7738d28d2ac7dd34a5b8f561a738152690fa3ce126bf8`
 - `d8e70cba447b0e3ed6096eeab8546cc032d260720e7cd2962db3fa3c70087335`
 
-The shared-machine CPU/WAIT and load-aligned display integration is the next
-qualification, not inferred from these component passes. Actual pixel, CPU
-instruction, pending-reset, ordinary-state and external FPGA-memory gates
-remain mandatory. No existing board or ordinary runner enables these modules.
+## Early shared-machine acceptance; exhaustive qualification still live
+
+The separate `TURBO_Z_KANJI` integration uses the full simulation store and
+highest-cell selector. It freezes an 18-bit CPU address through the existing
+WAIT/response protocol and captures display character/control/attribute/raster
+at request. Unsupported Kanji and invalid responses suppress text ink after
+reverse/blink, without forcing underlying graphics to black. Initial supported
+display scope is high-scan R6=25/R9=15, normal-size text; broader modes,
+double-width ANK/PCG, underline and native ASIC phases are not qualified.
+
+The frozen `x1-machine-z-kanji-zgfae1jf` probe/render80 collector completes
+zero. Independent Main audit with `audit_z_kanji_machine.py` confirms 32 real
+CPU read payloads, three complete 640x400 frames (768,000 exact pixels), physical
+frame periods and unchanged evidence/current inputs. Bound input-manifest hash:
+`b05977f68aab2207e48a0b8a5c2624f5f4b841b140ab02ceccc142a0d94ad857`.
+No native ROM bytes are used. These are generated physical-font diagnostics,
+not native software or hardware acceptance.
+
+The `hhofb8uy` matrix has fourteen accepted bounded CPU/pixel/loader/reset
+cases, but its exhaustive 262,144-address real-CPU scan remains live; whole-
+matrix terminal acceptance and independent auditing are pending. The early
+pass does not qualify that unfinished run. Ordinary base/Turbo generated state
+is unchanged, and ordinary fast/snapshot checks complete zero. Final-current
+delay-aware regression remains in progress. See `DEVELOPMENT_HANDOFF.md` for
+job identities and source scope. No existing board or ordinary runner enables
+the Z store; external FPGA backing memory remains mandatory.
