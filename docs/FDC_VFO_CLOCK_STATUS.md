@@ -38,7 +38,7 @@ withdrawn, without claiming whole-device electrical equivalence.
 | --- | --- | --- |
 | IC416 CK 8 → IC417 CLK 24 | Controller master clock | Source-bound enable integration |
 | IC416 DW 4 → IC417 RCLK 26 | Recovered read-data window | Native VFO/flux timing |
-| IC420 MIN 6 → IC416 MIN 1 | ASIC-controlled rate selection | Exact IN-latch truth table and BUSY policy |
+| IC420 MIN (sheet 48: pin 6) → IC416 MIN 1 | ASIC-controlled rate selection | Conflicting pin map, IN-latch truth table and BUSY policy |
 | Separate ASIC 1.6M and drive-class route | Capacity/mechanical signal | RPM, low-current and installed-drive behavior |
 
 Implementing the chip's known MIN polarity is now better supported than
@@ -47,6 +47,20 @@ ASIC's internal latch/control function. Keep the strict-D88 experiment's
 explicit diagnostic 1/2-MHz enables until that function is independently
 qualified. Do not silently change ordinary board clocks, index rate, seek
 timing or snapshots, or mark native 2HD support complete.
+
+### Additional Sharp pin-map contradiction
+
+Subsequent visual inspection of the same service manual's PDF/printed 67
+identifies RH-IX0870CEZZ MIN at **pin 11**, whereas the sheet-48 schematic
+labels its MIN connection **pin 6**. The pin-map marks 6 as unused. Both
+drawings identify MFM at 12 and 1.6M at 47, so the MIN disagreement is not
+resolved by shifting all pin numbers. Preserve both observations; do not
+silently choose the pin map or the schematic as measured board truth.
+The MIN net's named function and the MB4107's own MIN pin 1 remain supported,
+but the physical ASIC pin needs another board revision, part reference or
+measurement. PDF 68/69 were also viewed for neighboring chip identification;
+neither supplies an internal disk-control truth table. PDF 71 is a keyboard
+code table, not an ASIC implementation diagram.
 
 The standalone MB4107A download URL returned HTTP 404; it was not retrieved.
 The original 1988 book retrieval succeeded through the mirror. PDFs and
