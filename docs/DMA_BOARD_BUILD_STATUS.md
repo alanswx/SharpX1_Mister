@@ -9,9 +9,13 @@ new qualification of the DMA single-clock revision below. Frozen remote root:
 `/home/alans/mister/SharpX1_Mister/output_files/quartus-linux-VlAoOluh/source`;
 input-manifest SHA-256:
 `5643c4693d104110957118b0b62b93ccb13fcd1b836d7434a61bec9a5a841219`.
-Launcher PID 1836585/session 39592 and live synthesis are observed; local log
-`/tmp/x1-quartus-3c6242e-handoff-local.XhSvnjgI`. It remains running, with no
-terminal flow, timing or hardware acceptance. The C++ RTC/X3/Kanji profile
+Launcher PID 1836585/session 39592 and live synthesis/fitting were observed;
+local log `/tmp/x1-quartus-3c6242e-handoff-local.XhSvnjgI`. The full flow now
+terminates **exit 3** at 08:15:43 UTC: final STA rejects an unreviewed
+whole-prefetch D/ASDATA profile. Fitting precedes this failure; the guard is
+not loosened and there is no full-flow timing or hardware acceptance.
+Native fitted-profile discovery and immutable artifact auditing are pending.
+The C++ RTC/X3/Kanji profile
 does not enable those devices in this board revision. Older outputs and
 other cores/media are preserved; no MiSTer is loaded or reset.
 

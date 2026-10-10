@@ -1,5 +1,18 @@
 # HDMI output mode qualification — timing/hardware open
 
+## October 10 current-source full flow: fitted guard rejection
+
+The guarded source-bound `3c6242e771446dc11843cc8f4b7d4c58430b8f17` flow
+starts at 08:02:29 UTC and terminates exit 3 at 08:15:43 UTC, after fitting.
+Final STA refuses an unreviewed whole-prefetch D/ASDATA profile. The four
+previously qualified patterns are not broadened or silently reapplied.
+Native discovery and original-artifact preservation auditing are pending;
+the partial STA transcript cannot establish final constrained timing.
+Remote frozen root is `output_files/quartus-linux-VlAoOluh/source` on
+`misterubuntu`; log `/tmp/x1-quartus-3c6242e-handoff-local.XhSvnjgI`.
+See [build identity and gates](DMA_BOARD_BUILD_STATUS.md#october-10-current-source-build-gate).
+No new timing-qualified RBF or MiSTer acceptance is inferred.
+
 ## Actual inherited policy
 
 `sys/sys_top.v` uses the same `~vga_fb & direct_video` expression for the

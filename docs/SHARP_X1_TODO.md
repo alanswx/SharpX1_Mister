@@ -49,7 +49,10 @@ launch, so no new X1 fit, RBF or hardware result exists from those attempts.
 The subsequent idle-host check succeeds: a fresh source-bound
 `3c6242e771446dc11843cc8f4b7d4c58430b8f17` handoff full flow actually starts
 at 08:02:29 UTC October 10 in remote `quartus-linux-VlAoOluh/source`.
-It is still running, not a fit/timing/RBF/hardware pass. No MiSTer is loaded.
+It now terminates exit 3 at 08:15:43 UTC after fitting, with final STA rejecting
+an unreviewed whole-prefetch D/ASDATA profile. The guard remains intact;
+native discovery/preservation auditing are next, not timing or hardware
+acceptance. No MiSTer is loaded.
 
 The CPU-only Turbo Z effect-storage prototype now passes 1,024 actual Z80
 byte roundtrips, AEN/DAM/neighbor isolation, retained-IPL reset and a disabled
