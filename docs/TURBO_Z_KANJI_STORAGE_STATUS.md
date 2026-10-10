@@ -150,3 +150,21 @@ is unchanged, and ordinary fast/snapshot checks complete zero. Final-current
 delay-aware regression remains in progress. See `DEVELOPMENT_HANDOFF.md` for
 job identities and source scope. No existing board or ordinary runner enables
 the Z store; external FPGA backing memory remains mandatory.
+
+Independent auditor review initially found seven evidence mutations that could
+pass, including omitted frames. The strengthened auditor now requires case-
+defined frame counts, exact command and local-log bindings, complete generated
+asset roster/program reproduction, chronological events and one consistent
+terminal record. It refuses optimized Python execution rather than silently
+disabling assertion gates. Original and copied early baselines still pass;
+all fourteen previous mutations plus binary/hex IPL digest-rebinding and `-O`
+controls reject at matched diagnostics. The 197 original evidence files remain
+unchanged. Review evidence: `/tmp/x1-z-kanji-auditor-rereview-pXi2RqA1/`;
+auditor SHA-256:
+`cef13e8586c867462672891abb5946533349ea470766f93c8c55f9c23e084673`.
+This verifies the auditor's bounded evidence contract, not completion of the
+still-running exhaustive machine test.
+
+The [external-font implementation plan](TURBO_Z_EXTERNAL_FONT_PLAN.md) records
+full storage, display deadlines, coherence, reset-drain and physical gates.
+An isolated DDR backend is being developed; it is not yet integrated or passed.
