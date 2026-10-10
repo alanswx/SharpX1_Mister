@@ -225,6 +225,11 @@ extra GRAM. The digital RGB output reduces analog multi-mode colors to eight
   original decoder passes 264,192 configurations and two negative controls;
   it is not integrated CPU storage, capture, mosaic/key/scroll rendering or
   physical input. Follow its explicit pipeline/ownership gates before integration.
+  The follow-up sheet/datasheet audit identifies six-bit ADCs with only D1–D4
+  connected and distinct ASIC/line-buffer nets. A separate digital pin adapter
+  passes every code/absence combination; actual ADC clocks, ASIC packing and
+  GRAM sequencing remain unresolved. Do not model the line buffers as direct
+  ADC FIFOs without tracing those intervening controls.
 - [ ] Z9: native software acceptance, analog/multi-mode test programs and
   diagnostic input patterns; cold/warm reset during palette/capture/SD/DMA,
   unchanged assets and repeatable input/audio/screens. Record source-bound

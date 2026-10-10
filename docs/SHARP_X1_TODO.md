@@ -1257,5 +1257,7 @@ capability profile. The existing `TURBO=1` build is not Turbo Z support.
   Primary encodings and a standalone decoder now pass exhaustive local checks;
   see `TURBO_Z_EFFECT_CONTROL_STATUS.md`. Input sampling, CPU integration,
   line-buffer/GRAM ownership, actual effects and native/physical gates remain open.
+  The follow-up primary ADC wiring audit and digital adapter exhaust all
+  code/validity combinations; they do not implement analog sampling or capture.
 - [ ] Validate native Z software, pending-operation resets, Quartus/CDC and
   physical video/input/audio. EMM/SASI remain separately scoped expansions.

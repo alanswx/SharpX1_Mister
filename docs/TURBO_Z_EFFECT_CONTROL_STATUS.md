@@ -78,3 +78,67 @@ hosted results are separate from this local pass.
    guess a full-color chroma comparison from the three-bit key selector.
 5. Qualify native Z software, fitted resources/CDC/timing and physical video
    input/output separately. Decoder success does not complete Z8 or the goal.
+
+## Physical digital-input boundary audit
+
+Re-rendered/read CZ-880 service-manual sheet 46, including ADC, IC58 and
+line-buffer details, and adjoining sheet 45. Source SHA-256:
+`70a5f8da327ed25710e76d60117c4f82a655e6a7b29a34cb3239c75f0bd65a81`.
+The existing Fujitsu 1990 Linear Products Data Book MB40576 sheets were also
+read: PDF pages 588–590/592/594, printed 7-77–79/81/83. Book SHA-256:
+`8360ba1bd0e9fc408f385daee32faa12cf52e35aad843b5561bd5f73e6c34268`.
+This changes the input-boundary plan; it does not resolve the custom ASIC.
+
+- IC74/75/76 are six-bit MB40576 ADCs for B/R/G. Their D1/D2/D3/D4 pins
+  (6/5/4/3) connect to `BD11..BD41`, `RD11..RD41`, `GD11..GD41`.
+  D5/D6 (pins 2/1) are explicitly NC. The manufacturer's pin/block drawings
+  identify D1 as MSB and D6 as LSB; thus the connected nibble is the upper
+  four bits of a six-bit conversion code, not the lower four bits or a
+  reversed nibble. Its example output-code table is increasing unsigned binary.
+- These twelve nets reach IC58 IX0871CE, alongside ADCCLK and capture/mode/
+  sync controls. IC58 internals, further 1/2/3-bit packing, inversion and
+  timing are not shown; do not equate these pins with already formatted GRAM.
+- IC57 uPD41101C takes `BD12..BD42` and `RD12..RD42`, not the direct ADC
+  `...11/21/31/41` nets. IC56 takes `GD12..GD42` in its low four inputs.
+  They return `BDO0..3`/`RDO0..3`/`GDO0..3`, with shared clock/reset/control
+  wiring and IC58 line-memory controls. This rules out simply wiring the
+  ADC nibble into a guessed generic capture FIFO. The complete ASIC/FIFO/
+  GRAM sequencing and direction still require qualification.
+- The MB40576 timing diagram shows a sampled conversion appearing at the
+  following rising clock edge plus output delay (5/18/40 ns min/typ/max in
+  its specified conditions). Minimum high/low clock widths are 25 ns each.
+  The actual board ADCCLK generation/phase is not yet established; do not
+  sample on every X3 edge or assume the datasheet's typical delay is measured
+  on this machine. RGB front-end gain/clamp/reference controls also remain
+  outside the current digital model.
+
+The original stateless `rtl/x1_z_adc_pinmap.sv` now implements only the
+settled **digital code** to connected-nibble relationship. Its `rgb12` uses
+the core's R:G:B nibble order, not an inferred palette address. Caller-owned
+`source_connected && sample_valid` produces `pixel_valid`; invalid samples
+return zero as an interface convention, **not a valid captured black dot**.
+Future consumers must gate writes and buffer advancement on validity. There
+is no analog quantizer, simulated input clock, ADC pipeline, CPU integration,
+GRAM write or board pin in this helper. It is not in `machine.qip` and does
+not change any existing machine or frozen qualification runner.
+
+`make -C verilator test-z-adc-pinmap` terminates zero without suppressions:
+**1,048,576** cases exhaust all 64×64×64 input codes under all four
+connection/validity combinations, covering every discarded-bit alias.
+Three matched negatives fail the unchanged arithmetic oracle: swapped R/B,
+using low rather than high bits, and ignoring sample validity. Log:
+`/tmp/x1-z-adc-pinmap.log`. CI now schedules this asset-free test; hosted
+acceptance remains separate. This qualifies wiring and absent-source policy,
+not native capture or physical conversion.
+Adapter SHA-256:
+`96fcf18ad2790545f37395bda458f18cce8171c854d283d2add82fc60f03f565`;
+fixture SHA-256:
+`331bc68dc9cafc58f87a2c70d58a1597edb45a26975518397c6a7cf90d25cabc`.
+The adjacent exhaustive control/negative target also repeats successfully
+(`/tmp/x1-z-adc-adjacent-controls.log`).
+
+A web follow-up also inspected the [eX1 developer's own WIP page](https://takeda-toshiya.my.coocan.jp/x1twin/index.html).
+Its 2017-05-15 entry explicitly describes mosaic-related functions as
+unimplemented and asks for 64-/4096-color verification. Do not use its
+register retention as an executed reference for these effects. No independent
+capture algorithm or native timing trace was recovered from that page.
