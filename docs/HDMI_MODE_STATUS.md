@@ -1352,6 +1352,36 @@ Native completed-fit scope/preservation and a fresh source-bound final STA
 remain required. Other build-host projects are currently active, so no
 competing analyzer or another full build is started.
 
+## Fresh 048d996 handoff flow: fitted guard rejection
+
+Revision `sharpx1_turbo_z_handoff`, source
+`048d9968d5aeaa0013d2ab0a1816991f20fed1ad`, runs on misterubuntu at
+2026-10-10 05:58:29–06:07:08 UTC. Its preserved snapshot is
+`/home/alans/mister/SharpX1_Mister/output_files/quartus-linux-MYNcRVzw/source`;
+input-manifest SHA-256:
+`2d30392c315100f3dce5d5d7226f4165a370836e2992c96fa4cbe630a07b5d17`.
+
+Synthesis, fitting and assembly pass, but final STA terminates 3 with
+`unreviewed whole-prefetch D/ASDATA profile; repeat discovery`. The three
+previously qualified exact profiles do not authorize this newly fitted bank.
+No guard is loosened, no retry is launched and no core is deployed. Partial
+STA diagnostics report setup/hold **-9.962/-2.615 ns**, with MTBF not calculated;
+these are not a successful full-flow/eight-corner qualification.
+
+The generated, unqualified RBF SHA-256 is
+`16fd053ce22f7ab13f2a2d4982bda07092ede03a7011a5d98a3c3aa16e934a88`.
+Local log: `/tmp/x1-quartus-048d996-handoff-local.due3qQKo`;
+remote log: `/tmp/x1-quartus-048d996-handoff-remote.Gb9fULCx`.
+This board still leaves the experimental RTC disabled.
+
+A subsequent reporting-only fitted-inventory task checks availability once
+at 06:09:58 UTC, finds another project's active Quartus fit, and stops without
+creating a probe or touching preserved artifacts. Next: discover the exact
+24-prefetch pin/keeper/driver contract without SDC changes, qualify any new
+whole-bank scope independently, preserve active paths, then run a fresh flow.
+The initial launch's idle check is best-effort, not a host-wide reservation;
+another project started afterward. Never stop its job to obtain evidence.
+
 ## Next gates
 
 ### Unselected csync first-stage proposal

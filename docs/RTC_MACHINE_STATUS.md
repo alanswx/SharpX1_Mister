@@ -99,6 +99,31 @@ Derived controller image SHA-256:
 Frozen derivatives retain inherited restrictions; they are ignored, not
 release/distribution assets.
 
+## Actual shared Z80 retained-IPL warm reset
+
+`make -C verilator test-machine-rtc-reset` now passes a separate original
+dual-boot IPL. Its first real Z80 boot sets/reads the clock, executes the native
+delay loop, and halts with seconds 57. The bench holds ordinary reset for
+64,000,000 SYS events (two seconds), without reuploading either firmware or IPL.
+The second real CPU boot reads, rather than reprograms, the clock and stores
+date `31 C6 00`, time `12 34 59`, and marker `RTC3`. Cleared software YEAR is
+inherited controller behavior, not a native year-retention claim.
+
+The required negative performs explicit index-7 clock-storage loss during the
+same reset. It completes the actual second CPU branch but fails the unchanged
+retained-time oracle with date/time all zero. No CPU state or result RAM is
+forced in either run. This is a bounded idle/HALT reset at SYS 32 MHz and
+independent VID 28.571428 MHz, not short/in-flight reset or owned-DMA acceptance.
+
+Terminal-zero log: `/tmp/x1-machine-rtc-warm-first.log`; ignored frozen evidence:
+`verilator/obj_dir_headless/machine-rtc-reset/qualified-l8_jw2ym/`.
+Independent auditing verifies all 132 original inputs and frozen copies,
+the copied executable, emitted controller/IPL memories, identical before/after
+manifests, and both actual positive/rejecting logs. This follow-up changes the
+bench/Makefile after the earlier elapsed-time and sub-controller qualifications;
+those earlier frozen runs remain checkpoint-bound evidence, not current hash
+matches for these changed files.
+
 ## Default regression and remaining gates
 
 The RTC-disabled delay-aware build passes actual E7/E8/PS2 and six cold/steady
@@ -122,7 +147,7 @@ interface check (`/tmp/x1-rtc-default-wrapper-lint.log`), using the PLL stand-in
 It is not synthesis, timing or hardware acceptance.
 
 Still required: enabled C++ runner/identity or explicit save rejection;
-full shared-Z80 retained-IPL warm/in-flight reset; partial/malformed upload and
+short/in-flight shared-Z80 reset; partial/malformed upload and
 owned-DMA drain; real DMA/FDC/PS2/IRQ coexistence; native host byte-order/year/
 carry/leap/power policy; native BASIC/software; other clock/profile combinations;
 FPGA ROM inference, timing/CDC and physical clock behavior. No Turbo Z work

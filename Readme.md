@@ -37,7 +37,9 @@ The new default-off [shared RTC profile](docs/RTC_MACHINE_STATUS.md) now passes
 actual Z80 EC..EF elapsed seconds using an original ioctl-loaded IPL. Its
 sub-controller also passes public upload/readback, running timer IRQs and
 retained-clock reset at three frequencies. Ordinary profiles stay disabled;
-native year/power, full-machine reset/DMA and hardware acceptance remain open.
+An actual retained-IPL Z80 reboot also passes after two seconds of ordinary
+reset without asset reupload, with a rejecting storage-loss control. Native
+year/power, short/in-flight reset/DMA and hardware acceptance remain open.
 
 The experimental handoff revision's early/fitted HDMI pin guard now accepts
 three exact observed whole-bank profiles, not arbitrary per-bit alternatives.
@@ -50,6 +52,10 @@ constraint scope in three load contexts. A native same-fit diagnostic now passes
 independent scope/path-preservation auditing, but global setup still fails
 (-9.918 ns); fresh full-flow and hardware qualification remain open.
 Its generated RBF is unqualified and has not been deployed.
+The fresh `048d996` handoff flow also fits and assembles, but final STA refuses
+a newly fitted whole-bank D/ASDATA pin profile. Its guard stays strict; native
+inventory and a separately qualified scope repair are required before retry.
+No newly accepted hardware build is implied.
 
 For a blank screen on first launch, see [IPL loading](docs/IPL_LOADING.md):
 the RBF does not bundle the boot ROM. Load a matching raw `.rom` through

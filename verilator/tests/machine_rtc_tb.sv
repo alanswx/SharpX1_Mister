@@ -2,7 +2,7 @@
 // Original IPL + source-derived controller firmware via ioctl, actual Z80.
 // Ordinary profiles remain disabled. No RAM/CPU/RTC forcing or private IPL.
 `timescale 1ps/1ps
-module machine_rtc_tb #(parameter RTC_ENABLED=1);
+module machine_rtc_tb #(parameter RTC_ENABLED=1, RESET_TEST=0);
     bit clk=0,video_clk=0,reset=1,download=0,upload_wr=0;
     always #15625 clk=~clk;
     always #17500 video_clk=~video_clk;
@@ -58,6 +58,24 @@ module machine_rtc_tb #(parameter RTC_ENABLED=1);
             (dut.RAM.mem['hf025]==8'h57 || dut.RAM.mem['hf025]==8'h58))
             else $fatal(1,"machine RTC elapsed seconds mismatch sec=%h enabled=%0d",dut.RAM.mem['hf025],RTC_ENABLED);
         $display("PASS: shared machine real Z80 EC..EF IPL-driven elapsed seconds=%h, running MR16 timer IRQs=%0d, source-derived firmware uploaded through ioctl; native/year/reset/DMA/hardware separate",dut.RAM.mem['hf025],timer_acks);
+        if(RESET_TEST) begin
+            assert(RTC_ENABLED && dut.RAM.mem['hf025]==8'h57)
+                else $fatal(1,"machine RTC reset diagnostic starting phase changed");
+            // Keep the exact uploaded IPL/controller and let the real clock
+            // run for two seconds with CPU/FDC enables stopped by warm reset.
+            @(negedge clk);reset=1;
+            if($test$plusargs("NEGATIVE_COLD_RESET")) upload_byte(7,0,1);
+            repeat(64000000) tick();
+            @(negedge clk);reset=0;
+            repeat(32) tick();
+            for(integer i=0;i<2000000 && dut.halt_n;i++) tick();
+            assert(!dut.halt_n && dut.RAM.mem['hf003]==8'h33)
+                else $fatal(1,"machine RTC retained-IPL reset branch did not complete");
+            assert(dut.RAM.mem['hf030]==8'h31 && dut.RAM.mem['hf031]==8'hc6 && dut.RAM.mem['hf032]==0 &&
+                dut.RAM.mem['hf033]==8'h12 && dut.RAM.mem['hf034]==8'h34 && dut.RAM.mem['hf035]==8'h59)
+                else $fatal(1,"machine RTC warm retained-time mismatch date=%h%h%h time=%h%h%h",dut.RAM.mem['hf030],dut.RAM.mem['hf031],dut.RAM.mem['hf032],dut.RAM.mem['hf033],dut.RAM.mem['hf034],dut.RAM.mem['hf035]);
+            $display("PASS: actual shared Z80 retained-IPL warm reset reads retained calendar/two seconds and cleared software YEAR without controller/IPL reupload; owned DMA/in-flight/native gates separate");
+        end
         $finish;
     end
 endmodule

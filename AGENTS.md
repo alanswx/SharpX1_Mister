@@ -130,7 +130,9 @@ Index 6 uploads the local derived 8-KiB controller image only during drained
 `core_reset`; index 7/address 0/value 1 explicitly denotes simulated clock
 storage loss, not native I/O or warm reset. Do not embed derived firmware or
 wire chip power reset to ordinary reset. Enabled DMA/upload/snapshot/native
-year and whole-Z80 warm-reset gates remain open. Disabled profiles retain v17;
+year and short/in-flight whole-Z80 reset gates remain open. A bounded real-Z80
+retained-IPL HALT/warm-reset test passes without asset reupload; it does not
+qualify owned DMA or native year retention. Disabled profiles retain v17;
 their actual pre-RTC generated-state restore is separately checked.
 
 Snapshot format v17 rejects older states after the signed shared FM audio

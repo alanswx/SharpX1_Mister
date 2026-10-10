@@ -1774,6 +1774,14 @@ $(HEADLESS_DIR)/machine-rtc-%/Vmachine_rtc_tb: tests/machine_rtc_tb.sv $(MACHINE
 	  -GRTC_ENABLED=$* -j 4 tests/machine_rtc_tb.sv $(MACHINE_SRC) -Wno-fatal
 .PHONY: test-machine-rtc
 
+test-machine-rtc-reset: $(HEADLESS_DIR)/machine-rtc-reset/Vmachine_rtc_tb
+	ulimit -c 0; python3 tests/test_machine_rtc_reset.py $<
+$(HEADLESS_DIR)/machine-rtc-reset/Vmachine_rtc_tb: tests/machine_rtc_tb.sv $(MACHINE_SRC) $(MACHINE_MANIFEST) Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module machine_rtc_tb --Mdir $(@D) \
+	  -GRTC_ENABLED=1 -GRESET_TEST=1 -j 4 tests/machine_rtc_tb.sv $(MACHINE_SRC) -Wno-fatal
+.PHONY: test-machine-rtc-reset
+
 test: headless test-rgb12 test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner test-d88-crc test-d88-metadata test-cpu-busreq
 	python3 tests/test_joystick_schedule.py ./$(HEADLESS_EXE)
 	python3 tests/test_key_script.py ./$(HEADLESS_EXE) $(VIDEO_TEST_FLAGS)

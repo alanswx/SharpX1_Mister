@@ -14,6 +14,12 @@ support before optional Turbo extensions.
 
 ## Active goal: items 1–6 and Turbo Z (October 6)
 
+Latest source-bound `048d996` handoff flow passes synthesis/fit/assembly but
+terminates 3 at the strict final-STA whole-prefetch D/ASDATA profile guard.
+The unreviewed fitted profile is not whitelisted. Reporting-only discovery
+was deferred after an actual host check found another project's active fit;
+no competing process or MiSTer was disturbed. See the HDMI status for binding.
+
 The `4cd18ed` handoff flow now terminates 3: synthesis, fitting and assembly
 pass, but final STA fails a same-file Tcl helper's global-inventory dependency.
 The helper now receives its inventory explicitly; global/procedure/namespace
@@ -49,8 +55,13 @@ public firmware upload/readback, host commands, timer IRQs and retained-clock
 reset at all three SYS frequencies. Actual shared Z80/PPI EC..EF execution
 passes elapsed seconds with the original defect diagnostic; the disabled
 control still fails correctly. Ordinary boards/runners stay disabled. Native
-year/power, full Z80 reset/DMA coexistence, snapshots of an enabled profile,
+year/power, short/in-flight Z80 reset/DMA coexistence, snapshots of an enabled profile,
 Quartus and hardware remain open. See [current RTC gates](RTC_MACHINE_STATUS.md).
+The follow-up actual Z80 dual-boot test now passes retained-IPL warm reset
+without asset reupload: seconds advance 57 to 59 during a two-second reset,
+and inherited software YEAR clears. Explicit clock-storage loss fails the same
+retention oracle. This bounded idle/HALT gate does not qualify in-flight or
+owned-DMA reset, native YEAR, or an enabled board revision.
 
 The RTC firmware rebuild dependency now has a tested restricted replacement
 assembler: the unchanged inherited source reproduces all 4,096 ROM bytes,
