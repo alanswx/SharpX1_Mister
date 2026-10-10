@@ -162,6 +162,9 @@ Its standalone calendar backend now passes 351,748 arithmetic/invalid-state
 cases and three negative controls; timebase and command integration remain open.
 A separate oscillator-event counter backend now passes 1,201,499 edge checks;
 the machine's clock producer and serial/MCU integration are still missing.
+A standalone CZ-880 P1/T1 serial frontend now passes 137,050 edge checks and
+three wrong-pin controls. Its documented pin mapping is not yet connected to
+the replacement controller; machine elapsed-time acceptance still fails.
 The standalone [SIO clock-event adapter](docs/SIO_EDGE_CLOCK_STATUS.md) now
 preserves serial edges and sampled RX data across enable gaps; independent
 queue tests and real CTC/SIO diagnostics pass. Shared event routing is opt-in;

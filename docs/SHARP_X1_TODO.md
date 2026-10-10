@@ -1285,6 +1285,11 @@ capability profile. The existing `TURBO=1` build is not Turbo Z support.
   checks and three negative controls. It still needs a crystal-event producer,
   serial/MCU integration and physical/storage qualification; it is not an RTC
   enabled on any existing machine/board profile.
+  The board's exact P1/T1 serial routing is now traced; a standalone frontend
+  passes 137,050 scaled SYS edges and three wrong-pin controls. C2/TP are
+  grounded on CZ-880. Connect a crystal-event producer and verified controller
+  driver (the inherited MR16 ROM has only 22 bytes free), then require unchanged
+  real-CPU elapsed-time acceptance. Serial unit tests do not close Z7.
 - [ ] Research/implement capture quantization/inversion, mosaic, chroma key,
   extra scroll and superimpose/telopper, with a deterministic test video source.
   Primary encodings and a standalone decoder now pass exhaustive local checks;

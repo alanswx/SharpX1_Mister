@@ -18,9 +18,9 @@ timekeeping; Time Set holds the counter until another register-group command.
 These rules contradict a naive year-aware Gregorian chip replacement.
 The local MAME host-time/year policy is not native chip qualification.
 
-The actual CZ-880 serial wiring, controller-maintained year, invalid-date
-policy, leap correction, warm reset/power-loss retention and physical phase
-still require tracing and tests. Do not substitute a uPD4990 serial-command
+The CZ-880 serial wiring is now traced below. Controller-maintained year,
+invalid-date policy, leap correction, warm reset/power-loss retention and
+physical phase still require tracing and tests. Do not substitute a uPD4990 serial-command
 table or infer new pins from its backward-compatible mode.
 
 ## Existing firmware evidence
@@ -131,7 +131,7 @@ reset produces explicitly invalid state, not an invented date. Do not wire
 ordinary warm machine reset to that input as a shortcut for retention.
 Time Set holds calendar advancement and preserves the specified lower divider
 stages. `load_time` is a caller-qualified one-SYS command pulse, admitted only
-in that mode. Raw CS/STB/CLK decode belongs to the future serial frontend.
+in that mode. Raw CS/STB/CLK decode belongs to the separate serial frontend below.
 Invalid loaded bytes stay invalid under the continuing divider. Tick/month-wrap
 outputs are internal test interfaces, not claimed physical RTC pins.
 
@@ -157,9 +157,75 @@ native physical phase, snapshots, fitted timing and battery persistence remain
 required. The whole-machine EC..EF elapsed-time test still fails on the
 unchanged machine; these event-count tests do not fix or qualify that path.
 
+### CZ-880 pin audit and functional serial frontend
+
+The existing [CZ-880 service scan](https://eaw.app/Downloads/Manuals/Sharp/CZ-880_Service_Manual.pdf)
+sheet 47 is now inspected at pin-level resolution, with sheet 48 checked for
+adjacent routing. Scan SHA-256:
+`70a5f8da327ed25710e76d60117c4f82a655e6a7b29a34cb3239c75f0bd65a81`.
+IC410 is the uPD1990AC; IC403 is the 80C49 sub-CPU. Exact connections:
+
+| RTC pin | Function | IC403 connection |
+| --- | --- | --- |
+| 8 | CLK | P15, pin 32 |
+| 6 | DATA IN | P14, pin 31 |
+| 4 | STB | P13, pin 30 |
+| 11 | DE/OE | P12, pin 29; also a power/diode/capacitor network |
+| 2 | C1 | P11, pin 28 |
+| 3 | C0 | P10, pin 27 |
+| 9 | DATA OUT | T1, pin 39; **not P17** |
+| 1 / 10 | C2 / TP | Grounded, not extra controller/timer inputs |
+
+C2 being grounded makes register commands 0–3 the reachable command set on
+this board, not an arbitrary simplification. CS is main-power-qualified through
+the R424/D407/C418/R423 network. The separate X402 32.768-kHz crystal and
+battery/diode supply are not the MCU instruction clock. Controller year storage
+and power retention still need investigation; absence of a chip year field
+does not establish absence of machine-level year handling.
+
+Manufacturer PDF pages 804–805 / printed 799–800 were also rendered and
+visually checked. They specify rising-edge serial shifting, open-drain outputs
+and electrical setup/hold/propagation bounds. Those bounds are not fixed
+measured delays and are not modeled by a zero-SYS functional event transition.
+
+New original `rtl/x1_cz880_rtc.sv` decodes these synchronous P1/T1 connections,
+qualifies command/shift edges with CS, retains mode and the 40-bit shifter,
+and connects Time Set/Time Read to the independent counter. Held CLK/STB
+does not repeat operations. Read capture retains a coherent pre-event calendar
+while elapsed time continues. OE supplies sink/release permission and the
+resolved T1 level assumes a pull-up, not a push-pull physical pin. Time Read
+uses a provisional live-seconds-parity .5-Hz output policy; native phase after
+selection remains unqualified. The tested no-invented-edge policy when CS is
+asserted with pins already high is outside the native setup/hold contract,
+not measured hardware behavior. CS/DE RC and voltage behavior are not modeled.
+
+`make -C verilator test-cz880-rtc test-upd1990-calendar test-upd1990-counter`
+terminates zero. The serial fixture asserts **137,050** scaled SYS edges:
+all 40 walking/complement bits, real serial write/read, held strobe/clock,
+coherent read across ticking, Time Set divider retention, Register Hold
+timekeeping, CS-inactive timekeeping with unrelated P16/P17/serial activity,
+OE release in every mode and configuration reset. Three matched wrong-pin
+candidates (CLK, command and OE) fail the unchanged oracle. Calendar and
+counter targets, including their negative controls, pass again. No warning
+suppressions were added. Log: `/tmp/x1-cz880-rtc-qualified.log`.
+Frontend SHA-256:
+`bfb37a237f0767ba85b0fea516141bfb4918361976c3133723eaebec90710b9e`;
+fixture:
+`146bc7eb4ae4ef7835ae950c64ff021de243675d25f76f5094e64028e5709a4b`.
+CI schedules the asset-free target; hosted execution is not claimed.
+
+This module is **not** in the shared machine manifest or any board/C++ profile.
+Scaled fixture edges do not qualify electrical delays, an oscillator producer,
+MCU firmware, snapshots, native year handling or battery persistence. The
+unchanged real-CPU EC..EF elapsed-time test still fails; this serial component
+is not a machine RTC fix. The inherited MR16 listing ends at `0FEA`, leaving
+only 22 bytes in its 4-KiB ROM. Its AASM 3.71/MR16 toolchain and a verified
+storage/driver solution are integration dependencies, not permission to insert
+a hidden main-CPU port or overwrite work RAM to make the test pass.
+
 ### Remaining integration order
 
-1. Trace CZ-880 RTC/control-processor serial nets and year storage; reconcile
+1. Finish tracing controller year storage and power retention; reconcile
    EC/EE host byte order with primary X1 command documentation. Keep native
    pin-chip behavior distinct from host command emulation.
 2. Connect the tested backend to a deterministic running clock with an explicit initialization/retention

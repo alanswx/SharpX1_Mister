@@ -206,6 +206,11 @@ extra GRAM. The digital RGB output reduces analog multi-mode colors to eight
   A separate original next-second backend now passes 351,748 arithmetic/
   invalid-state cases and three negative controls. It is not connected to
   firmware/RTC storage or an oscillator and does not fix the stalled clock.
+  A separate counter and CZ-880 pin-mapped serial frontend now pass their
+  independent event/serial tests. Sheet 47 maps DATA OUT to MCU T1, with C2/TP
+  grounded; see the RTC investigation for the full pin table. Clock production,
+  controller driver/ROM budget, native year/retention and actual elapsed-time
+  command acceptance remain open. No existing profile enables the new helpers.
   The [SIO wiring audit](SIO_MACHINE_WIRING_AUDIT.md) now identifies native
   mouse-related B controls and A clock selection through DTRB; complete
   event-preserving clocks, pin/protocol input, machine decode and shared

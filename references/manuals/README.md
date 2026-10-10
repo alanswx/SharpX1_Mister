@@ -11,6 +11,13 @@ Other device pages were not audited. The standalone oguchi-rd RTC scan was
 identified online but its local retrieval returned HTTP 406; it is not claimed
 as downloaded. No PDF is committed or granted redistribution permission here.
 
+Follow-up: PDF pages 804–805 / printed 799–800 are also visually inspected for
+STB/serial electrical timing and open-drain output circuits. The existing
+CZ-880 scan sheet 47 is now read at pin resolution (sheet 48 checked for
+adjacent routing), establishing P1 controls, T1 data return and grounded C2/TP.
+See the RTC contract's pin table and explicit functional/native timing limits;
+this does not constitute a complete controller/year or power-retention audit.
+
 ## CTC terminal-output timing follow-up
 
 Retrieved [official Zilog PS018101-0602](https://www.zilog.com/docs/z80/ps0181.pdf)

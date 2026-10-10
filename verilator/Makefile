@@ -1639,6 +1639,22 @@ $(HEADLESS_DIR)/upd1990-counter/Vupd1990_counter_tb: tests/upd1990_counter_tb.sv
 	  -j 4 tests/upd1990_counter_tb.sv ../rtl/x1_upd1990_counter.sv ../rtl/x1_upd1990_calendar.sv
 .PHONY: test-upd1990-counter
 
+test-cz880-rtc: $(HEADLESS_DIR)/cz880-rtc/Vcz880_rtc_tb
+	./$(HEADLESS_DIR)/cz880-rtc/Vcz880_rtc_tb
+	@for fault in CLOCK COMMAND OE; do \
+	  negative_log=$$(mktemp $(HEADLESS_DIR)/cz880-rtc/negative-XXXXXX); \
+	  if (ulimit -c 0; ./$(HEADLESS_DIR)/cz880-rtc/Vcz880_rtc_tb +NEGATIVE_$$fault) >$$negative_log 2>&1; then \
+	    echo "FAIL: serial RTC negative $$fault accepted"; exit 1; \
+	  fi; \
+	  rg -q 'RTC .* mismatch' $$negative_log || { echo 'FAIL: unexpected serial RTC negative failure'; exit 1; }; \
+	  echo "PASS: unchanged serial RTC oracle rejects $$fault fault"; \
+	done
+$(HEADLESS_DIR)/cz880-rtc/Vcz880_rtc_tb: tests/cz880_rtc_tb.sv ../rtl/x1_cz880_rtc.sv ../rtl/x1_upd1990_counter.sv ../rtl/x1_upd1990_calendar.sv Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module cz880_rtc_tb --Mdir $(@D) \
+	  -j 4 tests/cz880_rtc_tb.sv ../rtl/x1_cz880_rtc.sv ../rtl/x1_upd1990_counter.sv ../rtl/x1_upd1990_calendar.sv
+.PHONY: test-cz880-rtc
+
 test: headless test-rgb12 test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner test-d88-crc test-d88-metadata test-cpu-busreq
 	python3 tests/test_joystick_schedule.py ./$(HEADLESS_EXE)
 	python3 tests/test_key_script.py ./$(HEADLESS_EXE) $(VIDEO_TEST_FLAGS)
