@@ -474,10 +474,10 @@ delay-aware gameplay and MiSTer verification remain open.
 | Arcus (X1turbo) | Fresh native IPL/Disk 1 probe; loading message observed through 16 seconds | No gameplay or disk-change evidence; Turbo foundation exists but full compatibility remains open | No |
 | Bastard Special | Fresh native IPL/D88 probe; actual RGB title observed through 16 seconds | No start/playfield/control acceptance yet | No |
 
-## Current RTC-enabled probes: running, not gameplay acceptance
+## Completed RTC-enabled probes: repeatable, not gameplay acceptance
 
 After the separate delay-aware RTC runner qualification at `8480899`, new
-sixteen-second cold/repeat probes launch with explicit local source-derived
+sixteen-second cold/repeat probes complete with explicit local source-derived
 controller upload, supplied Turbo IPL/4,096-byte ANK and protected original
 game disks. No state restore, RAM injection, disk writes or game patches are
 requested. The probe now accepts `--rtc-controller` and rejects its combination
@@ -493,11 +493,24 @@ Arcus Disk 1 in A / Disk 2 in B is explicitly exploratory, not verified disk
 order. The controller's completed RTC qualification and hash are recorded in
 [RTC status](RTC_MACHINE_STATUS.md).
 
-These runs are still live; no native game boot or gameplay is claimed. This
+Independent auditing verifies both frozen executables, every original input,
+identical cold/repeat JSON reports and RAM/text/attribute/sub-RAM/CPU/PPM/CSV
+artifacts. Both `evidence.json` files record repeatability and unchanged inputs,
+zero disk writes and `gameplay_verified: false`. Arcus issues 2,752 host disk
+requests and captures 640x400; Bastard issues 1,062 and captures 640x200.
+Actual RGB inspection shows Arcus's bright green background and small garbled
+dialog, and Bastard's “ACTION ROLE PLAYING GAME / Bastard Special / PRESENTED
+BY XAIN” title. Neither establishes gameplay.
+
+Each ignored folder contains `cold.png`, converted from its actual `cold.ppm`
+using macOS `sips`, not a generated illustration. The existing strict RGB
+comparator checks 256,000 / 128,000 pixels respectively with zero mismatches.
+The executable is bound to the qualified `8480899` RTC checkpoint, not later
+RTL changes. This
 runner uses SYS 32 MHz / VID 28.571428 MHz, without the separate X3/video-master
 option. High-scan software output cannot inherit nominal X3 or hardware
-acceptance from this clock/profile. Native rendered frames, handlers/disk
-traffic and actual game controls must be inspected after successful completion.
+acceptance from this clock/profile. Correct-clock probes, handler/disk diagnosis
+and actual start/playfield/control acceptance remain open.
 
 ## Arcus and Bastard Special: private native probes
 

@@ -54,6 +54,11 @@ The separate `make -C verilator rtc` headless runner now builds and rejects
 enabled snapshots/missing or short controller images. Its actual CPU elapsed/
 warm-reset qualification passes with frozen provenance; ordinary runners stay
 RTC-disabled, and native calendar/firmware/hardware gates remain open.
+The RTC profile also passes six real PS/2 keyboard cases with concurrent
+Z80 clock/mailbox polling and a rejecting absent-key control. Protected
+sixteen-second Arcus/Bastard cold/repeat probes finish deterministically:
+Bastard reaches its title; Arcus displays a garbled high-scan dialog. Neither
+is gameplay acceptance, and this runner does not use the X3 video clock.
 
 The experimental handoff revision's early/fitted HDMI pin guard now accepts
 four exact observed whole-bank profiles, not arbitrary per-bit alternatives.

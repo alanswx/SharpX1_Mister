@@ -6,6 +6,25 @@ by original SystemVerilog diagnostics and a separately qualified C++ runner.
 Ordinary machine/C++ and FPGA revisions remain disabled. The default machine still has the static-clock
 defect; the new profile is non-savable and has no accepted RBF.
 
+## Concurrent real keyboard/mailbox qualification
+
+`make -C verilator test-rtc-keyboard` passes six original Z80 diagnostics with
+genuine PS/2 packets: F, Space, Enter, cold/steady caps-off and caps-off plus
+Shift. The CPU repeatedly reads EF and polls E4/E6 while the inherited MR16
+keyboard ISR/timer runs. Initial/final EC..EF data, translated ASCII and native
+HALT/`RTCK` stores are required; no IRQ, mailbox or result memory is injected.
+The 16-bit CPU counter records 127 clock polls in five cases and 502 in the
+steady caps case. These 125-ms runs do not qualify elapsed-second progression.
+The absent PS/2 stream fails the unchanged CPU completion oracle as required.
+
+Ignored evidence is `verilator/obj_dir_v17_rtc/keyboard-qualified-zaba35ou/`,
+log `/tmp/x1-rtc-keyboard-counted.log`. Independent auditing verifies all 136
+original/frozen inputs, 13 generated assets, the frozen executable, identical
+before/after manifests and six positive plus one negative result. The machine
+uses delay-aware SYS 32 MHz / VID 28.571428 MHz with RTC enabled; ordinary
+profiles remain disabled. This closes this bounded PS/2/mailbox coexistence
+gate, not Z80 interrupt, FDC, native MCU, X3 or hardware acceptance.
+
 ## Architecture and upload contract
 
 `rtl/sub_cpu.v` uses the source-derived firmware from

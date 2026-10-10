@@ -38,6 +38,9 @@ $(RTC_RUNNER_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.
 test-rtc-runner: rtc
 	python3 tests/test_rtc_runner.py $(RTC_RUNNER_DIR)/Vtop
 .PHONY: test-rtc-runner
+test-rtc-keyboard: rtc
+	python3 tests/test_rtc_keyboard.py $(RTC_RUNNER_DIR)/Vtop
+.PHONY: test-rtc-keyboard
 
 test-psg-mix: $(HEADLESS_DIR)/psg-mix/Vpsg_mix_tb
 	./$(HEADLESS_DIR)/psg-mix/Vpsg_mix_tb

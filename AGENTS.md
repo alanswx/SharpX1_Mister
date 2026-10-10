@@ -34,6 +34,11 @@ top is `sys_top`; the simulator top is `top`.
 
 ## Simulation and verification
 
+`test-rtc-keyboard` qualifies only bounded real PS/2/MR16 keyboard plus Z80
+RTC/mailbox polling at SYS 32 MHz / VID 28.571428 MHz. Its absent-key control
+must fail the unchanged CPU completion oracle. Do not infer Z80 IRQ, native
+MCU, FDC, X3 or hardware coexistence from these short runs.
+
 From the repository root:
 
 ```sh
