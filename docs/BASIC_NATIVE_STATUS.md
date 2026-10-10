@@ -36,13 +36,17 @@ and input hashes. The RGB/text shows the banner, `20989 Bytes free` and an
 `Ok` prompt. Each executes exactly eight seconds / 256,000,000 SYS edges,
 with 936 SD requests, zero disk writes, 494 frames and six PS/2 bytes. This
 qualifies repeatable native prompt boot in this profile, not command or model
-compatibility. `interim.png` is a pixel-exact conversion of the
+compatibility. `final-cold.png` is a pixel-exact conversion of the terminal
 captured PPM, checked against all 128,000 RGB pixels. It is not generated or
 retouched imagery, a hardware screenshot or BASIC command acceptance.
 PNG SHA-256:
-`e5c391017db6ebb357e73931877db75cbc3bb65577a67dec29d9e528fb0f20e0`;
+`bfc710ce122169cec02aae2b98da7e68a887b343db2d676e9f48306d2d843841`;
 final cold PPM:
 `fed26d19f86ce01de365cb26b7edd9a1246f4637130775c395439f2d06d72aff`.
+The retained `interim.png` matched the live PPM when first converted, but a
+terminal comparison subsequently rejects 64 differing pixels. It must not
+stand in for the final frame; both captures are preserved, and the new terminal
+conversion passes the unchanged exact-pixel comparator without tolerance.
 
 A separate twelve-second cold/repeat command probe starts as session 79875:
 `output_files/basic-print42-fdc-20261010/`, log
