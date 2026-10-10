@@ -22,6 +22,10 @@ the remaining physical and unimplemented-feature gates.
 
 ## Current status
 
+The [cassette prerequisite](docs/CASSETTE_STATUS.md) now has a bounded TAP
+parser with 324 synthetic checks. Waveform-format research and real
+transport/firmware/PPI integration remain open; this is not tape loading.
+
 The standalone [FDC byte-slot scheduler](docs/FDC_BYTE_SLOT_STATUS.md) passes
 exact enable-boundary and rejecting-negative checks. It is now connected through
 the opt-in WD/shared-machine experiment below; native clock routing, DMA and

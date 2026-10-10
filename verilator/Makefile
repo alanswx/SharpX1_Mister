@@ -1689,6 +1689,16 @@ test-basic-print42-oracle:
 	python3 -B tests/test_basic_print42_oracle.py
 .PHONY: test-basic-print42-oracle
 
+# Asset-free bounded waveform parser only; no connected cassette transport.
+test-tap-image: $(HEADLESS_DIR)/tap-image/test_x1_tap_image
+	./$(HEADLESS_DIR)/tap-image/test_x1_tap_image
+
+$(HEADLESS_DIR)/tap-image/test_x1_tap_image: x1_tap_image.h tests/test_x1_tap_image.cpp
+	mkdir -p $(HEADLESS_DIR)/tap-image
+	$(CXX) -std=c++20 -Wall -Wextra -Werror tests/test_x1_tap_image.cpp -o $@
+
+.PHONY: test-tap-image
+
 test-hps-video-cdc: $(HEADLESS_DIR)/hps-video-cdc/Vhps_video_cdc_tb
 	./$(HEADLESS_DIR)/hps-video-cdc/Vhps_video_cdc_tb
 
