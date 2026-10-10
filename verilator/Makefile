@@ -2025,6 +2025,11 @@ $(HEADLESS_DIR)/rtc-mr16-unretained-32/Vrtc_mr16_driver_tb: tests/rtc_mr16_drive
 	$(V) --binary --timing --assert --top-module rtc_mr16_driver_tb --Mdir $(@D) \
 	  -GCE_DIVISOR=32 -GRETAIN_RESPONSE=0 -j 4 tests/rtc_mr16_driver_tb.sv ../rtl/mr16core.v ../rtl/mr16_x1.v ../rtl/x1_rtc_clock_enable.sv ../rtl/x1_cz880_rtc.sv ../rtl/x1_upd1990_counter.sv ../rtl/x1_upd1990_calendar.sv -Wno-fatal
 .PHONY: test-rtc-mr16-retained
+test-mr16-response-reset:
+	python3 -B tests/test_mr16_retained_response.py
+test-mr16-response-reset-negative:
+	python3 -B tests/test_mr16_retained_response.py --negative
+.PHONY: test-mr16-response-reset test-mr16-response-reset-negative
 
 test-mr16-assembler:
 	python3 tests/test_mr16_assembler.py

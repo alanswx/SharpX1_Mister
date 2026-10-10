@@ -352,12 +352,65 @@ reports include real MR16 receive-only keyboard/vector/held-ACK checks at
 `/tmp/x1-rtc-retention-default-ctc.log`. This verifies the disabled path's
 bounded keyboard/IRQ behavior, not all ordinary games or snapshot layouts.
 
-Enabled-profile reset/stack/RAM-read/IRQ, snapshots, native timing and fitted
-hardware still need qualification before any shared profile selects this
-option. The fixture demonstrates a response-retention/cadence problem in
+Enabled-profile reset/stack/RAM-read/IRQ now has the separate bounded gate
+below; snapshots, inherited firmware/connected-machine behavior, native timing
+and fitted hardware still need qualification before any shared profile selects
+this option. The fixture demonstrates a response-retention/cadence problem in
 its explicit controller/memory configuration, not native RTC or whole-machine
 compatibility. The real-CPU EC..EF clock test remains unfixed; controller
 driver/ROM-budget integration is still the next machine-level dependency.
+
+### Standalone retained-response reset/stack/IRQ recovery
+
+The new original `mr16_retained_response_tb.sv` and frozen-assembler driver
+use public memory/GPIO/interrupt/reset/enable pins only, without hierarchical
+core access or forced state. Twelve cases cover instruction cadences 1/3/17/32
+crossed with reset during issued RAM, GPIO and POP response windows.
+The standalone SYS clock is 100 MHz (10-ns period); these are functional CE
+profiles, not the machine's 32-MHz physical instruction/RTC timing. Timer gate
+is inactive and no native timer rate is inferred from this fixture.
+The issuance witness checks preceding actual stores, return to instruction
+fetch and three stopped SYS edges; RAM/POP also check the synchronous data.
+Reset abandons that operation and restarts the original diagnostic, not its
+successful continuation without reset. Public behavior is checked, not private
+held-latch state or a native MCU bus contract.
+
+Each warm execution completes seventeen independently specified ordered RAM/
+stack stores, including nested CALL/RET, PUSH/POP, GPIO readback and one real
+interrupt ACK/handler/return. Held WR is a level: every SYS write strobe must
+agree, but only the first advances the ordered store oracle. Two exact legal
+IRQ-loop return addresses are enumerated, not an arbitrary tolerated range.
+The final RAM values must match all nine programmed result words. The changed
+warm GPIO value distinguishes stale cold data from the restarted response.
+
+Three executions of one stopped-edge retention corruption are rejected at
+`MR16 data/return oracle cursor=11 address=1006 actual=5aa4`. Compiler failure,
+generic completion failure and timeout do not count. Main's fresh Make targets
+complete zero: session 7063 (twelve positives), 7207 (three exact negatives),
+logs `/tmp/x1-mr16-response-reset-main.log` and `-main-negative.log`.
+The worker's frozen folders `x1-mr16-retained-05ecpem_` / `-pgrbn37j` retain
+the initial qualification. Independent review verifies fourteen frozen/live
+source entries, all fifteen executable hashes/orders/terminal records, both
+byte-exact firmware rebuilds and independently regenerated store oracles.
+Main also verifies its two fresh folders (`eurzr0q4` / `1bqry00e`), fourteen
+source inputs, generated firmware/oracle hashes, fifteen executable hashes and
+all fifteen child terminal records, allowing only the explicit frozen mutation.
+Firmware SHA-256:
+`30662a693ad2d7f0bc61912c64c6021d19055178d80f4903476e6c1ea66c3169`;
+oracle SHA-256:
+`abe9f48379b62fe246ceaba2cf1f601839a291aa422b0b9946982ee3239d9bc2`.
+SV SHA-256:
+`b746e24ec9aa385d18d5960e8093d86354685cfb54eb1a1c7778d784425a29a4`;
+driver SHA-256:
+`61e26bf00edf22fcbfd53705f819a11d1d0329af4aad9006beef12f10fa04dc1`.
+
+`test-mr16-response-reset` and `-negative` are scheduled asset-free CI targets;
+no hosted result is claimed. Each build retains 28 inherited core/wrapper
+warnings under `-Wno-fatal`; none points into the new fixture. Earlier fixture
+delta-cycle/WR-level mistakes remain historical failures, not established
+production defects. No production RTL, older fixture, machine profile,
+snapshot identity or board default is changed. Prefixed/general memory
+operations, inherited firmware, machine integration and physical gates remain.
 
 ### Reproducible restricted source rebuild, not an RTC fix
 

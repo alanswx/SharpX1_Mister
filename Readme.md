@@ -12,6 +12,9 @@ six native-title tests and exact captured RGB checks for base 40/80-column
 text, graphics and PCG. A separate [DMA candidate](docs/DMA_BOARD_BUILD_STATUS.md)
 passes eighteen bounded CPU-driven hardware diagnostics; other optional
 devices and full Turbo Z remain unqualified on hardware.
+The initial [native BASIC probe](docs/BASIC_NATIVE_STATUS.md) reaches a
+CZ-8FB01 V1.0 `Ok` prompt in the fixed-FDC simulation; command/repeat/model
+acceptance remains in progress, not full BASIC compatibility.
 The [DMA-build feature matrix](docs/HARDWARE_DMA_FEATURE_MATRIX_STATUS.md)
 adds exact base-video pixels before/after retained-asset warm reset and tracks
 the remaining physical and unimplemented-feature gates.

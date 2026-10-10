@@ -9,7 +9,9 @@ The existing non-overwriting `scripts/prepare_x1_media.py` stages
 `software/basic-unpacked/zzz-unk-hubasic-11a5077cf724/`. The archive identifies
 no verified BASIC version/model. Its raw sector bytes are wrapped as
 40-cylinder, two-sided, 16-sector, 256-byte D88 records without payload changes.
-Do not relabel this unknown release as CZ-8FB01 or Turbo Z BASIC.
+The subsequently observed native screen identifies **SHARP-HuBASIC CZ-8FB01
+V1.0**, copyright 1982 SHARP/Hudson. This identifies its own banner, not a
+verified dump revision/hash against an independent release or Turbo Z BASIC.
 
 | Asset | SHA-256 |
 | --- | --- |
@@ -28,8 +30,20 @@ its observations do not independently establish build provenance.
 
 The initial eight-second cold/repeat probe is running as session 65306:
 `output_files/basic-native-fdc-20261010/`, log
-`/tmp/x1-basic-native-fdc-20261010.log`. No boot, command or repeat pass is
-claimed until its terminal evidence and actual display are inspected.
+`/tmp/x1-basic-native-fdc-20261010.log`. The cold child now completes and its
+actual RGB/text shows the banner, `20989 Bytes free` and an `Ok` prompt;
+the repeat remains running. `interim.png` is a pixel-exact conversion of the
+captured PPM, checked against all 128,000 RGB pixels. It is not generated or
+retouched imagery, a hardware screenshot or BASIC command acceptance.
+
+A separate twelve-second cold/repeat command probe starts as session 79875:
+`output_files/basic-print42-fdc-20261010/`, log
+`/tmp/x1-basic-print42-fdc-20261010.log`. The original
+`verilator/tests/basic_print_42.keys` sends IPL F, then held-Shift letters,
+space/digits/keypad multiply and Enter for `PRINT 6*7` beginning at nine seconds.
+It uses the inherited PS/2 mapping rather than guessed locale punctuation.
+Neither an echoed command nor collector repeatability establishes arithmetic;
+require a separate native result line `42` and return to `Ok`.
 
 `make -C verilator test-basic-native-probe` exercises the collector using
 temporary synthetic files and a fake executable. Seven test methods/twelve
