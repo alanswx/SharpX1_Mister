@@ -1872,6 +1872,7 @@ test-pcg-response-sdc:
 test-pcg-reset-inventory:
 	@pcg_reset_scope_root=$$(mktemp -d $(HEADLESS_DIR)/pcg-reset-scope-XXXXXX); \
 	  tclsh tests/pcg_reset_inventory_tb.tcl $$pcg_reset_scope_root
+	python3 tests/test_pcg_reset_inventory_audit.py
 .PHONY: test-pcg-reset-inventory
 
 test-pcg-request-sdc:

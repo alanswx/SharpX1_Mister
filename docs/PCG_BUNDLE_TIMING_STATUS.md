@@ -136,6 +136,19 @@ identity/count/alias/fan-in controls; invalid cases produce no report directory
 or partial evidence. It is selected in CI. Native execution and independent
 report/artifact-hash auditing remain pending a fresh completed fit.
 
+The independent `scripts/audit_pcg_reset_inventory.py` now checks the prepared
+64-report inventory: every fitted WE must appear in all-source setup/hold;
+raw/local launch sources and clock domains must match; actual summary counts
+must stay below the report cap; endpoint/clock multisets must stay unchanged
+across corners. Eight original source/reporter/STA/RBF hashes are required
+before and after, with the five source/reporter hashes checked against the
+requested source tree. Empty raw/local discovery reports are not called
+timing passes, and negative slack is retained explicitly as open timing.
+CI's `test-pcg-reset-inventory` now also passes synthetic raw-present/raw-absent
+cases, thirteen invalid report/scope controls and four invalid provenance
+controls (`/tmp/x1-pcg-reset-inventory-audit.log`). These controls are not native
+STA, physical source-route removal or timing closure evidence.
+
 ### Stopped-clock reset cancellation follow-up
 
 The strengthened `test-turbo-pcg-native-windows` completes zero in
