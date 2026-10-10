@@ -89,6 +89,8 @@ jobs:
             test-pcg-reset-inventory \
             test-fast-timing-video-audit \
             test-z-effect-control \
+            test-z-effect-registers \
+            test-machine-z-effects \
             test-z-adc-pinmap \
             test-joystick-schedule \
             test-commercial-cold-plan \

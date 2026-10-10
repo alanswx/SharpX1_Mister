@@ -143,6 +143,15 @@ The separate RTC/memory-DMA reset fixture qualifies both real owned phases,
 blocked controller/clock/IPL uploads and stopped SYS recovery with two native
 Z80 boots; it does not qualify other DMA targets, Ready/IRQ or board profiles.
 
+`TURBO_Z_EFFECT_CPU=1` is a separate SV-only, non-savable CPU-storage prototype
+requiring the CPU-only palette profile and refusing a video combination. See
+`docs/TURBO_Z_EFFECT_CPU_STATUS.md`. Full-byte reads, AEN/reset/unused-bit policies
+are provisional. Retained replies must match the captured address and clear
+on memory/ACK/other I/O; do not broaden them into unmapped read overrides.
+No capture/mosaic/chroma/scroll pixels, ADC/GRAM owner, native Z identification
+or board revision is enabled. Use real C5 transitions for DAM diagnostics;
+`1ECx` is the native IPL-disable aperture, not a harmless alias.
+
 Snapshot format v17 rejects older states after the signed shared FM audio
 interface/state increment (v16 added the FM bus; v15 the shared serial interface).
 X3 additionally requires revision 3 (identity bit 38) after

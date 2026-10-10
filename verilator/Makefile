@@ -1813,6 +1813,28 @@ $(HEADLESS_DIR)/machine-rtc-dma-reset/Vmachine_rtc_dma_reset_tb: tests/machine_r
 	  -j 4 tests/machine_rtc_dma_reset_tb.sv $(MACHINE_SRC) -Wno-fatal
 .PHONY: test-machine-rtc-dma-reset
 
+test-z-effect-registers: $(HEADLESS_DIR)/z-effect-registers/Vz_effect_registers_tb $(HEADLESS_DIR)/z-effect-registers-enable/Vz_effect_registers_tb $(HEADLESS_DIR)/z-effect-registers-alias/Vz_effect_registers_tb
+	./$(HEADLESS_DIR)/z-effect-registers/Vz_effect_registers_tb
+	@ulimit -c 0; for case in enable alias; do \
+	  if ./$(HEADLESS_DIR)/z-effect-registers-$$case/Vz_effect_registers_tb >$(HEADLESS_DIR)/z-effect-registers-$$case/negative.log 2>&1; then exit 1; fi; \
+	  if [ $$case = enable ]; then marker='effect disabled write changed storage'; else marker='effect retained response mismatch'; fi; \
+	  rg -q "$$marker" $(HEADLESS_DIR)/z-effect-registers-$$case/negative.log || exit 1; \
+	  echo "PASS: effect storage $$case negative rejects at required oracle"; done
+$(HEADLESS_DIR)/z-effect-registers/Vz_effect_registers_tb: tests/z_effect_registers_tb.sv ../rtl/x1_z_effect_registers.sv Makefile
+	$(V) --binary --timing --assert --top-module z_effect_registers_tb --Mdir $(@D) -j 4 tests/z_effect_registers_tb.sv ../rtl/x1_z_effect_registers.sv
+$(HEADLESS_DIR)/z-effect-registers-enable/Vz_effect_registers_tb: tests/z_effect_registers_tb.sv ../rtl/x1_z_effect_registers.sv Makefile
+	$(V) --binary --timing --assert --top-module z_effect_registers_tb --Mdir $(@D) -GBAD_ENABLE=1 -j 4 tests/z_effect_registers_tb.sv ../rtl/x1_z_effect_registers.sv
+$(HEADLESS_DIR)/z-effect-registers-alias/Vz_effect_registers_tb: tests/z_effect_registers_tb.sv ../rtl/x1_z_effect_registers.sv Makefile
+	$(V) --binary --timing --assert --top-module z_effect_registers_tb --Mdir $(@D) -GBAD_ALIAS=1 -j 4 tests/z_effect_registers_tb.sv ../rtl/x1_z_effect_registers.sv
+.PHONY: test-z-effect-registers
+
+test-machine-z-effects: $(HEADLESS_DIR)/z-effect-machine-1/Vz_effect_machine_tb $(HEADLESS_DIR)/z-effect-machine-0/Vz_effect_machine_tb
+	ulimit -c 0; python3 tests/test_machine_z_effects.py $^
+$(HEADLESS_DIR)/z-effect-machine-%/Vz_effect_machine_tb: tests/z_effect_machine_tb.sv $(MACHINE_SRC) $(MACHINE_MANIFEST) Makefile
+	$(V) --binary --timing --assert --top-module z_effect_machine_tb --Mdir $(@D) \
+	  -GEFFECT_ENABLED=$* -j 4 tests/z_effect_machine_tb.sv $(MACHINE_SRC) -Wno-fatal
+.PHONY: test-machine-z-effects
+
 test: headless test-rgb12 test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner test-d88-crc test-d88-metadata test-cpu-busreq
 	python3 tests/test_joystick_schedule.py ./$(HEADLESS_EXE)
 	python3 tests/test_key_script.py ./$(HEADLESS_EXE) $(VIDEO_TEST_FLAGS)

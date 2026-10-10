@@ -64,6 +64,11 @@ hosted results are separate from this local pass.
 
 ## Implementation still required
 
+The subsequent [CPU-storage experiment](TURBO_Z_EFFECT_CPU_STATUS.md) now
+qualifies actual Z80 `1FC1..1FC4` transactions, AEN/DAM/neighbor isolation and
+retained-IPL reset under explicit provisional policies. It connects no
+capture/effect renderer, native read/reset contract or board capability.
+
 1. Resolve native CPU write/read/reset policies and capture/CRTC/PPI gating;
    add opt-in real-CPU register tests without exposing a false Z capability.
 2. Trace input sync, dot-position correction direction/origin, ADC bit order,

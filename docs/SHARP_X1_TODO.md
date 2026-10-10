@@ -14,6 +14,12 @@ support before optional Turbo extensions.
 
 ## Active goal: items 1–6 and Turbo Z (October 6)
 
+The CPU-only Turbo Z effect-storage prototype now passes 1,024 actual Z80
+byte roundtrips, AEN/DAM/neighbor isolation, retained-IPL reset and a disabled
+control. Unit address/held-transaction checks and two negatives pass. Native
+read/reset policies, input ADC/line buffers/GRAM ownership and rendered effects
+remain open; this does not complete Z8. See [current gates](TURBO_Z_EFFECT_CPU_STATUS.md).
+
 Latest source-bound `048d996` handoff flow passes synthesis/fit/assembly but
 terminates 3 at the strict final-STA whole-prefetch D/ASDATA profile guard.
 The unreviewed fitted profile is not whitelisted. Reporting-only discovery
@@ -23,6 +29,11 @@ Subsequent idle-host fitted discovery now passes with unchanged original
 artifacts. Its exact fourth profile passes four scoped positives, eighty
 invalid-scope controls and 8,188 mixed-profile rejections; native same-fit
 active-path preservation and a fresh full flow remain required before acceptance.
+Native fourth-profile same-fit auditing subsequently passes all 384 reports:
+928 held-budget and 6,688 active/raw/mode rows preserved, 848 inactive rows
+excluded rather than passed, with original artifacts unchanged. Global setup
+still fails -9.962 ns (hold +0.054 ns). A fresh current-source full flow, timing,
+PCG-WE, CDC/MTBF/I/O and hardware remain open; no failed-flow RBF is promoted.
 
 The `4cd18ed` handoff flow now terminates 3: synthesis, fitting and assembly
 pass, but final STA fails a same-file Tcl helper's global-inventory dependency.

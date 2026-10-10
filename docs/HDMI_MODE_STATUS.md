@@ -1412,6 +1412,30 @@ controls pass. This prepares independent review, not native preservation.
 The same-fit task stops at 06:19:03 UTC because another project's Quartus map
 is active; no probe directory or competing flow is created.
 
+### Native fourth-profile same-fit qualification
+
+The later idle-host probe runs at 06:41:46–06:43:16 UTC and completes zero with
+zero warnings/errors. Independent `--fit-048d996` auditing of all **384** reports
+requires the exact preserved fit/report/RBF and candidate hashes, `fitted048`
+and exactly 77 scoped DATA cuts. It proves **928 held-budget rows** and
+**6,688 active/raw/mode rows** unchanged; **848 inactive rows are EXCLUDED**,
+not timing passes. No pre-existing raw reports are excluded in this inventory.
+Global diagnostics remain setup/hold **-9.962/+0.054 ns** after the proposal;
+setup still fails. This is same-fit scope preservation, not a fresh full flow,
+new PCG-WE/CDC/MTBF/I/O result, timing-qualified RBF or physical acceptance.
+
+Ignored evidence: `output_files/held-sdc-context-048d996-v1/`; native log SHA-256
+`9a02fa6fab56de33d56306b5383b1a5ec3cd4aa5a25a693f4aa4ee16674e0c5e`;
+all-report hash-list SHA-256
+`42724be2201ef90945bfb6ba8570e6ae054a661cd7958260ae7340e8066a99b7`.
+Independent copy auditing proves all 384 report hashes and eleven exact
+before/after source/artifact pairs; audit log
+`/tmp/x1-held-sdc-native-context-048d996-audit.log`. Remote preserved sibling:
+`output_files/quartus-linux-MYNcRVzw/held-context-048d996-v1`.
+No checkout, original snapshot/report/RBF, other project or MiSTer was changed.
+The next full build must bind current source separately, not reuse this older
+fit's scope/timing as current machine acceptance.
+
 ## Next gates
 
 ### Unselected csync first-stage proposal

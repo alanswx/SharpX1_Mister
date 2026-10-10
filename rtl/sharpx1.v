@@ -1,6 +1,6 @@
 // Sharp X1 base-machine integration. Shared by MiSTer and simulation.
 // See docs/BASE_X1_CONTRACT.md for address-map sources and limitations.
-module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0, TURBO_DSW = 241, TURBO_DMA_RESTART_IRQ = 0, TURBO_Z_PALETTE_CPU = 0, TURBO_Z_VIDEO = 0, TURBO_Z_MULTIMODE = 0, TURBO_Z_INTERNAL8 = 0, TURBO_Z_TEXT_CPU = 0, TURBO_SIO = 0, TURBO_FM_CPU = 0, RTC_ENABLE = 0) (
+module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0, TURBO_DSW = 241, TURBO_DMA_RESTART_IRQ = 0, TURBO_Z_PALETTE_CPU = 0, TURBO_Z_VIDEO = 0, TURBO_Z_MULTIMODE = 0, TURBO_Z_INTERNAL8 = 0, TURBO_Z_TEXT_CPU = 0, TURBO_SIO = 0, TURBO_FM_CPU = 0, RTC_ENABLE = 0, TURBO_Z_EFFECT_CPU = 0) (
     input clk_sys, clk_28636, reset,
     input pal, scandouble,
     input ioctl_download,
@@ -113,6 +113,8 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
             $error("Z internal eight-color experiment requires Z multi-mode");
         if(TURBO_Z_TEXT_CPU && !TURBO_Z_PALETTE_CPU)
             $error("Z text CPU experiment requires Z palette CPU profile");
+        if(TURBO_Z_EFFECT_CPU && (!TURBO_Z_PALETTE_CPU || TURBO_Z_VIDEO))
+            $error("Z effect storage prototype requires CPU-only Z palette profile; video integration is not qualified");
         if (TURBO_DMA_IRQ && !(TURBO && TURBO_DMA))
             $error("TURBO_DMA_IRQ requires TURBO and TURBO_DMA");
         if (TURBO_DMA_RESTART_IRQ && !TURBO_DMA_IRQ)
@@ -176,6 +178,8 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     wire [7:0] z_text_data;
     wire z_priority_selected,z_priority_tail;
     wire [7:0] z_priority_data;
+    wire z_effect_selected,z_effect_tail;
+    wire [7:0] z_effect_data;
     wire sio_wait_n;
     wire crtc_wait_n;
     wire machine_wait_n=cg_wait_n && z_palette_wait_n && sio_wait_n && fm_wait_n && crtc_wait_n;
@@ -201,6 +205,26 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         // and text CPU storage. No native Z signature or general decode claim.
         reg [7:0] mode=0, control=0;
         wire [7:0] priority_control;
+        if(TURBO_Z_EFFECT_CPU) begin : effect_cpu
+            wire [7:0] live_data,held_data;
+            wire read_hold;
+            wire [15:0] held_address;
+            wire [7:0] position_control,mosaic_control,chroma_control,scroll_control;
+            x1_z_effect_registers registers(
+                .clk(clk_sys),.reset(core_reset),.enabled(mode[7]),
+                .io_read(io_read && !dam),.io_write(io_write && !dam),
+                .clear_read(!mreq || !m1 || (io_cycle && !(z_effect_selected && io_read))),
+                .address(a),.data(data_out),.selected(z_effect_selected),.read_data(live_data),
+                .read_hold(read_hold),.held_data(held_data),.held_address(held_address),
+                .position_control(position_control),.mosaic_control(mosaic_control),
+                .chroma_control(chroma_control),.scroll_control(scroll_control));
+            // The response is eligible only for its captured address until
+            // memory, ACK or another I/O cycle. Never override unmapped data.
+            assign z_effect_tail=read_hold && !core_reset && mode[7] && mreq && iorq && m1 && a==held_address;
+            assign z_effect_data=z_effect_tail ? held_data : live_data;
+        end else begin : no_effect_cpu
+            assign z_effect_selected=0;assign z_effect_tail=0;assign z_effect_data=8'hff;
+        end
         if(TURBO_Z_TEXT_CPU) begin : text_cpu
             wire [7:0] live_data,held_data;
             wire read_hold;
@@ -418,6 +442,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         assign z_text_video_bits=0;assign z_text_video_valid=0;assign z_text_pixel_selected=0;assign z_composition_enabled=0;
         assign z_text_selected=0;assign z_text_tail=0;assign z_text_data=8'hff;
         assign z_priority_selected=0;assign z_priority_tail=0;assign z_priority_data=8'hff;
+        assign z_effect_selected=0;assign z_effect_tail=0;assign z_effect_data=8'hff;
         assign z_palette_selected=0;
         assign z_palette_wait_n=1;
         assign z_palette_data=8'hff;
@@ -664,6 +689,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
               : dsw_selected ? dsw_data
               : (z_text_selected && io_read) || z_text_tail ? z_text_data
               : (z_priority_selected && io_read) || z_priority_tail ? z_priority_data
+              : (z_effect_selected && io_read) || z_effect_tail ? z_effect_data
               : (z_palette_selected && io_read) || z_palette_read_tail ? z_palette_data
               : io_read && !dam && a[15:2] == 14'h03fe ? fdc_data
               : io_read && !dam && a[15:8] == 8'h1b ? psg_data

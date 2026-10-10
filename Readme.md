@@ -18,6 +18,11 @@ the remaining physical and unimplemented-feature gates.
 
 ## Current status
 
+The default-off [Turbo Z effect CPU prototype](docs/TURBO_Z_EFFECT_CPU_STATUS.md)
+now passes actual Z80 position/mosaic/chroma/scroll register storage and
+AEN/DAM/neighbor/warm-reset tests. Native read/reset policies remain provisional;
+no capture or rendered effects, board capability or Z identification is added.
+
 The RTC investigation now includes a restricted MR16 assembler that reproduces
 all 4,096 inherited ROM bytes from source. This enables firmware work without
 the missing AASM executable, but is not an RTC fix or a general AASM replacement;
@@ -64,7 +69,9 @@ Its generated RBF is unqualified and has not been deployed.
 The fresh `048d996` handoff flow also fits and assembles, but final STA refuses
 a newly fitted whole-bank D/ASDATA pin profile. Its guard stays strict; native
 inventory now identifies that exact fourth profile, and mocked scope/negative
-checks pass. Native active-path preservation is still required before retry.
+checks pass. Native same-fit active-path preservation now passes independent
+384-report auditing, but global setup remains -9.962 ns; a fresh full flow
+and timing/hardware acceptance are still required.
 No newly accepted hardware build is implied.
 
 For a blank screen on first launch, see [IPL loading](docs/IPL_LOADING.md):
