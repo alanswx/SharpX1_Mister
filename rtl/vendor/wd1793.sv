@@ -28,7 +28,8 @@
 // X1 integration: configurable head-load status/index period; MFM-only adapter
 // rejects selected FM access rather than silently reading an MFM sector.
 module wd1793 #(parameter RWMODE=0, EDSK=1, HEADLOAD_STATUS=0, INDEX_CYCLES=35001,
-               D88_ONLY=0, PHYSICAL_DRIVES=1, ADDRESS_BITS=20, MAX_SECTORS=1992)
+               D88_ONLY=0, PHYSICAL_DRIVES=1, ADDRESS_BITS=20, MAX_SECTORS=1992,
+               D88_CAPACITY_CHECK=0)
 (
 	input        clk_sys,     // sys clock
 	input        ce,          // ce at CPU clock rate
@@ -106,7 +107,8 @@ module wd1793 #(parameter RWMODE=0, EDSK=1, HEADLOAD_STATUS=0, INDEX_CYCLES=3500
 	input        input_wr,
 	output[ADDRESS_BITS-1:0] buff_addr,	  // buffer RAM address
 	output       buff_read,	  // buffer RAM read enable
-	input  [7:0] buff_din     // buffer RAM data input
+	input  [7:0] buff_din,    // buffer RAM data input
+	input        hd_selected // opt-in D88 capacity class; unused by defaults
 );
 
 localparam SECTOR_INDEX_BITS = 37 + ADDRESS_BITS;
@@ -118,7 +120,14 @@ initial begin
         $fatal(1, "wd1793 ADDRESS_BITS must be 20..24");
     if (MAX_SECTORS < 1 || MAX_SECTORS > 4095)
         $fatal(1, "wd1793 MAX_SECTORS must be 1..4095");
+    if (D88_CAPACITY_CHECK && (!D88_ONLY || !EDSK))
+        $fatal(1, "D88 capacity matching requires the strict D88 indexed profile");
 end
+wire capacity_matches;
+// Constant/dead in default profiles; state identity is separately checked.
+reg [7:0] capacity_disk_type=8'hff;
+assign capacity_matches=!D88_CAPACITY_CHECK || (hd_selected ?
+    capacity_disk_type==8'h20 : (capacity_disk_type==8'h00 || capacity_disk_type==8'h10));
 
 // Possible track configs:
 // 0: 26 x 128  = 3.3KB
@@ -727,7 +736,7 @@ always @(posedge clk_sys) begin
 					// find its track, which is a different and worse answer.
 					if(!media_ready) begin
 						state <= STATE_ENDCOMMAND;
-					end else if(fm_mode) begin
+					end else if(fm_mode || !capacity_matches) begin
 						s_seekerr <= 1;
 						state <= STATE_ENDCOMMAND;
 					end else begin
@@ -1646,6 +1655,10 @@ generate
 					if(sig_pos[7:0] != scan_data) edsk_bad <= 1;
 				end
 				if(rel == ADDRESS_BITS'(24'h1a)) d_wpb      <= |scan_data;
+				// Selected-volume-relative metadata shares the actual parser
+				// strobe, not CPU CE. Retain through controller reset like WP
+				// and the index; remounts quarantine all commands until valid.
+				if(D88_CAPACITY_CHECK && rel == ADDRESS_BITS'(27)) capacity_disk_type<=scan_data;
 				if(rel == ADDRESS_BITS'(24'h1c)) d_tot[7:0] <= scan_data;
 				if(rel == ADDRESS_BITS'(24'h1d)) d_tot[15:8]<= scan_data;
 				if(rel == ADDRESS_BITS'(24'h1e)) d_tot[23:16]<=scan_data;

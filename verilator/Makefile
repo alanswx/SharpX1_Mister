@@ -39,6 +39,19 @@ $(WIDE_D88_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h 
 	  -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_WIDE_D88_EXPERIMENT" \
 	  -MAKEFLAGS "-B" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 .PHONY: turbo-wide-d88
+HD_MEDIA_DIR ?= obj_dir_v17_hd_media
+turbo-hd-media: $(HD_MEDIA_DIR)/Vtop
+$(HD_MEDIA_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
+	mkdir -p $(@D)
+	$(V) --cc --exe --build --timing --trace-fst --top-module top --Mdir $(@D) -j 4 \
+	  -GTURBO=1 -GD88_ADDRESS_BITS=24 -GTURBO_HD_SELECT=1 -GTURBO_HD_MEDIA=1 $(TURBO_DSW_FLAGS) \
+	  -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_WIDE_D88_EXPERIMENT -DX1_HD_MEDIA_EXPERIMENT" \
+	  -MAKEFLAGS "-B" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
+test-machine-hd-media: turbo-hd-media headless
+	python3 tests/test_wide_d88.py $(HD_MEDIA_DIR)/Vtop $(HEADLESS_EXE) --capacity-match
+	python3 tests/test_wide_d88.py $(HD_MEDIA_DIR)/Vtop $(HEADLESS_EXE) --capacity-match --media-type 0
+	python3 tests/test_wide_d88.py $(HD_MEDIA_DIR)/Vtop $(HEADLESS_EXE) --capacity-match --media-type 0x10 --geometry
+.PHONY: turbo-hd-media test-machine-hd-media
 test-machine-wide-d88: turbo-wide-d88 headless
 	python3 tests/test_wide_d88.py $(WIDE_D88_DIR)/Vtop $(HEADLESS_EXE)
 	python3 tests/test_wide_d88.py $(WIDE_D88_DIR)/Vtop $(HEADLESS_EXE) --geometry
@@ -46,7 +59,10 @@ test-machine-wide-d88: turbo-wide-d88 headless
 test-fdc-address-width:
 	python3 tests/test_fdc_address_width.py --default-regressions --edsk-capacity
 test-fdc-default-state:
-	python3 tests/test_fdc_default_state.py --baseline aa05dd2
+	python3 tests/test_fdc_default_state.py --baseline 3c34dd0
+test-fdc-capacity-class:
+	python3 tests/test_fdc_capacity_class.py --vendor-sha 2affa0bd8a6bf504247dd917a86902508c1efb8f5e6143f2e90706f438a6b75a
+.PHONY: test-fdc-capacity-class
 .PHONY: test-fdc-address-width test-fdc-default-state
 test-machine-hd-capacity: $(HEADLESS_DIR)/hd-capacity/Vhd_capacity_machine_tb $(HEADLESS_DIR)/hd-capacity-disabled/Vhd_capacity_machine_tb
 	./$(HEADLESS_DIR)/hd-capacity/Vhd_capacity_machine_tb

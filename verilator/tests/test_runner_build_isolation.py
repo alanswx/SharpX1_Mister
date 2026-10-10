@@ -20,7 +20,7 @@ for line in lines:
     if '$(V_SRC) sim_headless.cpp' in command:
         recipes.append(command)
     command = ''
-assert len(recipes) == 30, 'runner recipe coverage changed; review new profiles'
+assert len(recipes) == 31, 'runner recipe coverage changed; review new profiles'
 for command in recipes:
     flags = re.findall(r'-MAKEFLAGS "([^"]*)"', command)
     assert len(flags) == 1 and '-B' in flags[0].split(), 'runner must have one preserved make-flags group with -B'

@@ -18,6 +18,12 @@ the remaining physical and unimplemented-feature gates.
 
 ## Current status
 
+The separate non-savable `turbo-hd-media` experiment now connects capacity
+selection to D88 medium matching. Original CPU cases pass wrong-class RNF
+and correct-class read/write/readback for 2D/2DD/2HD headers; ordinary generated
+state remains unchanged. Native byte-rate/mechanical/format and hardware gates
+remain open. See [the current scope](docs/HD_MEDIA_STATUS.md).
+
 The default-off `TURBO_HD_SELECT` CPU-storage experiment passes exhaustive
 capacity-port decoding and actual CPU cold/warm checks. It does not yet connect
 the selected class to byte rate, medium matching or drive mechanics; no board

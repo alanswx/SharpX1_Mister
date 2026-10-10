@@ -14,6 +14,13 @@ support before optional Turbo extensions.
 
 ## Active goal: items 1–6 and Turbo Z (October 6)
 
+The separate HD-media experiment connects the selector to selected-volume
+metadata and passes actual CPU wrong-class RNF/correct-class read/write/readback
+for 00/10/20 headers, plus 140 standalone enabled/disabled/divider cases and
+unchanged ordinary state. Native rate, rotation/search timing, BUSY changes,
+mechanics, format and software/hardware acceptance remain open. See
+`HD_MEDIA_STATUS.md`; this does not complete native 2HD or the full goal.
+
 The default-off HD capacity latch now passes exhaustive full-port decode and
 real CPU IN/OUT/alias/FM/drive/DAM/retained-IPL reset checks with a rejecting
 disabled-profile control. Ordinary state remains unchanged. Class-to-medium,

@@ -259,6 +259,16 @@ to medium matching or rate/mechanics yet. Use `test-machine-hd-capacity` and
 capacity and global-class policy are provisional. A held CPU IN can clear DAM
 then become device-eligible on subsequent SYS edges; do not invent a native
 transaction-bound density window from this implementation.
+`turbo-hd-media` separately opts into `TURBO_HD_SELECT` plus
+`TURBO_HD_MEDIA` and wide D88 storage. It is non-savable; no board enables it.
+Class matching uses selected-volume byte 1B (00/10 low, 20 high) and rejects
+wrong/unknown classes with RNF, not NOT READY. Metadata follows the SYS scanner
+strobe and survives controller reset. See `docs/HD_MEDIA_STATUS.md`; this does
+not qualify native byte-rate/search/rotation/BUSY-change/mechanical behavior.
+Use `test-machine-hd-media` and `test-fdc-capacity-class`. Compare default
+internal vendor state through the fixed original-port wrapper, and ordinary
+whole-machine state separately; the new vendor top input is not old standalone
+serializer compatibility. Never normalize saved states to bypass the check.
 For D88, distinguish total container size (24-bit machine interface) from the
 selected volume's sub-1-MiB 20-bit addressing limit. Do not restore the old
 total-file 1-MiB rejection or advertise larger selected-volume/2HD support.

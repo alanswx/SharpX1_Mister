@@ -23,6 +23,9 @@
 #if defined(X1_WIDE_D88_EXPERIMENT) && (!defined(X1_TURBO_FOUNDATION) || defined(X1_SAVABLE))
 #error "wide D88 addressing requires the separate non-savable Turbo experiment"
 #endif
+#if defined(X1_HD_MEDIA_EXPERIMENT) && !defined(X1_WIDE_D88_EXPERIMENT)
+#error "HD medium matching requires the separate non-savable wide-D88 experiment"
+#endif
 #if defined(X1_DMA_KANJI_EXPERIMENT) && (defined(X1_SAVABLE) || !defined(X1_RTC_EXPERIMENT) || !defined(X1_TURBO_DMA) || !defined(X1_TURBO_KANJI_RENDER) || !defined(X1_TURBO_VIDEO_MASTER))
 #error "DMA/Kanji runner requires non-savable RTC/DMA/render/X3 profile"
 #endif
@@ -1091,6 +1094,9 @@ int main(int argc, char **argv) {
 #endif
 #ifdef X1_WIDE_D88_EXPERIMENT
         crtc_observation += ",\"d88_wide_experiment\":true,\"d88_address_bits\":24,\"d88_index_bits\":12,\"d88_sector_limit\":4095";
+#endif
+#ifdef X1_HD_MEDIA_EXPERIMENT
+        crtc_observation += ",\"hd_media_experiment\":true";
 #endif
         if (fetch_window_requested)
             crtc_observation += ",\"fetch_start_ms\":" + std::to_string(fetch_start_ms)

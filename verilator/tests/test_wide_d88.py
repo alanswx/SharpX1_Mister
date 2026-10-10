@@ -15,6 +15,9 @@ parser.add_argument('ordinary', type=pathlib.Path)
 parser.add_argument('--timeout', type=float, default=600)
 parser.add_argument('--geometry', action='store_true',
                     help='exercise emulator-derived 77x2x26x256 geometry, not native 2HD timing')
+parser.add_argument('--capacity-match', action='store_true',
+                    help='exercise CPU selection and RNF for mismatched medium class')
+parser.add_argument('--media-type', type=lambda v:int(v,0), choices=(0,0x10,0x20), default=0x20)
 args = parser.parse_args()
 source = args.wide.resolve()
 folder = pathlib.Path(tempfile.mkdtemp(prefix='cpu-wide-', dir=source.parent))
@@ -30,7 +33,7 @@ def media():
     if args.geometry:
         image = bytearray(688)
         image[:8] = b'WIDE HD\0'
-        image[27] = 0x20
+        image[27] = args.media_type
         for track in range(154):
             struct.pack_into('<I', image, 32+4*track, len(image))
             for sector in range(1, 27):
@@ -54,6 +57,8 @@ def media():
     data_at = header_at + 16
     image = bytearray(data_at + 1024)
     image[:8] = b'WIDE X1\0'
+    if args.capacity_match:
+        image[27] = args.media_type
     struct.pack_into('<I', image, 28, len(image))
     struct.pack_into('<I', image, 32, header_at)
     image[header_at:header_at+4] = bytes((0, 0, 1, 3))
@@ -111,6 +116,15 @@ def program():
         # alone would not qualify the last track/head index lookup.
         out(0xffb, 76);out(0xff8, 0x10);wait(1, 0)
         out(0xffc, 0x90)
+    if args.capacity_match:
+        def select(port):
+            p.word(0x01, port);p.emit(0xed,0x78,0xfe,0xff);p.jump(0xc2,'fail')
+        high = args.media_type == 0x20
+        select(0xfff if high else 0xffe)
+        out(0xffa,26 if args.geometry else 1)
+        for command in (0x80,0xa0,0xc0):
+            out(0xff8,command);wait(1,0);status(0x10)
+        select(0xffe if high else 0xfff)
     # Retained IPL covers the entire lower 32 KiB, although its asset is 8 KiB.
     # Writes there reach shadow RAM but CPU reads still see IPL. Use visible
     # upper RAM so the CPU itself reads the previously transferred payload.
@@ -150,6 +164,7 @@ assert run.returncode == 0, run.stderr
 report = json.loads(run.stdout.splitlines()[-1])
 assert report['d88_wide_experiment'] and report['d88_address_bits'] == 24
 assert report['d88_index_bits'] == 12 and report['d88_sector_limit'] == 4095
+assert bool(report.get('hd_media_experiment',False)) == args.capacity_match
 assert report['turbo_foundation'] and report['intra_assignment_delays']
 assert report['sys_hz'] == 32000000 and report['video_hz'] == 28571428
 assert report['halted'] and report['peek'].startswith('57494445'), report
@@ -183,5 +198,6 @@ for option in ('--save-state', '--restore-state'):
     assert sentinel.read_bytes() == b'unchanged state sentinel'
 assert inputs == {path: digest(pathlib.Path(path)) for path in inputs}
 print(f'PASS actual CPU wide D88: {2*len(payload)} reads/{len(payload)} writes beyond 1MiB, '
-      f'geometry={args.geometry}, exact payload/mark/CRC, default20/snapshot rejections, unchanged originals')
+      f'geometry={args.geometry}, capacity-match={args.capacity_match}, requested-type={args.media_type:#x}, '
+      'exact payload/mark/CRC, default20/snapshot rejections, unchanged originals')
 print('Evidence:', folder)
