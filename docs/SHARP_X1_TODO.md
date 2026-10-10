@@ -24,8 +24,10 @@ The explicit non-savable RTC/X3/DMA/Kanji runner subsequently passes ten
 original pixel cases (independent 1,536,000-pixel audit), six keyboard cases
 and four active CPU RTC/FDC/DMA cold/warm sector transfers. Elapsed/warm
 calendar and four rejection gates also pass with 138-input auditing. Fresh
-protected native Arcus/Bastard trials remain running; no gameplay or
-hardware qualification is inferred. These do not close full device coexistence.
+protected native Arcus/Bastard trials now complete with independent repeat/input
+auditing. Arcus passes the old disk dialog via 57,344 real DMA pairs but ends
+on black; Bastard stays at its title. No gameplay or hardware qualification
+is inferred. These do not close full device coexistence.
 
 The ordinary regression/headless/DMA-wrapper-lint sequence started after the
 upload-start repair now completes zero; the current 200,000-cycle ordinary

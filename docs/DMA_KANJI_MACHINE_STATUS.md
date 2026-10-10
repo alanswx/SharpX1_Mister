@@ -144,12 +144,21 @@ auditing in `qualified-joxd_7zb`. Four missing/short/controller/snapshot
 rejections also pass. The combined executable SHA-256 is
 `bbfe27a755994dfd75da58d7f5fb95cb5184ec48ae82b8c0fb7a0101bc555988`.
 Exploratory protected native Arcus/Bastard sixteen-second cold/repeat probes
-also start from the FDC-qualified frozen runner, sessions 13287/90962. They use
+also complete from the FDC-qualified frozen runner, sessions 13287/90962. They use
 the earlier explicit controller/IPL/ANK/private model40 candidate and late-key
 script; Arcus A=Disk 1/B=Disk 2 remains an unverified release configuration.
 Their logs are `/tmp/x1-arcus-dma-rtc-x3-kanji-first-16s.log` and
-`/tmp/x1-bastard-dma-rtc-x3-kanji-first-16s.log`. No gameplay, repeatability,
-native-font identity or hardware result is yet inferred from these running jobs.
+`/tmp/x1-bastard-dma-rtc-x3-kanji-first-16s.log`. No gameplay,
+native-font identity or hardware result is inferred from these bounded jobs.
+Independent auditing verifies both exact reports, every original input and
+all seven cold/repeat artifacts per title. Arcus now performs 57,344 actual DMA
+grants/read/write pairs, with 2,914 disk requests and zero writes, ending at
+CPU bus address `0A9F` instead of the earlier disk-error state. Its actual
+640x400 frame is black (`03702d99714c4325`); the PNG conversion is visually
+inspected and matches all 256,000 original PPM pixels exactly. Bastard remains
+at its 640x200 title (`82968a99a28dbd3d`), with 1,062 requests and no DMA pairs.
+Neither is gameplay acceptance. The absence of the old Arcus dialog is not
+proof of the next failure's cause, correct release disk order or native IRQ.
 
 ## Repeating DMA during actual Kanji frames
 

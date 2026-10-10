@@ -584,6 +584,23 @@ cases and repairs blocked font upload START; see `DMA_KANJI_MACHINE_STATUS.md`.
 It does not yet qualify native renderer/RTC/FDC coexistence or gameplay.
 No game or RAM is patched.
 
+The following non-savable RTC/X3/DMA/Kanji protected cold/repeat probes now
+complete with independent executable/input/report/seven-artifact auditing.
+Both use frozen runner SHA-256
+`bbfe27a755994dfd75da58d7f5fb95cb5184ec48ae82b8c0fb7a0101bc555988`.
+Arcus executes 57,344 DMA grants/read/write pairs and 2,914 host disk requests
+without media writes. Its old disk-error dialog disappears, but the final
+sixteen-second 640x400 frame is black (`03702d99714c4325`), CPU bus address
+`0A9F`. Actual PNG/PPM comparison matches 256,000 pixels. This is a new native
+execution stage, not a game-control/IRQ pass or diagnosed cause of the next wait.
+Bastard stays at the same 640x200 title (`82968a99a28dbd3d`), 1,062 requests,
+zero DMA pairs/writes. Both still have fifteen real PS/2 bytes and
+`gameplay_verified: false`. Arcus Disk 1 A/Disk 2 B remains exploratory.
+Ignored evidence folders:
+`obj_dir_v17_rtc_x3_dma_kanji/special-probes/arcus-dma-rtc-x3-kanji-first-16s`
+and `bastard-dma-rtc-x3-kanji-first-16s`; the existing output logs and asset
+provenance are unchanged. No CPU, private program or snapshot is patched.
+
 ## Arcus and Bastard Special: private native probes
 
 These additional titles are locally supplied archives, outside the top-32

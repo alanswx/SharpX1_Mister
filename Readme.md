@@ -27,8 +27,9 @@ remain open; no ordinary runner or board enables the combination.
 The separately named non-savable `rtc-x3-dma-kanji` follow-up now passes ten
 original pixel and six keyboard cases, plus four actual CPU RTC/FDC/DMA cold/
 warm transfers. Elapsed/warm calendar and four rejection gates also pass.
-Pixels and active disk/clock tests are separate bounded gates; protected
-native probes are running, not game/hardware acceptance.
+Pixels and active disk/clock tests are separate bounded gates. Protected native
+cold/repeats now finish: Arcus transfers 57,344 bytes by DMA but ends on a black
+frame, and Bastard stays at its title. Neither is gameplay/hardware acceptance.
 
 Repeated Kanji DMA during rendered frames now passes the ten-case pixel matrix:
 1,536,000 exact RGB pixels, 18,549 late bus pairs and repeated CPU payload
