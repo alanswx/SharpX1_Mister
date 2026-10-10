@@ -59,7 +59,12 @@ Both full ordinary suites are subsequently launched with the new input case:
 `/tmp/x1-joystick-schedule-full-baseline.log` and
 `/tmp/x1-joystick-schedule-full-fast.log`. The fast suite subsequently completes
 zero with 141 PASS reports and the unchanged `e21f5781...0906b1f` executable.
-The delay-aware baseline remains running; its completion is not inferred.
+The delay-aware baseline subsequently also completes zero with 144 PASS
+reports and unchanged `520d17f2...8d7321` executable. Independent
+`scripts/audit_fast_timing_video.py` inspection confirms all eighteen video/
+transition cases agree between these two logs, including frame hashes,
+counts, clocks, periods and program/font identities. This is ordinary
+regression coverage, not native Turbo/Z or hardware acceptance.
 
 ## Continuous commercial qualification completed
 
@@ -101,3 +106,39 @@ controlled/repeat:
 This qualifies bounded ordinary delay-aware cold boot/start/right movement
 without snapshots, not a complete game or the other four delay-aware titles.
 Music, Turbo/Z/native firmware and physical input acceptance remain separate.
+
+## Three further continuous action-title tests launched
+
+The new `tests/test_commercial_cold_gameplay.py` extends this cold, snapshot-free
+procedure to Druaga, Mappy and Galaga. It preserves the native stages from
+`requalify_commercial.py` and the release hashes/player symbols/direction
+assertions from `test_commercial_gameplay.py`. Cold runs last 30,550/27,300/
+33,300 ms respectively, including the unchanged final 300-ms controls.
+Mappy's original title-start key script is applied at 18 and 24 seconds,
+without replacing boot keys or injecting memory. Galaga's later enemy-wave/
+fire/travel acceptance is separate, not claimed by this movement collector.
+Shanghai's native cursor-feedback/pair test has no continuous replacement yet.
+
+Four asset-free tests pass in `make -C verilator test-commercial-cold-plan`:
+exact stage/control times and prohibited snapshot/injection options, original
+key times/repeated Mappy start and invalid scripts, release-specific player
+structures/invalid dumps, and CLI refusal before reading missing assets.
+They are planning/oracle checks, not commercial execution. CI now includes
+that target; hosted results are not inferred. Helper SHA-256:
+`54c24a3d49297f8ec98d3346ce34e2d9da2cf70e6c522263dab0f8e23d735c52`;
+asset-free fixture:
+`0475befbb1c87a588091e308ffe655b6e60fb6a606512e9211cffcdd4f7daf85`.
+
+Frozen root:
+`verilator/obj_dir_headless/joystick-schedule/cold-actions-PHNPmGki/`.
+Its **654-entry** manifest passes before launch
+(`/tmp/x1-actions-cold-initial-inputs.log`); generated Python caches are excluded.
+It contains the already qualified delay-aware runner, machine/vendor/BIOS/
+keys/source/oracle copies, frozen before any new native launch. Each title's
+preflight and original asset hashes are inspected and pass ordinary
+SYS=32 MHz/VID=28,571,428 Hz delay-aware profile checks. Nine actual cold runs
+(idle/controlled/repeat per title) are running; no gameplay pass is inferred.
+Logs: `/tmp/x1-{druaga,mappy,galaga}-continuous-timing.log`.
+Collector host timeout is 10,800 seconds per run, without shortened simulation
+durations or loosened assertions. Final executable/input manifests and actual
+reports/artifacts must be independently checked after terminal completion.

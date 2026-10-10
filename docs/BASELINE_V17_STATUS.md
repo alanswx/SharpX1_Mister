@@ -151,6 +151,10 @@ complete zero: IPL/disk cold boot, start/right movement, changed RGB and exact
 repeatability pass without snapshots. The independent final 695-input manifest
 and actual report/artifact audit pass; see the scheduled-input evidence for
 hashes and scope. The new full fast suite also completes zero with 141 PASS
-reports and unchanged executable; the new baseline suite remains running.
+reports and unchanged executable; the new baseline suite subsequently also
+completes zero with 144 PASS reports and unchanged executable. Independent
+inspection confirms eighteen video/transition cases agree across these suites.
+Fresh frozen continuous Druaga/Mappy/Galaga runs are now started, not passed;
+see the scheduled-input evidence for exact startup durations and acceptance.
 The earlier completed fast five-title results retain their
 original frozen executable identity; no machine RTL/layout was changed.

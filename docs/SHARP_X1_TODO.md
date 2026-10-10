@@ -152,7 +152,10 @@ pass alongside existing clock/key/snapshot checks. Three new continuous
 delay-aware Xevious cold boots now complete zero: native start/right movement,
 changed RGB, exact repeatability and independently checked unchanged frozen
 inputs pass without snapshots. The new full fast suite completes zero with
-141 PASS reports; the baseline is still running. See
+141 PASS reports; the baseline subsequently completes zero with 144 PASS
+reports, unchanged runner and eighteen video/transition cases independently
+matching fast. Continuous cold Druaga/Mappy/Galaga runs are now started, not
+passed, from a separately checked frozen tree. See
 `JOYSTICK_SCHEDULE_STATUS.md`. Other delay-aware titles, native Turbo/Z and
 physical gates stay open.
 

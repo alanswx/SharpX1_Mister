@@ -1602,6 +1602,10 @@ test-joystick-schedule: headless
 	python3 tests/test_joystick_schedule.py ./$(HEADLESS_EXE)
 .PHONY: test-joystick-schedule
 
+test-commercial-cold-plan:
+	python3 tests/test_commercial_cold_plan.py
+.PHONY: test-commercial-cold-plan
+
 test: headless test-rgb12 test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner test-d88-crc test-d88-metadata test-cpu-busreq
 	python3 tests/test_joystick_schedule.py ./$(HEADLESS_EXE)
 	python3 tests/test_key_script.py ./$(HEADLESS_EXE) $(VIDEO_TEST_FLAGS)
