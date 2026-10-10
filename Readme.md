@@ -18,6 +18,13 @@ the remaining physical and unimplemented-feature gates.
 
 ## Current status
 
+The separate non-savable `turbo-wide-d88` runner now passes actual CPU
+read/write/readback above 1 MiB and at sector index 4,003. Ordinary address/
+capacity defaults and generated savable state remain unchanged; the default
+fast/snapshot regression also passes. This is a storage prerequisite, not
+native 2HD density or mechanical timing. See
+[the qualified scope and remaining work](docs/WIDE_D88_STATUS.md).
+
 The experimental palette owner no longer bypasses video-local reset release,
 and HDMI period measurement now synchronizes its raw VS input before edge
 detection. Local live-signal/reset/control tests pass; fresh pixels and fitted
@@ -67,7 +74,8 @@ the machine; ADC/IC58/GRAM capture and hardware remain unimplemented or unqualif
 Large concatenated D88 files now mount when their selected first volume fits
 the controller's address space. Host/scanner and real Z80 read/write checks
 pass, preserving all trailing volumes. Selected volumes still must be below
-1 MiB; this is not 2HD support or new hardware acceptance. See
+1 MiB in ordinary profiles; the separate wide experiment above expands that
+storage limit. Neither establishes native 2HD or new hardware acceptance. See
 [disk evidence](docs/DISK_STATUS.md#concatenated-container-admission-repair).
 
 The default-off [Turbo Z effect CPU prototype](docs/TURBO_Z_EFFECT_CPU_STATUS.md)

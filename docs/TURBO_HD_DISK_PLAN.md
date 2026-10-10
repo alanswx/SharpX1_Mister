@@ -38,13 +38,15 @@ establish native density switching. Do not download another MAME checkout.
 
 ## Ordered work and proving evidence
 
-1. Expand storage without changing ordinary defaults. The in-progress,
+1. Expand storage without changing ordinary defaults. The separate,
    opt-in `turbo-wide-d88` profile uses 24-bit addresses and 4,095 usable
    sector entries with a 12-bit index. Default remains 20-bit/1,992 entries.
    Preserve all metadata fields, ACK-owned LBAs and scanner bounds. Qualify
    high-address split-block metadata read/modify/write, high index 4,003,
    capacity/overflow rejection and ordinary snapshot layout. This profile
-   is non-savable and is **not yet qualified**; no board enables it.
+   is non-savable and now passes these bounded storage gates; see
+   [the executed results](WIDE_D88_STATUS.md). No board enables it, and it
+   does not implement native density/rate selection or mechanics.
 2. Implement the distinct IN capacity-selection latch alongside existing
    FM/MFM and OUT drive control. Test exact aliases, neighboring ports,
    reset policy and reads during BUSY. Resolve provisional behavior against

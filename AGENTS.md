@@ -246,6 +246,12 @@ writes. Freeze/hash each runner before a long test, not after another build
 may have replaced it. Older frozen game qualifications remain historical.
 Simulator disk writes require `--disk-output NEW_COPY`; private originals and
 snapshots remain ignored. See `docs/DISK_STATUS.md` for tested and missing cases.
+`turbo-wide-d88` separately enables 24-bit byte addresses and 4,095 sector
+entries with a 12-bit index; ordinary profiles/boards remain 20-bit/1,992.
+It is non-savable and does not implement native density/FDCCLK/RPM/format.
+Use `test-machine-wide-d88`, `test-fdc-address-width` and
+`test-fdc-default-state`; see `docs/WIDE_D88_STATUS.md`. Generated IPL CPU
+buffers must be above `8000` while its lower-32-KiB read overlay is retained.
 For D88, distinguish total container size (24-bit machine interface) from the
 selected volume's sub-1-MiB 20-bit addressing limit. Do not restore the old
 total-file 1-MiB rejection or advertise larger selected-volume/2HD support.

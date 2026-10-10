@@ -6,7 +6,10 @@
 #include <string>
 #include <vector>
 
-inline void validate_d88(const std::vector<uint8_t>& bytes) {
+inline void validate_d88(const std::vector<uint8_t>& bytes, unsigned address_bits = 20) {
+    if (address_bits != 20 && address_bits != 24)
+        throw std::runtime_error("D88 address profile must be ordinary20 or experimental24");
+    const size_t sector_limit = address_bits == 24 ? 4095 : 1992;
     auto fail = [](const char* reason) {
         throw std::runtime_error(std::string("invalid D88: ") + reason);
     };
@@ -43,7 +46,7 @@ inline void validate_d88(const std::vector<uint8_t>& bytes) {
             if (!count) fail("zero sector count");
             if (count > 255) unsupported("sector count exceeds scanner field");
             total_sectors += count;
-            if (total_sectors > 1992) unsupported("sector index capacity exceeded");
+            if (total_sectors > sector_limit) unsupported("sector index capacity exceeded");
             for (size_t sector = 0; sector < count; ++sector) {
                 if (end - cursor < 16) fail("truncated sector header");
                 if (u16(cursor + 4) != count) fail("inconsistent track sector counts");
@@ -57,11 +60,12 @@ inline void validate_d88(const std::vector<uint8_t>& bytes) {
             }
         }
         // Diagnose structural corruption first. The active controller selects
-        // volume zero and rejects its declared size at/above 1 MiB. A larger
+        // volume zero and rejects declared size at/above its address limit. A larger
         // valid disk is unsupported, not a masked smaller mount. Total
         // concatenated-container size is not the selected-volume size.
-        if (base == 0 && size >= (size_t(1) << 20))
-            unsupported("selected volume exceeds 20-bit controller address space");
+        if (base == 0 && size >= (size_t(1) << address_bits))
+            unsupported(("selected volume exceeds " + std::to_string(address_bits)
+                         + "-bit controller address space").c_str());
         base += size;
     }
     if (bytes.size() >= (size_t(1) << 24))

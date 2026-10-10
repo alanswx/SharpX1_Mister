@@ -1,6 +1,6 @@
 // Sharp X1 base-machine integration. Shared by MiSTer and simulation.
 // See docs/BASE_X1_CONTRACT.md for address-map sources and limitations.
-module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0, TURBO_DSW = 241, TURBO_DMA_RESTART_IRQ = 0, TURBO_Z_PALETTE_CPU = 0, TURBO_Z_VIDEO = 0, TURBO_Z_MULTIMODE = 0, TURBO_Z_INTERNAL8 = 0, TURBO_Z_TEXT_CPU = 0, TURBO_SIO = 0, TURBO_FM_CPU = 0, RTC_ENABLE = 0, TURBO_Z_EFFECT_CPU = 0, TURBO_DMA_KANJI_EXPERIMENT = 0) (
+module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0, TURBO_DSW = 241, TURBO_DMA_RESTART_IRQ = 0, TURBO_Z_PALETTE_CPU = 0, TURBO_Z_VIDEO = 0, TURBO_Z_MULTIMODE = 0, TURBO_Z_INTERNAL8 = 0, TURBO_Z_TEXT_CPU = 0, TURBO_SIO = 0, TURBO_FM_CPU = 0, RTC_ENABLE = 0, TURBO_Z_EFFECT_CPU = 0, TURBO_DMA_KANJI_EXPERIMENT = 0, D88_ADDRESS_BITS = 20) (
     input clk_sys, clk_28636, reset,
     input pal, scandouble,
     input ioctl_download,
@@ -768,7 +768,12 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         .clk(clk_sys), .reset(core_reset), .io_read(io_read && !dam), .io_write(io_write && !dam),
         .address(a), .data(data_out), .drive(drive), .side(disk_side), .motor_on(disk_motor), .fm_mode(disk_fm)
     );
-    wd1793 #(.RWMODE(1), .EDSK(1), .HEADLOAD_STATUS(1), .INDEX_CYCLES(800000), .D88_ONLY(1), .PHYSICAL_DRIVES(2)) fdc (
+    // Wide addressing is an explicit prerequisite experiment, not a density,
+    // rate/RPM or native 2HD drive profile. Ordinary boards remain 20-bit.
+    generate if(D88_ADDRESS_BITS!=20 && D88_ADDRESS_BITS!=24) begin : invalid_d88_width
+        initial $fatal(1,"shared D88 addressing permits ordinary20 or experimental24 only");
+    end endgenerate
+    wd1793 #(.RWMODE(1), .EDSK(1), .HEADLOAD_STATUS(1), .INDEX_CYCLES(800000), .D88_ONLY(1), .PHYSICAL_DRIVES(2), .ADDRESS_BITS(D88_ADDRESS_BITS), .MAX_SECTORS(D88_ADDRESS_BITS==24 ? 4095 : 1992)) fdc (
         .clk_sys(clk_sys), .ce(pe4M4), .reset(core_reset),
         .io_en(!dam && a[15:2] == 14'h03fe), .rd(io_read), .wr(io_write),
         .addr(a[1:0]), .din(data_out), .dout(fdc_data),
@@ -777,12 +782,12 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         .ready(selected_ready && disk_motor && !fdc_prepare),
         .drive_select(active_drive[0]), .transport_idle(transport_idle),
         .drive_connected(active_drive < 2),
-        .img_mounted(media_changing), .img_size(selected_size[19:0]), .img_size_id(selected_size),
+        .img_mounted(media_changing), .img_size(selected_size[D88_ADDRESS_BITS-1:0]), .img_size_id(selected_size),
         .disk_index(3'd0), .prepare(fdc_prepare),
         .sd_lba(sd_lba), .sd_rd(sd_rd), .sd_wr(sd_wr), .sd_ack(sd_ack),
         .sd_buff_addr(sd_buff_addr), .sd_buff_dout(sd_buff_dout),
         .sd_buff_din(sd_buff_din), .sd_buff_wr(sd_buff_wr),
-        .input_active(1'b0), .input_addr(20'd0), .input_data(8'd0), .input_wr(1'b0),
+        .input_active(1'b0), .input_addr(D88_ADDRESS_BITS'(0)), .input_data(8'd0), .input_wr(1'b0),
         .buff_addr(), .buff_read(), .buff_din(8'd0)
     );
 

@@ -14,6 +14,13 @@ support before optional Turbo extensions.
 
 ## Active goal: items 1–6 and Turbo Z (October 6)
 
+The separate wide-D88 storage profile now passes actual CPU high-address and
+sector-index-4,003 read/write/readback, default admission/snapshot negatives,
+and standalone width/capacity boundaries. Ordinary generated state is unchanged
+and the current default fast/snapshot regression passes. This does not close
+native density/FDCCLK/RPM/format or software/hardware HD acceptance; see
+`WIDE_D88_STATUS.md` and `TURBO_HD_DISK_PLAN.md`.
+
 The fifth-fit worst paths now have concrete RTL repairs: palette display
 permission no longer bypasses video-local reset, and opt-in HPS HDMI-period
 measurement consumes only the second synchronized VS stage. Live measurement,

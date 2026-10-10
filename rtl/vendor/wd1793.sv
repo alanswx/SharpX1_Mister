@@ -22,10 +22,13 @@
 //
 //============================================================================
 
+// X1 address/index-capacity experiment: defaults preserve inherited state
+// widths/order. Wider instances are not 2HD geometry/rate qualification.
+// Original parameterization; inherited notices and provenance remain above.
 // X1 integration: configurable head-load status/index period; MFM-only adapter
 // rejects selected FM access rather than silently reading an MFM sector.
 module wd1793 #(parameter RWMODE=0, EDSK=1, HEADLOAD_STATUS=0, INDEX_CYCLES=35001,
-               D88_ONLY=0, PHYSICAL_DRIVES=1)
+               D88_ONLY=0, PHYSICAL_DRIVES=1, ADDRESS_BITS=20, MAX_SECTORS=1992)
 (
 	input        clk_sys,     // sys clock
 	input        ce,          // ce at CPU clock rate
@@ -60,7 +63,7 @@ module wd1793 #(parameter RWMODE=0, EDSK=1, HEADLOAD_STATUS=0, INDEX_CYCLES=3500
 
 	// SD access (RWMODE == 1)
 	input        img_mounted, // signaling that new image has been mounted
-	input [19:0] img_size,    // size of image in bytes. 1MB MAX!
+	input [ADDRESS_BITS-1:0] img_size, // byte size; full identifier remains 24 bits
 	// The TRUE image size, untruncated. A .d77 multi-disk container is routinely
 	// larger than 1 MB (XANADU.D77 is 2.4 MB, six disks), and comparing its
 	// header size field against the truncated img_size can never match:
@@ -71,8 +74,8 @@ module wd1793 #(parameter RWMODE=0, EDSK=1, HEADLOAD_STATUS=0, INDEX_CYCLES=3500
 	// below stays 20-bit and reaches only the first disk, which is all any of
 	// these titles boots from." The masking WRAPS rather than clamps, so a
 	// container is not guaranteed to reach even its first disk -- that is what
-	// blanked Ys - Ancient Ys Vanished Omen [a]. Addressing is still 20-bit and
-	// still reaches only the first disk; the BOUND is what had to change.)
+	// blanked Ys - Ancient Ys Vanished Omen [a]. That repair retained 20-bit
+	// addressing; ADDRESS_BITS now independently controls the address ceiling.)
 	input [23:0] img_size_id,
 
 	// Which disk inside a multi-disk container to present, 0-based.
@@ -98,13 +101,24 @@ module wd1793 #(parameter RWMODE=0, EDSK=1, HEADLOAD_STATUS=0, INDEX_CYCLES=3500
 
 	// RAM access (RWMODE == 0)
 	input        input_active,
-	input [19:0] input_addr,
+	input [ADDRESS_BITS-1:0] input_addr,
 	input  [7:0] input_data,
 	input        input_wr,
-	output[19:0] buff_addr,	  // buffer RAM address
+	output[ADDRESS_BITS-1:0] buff_addr,	  // buffer RAM address
 	output       buff_read,	  // buffer RAM read enable
 	input  [7:0] buff_din     // buffer RAM data input
 );
+
+localparam SECTOR_INDEX_BITS = 37 + ADDRESS_BITS;
+// The count must represent MAX_SECTORS itself, not just its last address.
+// Keep exactly 11 bits / 2048 words for the inherited 1992-entry default.
+localparam SECTOR_COUNT_BITS = (MAX_SECTORS <= 2047) ? 11 : 12;
+initial begin
+    if (ADDRESS_BITS < 20 || ADDRESS_BITS > 24)
+        $fatal(1, "wd1793 ADDRESS_BITS must be 20..24");
+    if (MAX_SECTORS < 1 || MAX_SECTORS > 4095)
+        $fatal(1, "wd1793 MAX_SECTORS must be 1..4095");
+end
 
 // Possible track configs:
 // 0: 26 x 128  = 3.3KB
@@ -124,23 +138,24 @@ reg [5:0] ack = 0;
 reg sd_busy = 0;
 // X1 strict container mode never falls back to raw geometry after a bad scan.
 reg d88_bad = 0, d88_valid = 0;
-reg [20:0] d88_end = 0;
+reg [ADDRESS_BITS:0] d88_end = 0;
 reg mount_pending = 0;
-wire media_ready = ready && (!D88_ONLY || d88_valid);
+wire media_ready = ready && (!D88_ONLY || d88_valid) &&
+                   ((ADDRESS_BITS == 20 && MAX_SECTORS == 1992) || !d88_bad);
 wire transport_active = sd_busy || sd_ack || (|ack);
 // A header RMW owns the medium between its separate host transactions too.
 assign transport_idle = !transport_active && !sd_rd && !sd_wr && !metadata_busy;
 assign sd_lba = request_lba;
-wire [31:0] next_lba = scan_active ? {21'd0, scan_addr[19:9]}
-                                  : {21'd0, buff_a[19:9]} + {30'd0, sd_block};
+wire [31:0] next_lba = scan_active ? {{(41-ADDRESS_BITS){1'b0}}, scan_addr[ADDRESS_BITS-1:9]}
+                                  : {{(41-ADDRESS_BITS){1'b0}}, buff_a[ADDRESS_BITS-1:9]} + {30'd0, sd_block};
 assign prepare   = EDSK ? scan_active : img_mounted;
-assign buff_addr = {buff_a[19:9], 9'd0} + byte_addr;
+assign buff_addr = {buff_a[ADDRESS_BITS-1:9], 9'd0} + byte_addr;
 assign buff_read = ((addr == A_DATA) && buff_rd);
 
 reg   [7:0] sectors_per_track, edsk_spt = 0;
 wire [10:0] sector_size = 11'd128 << wd_size_code;
 reg  [10:0] byte_addr;
-reg  [19:0] buff_a;
+reg  [ADDRESS_BITS-1:0] buff_a;
 reg   [1:0] wd_size_code;
 
 wire  [7:0] buff_dout;
@@ -148,10 +163,10 @@ reg   [1:0] sd_block = 0;
 reg         format;
 // Strict D88 sector writes publish metadata only AFTER all payload ACKs.
 // Saved identity must not follow the live search cursor or reset registers.
-wire [56:0] sector_index_entry;
-reg [56:0] metadata_entry;
-reg [10:0] metadata_index;
-reg [19:0] metadata_mark_address;
+wire [SECTOR_INDEX_BITS-1:0] sector_index_entry;
+reg [SECTOR_INDEX_BITS-1:0] metadata_entry;
+reg [SECTOR_COUNT_BITS-1:0] metadata_index;
+reg [ADDRESS_BITS-1:0] metadata_mark_address;
 reg metadata_deleted, metadata_second;
 reg metadata_busy = 0, metadata_inflight = 0, metadata_invalid = 0;
 reg metadata_aborted = 0;
@@ -165,10 +180,10 @@ wire metadata_cancel_event = reset || (D88_ONLY && (img_mounted || mount_pending
 wire metadata_cancel = metadata_cancel_event || metadata_aborted;
 wire metadata_commit = metadata_inflight && ack[5:4] == 2'b10 &&
                        !metadata_invalid && !img_mounted && !mount_pending && !scan_active;
-wire [56:0] metadata_committed_entry =
-    {metadata_entry[56:22], metadata_entry[21] && !metadata_commit_crc,
-     metadata_commit_mark ? metadata_deleted : metadata_entry[20], metadata_entry[19:0]};
-wire [19:0] metadata_address = metadata_mark_address + (metadata_second ? 20'd1 : 20'd0);
+wire [SECTOR_INDEX_BITS-1:0] metadata_committed_entry =
+    {metadata_entry[SECTOR_INDEX_BITS-1:ADDRESS_BITS+2], metadata_entry[ADDRESS_BITS+1] && !metadata_commit_crc,
+     metadata_commit_mark ? metadata_deleted : metadata_entry[ADDRESS_BITS], metadata_entry[ADDRESS_BITS-1:0]};
+wire [ADDRESS_BITS-1:0] metadata_address = metadata_mark_address + (metadata_second ? ADDRESS_BITS'(1) : ADDRESS_BITS'(0));
 wire metadata_edit = ce && !metadata_cancel &&
                      (state == STATE_METADATA_MARK || state == STATE_METADATA_STATUS);
 wire zero_write_byte = D88_ONLY && ce && !metadata_cancel && state == STATE_WRITE_2 &&
@@ -204,10 +219,10 @@ generate
 endgenerate
 
 reg         var_size  = 0;
-reg  [19:0] disk_size;
+reg  [ADDRESS_BITS-1:0] disk_size;
 reg         layout_r;
 
-// Bound for the mount-time D77 scan. It must be min(true size, the 20-bit
+// Bound for the mount-time D77 scan. It must be min(true size, the address
 // address space) -- NOT img_size, which is the true size masked to 20 bits.
 //
 // The mask WRAPS, it does not clamp, and that is the whole bug. Ys - Ancient Ys
@@ -225,9 +240,9 @@ reg         layout_r;
 //
 // Under 1 MB this is bit-identical to the old expression, so ordinary single
 // disk images are untouched -- the gate is unchanged, every counter included.
-wire [19:0] scan_limit = (img_size_id[23:20] != 4'd0) ? 20'hFFFFF
-                                                      : img_size_id[19:0];
-wire [19:0] hs  = (layout_r & side) ? disk_size >> 1 : 20'd0;
+wire [ADDRESS_BITS-1:0] scan_limit = (|(img_size_id >> ADDRESS_BITS)) ? {ADDRESS_BITS{1'b1}}
+                                                      : img_size_id[ADDRESS_BITS-1:0];
+wire [ADDRESS_BITS-1:0] hs  = (layout_r & side) ? disk_size >> 1 : ADDRESS_BITS'(0);
 wire  [7:0] dts = {disk_track[6:0], side} >> layout_r;
 always @(posedge clk_sys) begin
 	case({var_size,size_code})
@@ -559,7 +574,7 @@ always @(posedge clk_sys) begin
 			mount_pending <= 0;
 			if(EDSK) begin
 				// Container size is not the selected volume's size. Keep the
-				// 20-bit selected-header/extent guards below, but permit a
+				// selected-header/extent guards below, but permit a
 				// larger concatenated file whose selected volume is reachable.
 				scan_active<= !D88_ONLY || img_size_id >= 24'h2b0;
 				scan_addr  <= 0;
@@ -567,7 +582,7 @@ always @(posedge clk_sys) begin
 				scan_wr    <= 0;
 				sd_block   <= 0;
 			end
-			disk_size <= img_size[19:0];
+			disk_size <= img_size[ADDRESS_BITS-1:0];
 			layout_r  <= layout;
 		end
 	end else begin
@@ -650,7 +665,7 @@ always @(posedge clk_sys) begin
 
 
 		if(RWMODE & scan_active && !(D88_ONLY && img_mounted)) begin
-			if(scan_addr >= scan_limit || (D88_ONLY &&
+			if(scan_addr >= scan_limit || ((D88_ONLY || ADDRESS_BITS > 20 || MAX_SECTORS != 1992) &&
 			   ((d88_bad && scan_addr != 0) || (d88_end != 0 && {1'b0, scan_addr} >= d88_end)))) begin
 				scan_active <= 0;
 				scan_wr <= 0;
@@ -774,7 +789,7 @@ always @(posedge clk_sys) begin
 						if(D88_ONLY && write && !format) begin
 							metadata_entry <= sector_index_entry;
 							metadata_index <= edsk_addr;
-							metadata_mark_address <= edsk_offset - 20'd9;
+							metadata_mark_address <= edsk_offset - ADDRESS_BITS'(9);
 							metadata_invalid <= 0;
 						end
 					end
@@ -1004,7 +1019,7 @@ always @(posedge clk_sys) begin
 				sd_block <= 0;
 				sd_rd <= 1;
 				sd_busy <= 1;
-				request_lba <= {21'd0, metadata_address[19:9]};
+				request_lba <= {{(41-ADDRESS_BITS){1'b0}}, metadata_address[ADDRESS_BITS-1:9]};
 				metadata_repair_crc <= 0;
 				metadata_dirty <= 0;
 				state <= STATE_METADATA_READ_WAIT;
@@ -1028,7 +1043,7 @@ always @(posedge clk_sys) begin
 				else begin
 					sd_wr <= 1;
 					sd_busy <= 1;
-					request_lba <= {21'd0, metadata_address[19:9]};
+					request_lba <= {{(41-ADDRESS_BITS){1'b0}}, metadata_address[ADDRESS_BITS-1:9]};
 					metadata_inflight <= 1;
 					metadata_commit_mark <= !metadata_second;
 					metadata_commit_crc <= metadata_repair_crc;
@@ -1363,7 +1378,7 @@ end
 `endif
 
 reg        scan_active = 0;
-reg [19:0] scan_addr;
+reg [ADDRESS_BITS-1:0] scan_addr;
 reg        scan_wr;
 
 wire [1:0] edsk_sizecode;          // sector size: 0=128K, 1=256K, 2=512K, 3=1024K
@@ -1375,13 +1390,13 @@ wire       edsk_deleted;           // D88 header byte 7: deleted data mark
 wire       edsk_side;              // Side number (0 or 1)
 wire [6:0] edsk_track;             // Track number
 wire [7:0] edsk_sector;            // Sector number 0..15
-wire[19:0] edsk_offset;
+wire[ADDRESS_BITS-1:0] edsk_offset;
 wire [7:0] edsk_trackf, edsk_sidef;
 
-reg [10:0] edsk_addr, edsk_start;
+reg [SECTOR_COUNT_BITS-1:0] edsk_addr, edsk_start;
 
-reg [10:0] edsk_size = 0;
-wire[10:0] edsk_next = ((edsk_addr + 1'd1) >= edsk_size) ? 11'd0 : edsk_addr + 1'd1;
+reg [SECTOR_COUNT_BITS-1:0] edsk_size = 0;
+wire[SECTOR_COUNT_BITS-1:0] edsk_next = ((edsk_addr + 1'd1) >= edsk_size) ? SECTOR_COUNT_BITS'(0) : edsk_addr + 1'd1;
 
 reg  [7:0] spt_size = 0;
 
@@ -1410,14 +1425,14 @@ generate
 		// the device. Funnel both parsers through one registered write port and
 		// use the core's explicit Cyclone V altsyncram wrapper.
 		reg         edsk_wren = 0;
-		reg  [10:0] edsk_wraddr;
-		reg  [56:0] edsk_wrdata;
-		wire [56:0] edsk_q;
+		reg  [SECTOR_COUNT_BITS-1:0] edsk_wraddr;
+		reg  [SECTOR_INDEX_BITS-1:0] edsk_wrdata;
+		wire [SECTOR_INDEX_BITS-1:0] edsk_q;
 
 		x1_fdc_index_ram #(
-			.DATAWIDTH(57),
-			.ADDRWIDTH(11),
-			.NUMWORDS(2048)
+			.DATAWIDTH(SECTOR_INDEX_BITS),
+			.ADDRWIDTH(SECTOR_COUNT_BITS),
+			.NUMWORDS(1 << SECTOR_COUNT_BITS)
 		) edsk_ram (
 			.clock     (clk_sys),
 			.address_a (metadata_commit ? metadata_index : edsk_wraddr),
@@ -1425,7 +1440,7 @@ generate
 			.wren_a    (metadata_commit || edsk_wren),
 			.q_a       (),
 			.address_b (edsk_addr),
-			.data_b    (57'd0),
+			.data_b    (SECTOR_INDEX_BITS'(0)),
 			.wren_b    (1'b0),
 			.q_b       (edsk_q)
 		);
@@ -1483,13 +1498,13 @@ generate
 		// Compacted track table: {table index, byte offset} for present tracks
 		// only, in the order they appear in the file. Zero entries are dropped
 		// at build time so the second pass never has to skip over them.
-		reg [27:0] d77_pres[164];
+		reg [ADDRESS_BITS+7:0] d77_pres[164];
 		reg  [7:0] d77_cnt = 0;      // how many entries are valid
 		reg  [7:0] d77_rd  = 0;      // cursor: the track we are looking for
-		reg [27:0] d77_q;
+		reg [ADDRESS_BITS+7:0] d77_q;
 		always @(posedge clk_sys) d77_q <= d77_pres[d77_rd];
-		wire  [7:0] d77_idx = d77_q[27:20];
-		wire [19:0] d77_off = d77_q[19:0];
+		wire  [7:0] d77_idx = d77_q[ADDRESS_BITS+7:ADDRESS_BITS];
+		wire [ADDRESS_BITS-1:0] d77_off = d77_q[ADDRESS_BITS-1:0];
 
 		always @(posedge clk_sys) begin
 			reg old_active, old_wr;
@@ -1503,20 +1518,20 @@ generate
 			reg  [7:0] crc2;
 			reg  [7:0] sectors;
 			reg [15:0] track_size, track_pos;
-			reg [19:0] offset, offset1;
+			reg [ADDRESS_BITS-1:0] offset, offset1;
 			reg  [7:0] size_lo;
-			reg [10:0] secpos;
+			reg [SECTOR_COUNT_BITS-1:0] secpos;
 			reg  [7:0] trackf, sidef;
 
 			// .d77 parser state
 			reg  [1:0] fmt;                    // which format we committed to
 			reg        edsk_bad;               // signature mismatched somewhere
 			reg [23:0] d_tot;                  // header $1c..$1e, total size LE
-			reg [19:0] d_acc;                  // track table entry being built
+			reg [ADDRESS_BITS-1:0] d_acc;                  // track table entry being built
 			reg d_acc_high;
-			reg [19:0] d_last_off;
+			reg [ADDRESS_BITS-1:0] d_last_off;
 			reg [7:0] d_count;
-			reg [20:0] payload_end, track_end;
+			reg [ADDRESS_BITS:0] payload_end, track_end;
 			reg  [7:0] d_max;                  // highest present table index
 			reg        d_wpb;                  // header $1a, before we commit
 			reg  [1:0] d_st;                   // 0 seek track, 1 header, 2 data
@@ -1533,7 +1548,7 @@ generate
 			reg        d_side;                 // physical side,  from the table
 			reg  [7:0] clr_cnt;
 			reg        clr_run;
-			reg [19:0] d_base;                 // file offset of the selected disk
+			reg [ADDRESS_BITS-1:0] d_base;                 // file offset of the selected disk
 			reg  [2:0] skip_left;              // sub-disks still to step over
 
 			// Every .d77 field below is an offset from the SELECTED disk's start,
@@ -1541,11 +1556,11 @@ generate
 			// table's own entries are all disk-relative. The one exception is the
 			// sector data address written into edsk[], which is what the runtime
 			// hands to the SD reader and must stay absolute.
-			reg [19:0] rel;
-			reg [20:0] next_base;
+			reg [ADDRESS_BITS-1:0] rel;
+			reg [ADDRESS_BITS:0] next_base;
 			rel       = scan_addr - d_base;
-			next_base = {1'b0, d_base} + {1'b0, d_tot[19:0]};
-			payload_end = {1'b0, scan_addr} + 21'd1 + {5'd0, scan_data, d_llo};
+			next_base = {1'b0, d_base} + {1'b0, d_tot[ADDRESS_BITS-1:0]};
+			payload_end = {1'b0, scan_addr} + (ADDRESS_BITS+1)'(1) + {{(ADDRESS_BITS-15){1'b0}}, scan_data, d_llo};
 			track_end = (d77_rd < d77_cnt) ? {1'b0, d_base} + {1'b0, d77_off} : d88_end;
 
 			old_active <= scan_active;
@@ -1597,7 +1612,7 @@ generate
 				             d77_rd == d77_cnt && {1'b0, scan_addr} == d88_end;
 			end
 			if(D88_ONLY && (img_mounted || mount_pending)) d88_valid <= 0;
-			if(scan_wr & ~old_wr & scan_active && !(D88_ONLY && d88_bad)) begin
+			if(scan_wr & ~old_wr & scan_active && !((D88_ONLY || ADDRESS_BITS > 20 || MAX_SECTORS != 1992) && d88_bad)) begin
 
 				//---------------------------------------------------------
 				// Format detection, decided at byte $1f
@@ -1625,20 +1640,20 @@ generate
 				//
 				// The heuristic still has to reject a raw image, so keep the
 				// other three guards (byte $1f zero, top nibble of the size
-				// zero) and require the field to be at least one header long.
+				// zero at default width) and require at least one header.
 				//---------------------------------------------------------
 				if(scan_addr < 16) begin
 					if(sig_pos[7:0] != scan_data) edsk_bad <= 1;
 				end
-				if(rel == 20'h1a) d_wpb      <= |scan_data;
-				if(rel == 20'h1c) d_tot[7:0] <= scan_data;
-				if(rel == 20'h1d) d_tot[15:8]<= scan_data;
-				if(rel == 20'h1e) d_tot[23:16]<=scan_data;
-				if(rel == 20'h1f) begin
+				if(rel == ADDRESS_BITS'(24'h1a)) d_wpb      <= |scan_data;
+				if(rel == ADDRESS_BITS'(24'h1c)) d_tot[7:0] <= scan_data;
+				if(rel == ADDRESS_BITS'(24'h1d)) d_tot[15:8]<= scan_data;
+				if(rel == ADDRESS_BITS'(24'h1e)) d_tot[23:16]<=scan_data;
+				if(rel == ADDRESS_BITS'(24'h1f)) begin
 					if(!edsk_bad && !D88_ONLY) fmt <= FMT_EDSK;
-					else if(~|scan_data && ~|d_tot[23:20] &&
-					        (d_tot[23:0] <= img_size_id) && (d_tot[19:0] >= 20'h2b0) &&
-					        (!D88_ONLY || (next_base <= {1'b0, scan_limit}))) begin
+					else if(~|scan_data && !(|(d_tot >> ADDRESS_BITS)) &&
+					        (d_tot[23:0] <= img_size_id) && (d_tot[ADDRESS_BITS-1:0] >= ADDRESS_BITS'(24'h2b0)) &&
+					        ((!D88_ONLY && ADDRESS_BITS == 20) || (next_base <= {1'b0, scan_limit}))) begin
 						// This header is sound. If sub-disks remain to be
 						// stepped over, move the base to the next one and keep
 						// scanning WITHOUT committing -- the body below stays
@@ -1649,7 +1664,8 @@ generate
 						// the last one that exists instead of on no disk at
 						// all, and a drive that never becomes ready is a much
 						// worse answer than the wrong disk.
-						// 21 bits on purpose. d_base and d_tot are both 20, and
+						// ADDRESS_BITS+1 bits on purpose: base and size can overflow.
+						// At the default 20-bit width,
 						// their sum is not: XANADU.D77's disk 3 would start at
 						// 831,680 + 415,840 = 1,247,520, which wraps to 198,944
 						// in 20-bit arithmetic, sails through a "< 1 MB" test
@@ -1658,7 +1674,7 @@ generate
 						// becomes ready, which reads as a container the scanner
 						// cannot parse rather than as an out-of-range request.
 						if(|skip_left && (next_base < {1'b0, scan_limit})) begin
-							d_base    <= next_base[19:0];
+							d_base    <= next_base[ADDRESS_BITS-1:0];
 							skip_left <= skip_left - 1'd1;
 						end
 						else begin
@@ -1674,12 +1690,12 @@ generate
 						// the fixed geometry selected by size_code.
 						fmt      <= FMT_NONE;
 						var_size <= 0;
-						if(D88_ONLY) d88_bad <= 1;
+						if(D88_ONLY || ADDRESS_BITS > 20) d88_bad <= 1;
 					end
 				end
 
 				if(fmt == FMT_D77) begin
-					if(rel < 20'h2b0) begin
+					if(rel < ADDRESS_BITS'(24'h2b0)) begin
 						//-----------------------------------------------
 						// $20..$2af -- 164 x 4-byte LE track offsets.
 						// Present ones are appended to d77_pres in table
@@ -1690,12 +1706,12 @@ generate
 							0: d_acc[7:0]    <= scan_data;
 							1: d_acc[15:8]   <= scan_data;
 							2: begin
-								d_acc[19:16] <= scan_data[3:0];
-								d_acc_high <= |scan_data[7:4];
+								d_acc[ADDRESS_BITS-1:16] <= scan_data[ADDRESS_BITS-17:0];
+								d_acc_high <= |(scan_data >> (ADDRESS_BITS-16));
 							end
-							3: if(D88_ONLY && (|scan_data || d_acc_high ||
-							           (|d_acc && (d_acc < 20'h2b0 ||
-							            d_acc <= d_last_off || {1'b0, d_acc} + 21'd16 > {1'b0, d_tot[19:0]})))) begin
+							3: if((D88_ONLY || ADDRESS_BITS > 20) && (|scan_data || d_acc_high ||
+							           (|d_acc && (d_acc < ADDRESS_BITS'(24'h2b0) ||
+							            d_acc <= d_last_off || {1'b0, d_acc} + (ADDRESS_BITS+1)'(16) > {1'b0, d_tot[ADDRESS_BITS-1:0]})))) begin
 									d88_bad <= 1;
 								end else if(|d_acc && ~|scan_data && (d77_cnt < 8'd164)) begin
 									d_last_off <= d_acc;
@@ -1716,7 +1732,7 @@ generate
 						// present index = track*2+side, so tracks is
 						// (d_max>>1)+1 and spt_size is twice that. Settled
 						// here, five bytes before the first spt[] write.
-						if(rel == 20'h2b0) spt_size <= {d_max[7:1], 1'b0} + 8'd2;
+						if(rel == ADDRESS_BITS'(24'h2b0)) spt_size <= {d_max[7:1], 1'b0} + 8'd2;
 
 						//-----------------------------------------------
 						// A track ENDS where the next present track begins,
@@ -1831,8 +1847,10 @@ generate
 										end
 										14: d_llo <= scan_data;              // data length LE lo
 										15: begin
-											if(D88_ONLY && (payload_end > track_end ||
-											    {scan_data, d_llo} != (16'd128 << d_N) || edsk_size >= 11'd1992))
+											if((D88_ONLY && (payload_end > track_end ||
+											    {scan_data, d_llo} != (16'd128 << d_N) || edsk_size >= SECTOR_COUNT_BITS'(MAX_SECTORS))) ||
+											   (ADDRESS_BITS > 20 && (payload_end > d88_end || payload_end > {1'b0, scan_limit})) ||
+											   (MAX_SECTORS != 1992 && edsk_size >= SECTOR_COUNT_BITS'(MAX_SECTORS)))
 												d88_bad <= 1;
 												// The data length at +$0e is the real
 												// byte count and is what we advance by;
@@ -1848,14 +1866,14 @@ generate
 												// found by its physical position and
 												// still reports the lie to READ ADDRESS.
 												// Data begins at the very next byte.
-												if(edsk_size < 11'd1992) begin
+												if(edsk_size < SECTOR_COUNT_BITS'(MAX_SECTORS)) begin
 													edsk_wren   <= 1;
 													edsk_wraddr <= edsk_size;
-													edsk_wrdata <= {d_track, d_side, d_C, d_H, d_R, d_N, d_crc, d_deleted, scan_addr + 20'd1};
+													edsk_wrdata <= {d_track, d_side, d_C, d_H, d_R, d_N, d_crc, d_deleted, scan_addr + ADDRESS_BITS'(1)};
 													edsk_size <= edsk_size + 1'd1;
 `ifdef DEBUG_FDC_SCAN
 													$display("D77SEC %0d %0d %0d %0d %0d %0d %0d %0d",
-																d_track, d_side, d_C, d_H, d_R, d_N, scan_addr + 20'd1, d_crc);
+																d_track, d_side, d_C, d_H, d_R, d_N, scan_addr + ADDRESS_BITS'(1), d_crc);
 `endif
 												end
 `ifdef DEBUG_FDC_SCAN
@@ -1903,7 +1921,11 @@ generate
 					if((scan_addr >= 256) && track_size) begin
 						track_pos <= track_pos + 1'd1;
 						case(track_pos)
-							00: offset  <= scan_addr + 9'd256;
+							00: begin
+								if(ADDRESS_BITS > 20 && ({1'b0, scan_addr} + (ADDRESS_BITS+1)'(256) > {1'b0, scan_limit})) begin
+									d88_bad <= 1; var_size <= 0; edsk_size <= 0; fmt <= FMT_NONE;
+								end else offset <= scan_addr + ADDRESS_BITS'(256);
+							end
 							16: track   <= scan_data[6:0];
 							17: side    <= scan_data[0];
 							21: sectors <= scan_data;
@@ -1921,7 +1943,10 @@ generate
 										3: sizecode<= scan_data[1:0];
 										6: size_lo <= scan_data;
 										7: begin
-												if({scan_data, size_lo}) begin
+												if((ADDRESS_BITS > 20 && ({1'b0, offset} + (ADDRESS_BITS+1)'({scan_data, size_lo}) > {1'b0, scan_limit})) ||
+												   ((ADDRESS_BITS > 20 || MAX_SECTORS != 1992) && edsk_size >= SECTOR_COUNT_BITS'(MAX_SECTORS))) begin
+													d88_bad <= 1; var_size <= 0; edsk_size <= 0; fmt <= FMT_NONE;
+											end else if({scan_data, size_lo}) begin
 													edsk_wren   <= 1;
 													edsk_wraddr <= secpos;
 													edsk_wrdata <= {track,side,trackf,sidef,sector,sizecode,2'b00,1'b0,offset1};
@@ -1945,7 +1970,7 @@ generate
 		end
 	end else begin
 		assign edsk_deleted = 1'b0;
-		assign sector_index_entry = 57'd0;
+		assign sector_index_entry = SECTOR_INDEX_BITS'(0);
 	end
 endgenerate
 

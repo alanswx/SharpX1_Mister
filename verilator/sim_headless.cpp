@@ -20,6 +20,9 @@
 #include "verilated_fst_c.h"
 #include "Vtop.h"
 #include "Vtop___024root.h"
+#if defined(X1_WIDE_D88_EXPERIMENT) && (!defined(X1_TURBO_FOUNDATION) || defined(X1_SAVABLE))
+#error "wide D88 addressing requires the separate non-savable Turbo experiment"
+#endif
 #if defined(X1_DMA_KANJI_EXPERIMENT) && (defined(X1_SAVABLE) || !defined(X1_RTC_EXPERIMENT) || !defined(X1_TURBO_DMA) || !defined(X1_TURBO_KANJI_RENDER) || !defined(X1_TURBO_VIDEO_MASTER))
 #error "DMA/Kanji runner requires non-savable RTC/DMA/render/X3 profile"
 #endif
@@ -189,6 +192,10 @@ int main(int argc, char **argv) {
         if (rtc_controller_path)
             throw std::runtime_error("rtc-controller requires the separate RTC experiment");
 #endif
+#ifdef X1_WIDE_D88_EXPERIMENT
+        if (save_path || restore_path)
+            throw std::runtime_error("wide D88 experiment is non-savable; snapshots are rejected");
+#endif
         if (joystick_keys && !interactive)
             throw std::runtime_error("--joystick-keys requires --interactive");
         if (joystick_keys && !joy_events.empty())
@@ -311,8 +318,13 @@ int main(int argc, char **argv) {
         // D88 preflight checks the selected volume's addressing limit after
         // structural validation. A concatenated container may be larger than
         // that limit without making volume zero unreachable.
-        if (disk_path) validate_d88(disk);
-        if (disk_b_path) validate_d88(disk_b);
+#ifdef X1_WIDE_D88_EXPERIMENT
+        constexpr unsigned d88_address_bits = 24;
+#else
+        constexpr unsigned d88_address_bits = 20;
+#endif
+        if (disk_path) validate_d88(disk, d88_address_bits);
+        if (disk_b_path) validate_d88(disk_b, d88_address_bits);
         uint64_t disk_fingerprint = 14695981039346656037ULL;
         for (auto byte : disk) { disk_fingerprint ^= byte; disk_fingerprint *= 1099511628211ULL; }
         uint64_t disk_b_fingerprint = 14695981039346656037ULL;
@@ -1076,6 +1088,9 @@ int main(int argc, char **argv) {
 #endif
 #ifdef X1_DMA_KANJI_EXPERIMENT
         crtc_observation += ",\"dma_kanji_experiment\":true";
+#endif
+#ifdef X1_WIDE_D88_EXPERIMENT
+        crtc_observation += ",\"d88_wide_experiment\":true,\"d88_address_bits\":24,\"d88_index_bits\":12,\"d88_sector_limit\":4095";
 #endif
         if (fetch_window_requested)
             crtc_observation += ",\"fetch_start_ms\":" + std::to_string(fetch_start_ms)

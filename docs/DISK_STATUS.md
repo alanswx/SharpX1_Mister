@@ -2,8 +2,9 @@
 
 The [Turbo 2HD plan](TURBO_HD_DISK_PLAN.md) separates address/index expansion
 from native selector, density clock, RPM and format acceptance. The new
-wide-D88 implementation and its original high-index CPU fixture are in progress,
-not qualified 2HD support; ordinary runners and board defaults are unchanged.
+[wide-D88 experiment](WIDE_D88_STATUS.md) passes original CPU high-address and
+high-index read/write checks, not native 2HD support; ordinary runners and board
+defaults are unchanged.
 
 The shared `rtl/sharpx1.v` instantiates a WD1793-family replacement with the
 D88 image adapter, not a fully validated MB8877 implementation. Native IPL

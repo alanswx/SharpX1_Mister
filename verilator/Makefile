@@ -29,6 +29,26 @@ $(FM_RUNNER_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h
 		-MAKEFLAGS "-B" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 .PHONY: turbo-fm
 
+# Address-space prerequisite only: not a native 2HD rate/drive profile.
+WIDE_D88_DIR ?= obj_dir_v17_wide_d88
+turbo-wide-d88: $(WIDE_D88_DIR)/Vtop
+$(WIDE_D88_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
+	mkdir -p $(@D)
+	$(V) --cc --exe --build --timing --trace-fst --top-module top --Mdir $(@D) -j 4 \
+	  -GTURBO=1 -GD88_ADDRESS_BITS=24 $(TURBO_DSW_FLAGS) \
+	  -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_WIDE_D88_EXPERIMENT" \
+	  -MAKEFLAGS "-B" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
+.PHONY: turbo-wide-d88
+test-machine-wide-d88: turbo-wide-d88 headless
+	python3 tests/test_wide_d88.py $(WIDE_D88_DIR)/Vtop $(HEADLESS_EXE)
+	python3 tests/test_wide_d88.py $(WIDE_D88_DIR)/Vtop $(HEADLESS_EXE) --geometry
+.PHONY: test-machine-wide-d88
+test-fdc-address-width:
+	python3 tests/test_fdc_address_width.py --default-regressions --edsk-capacity
+test-fdc-default-state:
+	python3 tests/test_fdc_default_state.py --baseline aa05dd2
+.PHONY: test-fdc-address-width test-fdc-default-state
+
 # Explicit delay-aware RTC profile; no snapshots or ordinary board changes.
 RTC_RUNNER_DIR ?= obj_dir_v17_rtc
 rtc: $(RTC_RUNNER_DIR)/Vtop
