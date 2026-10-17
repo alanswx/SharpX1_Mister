@@ -628,6 +628,55 @@ test-z-kanji-components:
 	ulimit -c 0; python3 -B tests/test_z_kanji_components.py
 .PHONY: test-z-kanji-components
 
+# Standalone full-font external-memory prerequisites; no machine/FPGA claim.
+test-z-kanji-ddr:
+	ulimit -c 0; python3 -B tests/test_z_kanji_ddr.py
+.PHONY: test-z-kanji-ddr
+
+test-z-kanji-frontend:
+	ulimit -c 0; python3 -B tests/test_z_kanji_frontend.py
+.PHONY: test-z-kanji-frontend
+
+test-z-font-hps-upload:
+	ulimit -c 0; python3 -B tests/test_z_font_hps_upload.py
+.PHONY: test-z-font-hps-upload
+
+test-z-kanji-cache:
+	ulimit -c 0; python3 -B tests/test_z_kanji_cache.py
+.PHONY: test-z-kanji-cache
+
+test-z-kanji-cache-half:
+	ulimit -c 0; python3 -B tests/test_z_kanji_cache_half.py
+.PHONY: test-z-kanji-cache-half
+
+test-z-kanji-arbiter:
+	ulimit -c 0; python3 -B tests/test_z_kanji_arbiter.py
+.PHONY: test-z-kanji-arbiter
+
+test-z-kanji-quiesce:
+	ulimit -c 0; python3 -B tests/test_z_kanji_quiesce.py
+.PHONY: test-z-kanji-quiesce
+
+test-z-kanji-cpu-service:
+	ulimit -c 0; python3 -B tests/test_z_kanji_cpu_service.py
+.PHONY: test-z-kanji-cpu-service
+
+test-z-kanji-vram:
+	ulimit -c 0; python3 -B tests/test_z_kanji_vram.py
+.PHONY: test-z-kanji-vram
+
+test-z-kanji-video:
+	ulimit -c 0; python3 -B tests/test_z_kanji_video.py
+.PHONY: test-z-kanji-video
+
+test-z-kanji-render:
+	ulimit -c 0; python3 -B tests/test_z_kanji_video.py --render
+.PHONY: test-z-kanji-render
+
+test-z-kanji-suite-driver:
+	python3 -B tests/test_z_kanji_machine_suite.py
+.PHONY: test-z-kanji-suite-driver
+
 test-kanji-decode: $(HEADLESS_DIR)/kanji-decode/Vkanji_decode_tb
 	./$(HEADLESS_DIR)/kanji-decode/Vkanji_decode_tb
 $(HEADLESS_DIR)/kanji-decode/Vkanji_decode_tb: tests/kanji_decode_tb.sv ../rtl/x1_kanji_decode.sv ../rtl/x1_kanji_address.sv Makefile
@@ -1570,6 +1619,7 @@ test-hdmi-handoff-input-sdc:
 	python3 tests/test_held_sdc_context_048.py
 	python3 tests/test_held_sdc_context_3c.py
 	python3 tests/test_held_sdc_context_16fa.py
+	python3 -B tests/test_held_sdc_context_9cc.py
 	tclsh tests/hdmi_handoff_input_sdc_tb.tcl
 	python3 tests/test_hdmi_handoff_input_probe.py
 .PHONY: test-hdmi-handoff-input-sdc
@@ -1693,6 +1743,9 @@ test-basic-native-probe:
 test-basic-print42-oracle:
 	python3 -B tests/test_basic_print42_oracle.py
 .PHONY: test-basic-print42-oracle
+test-basic-reference-oracle:
+	python3 -B tests/test_basic_reference_oracle.py
+.PHONY: test-basic-reference-oracle
 
 # Asset-free bounded waveform parser only; this target does not load a tape.
 test-tap-image: $(HEADLESS_DIR)/tap-image/test_x1_tap_image
@@ -1879,14 +1932,17 @@ test-sub-timer: obj_dir_single/subtimer/Vsub_timer_tb obj_dir_single/subtimer_bo
 	./obj_dir_single/subtimer_base/Vsub_timer_tb
 
 obj_dir_single/subtimer/Vsub_timer_tb: tests/sub_timer_tb.sv ../rtl/mr16_x1.v ../rtl/mr16core.v
+	mkdir -p $(@D)
 	$(V) --binary --timing --assert --top-module sub_timer_tb --Mdir obj_dir_single/subtimer \
 		-j 4 ../rtl/mr16core.v ../rtl/mr16_x1.v tests/sub_timer_tb.sv -Wno-fatal
 
 obj_dir_single/subtimer_board/Vsub_timer_tb: tests/sub_timer_tb.sv ../rtl/mr16_x1.v ../rtl/mr16core.v
+	mkdir -p $(@D)
 	$(V) --binary --timing --assert --top-module sub_timer_tb --Mdir obj_dir_single/subtimer_board \
 		-GCLOCK_HZ=28571428 -j 4 ../rtl/mr16core.v ../rtl/mr16_x1.v tests/sub_timer_tb.sv -Wno-fatal
 
 obj_dir_single/subtimer_base/Vsub_timer_tb: tests/sub_timer_tb.sv ../rtl/mr16_x1.v ../rtl/mr16core.v
+	mkdir -p $(@D)
 	$(V) --binary --timing --assert --top-module sub_timer_tb --Mdir obj_dir_single/subtimer_base \
 		-GCLOCK_HZ=32000000 -j 4 ../rtl/mr16core.v ../rtl/mr16_x1.v tests/sub_timer_tb.sv -Wno-fatal
 
@@ -2751,3 +2807,28 @@ clean:
 .PHONY: single single-fast test-single test-clock-enables boot-game-single test-game-single
 .PHONY: test-sub-timer
 .PHONY: test-game-reset test-game-reset-single
+
+# Interface check only, not Quartus/hardware acceptance.
+lint-wrapper-turbo-z-font:
+	$(V) --lint-only --timing --top-module emu -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_TURBO_Z_EXTERNAL_FONT -Itests \
+		../sharpx1.sv ../sys/hps_io.sv tests/board_pll_lint.v ../rtl/x1_joystick_map.v $(MACHINE_SRC) -Wno-fatal
+.PHONY: lint-wrapper-turbo-z-font
+
+test-machine-z-external-font:
+	ulimit -c 0; python3 -B tests/test_z_external_font_machine.py
+.PHONY: test-machine-z-external-font
+
+# Cold-only CPU completion marker; matched failing IPL shares the pixel oracle.
+test-machine-z-font-completion:
+	ulimit -c 0; python3 -B tests/test_z_font_completion.py
+.PHONY: test-machine-z-font-completion
+
+# Retained IPL/font/VRAM with real PS/2 commands and no-reset pixel controls.
+test-machine-z-font-warm-reset:
+	ulimit -c 0; python3 -B tests/test_z_font_warm_reset.py
+.PHONY: test-machine-z-font-warm-reset
+
+# Sustained CPU traffic; reset an observed owned read/write before warm checks.
+test-machine-z-font-active-reset:
+	ulimit -c 0; python3 -B tests/test_z_font_active_reset.py
+.PHONY: test-machine-z-font-active-reset

@@ -1,5 +1,249 @@
 # DMA single-clock FPGA qualification revision
 
+October 16 local `sharpx1_turbo_z_font` timing follow-up:
+**build PASS, selected snapshot payload timing PASS, global timing FAIL,
+hardware UNEXECUTED**. The font-only loader admits the measured 74-bit logical
+synthesis inventory and retains the original exact 72-bit fitted/STA guard.
+No RTL, existing shared SDC or other board assignment changes. Native
+synthesis warning 330000 is removed, with the original 159-warning set retained.
+
+Local Quartus 17.0.0 build 595, seed 1, completes in 14m08s / 171 stage warnings:
+25,525 ALMs, 37,234 registers, 534/553 M10Ks, 32 DSPs/four PLLs. New RBF SHA
+`c783fb3ee0c9e0a8ea424b32bb1fa2dc12a7d7aaae34994bab0aaf7a0071a720`.
+The 429-input manifest SHA is
+`1d02bc33d1437f687780c77f33f40ddd37c04efa11c365c56fbaa06d6fcb9912`.
+Fitted SYS/VID remain 32/42.954545 MHz, not physical frequency measurements.
+All eight selected timing corners pass: 1,152 exact rows, minimum setup/hold
++20.504/+0.498 ns, maximum data delay 12.876 ns; actual path relationships
+remain 31.25 ns maximum / zero minimum. No analysis-only exception is added.
+
+Main slow setup/recovery remain −15.149/−8.300 ns; hold/removal +0.194/+0.830 ns.
+Across eight corners, reported global minimum hold/removal are +0.080/+0.333 ns,
+but setup/hold I/O constraints remain incomplete and MTBF is not calculated.
+No timing closure or hardware qualification. Effective-assignment/source/
+report/preservation audits pass in `TIMING_FONT_20261016T2302/`; original and
+corrected completed builds remain exact. See [the detailed gate](EXTERNAL_FONT_TIMING_STATUS.md).
+MiSTer remains with the user and was not accessed. DMA and other revisions
+retain their existing qualification status.
+
+October 16 separate `sharpx1_turbo_z_font` base-text candidate:
+**build PASS, slow-corner timing FAIL, bounded native hardware PASS**.
+Local installed Quartus 17.0.0 build 595 completes map/fit/ASM/STA in 16m11s,
+seed 1, 171 stage warnings; 25,228 ALMs, 37,234 registers, 534/553 M10Ks,
+32 DSPs/four PLLs. RBF SHA
+`4c0a95f2cc91c91df46eff8e3b22577b809fa6247725bd91294c3db1ce300a23`.
+The 428-input manifest, generated build ID, reports and QPF/QSF effective
+assignment audit pass in `output_files/BASE_TEXT_20261016T1524/build-audit.json`.
+Unmodified original SDC, Slow 1100mV 100C: setup −15.031 ns, recovery
+−8.167 ns, hold +0.251 ns; this flow does not execute fast-corner analysis
+and reports incompletely constrained hold requirements. No timing closure.
+Fitted SYS/VID remain 32/42.954545 MHz, not physically measured. Unmodified
+base/Turbo arithmetic cold-repeats; base Main R/T reset and LIST/RUN pass
+without warm upload/remount. Independent audit checks 21 raw mrext captures
+and 245,760 exact pixels, remote payloads/Main/full font DDR. See
+[the bounded implementation gate](BASE_TEXT_COMPATIBILITY_STATUS.md).
+This changes neither the DMA revision nor other disabled board profiles.
+
+Same-RBF native graphics follow-up: [bounded PSET/LINE](BASIC_NATIVE_GRAPHICS_STATUS.md)
+passes five Main-R-boot hardware cases and 15 raw PNGs / 168,960 exact pixels,
+including repeats, missing Enter and a one-pixel-wrong control. Independent
+audit checks reference logical pixels and retained source/remote/Main/DDR
+hashes. No FPGA input, timing constraint or enabled-device change; timing
+still fails. Wider native graphics and SAVE/LOAD remain open.
+
+October 15 Main OSD reset follow-up: [both menu commands](Z_FONT_OSD_RESET_STATUS.md)
+now pass the bounded external-font hardware gate at 80/40 columns. Six cases
+produce eighteen raw PNGs matching **3,840,000 exact control pixels**. Menu
+navigation without Enter and two wrong-final-byte controls reject the unchanged
+readback oracle. T Reset closes with F12 before R; R Reset-and-close needs no
+extra F12. No warm load/upload/mount or keyboard reset chord is requested.
+All 127 qualification inputs, 428 compiler inputs, RBF/Main and font DDR hashes
+pass. This reuses fd9a0850; no new Quartus or simulation run. Physical owned
+phase, stopped clocks, native fonts, wider modes/devices and timing closure
+remain open. Earlier checkpoint statements retain their dated scope.
+
+October 15 active-traffic reset follow-up: [owned simulation and Main reset controls](Z_FONT_ACTIVE_RESET_STATUS.md)
+pass. Four simulation cases check 34,544 completed CPU reads and 2,688,000
+control pixels, including an exactly cancelled pending read and one-commit owned
+write drains with DDR/VID service stopped. Three actual MiSTer cases produce
+nine PNGs matching **1,920,000 pixels** at 80/40 columns;
+Main's keyboard chord recovers retained VRAM after the firmware traffic loop.
+No-reset and wrong-final-byte controls reject the unchanged magenta oracle.
+The exact physical owned phase is unobserved. RBF/compiler inputs are unchanged;
+OSD-menu reset, native fonts, wider modes and timing closure remain open.
+Earlier checkpoint statements below retain their dated scope.
+
+October 15 retained-reset follow-up: [real F/R and reset/no-reset controls](Z_FONT_RETAINED_RESET_STATUS.md)
+now qualify bounded post-HALT retained IPL/font/VRAM on fd9a0850. Three
+simulation cases check 18,570 actual CPU reads; nine actual Main/mrext frames
+match 1,920,000 control pixels. Main's keyboard reset chord plus R reaches a
+post-readback magenta marker at both widths; R without reset and a wrong last
+expected byte fail the unchanged warm oracle. No warm upload is requested;
+all compiler inputs/RBF remain unchanged. OSD-menu, owned/stopped-clock reset,
+native fonts, broader raster/device behavior and timing closure remain open.
+Earlier checkpoint statements below retain their dated scope.
+
+October 15 CPU-completion follow-up: a [new post-check visible marker](Z_FONT_CPU_COMPLETION_STATUS.md)
+closes final CPU-readback observability for separate 80/40-column RBF-load
+controls. Four simulation cases pass 184 traced reads/768,000 control pixels;
+five actual MiSTer cases match 1,024,000 pixels, including two one-byte failing
+IPLs rejected by the unchanged completion oracle. Source-bound fd9a0850 is
+reused with all 428 compiler inputs unchanged; no new Quartus flow. Older
+IPLs retain their original scope. Physical warm-reset causality, native fonts,
+wider modes and timing closure remain open.
+
+## October 15 malformed font upload recovery
+
+Separate `sharpx1_turbo_z_font`: **full build PASS, timing FAIL, hardware
+recovery PASS (bounded)**. The actual HPS decoder/ACK gate passes full,
+oversized, short and gapped uploads/retry plus four exact rejecting controls.
+All 39 frontend cases, five machine cases and wrapper lint pass. Ordinary
+build/run/test is terminal zero with 164 PASS reports and unchanged executable.
+
+Current RBF `fd9a085061a5fa5f6cc3c929a37f5b266d2391b5dd1b14752f3d8f794db83692`:
+Quartus 17.0.2, seed 1, 17m34s/170 warnings; 25,384 ALMs, 37,244 registers,
+534/553 M10Ks, 32 DSPs/four PLLs. Frozen 428-input source and remote QPF audits
+pass; only the frontend differs from c6. Evidence and RBF are in
+`output_files/X1ErrorDrain_20261015T145753Z/rebuild/`.
+Original SDC slow setup −14.851 ns/recovery −8.257 ns, fast hold −0.098 ns
+at measurement snapshot bit 4. Same-clock SYS/VID setup +8.258/+9.540 ns;
+SYS/VID and VID/SYS bundles −10.952/−9.488 ns. No cuts added.
+Actual MiSTer valid/oversized-retry/short-retry frames match 640,000 pixels
+and full DDR hashes; Main handles the oversized-only case and subsequent load
+without a Linux reboot. Physical error/readiness flags are not observed.
+[HPS recovery scope](Z_FONT_HPS_UPLOAD_STATUS.md).
+
+## October 15 external-font hardware repair
+
+Separate `sharpx1_turbo_z_font`: **full build PASS, bounded hardware pixels
+PASS, timing FAIL**. Initial `52be576d…` physically uploads all 256 KiB but
+stalls Main at the terminal SPI ACK. Its disabled evidence is retained. The
+frontend repair releases WAIT after the last backend command and separately
+guards excess writes. Its 39-case gate includes the old-condition rejection;
+the five-case machine CPU/pixel gate and wrapper lint also pass.
+
+Current repaired RBF:
+`c6a2ac021173a18fa1f45ac2ea0d9ed8b2a44db1979db1d18de549125afc3880`.
+Quartus 17.0.2 full flow, seed 1, 16m14s, 170 warnings; 25,419 ALMs,
+37,216 registers, **534/553 M10Ks**, 32 DSPs/four PLLs. All 428 captured
+inputs match locally; the remote QPF rewrite is explicitly audited. No other
+compiler source differs from the previous snapshot. Original-SDC slow setup
+-14.956 ns/recovery -8.277 ns; fast hold -0.084 ns at measurement snapshot
+bit 47. No new timing exceptions. Fitted SYS/VID are 32/42.954545 MHz,
+not physically measured.
+
+On user-authorized mister14, actual raw mrext captures match all **768,000**
+pixels in 80/40-column cold and post-reset-request frames. Native Turbo IPL
+also reaches Galaga/Mappy/Xevious titles with the synthetic full font loaded.
+Retained-VRAM reset causality, native Kanji, wider native software, physical
+signals/audio and timing remain open. See [hardware scope, RBF and evidence](TURBO_Z_EXTERNAL_HARDWARE_STATUS.md).
+
+## October 14 current-source external-font board build
+
+Separate `sharpx1_turbo_z_font` (not the DMA revision): **full build PASS,
+timing FAIL, hardware feature UNEXECUTED**. Quartus 17.0.2 Build 602 Lite,
+5CSEBA6U23I7, `sys_top`, seed 1. Final compile session `35333` is terminal zero
+in `/tmp/x1-z-font-board-syksUXgN` after 24m52s / 170 warnings. Fit: 25,512 ALMs,
+37,215 registers, 4,319,336 memory bits, **534/553 M10Ks**, 32 DSPs, 4 PLLs.
+Current-source RBF SHA:
+`52be576dd7cc74d6009f89bd7f280f47d43ee3cb92cc79d7efdf3a93f093771a`.
+[RBF and evidence manifest](../output_files/z-font-20261014-52be576d/manifest.json).
+
+Original-SDC slow 100C setup -14.978 ns / recovery -8.570 ns. Fast -40C hold
+-0.045 ns in dimensions-to-SYS measurement bits 59/44. Same-clock SYS/VID setup
++5.548/+7.034 ns is positive, but HDMI data, cache payload bundles, measurement
+snapshot and reset-release paths still require qualification. No new timing
+exceptions/cuts. Video PLL fits at 945 MHz / 22 (42.954545 MHz), SYS 32 MHz;
+not hardware frequency measurements. Source/post-QPF metadata and all 59
+retrieved evidence files pass hash review; archive SHA `27dcd377…`.
+
+Complete-machine five-case gate passes 280 actual CPU IN reads, 12,358 commits
+and six exact frames / 1,152,000 pixels, including retained and changed-font
+rebuilds, owned writer/CPU-read cancellations, upload rejection/retry and three
+exact controls. Required ordinary regression and 12 exact generated base/Turbo/
+X3 state files pass. Read-only mister14 memory inspection verifies the backing
+range outside Linux RAM; active MacPPC7300 is preserved. No new core load,
+reset, input or physical DDR test. Native font/broader-mode acceptance remains
+open. See [current full status](TURBO_Z_EXTERNAL_MACHINE_STATUS.md).
+
+
+## Earlier October 14 prototype (superseded by current build above)
+
+The **prototype** `sharpx1_turbo_z_font` full Quartus 17 compile succeeds and
+produces an RBF (not the DMA revision). Device 5CSEBA6U23I7, seed 1:
+25,740 ALMs, 37,196 registers, 4,319,336 memory bits and **534/553 M10Ks**
+(19 spare), 32 DSPs, 4 PLLs. Remote `/tmp/x1-z-font-board-RBcNDcMC`, session
+`46389`, terminal zero, 22m37s, 170 flow warnings. RBF SHA-256:
+`d454e3153e37ffbec210f09207e84fdda3123aaed51dd6eb60a5ec0ed43bbef5`.
+This snapshot precedes the wrapper address guard and ordinary-state alias
+repair. The corrected current-source compile in
+`/tmp/x1-z-font-board-syksUXgN` (session `35333`) has since passed; the prototype
+is not qualification of those repairs.
+
+**Timing gate FAIL / hardware gate UNEXECUTED.** Original SDC, slow 100C:
+worst setup -15.250 ns (HDMI data to X3 output), hold -3.469 ns (HDMI),
+recovery -8.279 ns (consumer reset release). Reporting-only sidecar also checks
+fast -40C. Same-clock SYS/VID setup minima are +7.909/+7.576 ns at slow 100C,
+but SYS-to-VID held-cache payload/visible paths have no qualified bundle
+constraints (-11.067 ns under the ordinary edge checks), and VID-to-SYS paths report -10.119 ns. These are observed path
+classes, not exceptions or CDC acceptance. The fitted PLL is 945 MHz / 22,
+approximately 42.954545 MHz; SYS remains 32 MHz. No false paths or clock-group
+cuts were added. Native fonts and hardware captures remain open; no MiSTer
+connection/load occurred.
+
+All 58 retrieved prototype reports/RBF/clock/path/source-evidence files match
+manifest hashes in local temporary `x1-z-font-board-_08vrlhp/evidence`.
+Archive SHA `36156552c21baadd675f2da66edfc09db51dfbb3adcf86496b7d030351fa55e8`.
+Post-build review verifies 427 inputs unchanged and explicitly checks only
+Quartus's generated QPF date/revision metadata rewrite; generated build_id is
+hashed separately. Full current scope is in
+[external-font machine status](TURBO_Z_EXTERNAL_MACHINE_STATUS.md).
+
+
+October 14 integration follow-up: the separate default-off
+[external-font machine profile](TURBO_Z_EXTERNAL_MACHINE_STATUS.md) now connects
+DDR, committed VRAM writes and renderer packets, with owned reset/upload drains
+and retained-cache reconstruction. Complete-machine synthetic CPU/80/40-column
+pixel gates pass, including CPU VRAM readback and changed-font replacement.
+The corrected-source full Quartus build/RBF passes at 534 M10Ks / 25,512 ALMs.
+Timing fails and physical feature acceptance remains open.
+Native font conversion, broader text policies and physical acceptance stay open.
+Earlier standalone-only scope statements below describe those checkpoints.
+
+
+## October 14 standalone font-cache resource gate
+
+Current cache follow-up: [committed-half qualification](TURBO_Z_CACHE_HALF_STATUS.md)
+records the source `e9671fb7…` RAM-inference repair and both source-bound
+Quartus 17.0.2 map/fit results: descriptor bit 22 uses 138 M10Ks/3,715 ALMs/
+4,314 registers; caller-half mode uses 138 M10Ks/3,717 ALMs/4,327 registers.
+Sixty current-source component/CPU cases pass. These are isolated virtual-pin
+component fits, with warnings retained; no main-project STA, combined fit,
+board RBF or hardware result is added. The initial fit below remains historical.
+The later [cached VRAM writer](TURBO_Z_VRAM_WRITE_STATUS.md) passes eighteen
+connected CPU/VRAM/cache cases outside all board revisions. No Quartus build
+has run for its known-mask/VRAM/cache combination; neither earlier cache fit
+establishes its combined area, timing or physical CDC. No new MiSTer result.
+The subsequent [cache-renderer adapter](TURBO_Z_CACHE_RENDER_STATUS.md)
+passes eighteen unit/connected cases and ten actual CRTC/RGB frames in a
+separate simulation fixture. No Quartus build runs for this combination and
+no board revision, timing result, RBF or hardware evidence changes.
+
+The separate [full-glyph cache/publication component](TURBO_Z_CACHE_STATUS.md)
+completes a source-bound Quartus 17.0.2 standalone fit on `misterubuntu`:
+138 M10Ks, 3,720 ALMs and 4,318 registers. This is a virtual-pin component
+probe, outside the machine manifest and all board revisions. No main-project
+flow, STA/CDC closure, board RBF or MiSTer deployment is performed for it.
+The existing DMA revision and hardware-qualified RBF are unchanged. Cache
+integration, source-bound board fitting/timing and physical gates remain open.
+Subsequent standalone [font service/lifecycle components](TURBO_Z_FONT_SERVICE_STATUS.md)
+pass 35 strict simulation/fault runs with the unchanged cache/frontend/backend.
+They have no new combined fit, board RBF, timing/CDC or hardware result; every
+board profile remains unchanged.
+The subsequent [real-CPU service boundary](TURBO_Z_CPU_SERVICE_STATUS.md)
+passes its connected component fixture only. It adds no board fit, timing/CDC,
+RBF or hardware result and does not alter the qualified DMA revision.
+
 ## October 10 current-source build gate
 
 Latest follow-up: the frozen `aa05dd2f7bbedc2491f2de9eeb72624002dd3e4a`

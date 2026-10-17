@@ -1,5 +1,186 @@
 # Sharp X1 core bring-up TODO
 
+October 16 local reset timing: [the fresh font-profile gate](EXTERNAL_FONT_RESET_TIMING_STATUS.md)
+passes eight-corner stage/release timing, all 487 native fanouts and the
+existing dimensions payload. RBF `b570e529…` builds; global timing remains
+FAIL, including a new scaler-size/HDMI hold failure (−2.988 ns). Setup and
+recovery minima are −15.124/−4.852 ns. No RTL or hardware change; MiSTer
+remains with the user. Scaler reset release and size CDC are next local
+gates, followed by cache publication and HDMI clock switching.
+
+October 16 local timing: [bounded external-font snapshot timing](EXTERNAL_FONT_TIMING_STATUS.md)
+passes all eight corners, 72 exact bits / 1,152 selected rows, with minimum
+setup/hold +20.504/+0.498 ns and maximum data delay 12.876 ns. New font-only
+stage-aware loader preserves the strict fitted guard and removes the new
+synthesis-init warning. Source-bound RBF `c783fb3e…` builds; global timing
+still fails (setup −15.149 / recovery −8.300 ns). No RTL or hardware change.
+Cache window prerequisites also pass 57 leases and three runtime mutants;
+native fonts, remaining CDC/reset/HDMI and physical gates stay open.
+
+October 16 local colors: [22 native PSET/PRESET cases](BASIC_COLOR_REFERENCE_STATUS.md)
+pass independent audit with 3,248,128 exact pixels and 192 CPU GRAM writes.
+All eight digital colors and erasing retain the adjacent shared-byte pixel;
+nine cold repeats and four rejecting controls pass. These new cases remain
+reference-only. No RTL, Quartus or MiSTer change; the user still has MiSTer.
+
+## Remaining local priorities (October 16)
+
+These are broader acceptance gates; the dated bounded passes below remain
+valid within their recorded profiles. Hardware-only tests are deferred while
+the user has MiSTer.
+
+- [ ] Close source-bound FPGA timing/CDC: the latest external-font RBF builds
+  but fails setup/hold/recovery. The core video-reset and dimensions gates
+  pass; separately qualify scaler reset release and size CDC, cache
+  publication and HDMI clock switching, then refit and check all corners.
+  Do not hide paths with broad cuts.
+- [ ] Convert and qualify native Kanji/fonts against documented physical
+  storage and model contracts; expand the cache/text path beyond its bounded
+  simple/normal-cell modes. Synthetic fonts are not native-font acceptance.
+- [ ] Complete native Turbo 400-line and Turbo Z mode/palette/priority/text
+  behavior. Existing opt-in synthetic pixels do not establish native support;
+  capture/mosaic/chroma/scroll and model identification also remain open.
+- [ ] Finish native FM/CTC/SIO IRQ behavior, RTC year/controller behavior and
+  active device coexistence. Preserve separate experimental profiles until
+  their combined behavior is qualified.
+- [ ] Finish native dual-drive/2HD density/rate/mechanics and the remaining
+  FDC format/CRC/metadata/transport boundaries. Wide D88 storage alone is not
+  native high-density support.
+- [ ] Expand current-source native software, tape/audio and reference
+  comparisons, including the new color/PRESET cases on RTL. Broader gameplay,
+  other BASIC releases and licensing/provenance remain open. EMM/SASI are
+  optional scope decisions, not implemented compatibility promises.
+
+October 16 local SAVE/LOAD: [nine native reference cases](BASIC_SAVE_LOAD_REFERENCE_STATUS.md)
+pass with 1,802,240 exact pixels, both saved images cold-reopened and five
+rejecting controls. CLI v4's writable-new-copy/default-preservation gate
+passes 22 cases. Raw files retain host-clock metadata without normalization.
+MiSTer is back with the user; hardware SAVE/LOAD stays open.
+
+October 16 native graphics: [PSET/LINE gates](BASIC_NATIVE_GRAPHICS_STATUS.md)
+pass seven reference cases and five Main-reset MiSTer cases, with exact
+transcript/pixel/CPU-write checks, repeats and matched rejecting controls.
+Independent audit checks 346,112 reference / 168,960 hardware pixels and
+retained sources/assets. SAVE/LOAD and broader graphics remain open.
+
+October 16 base-text implementation: [the separate external-font candidate](BASE_TEXT_COMPATIBILITY_STATUS.md)
+passes committed partial-text CPU/pixel/retained-reset and late-LOAD controls,
+with unknown Kanji flags preserved and ordinary generated state unchanged.
+New source-bound RBF `4c0a95f2…` completes Quartus 17.0.0, timing still fails.
+Unmodified base/Turbo arithmetic cold-repeat on MiSTer; base Main R/T reset
+and LIST/RUN pass with 21 independently audited raw PNGs / 245,760 exact
+pixels. Ordinary regression passes all 164 reports;
+native fonts, broader text modes and full BASIC acceptance remain open.
+
+October 16 base-IPL diagnosis: [exact CPU/descriptor and hardware controls](BASIC_METADATA_STARTUP_STATUS.md)
+isolate the external-font blank display to the third-plane known mask. Base
+IPL initializes only text/attributes; the packet requires Kanji metadata too.
+Generated initialization versus skip controls cold-repeat the arithmetic /
+black distinction with 40,960 exact positive pixels. No RTL or assumed
+power-on value change; unmodified base-profile/cache policy remains open.
+
+October 15 matched BASIC follow-up: the
+[Turbo reference cadence collection](BASIC_IPL_MATRIX_STATUS.md) passes
+exact arithmetic cold/repeat at 8/8 host key frames. The preserved 4/4
+failure has no final `7` in real mailbox reads; the interpreter reports
+Missing operand. Missing Enter rejects the unchanged completion oracle.
+No VM/RTL timing change. All eight hardware IPL/ANK16 cases finish: Turbo
+arithmetic passes with/without ANK16 twice (81,920 exact pixels), while base
+4-KiB uploads stay black. Two explicit full-aperture FF-tail controls also
+stay black, leaving the base-IPL cause unresolved. No RTL change is inferred.
+
+October 15 BASIC reference follow-up: eight
+[CSP native command/reset cases](BASIC_REFERENCE_RESET_STATUS.md) pass,
+including exact arithmetic and LIST/RUN transcripts, cold repeats and actual
+IPL instruction restart. No-reset and missing-Enter controls reject the
+unchanged completion oracles. Different CSP/RTL fonts and startup Caps policy
+are recorded explicitly. The [actual MiSTer BASIC gate](BASIC_HARDWARE_RESET_STATUS.md)
+also passes arithmetic, LIST/RUN and both Main reset paths with 148,480 exact
+pixels on the existing Turbo-IPL fd9a0850 core. The separate RTL warm-reset
+probe timed out without acceptance; timing, native save/load, graphics, model coverage
+and licensing remain open.
+
+October 15 Common Source follow-up: the existing sibling macOS emulator now
+has a [bounded comparison CLI and frozen reference gate](CSP_MAC_REFERENCE_STATUS.md).
+CPU/RAM/IPL/PSG and retained-reset comparisons pass exact ordered I/O. Real
+CPU mailbox input exposes and qualifies a repaired macOS VM-key callback;
+no-key and previous-adapter controls reject the same completion oracle.
+CROSS/Arcus cold repeats match traces, memory and actual PNGs; CROSS also
+passes matched I/J movement. Arcus progresses to a labelled interface, not
+accepted gameplay. Native Kanji, matched Turbo configurations and exact WAIT
+timing remain open; the new reference exposes an IPL M1 timing difference.
+No machine RTL or board change was made. Earlier statements retain their scope.
+
+October 15 Main OSD reset follow-up: [both menu commands](Z_FONT_OSD_RESET_STATUS.md)
+now pass the bounded external-font hardware gate at 80/40 columns. Six cases
+produce eighteen raw PNGs matching **3,840,000 exact control pixels**. Menu
+navigation without Enter and two wrong-final-byte controls reject the unchanged
+readback oracle. T Reset closes with F12 before R; R Reset-and-close needs no
+extra F12. No warm load/upload/mount or keyboard reset chord is requested.
+All 127 qualification inputs, 428 compiler inputs, RBF/Main and font DDR hashes
+pass. This reuses fd9a0850; no new Quartus or simulation run. Physical owned
+phase, stopped clocks, native fonts, wider modes/devices and timing closure
+remain open. Earlier checkpoint statements retain their dated scope.
+
+October 15 active-traffic reset follow-up: [owned simulation and Main reset controls](Z_FONT_ACTIVE_RESET_STATUS.md)
+pass. Four simulation cases check 34,544 completed CPU reads and 2,688,000
+control pixels, including an exactly cancelled pending read and one-commit owned
+write drains with DDR/VID service stopped. Three actual MiSTer cases produce
+nine PNGs matching **1,920,000 pixels** at 80/40 columns;
+Main's keyboard chord recovers retained VRAM after the firmware traffic loop.
+No-reset and wrong-final-byte controls reject the unchanged magenta oracle.
+The exact physical owned phase is unobserved. RBF/compiler inputs are unchanged;
+OSD-menu reset, native fonts, wider modes and timing closure remain open.
+Earlier checkpoint statements below retain their dated scope.
+
+October 15 retained-reset follow-up: [real F/R and reset/no-reset controls](Z_FONT_RETAINED_RESET_STATUS.md)
+now qualify bounded post-HALT retained IPL/font/VRAM on fd9a0850. Three
+simulation cases check 18,570 actual CPU reads; nine actual Main/mrext frames
+match 1,920,000 control pixels. Main's keyboard reset chord plus R reaches a
+post-readback magenta marker at both widths; R without reset and a wrong last
+expected byte fail the unchanged warm oracle. No warm upload is requested;
+all compiler inputs/RBF remain unchanged. OSD-menu, owned/stopped-clock reset,
+native fonts, broader raster/device behavior and timing closure remain open.
+Earlier checkpoint statements below retain their dated scope.
+
+October 15 CPU-completion follow-up: a [new post-check visible marker](Z_FONT_CPU_COMPLETION_STATUS.md)
+closes final CPU-readback observability for separate 80/40-column RBF-load
+controls. Four simulation cases pass 184 traced reads/768,000 control pixels;
+five actual MiSTer cases match 1,024,000 pixels, including two one-byte failing
+IPLs rejected by the unchanged completion oracle. Source-bound fd9a0850 is
+reused with all 428 compiler inputs unchanged; no new Quartus flow. Older
+IPLs retain their original scope. Physical warm-reset causality, native fonts,
+wider modes and timing closure remain open.
+
+October 15 hardware follow-up: [mister14 tests](TURBO_Z_EXTERNAL_HARDWARE_STATUS.md)
+verify a complete synthetic 256-KiB font upload by physical DDR readback, then
+expose a terminal-count WAIT/final-SPI-ACK deadlock. The repair and old-condition
+rejecting control pass; the full Quartus rebuild succeeds and actual 80/40-column
+cold/post-reset-request frames match all 768,000 pixels. Native game titles
+also boot on the repaired core. Separate historical single-clock MGLs show a
+live CROSS Chase playfield. Native Z fonts and timing closure remain open.
+The repaired core reaches populated Mappy/Xevious stages, but its Turbo-IPL
+CROSS Chase trial originally lacked a captured playfield. Matched controls now
+show fields on both cores with both IPLs after sufficient start input; see
+[CROSS Chase controls](CROSS_CHASE_HARDWARE_CONTROLS.md). Native Kanji and
+physical timing remain open. A separate [HPS malformed-upload recovery gate](Z_FONT_HPS_UPLOAD_STATUS.md)
+passes alongside all 39 frontend and five whole-machine cases. Its new
+fd9a0850 RBF builds; actual valid/oversized-retry/short-retry controls match
+640,000 pixels and full DDR hashes, with Main responsive without a Linux reboot.
+Ordinary regression passes 164 reports with unchanged executable. Timing,
+native fonts, wider modes and physical reset causality remain open.
+
+October 14 integration follow-up: the separate default-off
+[external-font machine profile](TURBO_Z_EXTERNAL_MACHINE_STATUS.md) now connects
+DDR, committed VRAM writes and renderer packets, with owned reset/upload drains
+and retained-cache reconstruction. Complete-machine synthetic CPU/80/40-column
+pixel gates pass, including CPU VRAM readback and changed-font replacement.
+The corrected-source full Quartus build/RBF passes at 534 M10Ks / 25,512 ALMs.
+Timing fails and physical feature acceptance remains open.
+Native font conversion, broader text policies and physical acceptance stay open.
+Earlier standalone-only scope statements below describe those checkpoints.
+
+
 This list is based on the current RTL, the existing Verilator harness, and
 cross-checking against the local MAME Sharp X1 driver. X Millennium is now
 downloaded and its Turbo control code inspected; an isolated declaration-fixed
@@ -14,10 +195,76 @@ support before optional Turbo extensions.
 
 ## Active goal: items 1–6 and Turbo Z (October 6)
 
-October 10, 19:23 UTC: paused at the user's request after writing the
-[handoff](DEVELOPMENT_HANDOFF.md). Owned native-plane and hardened-suite runs
-were explicitly interrupted with partial evidence preserved; remaining gates
-are unchanged. Latest frontend fixture additions are unexecuted drafts.
+October 14 cache-renderer follow-up: the separate phase-0 packet adapter now
+feeds the unchanged real CRTC/RGB pipeline through phase-10 capture and
+phase-14 LOAD. Fourteen strict unit cases and four connected cases pass;
+ten actual 80/40-column frames give 1,920,000 exact RGB pixels, including CPU
+writes, blink, video-reset retention and cache-invalidation blanking. Independent
+CPU audit checks 116 OUT intents / 114 IN samples. Exact controls reject live
+VRAM metadata mixing and wrong renderer glyph input. All jobs are terminal;
+see [cache-renderer status](TURBO_Z_CACHE_RENDER_STATUS.md). Actual machine/
+DDR wiring, writer-drain/lifecycle order, retained-cell reconstruction, native
+policy and combined fit/timing remain open. No Quartus or MiSTer action.
+
+October 14 VRAM-write follow-up: the standalone cached transaction boundary
+now passes eighteen connected cases (three positives/fifteen controls), with
+six complete real-Z80 boots, three interrupted attempts, 174 OUT intents and
+171 sampled IN values independently checked. It publishes coherent metadata/
+glyphs before one actual VRAM commit and WAIT release. Nonzero unknown-byte
+masking, held-request replay, BUSY/stopped VID and owned-write reset/drain
+are covered. Provisional refill-before-write timing remains opt-in, outside
+machine profiles. Actual renderer/decode wiring, writer drain before lifecycle
+pause, retained-cell rebuild after invalidation, native policy and combined
+fit/timing remain next; see [write-boundary status](TURBO_Z_VRAM_WRITE_STATUS.md).
+All started jobs are terminal. No new Quartus or MiSTer action occurred.
+
+October 14 committed-half follow-up: the standalone cache can now select its
+half from the same published/forwarded descriptor as the glyph and bank.
+Seventeen focused cases plus nineteen default, thirteen lifecycle and eleven
+real-Z80 cases pass against the current source; default counters remain exact.
+The source-bound Quartus RAM-inference repair fits both profiles in 138 M10Ks
+(3,717 caller-half / 3,715 descriptor-half ALMs). Actual CPU VRAM-write
+admission/publication and renderer request/load integration remain next,
+followed by RGB/reset/coexistence and board gates. See
+[cache-half status](TURBO_Z_CACHE_HALF_STATUS.md). All jobs are terminal;
+no MiSTer load, reset or input was sent.
+
+October 14 CPU-boundary follow-up: the actual TV80/PCG controller now accesses
+the full-font service under real cache traffic in a separate fixture. Three
+configurations and eight exact mutants pass; independent address/data audit
+confirms twelve complete boots and 12,504 CPU port reads. Retained-font warm
+reset, cancelled-level quarantine and owned-read reset/reboot pass without font
+reupload. This does not connect CPU text writes to cache publication or the
+machine renderer. The later cache-half extension supplies committed selection;
+continue with real
+shared-machine/reset/ordinary-state gates; see [CPU service](TURBO_Z_CPU_SERVICE_STATUS.md).
+
+October 14 service follow-up: standalone fair CPU/cache arbitration and a
+drain-before-upload/reset coordinator now pass 35 warning-free builds/runs.
+The connected real-cache/frontend/backend fixture covers queued cache reads
+behind cancelled CPU ownership, stopped VID, retained warm readiness, cold
+loss, changed full images and upload abort/retry. CPU/hold inputs remain
+synthetic; actual Z80/VRAM/renderer and Main/OSD wiring, native policy and
+combined board fit/timing remain open. See [service status](TURBO_Z_FONT_SERVICE_STATUS.md).
+
+October 14 cache follow-up: the standalone dual-slot glyph/descriptor cache now
+passes three positive configurations and sixteen exact RTL mutants, including
+all physical bytes through VID replies at SYS32/100. A source-bound Quartus
+17.0.2 component fit on `misterubuntu` uses 138 M10Ks and 3,720 ALMs. This does
+not enable a board or machine profile. Fair service/lifecycle components are
+qualified separately below the machine boundary; VRAM/renderer integration,
+native visibility and physical timing/CDC remain open; see
+[cache status](TURBO_Z_CACHE_STATUS.md).
+
+October 14: resumed at the user's request. The standalone frontend now passes
+twenty-four 32/100-MHz positive profiles and fourteen exact mutants; its
+independent read-address ledger guards high-address byte-pattern aliases.
+The hardened machine suite now passes all eleven collection/audit phases with
+1,191 artifacts preserved; its full audit confirms 262,688 CPU reads and
+3,072,000 exact pixels. The October 10 interrupted evidence remains preserved.
+The standalone suite-driver regression now passes fourteen synthetic
+lifecycle/preservation cases. See the
+[handoff](DEVELOPMENT_HANDOFF.md); no work group or native/FPGA gate is closed.
 
 October 10 latest continuation: [development handoff](DEVELOPMENT_HANDOFF.md)
 records current commits and unfinished jobs. The cassette runner now passes
@@ -1432,13 +1679,55 @@ Preserve each frozen runner; do not rebuild historical v05.
   legacy wrapper accidentally selected by the simulator.
 - [x] Confirm reset fetch, IPL overlay and RAM through a self-checking Z80 diagnostic.
 - [ ] Validate wait states and cycle timing against hardware/reference traces.
+- [x] Build a bounded Common Source macOS CLI comparison: shared original
+  IPL/RAM/PSG diagnostics match exact ordered I/O, with bad-ROM/no-reset
+  controls and deterministic repeats. Record the IPL-mapped M1 timing
+  difference without treating emulator policy as measured hardware behavior.
+  See [the reference gate](CSP_MAC_REFERENCE_STATUS.md).
 - [x] Confirm allocated 64 KiB main RAM, 2 KiB text/attribute banks,
   2 KiB per PCG plane and 16 KiB per GRAM plane; RAM/GRAM diagnostics pass.
 - [x] Boot the checked-in IPL and capture native IPL/game frames.
 - [ ] Resolve IPL/BASIC licensing/provenance and verify BASIC compatibility.
-  The initial protected native HuBASIC probe is running; release identification,
-  prompt/command acceptance and model comparisons remain open. See
-  `BASIC_NATIVE_STATUS.md`; deterministic execution is not BASIC compatibility.
+  CZ-8FB01 arithmetic/LIST/RUN now pass in the bounded reference/RTL profiles;
+  both Main reset paths also pass on the Turbo-IPL fd9a0850 MiSTer profile.
+  Native save/load, graphics, other releases/models and licensing remain open.
+  See `BASIC_NATIVE_STATUS.md` and `BASIC_HARDWARE_RESET_STATUS.md`.
+- [x] Compare the identified CZ-8FB01 BASIC arithmetic/LIST/RUN sequences in
+  the local CSP reference; qualify its idle-prompt retained reset with a fresh
+  arithmetic result, actual IPL restart and no-reset/missing-Enter controls.
+  Check exact pixels using each renderer's own font. This does not close
+  licensing, other releases, native save/load or current-RTL reset acceptance.
+- [x] Qualify native HuBASIC arithmetic/LIST/RUN and both Main menu reset paths
+  on the existing Turbo-IPL fd9a0850 MiSTer profile, with no warm uploads or
+  remounts, distinct post-reset answers and rejecting controls. Check 148,480
+  exact banner/transcript pixels and retained asset/font-DDR hashes. Other
+  profiles, active-device reset and timing closure remain open.
+- [ ] Qualify native BASIC disk SAVE/NEW/LOAD/LIST/RUN on disposable copies,
+  including unchanged-original and protected/no-load controls on MiSTer.
+  Local reference acceptance below is complete; physical write/readback
+  remains unexecuted while the user has the device. Do not mount originals
+  writable or reuse historical ownership checkpoints to take MiSTer back.
+- [x] Add explicit writable-new-copy output to the local reference CLI,
+  retaining protected defaults and rejecting existing/original/symlink/
+  hardlink/duplicate targets. Pass 22 real default/copy/rejection cases.
+- [x] Qualify bounded native reference SAVE/NEW/LOAD/LIST/RUN with both saved
+  images cold-reopened, exact frame repeats, five rejecting controls and
+  1,802,240 audited pixels. Preserve host-clock directory/RAM differences
+  as raw artifacts; no byte-identity or broader filesystem claim. See
+  `BASIC_SAVE_LOAD_REFERENCE_STATUS.md`.
+- [x] Qualify bounded native HuBASIC PSET/LINE on the frozen base CSP
+  reference and the source-bound 4c0a95f2 MiSTer external-font profile.
+  Require native command/Ok, exact point/diagonal pixels, reference CPU GRAM
+  writes, repeats and no-Enter/wrong-coordinate rejections. Hardware uses
+  Main R boots with retained assets, not fresh FPGA loads. Independent
+  audit checks 346,112 reference / 168,960 hardware pixels. See
+  `BASIC_NATIVE_GRAPHICS_STATUS.md`; broader commands/colors/modes remain.
+- [x] Qualify all eight native PSET colors and PRESET in the CLI v4 base
+  reference, preserving an adjacent shared-byte pixel. Pass 22 cases with
+  nine cold repeats, four rejecting controls, 3,248,128 exact pixels and
+  192 independent CPU-write expectations. See `BASIC_COLOR_REFERENCE_STATUS.md`.
+- [ ] Run the newly qualified native color/PRESET cases on RTL and hardware;
+  reference completion does not close either gate. MiSTer stays with the user.
 - [x] Boot one native D88 game (CROSS Chase) and verify repeatable PS/2 movement.
 - [ ] Add memory/I/O bus assertions for unmapped accesses and contention.
 - [ ] Compare CPU-visible behavior against MAME traces for a short boot window.
@@ -1640,12 +1929,43 @@ Preserve each frozen runner; do not rebuild historical v05.
 - [ ] Verify SDRAM/GRAM bandwidth and video timing on hardware.
 - [ ] Review PCG bundled-data CDC placement/max-delay constraints and reset
   release with Quartus timing tools; simulation does not verify metastability.
+- [x] Bound the external-font dimensions snapshot payload, preserving exact
+  72-bit fitted scope through its logical 74-bit synthesis stage. Pass a new
+  source-bound full flow and all eight native timing corners with no extra
+  analysis exceptions; audit 1,152 selected rows and actual delay budgets.
+  This closes only that payload gate; global timing and hardware remain open.
+- [x] Add standalone cache publication/ACK lease-window checks at three clock
+  ratios, stopped clocks, idle/in-flight invalidation and retained payload.
+  Pass 57 actual leases and three runtime mutants. No cache timing exception
+  or whole-machine/native acceptance follows; see `EXTERNAL_FONT_TIMING_STATUS.md`.
 - [ ] Add keyboard, joystick, cassette, floppy, and reset OSD controls.
 - [x] Add new SDL gameplay frontend and native-booted checkpoint regression.
 - [x] Warm-reboot a running native game without ROM reload or disk remount in
   baseline and single-clock simulation; retain the original movement regression.
 - [ ] Build a reference test matrix: IPL, BASIC, text, graphics, PSG, tape,
   floppy, and representative commercial software.
+- [x] Separate native Turbo-IPL BASIC arithmetic from ANK16 upload presence
+  on the same hardware RBF, twice each with unchanged exact-pixel/no-Enter
+  checks. Preserve base-IPL/explicit-FF-tail black observations and the CSP
+  4/4 versus 8/8 host-input cadence difference; see `BASIC_IPL_MATRIX_STATUS.md`.
+  This closes the bounded comparison, not base-model or full BASIC acceptance.
+- [x] Isolate the base-IPL external-font blank display with actual CPU I/O,
+  descriptor masks and matched initialization/skip hardware repeats. Preserve
+  unknown-byte masking and qualify only the generated diagnostic shims;
+  see `BASIC_METADATA_STARTUP_STATUS.md`. Native base policy remains open.
+- [x] Add a separately gated simple-low-scan partial-text path without
+  assuming native Kanji RAM power-on values. Qualify request/reply/LOAD
+  permission, retained journal rebuild and rejecting modes in actual CPU/
+  pixel tests. Build source-bound RBF 4c0a95f2 and cold-repeat unmodified
+  base/Turbo native arithmetic; qualify base Main R/T reset and LIST/RUN
+  without warm asset upload/remount. Audit 245,760 exact hardware pixels.
+  See `BASE_TEXT_COMPATIBILITY_STATUS.md`; broader modes, native fonts,
+  graphics/SAVE/LOAD, full BASIC and physical timing remain open.
+- [x] Execute the local Common Source macOS X1/Turbo reference with isolated
+  assets and protected disk copies; cold-repeat CROSS/Arcus traces, memory and
+  PNGs exactly, and verify bounded CROSS I/J movement against an idle control.
+  Arcus interface progress with synthetic Kanji/PSG-only sound does not close
+  the broader native Turbo or reference-matrix acceptance gate.
 - [x] Establish release-bound repeatable player-control checks for Druaga,
   Xevious, Mappy and Galaga, plus Shanghai cursor/selection/legal-pair removal, after
   native IPL/D88 boot in fast baseline simulation.

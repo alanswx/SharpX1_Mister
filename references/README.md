@@ -39,6 +39,37 @@ claiming native built-in IRQ wiring is resolved.
 
 ROMs, BIOS images, fonts, disks, and tapes are not redistributed here.
 
+October 15 macOS execution: the user supplied the existing sibling
+`../common_source_code`, base commit `c0b9bccb972af2157da823fe28903c9f6e4af958`
+with extensive existing local macOS/CPU work, and authorized adding an X1 CLI.
+X1/Turbo/Z/MZ800/Twin now build in a separate output directory. X1/Turbo/Z
+execute original CPU/RAM/PSG fixtures; the frozen CSP/RTL gate and real-mailbox
+keyboard controls pass. Native CROSS/Arcus cold-repeat actual PNGs, traces and
+memory; CROSS passes matched I/J movement. Arcus reaches an ARCUS-labelled
+interface with synthetic virtual Kanji and PSG-only sound, not accepted native
+gameplay. This working tree is distinct from the earlier sparse fork below.
+[Builds, hashes, host-adapter fixes and scope](../docs/CSP_MAC_REFERENCE_STATUS.md)
+include the observed IPL M1 wait-policy difference. No reference machine code
+or private assets were copied into FPGA RTL.
+
+The subsequent [HuBASIC reference/reset gate](../docs/BASIC_REFERENCE_RESET_STATUS.md)
+executes eight fresh CSP cases with exact native arithmetic/LIST/RUN pixels,
+retained reset, rejecting no-reset/no-Enter controls and cold repeats. CSP's
+existing ANK and Caps defaults differ from the FPGA profile and are recorded
+explicitly. Native SAVE/LOAD, graphics and broader BASIC releases remain open.
+The separate [Turbo host-input observation](../docs/BASIC_IPL_MATRIX_STATUS.md)
+preserves missing `7`/native Missing operand at 4/4 frames; 8/8 cold/repeat
+gives exact `42` and missing Enter rejects. Real mailbox I/O supports the
+delivery difference; no reference VM/FPGA timing change is made.
+
+October 15: the user supplied an existing `~/Downloads/xmil026s` source tree
+and archive. Thirteen Windows-source/reference files were inspected read-only
+and matched to the archive, not built or executed. PCG fallback, high-speed
+font rows/halves, SCRN and sub-CPU command paths are recorded in the
+[local 0.26 audit](../docs/XMIL026_REFERENCE_AUDIT.md). This is source history
+related to the existing X Millennium port, not an independent hardware oracle;
+its virtual fonts are not relabeled as physical Z ROMs. No code/assets copied.
+
 October 6 Kanji follow-up: inspected local Xmil `io/cgrom.c/.h`,
 `vram/makechr.c`, `font/font.c/.h` and the existing local MAME Kanji CPU/video/
 ROM conversion paths. Read the original [eX1/Common Source display source](https://github.com/Artanejp/common_source_project-fm7/blob/2f350e59869ad52293c768e08dd1e6137001486b/source/src/vm/x1/display.cpp)

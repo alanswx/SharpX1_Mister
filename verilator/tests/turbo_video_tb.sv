@@ -13,6 +13,7 @@ module turbo_video_tb;
         .I_CRTC_BUS_DATA(8'd0),.I_CRTC_BUS_WRITE(1'b0),
         .I_RESET(reset), .I_VIDEO_RESET(reset), .I_TURBO_BLACK(black), .I_TURBO_HIGH_SCAN(high_scan),
         .I_TURBO_TEXT_Y2(1'b0), .I_TURBO_UNDERLINE(1'b0),
+        .I_TEXT_PACKET_VALID(1'b1),
         .I_CCLK(clk), .I_VCLK(clk), .O_GRAPHICS_RA(),
         .O_GRAPHICS_START(),.O_GRAPHICS_LOAD(),.O_CG_TRANSPARENT(),.O_GRAPHICS_DISP(),
         .O_ANK16_ADDR(ank_address), .O_CGA(pcg_address),

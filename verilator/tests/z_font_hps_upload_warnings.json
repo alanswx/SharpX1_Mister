@@ -1,0 +1,376 @@
+{
+  "scope": "Inherited hps_io static/width/case diagnostics and its packed bidirectional port dependency; test/front/backend must introduce none. No functional warning suppressions. PINMISSING skips unused observation outputs; all functional inputs are pinned.",
+  "warnings": [
+    {
+      "kind": "IMPLICITSTATIC",
+      "file": "sys/hps_io.sv",
+      "line": 267,
+      "column": 13,
+      "message": "Variable's lifetime implicitly set to static"
+    },
+    {
+      "kind": "IMPLICITSTATIC",
+      "file": "sys/hps_io.sv",
+      "line": 268,
+      "column": 13,
+      "message": "Variable's lifetime implicitly set to static"
+    },
+    {
+      "kind": "IMPLICITSTATIC",
+      "file": "sys/hps_io.sv",
+      "line": 270,
+      "column": 13,
+      "message": "Variable's lifetime implicitly set to static"
+    },
+    {
+      "kind": "IMPLICITSTATIC",
+      "file": "sys/hps_io.sv",
+      "line": 271,
+      "column": 13,
+      "message": "Variable's lifetime implicitly set to static"
+    },
+    {
+      "kind": "IMPLICITSTATIC",
+      "file": "sys/hps_io.sv",
+      "line": 272,
+      "column": 13,
+      "message": "Variable's lifetime implicitly set to static"
+    },
+    {
+      "kind": "IMPLICITSTATIC",
+      "file": "sys/hps_io.sv",
+      "line": 273,
+      "column": 13,
+      "message": "Variable's lifetime implicitly set to static"
+    },
+    {
+      "kind": "IMPLICITSTATIC",
+      "file": "sys/hps_io.sv",
+      "line": 274,
+      "column": 13,
+      "message": "Variable's lifetime implicitly set to static"
+    },
+    {
+      "kind": "IMPLICITSTATIC",
+      "file": "sys/hps_io.sv",
+      "line": 562,
+      "column": 12,
+      "message": "Variable's lifetime implicitly set to static"
+    },
+    {
+      "kind": "IMPLICITSTATIC",
+      "file": "sys/hps_io.sv",
+      "line": 952,
+      "column": 6,
+      "message": "Variable's lifetime implicitly set to static"
+    },
+    {
+      "kind": "IMPLICITSTATIC",
+      "file": "sys/hps_io.sv",
+      "line": 952,
+      "column": 17,
+      "message": "Variable's lifetime implicitly set to static"
+    },
+    {
+      "kind": "IMPLICITSTATIC",
+      "file": "sys/hps_io.sv",
+      "line": 952,
+      "column": 29,
+      "message": "Variable's lifetime implicitly set to static"
+    },
+    {
+      "kind": "IMPLICITSTATIC",
+      "file": "sys/hps_io.sv",
+      "line": 953,
+      "column": 12,
+      "message": "Variable's lifetime implicitly set to static"
+    },
+    {
+      "kind": "IMPLICITSTATIC",
+      "file": "sys/hps_io.sv",
+      "line": 954,
+      "column": 6,
+      "message": "Variable's lifetime implicitly set to static"
+    },
+    {
+      "kind": "IMPLICITSTATIC",
+      "file": "sys/hps_io.sv",
+      "line": 992,
+      "column": 6,
+      "message": "Variable's lifetime implicitly set to static"
+    },
+    {
+      "kind": "WIDTHEXPAND",
+      "file": "sys/hps_io.sv",
+      "line": 206,
+      "column": 9,
+      "message": "Operator ADD expects 32 bits on the RHS, but RHS's VARREF 'sd_rrb' generates 4 bits."
+    },
+    {
+      "kind": "WIDTHEXPAND",
+      "file": "sys/hps_io.sv",
+      "line": 244,
+      "column": 40,
+      "message": "Operator SUB expects 32 bits on the RHS, but RHS's VARREF 'byte_cnt' generates 5 bits."
+    },
+    {
+      "kind": "WIDTHTRUNC",
+      "file": "sys/hps_io.sv",
+      "line": 244,
+      "column": 30,
+      "message": "Bit extraction of var[47:0] requires 6 bit index, not 35 bits."
+    },
+    {
+      "kind": "WIDTHTRUNC",
+      "file": "sys/hps_io.sv",
+      "line": 325,
+      "column": 47,
+      "message": "Bit extraction of array[0:0] requires 1 bit index, not 4 bits."
+    },
+    {
+      "kind": "WIDTHTRUNC",
+      "file": "sys/hps_io.sv",
+      "line": 325,
+      "column": 76,
+      "message": "Bit extraction of var[0:0] requires 1 bit index, not 4 bits."
+    },
+    {
+      "kind": "WIDTHTRUNC",
+      "file": "sys/hps_io.sv",
+      "line": 325,
+      "column": 88,
+      "message": "Bit extraction of var[0:0] requires 1 bit index, not 4 bits."
+    },
+    {
+      "kind": "WIDTHEXPAND",
+      "file": "sys/hps_io.sv",
+      "line": 328,
+      "column": 21,
+      "message": "Operator ASSIGNDLY expects 16 bits on the Assign RHS, but Assign RHS's REPLICATE generates 8 bits."
+    },
+    {
+      "kind": "WIDTHEXPAND",
+      "file": "sys/hps_io.sv",
+      "line": 332,
+      "column": 21,
+      "message": "Operator ASSIGNDLY expects 16 bits on the Assign RHS, but Assign RHS's REPLICATE generates 7 bits."
+    },
+    {
+      "kind": "WIDTHEXPAND",
+      "file": "sys/hps_io.sv",
+      "line": 335,
+      "column": 21,
+      "message": "Operator ASSIGNDLY expects 16 bits on the Assign RHS, but Assign RHS's SEL generates 1 bits."
+    },
+    {
+      "kind": "WIDTHEXPAND",
+      "file": "sys/hps_io.sv",
+      "line": 336,
+      "column": 27,
+      "message": "Operator ASSIGNDLY expects 16 bits on the Assign RHS, but Assign RHS's VARREF 'info_n' generates 8 bits."
+    },
+    {
+      "kind": "WIDTHTRUNC",
+      "file": "sys/hps_io.sv",
+      "line": 369,
+      "column": 41,
+      "message": "Logical operator LOGNOT expects 1 bit on the LHS, but LHS's SEL generates 3 bits."
+    },
+    {
+      "kind": "WIDTHEXPAND",
+      "file": "sys/hps_io.sv",
+      "line": 394,
+      "column": 23,
+      "message": "Operator LTE expects 32 bits on the LHS, but LHS's VARREF 'byte_cnt' generates 5 bits."
+    },
+    {
+      "kind": "WIDTHTRUNC",
+      "file": "sys/hps_io.sv",
+      "line": 400,
+      "column": 29,
+      "message": "Bit extraction of array[0:0] requires 1 bit index, not 4 bits."
+    },
+    {
+      "kind": "WIDTHTRUNC",
+      "file": "sys/hps_io.sv",
+      "line": 401,
+      "column": 29,
+      "message": "Bit extraction of array[0:0] requires 1 bit index, not 4 bits."
+    },
+    {
+      "kind": "WIDTHTRUNC",
+      "file": "sys/hps_io.sv",
+      "line": 397,
+      "column": 14,
+      "message": "Logical operator LOGNOT expects 1 bit on the LHS, but LHS's SEL generates 3 bits."
+    },
+    {
+      "kind": "WIDTHTRUNC",
+      "file": "sys/hps_io.sv",
+      "line": 415,
+      "column": 30,
+      "message": "Bit extraction of array[0:0] requires 1 bit index, not 4 bits."
+    },
+    {
+      "kind": "WIDTHEXPAND",
+      "file": "sys/hps_io.sv",
+      "line": 415,
+      "column": 16,
+      "message": "Operator ASSIGNDLY expects 16 bits on the Assign RHS, but Assign RHS's ARRAYSEL generates 8 bits."
+    },
+    {
+      "kind": "WIDTHTRUNC",
+      "file": "sys/hps_io.sv",
+      "line": 419,
+      "column": 14,
+      "message": "Logical operator LOGNOT expects 1 bit on the LHS, but LHS's SEL generates 3 bits."
+    },
+    {
+      "kind": "WIDTHTRUNC",
+      "file": "sys/hps_io.sv",
+      "line": 448,
+      "column": 14,
+      "message": "Logical operator LOGNOT expects 1 bit on the LHS, but LHS's SEL generates 3 bits."
+    },
+    {
+      "kind": "WIDTHTRUNC",
+      "file": "sys/hps_io.sv",
+      "line": 469,
+      "column": 34,
+      "message": "Bit extraction of var[63:0] requires 6 bit index, not 9 bits."
+    },
+    {
+      "kind": "WIDTHEXPAND",
+      "file": "sys/hps_io.sv",
+      "line": 486,
+      "column": 19,
+      "message": "Operator ASSIGNDLY expects 16 bits on the Assign RHS, but Assign RHS's REPLICATE generates 9 bits."
+    },
+    {
+      "kind": "WIDTHEXPAND",
+      "file": "sys/hps_io.sv",
+      "line": 491,
+      "column": 17,
+      "message": "Operator ASSIGNDLY expects 16 bits on the Assign RHS, but Assign RHS's VARREF 'kbd_data_host' generates 9 bits."
+    },
+    {
+      "kind": "WIDTHEXPAND",
+      "file": "sys/hps_io.sv",
+      "line": 496,
+      "column": 17,
+      "message": "Operator ASSIGNDLY expects 16 bits on the Assign RHS, but Assign RHS's VARREF 'mouse_data_host' generates 9 bits."
+    },
+    {
+      "kind": "WIDTHEXPAND",
+      "file": "sys/hps_io.sv",
+      "line": 502,
+      "column": 14,
+      "message": "Bit extraction of var[64:0] requires 7 bit index, not 6 bits."
+    },
+    {
+      "kind": "WIDTHTRUNC",
+      "file": "sys/hps_io.sv",
+      "line": 539,
+      "column": 14,
+      "message": "Logical operator LOGNOT expects 1 bit on the LHS, but LHS's SEL generates 3 bits."
+    },
+    {
+      "kind": "WIDTHTRUNC",
+      "file": "sys/hps_io.sv",
+      "line": 669,
+      "column": 15,
+      "message": "Logical operator IF expects 1 bit on the If, but If's SEL generates 8 bits."
+    },
+    {
+      "kind": "WIDTHEXPAND",
+      "file": "sys/hps_io.sv",
+      "line": 696,
+      "column": 29,
+      "message": "Operator COND expects 27 bits on the Conditional True, but Conditional True's CONST '2'h2' generates 2 bits."
+    },
+    {
+      "kind": "WIDTHEXPAND",
+      "file": "sys/hps_io.sv",
+      "line": 696,
+      "column": 29,
+      "message": "Operator COND expects 27 bits on the Conditional False, but Conditional False's CONST '2'h1' generates 2 bits."
+    },
+    {
+      "kind": "WIDTHEXPAND",
+      "file": "sys/hps_io.sv",
+      "line": 699,
+      "column": 41,
+      "message": "Operator COND expects 27 bits on the Conditional True, but Conditional True's CONST '2'h2' generates 2 bits."
+    },
+    {
+      "kind": "WIDTHEXPAND",
+      "file": "sys/hps_io.sv",
+      "line": 699,
+      "column": 41,
+      "message": "Operator COND expects 27 bits on the Conditional False, but Conditional False's CONST '2'h1' generates 2 bits."
+    },
+    {
+      "kind": "WIDTHEXPAND",
+      "file": "sys/hps_io.sv",
+      "line": 700,
+      "column": 16,
+      "message": "Operator ASSIGNDLY expects 16 bits on the Assign RHS, but Assign RHS's VARREF 'ioctl_din' generates 8 bits."
+    },
+    {
+      "kind": "WIDTHEXPAND",
+      "file": "sys/hps_io.sv",
+      "line": 645,
+      "column": 5,
+      "message": "Operator CASE expects 16 bits on the Case Item, but Case Item's VARREF 'FIO_FILE_INFO' generates 8 bits."
+    },
+    {
+      "kind": "WIDTHEXPAND",
+      "file": "sys/hps_io.sv",
+      "line": 645,
+      "column": 5,
+      "message": "Operator CASE expects 16 bits on the Case Item, but Case Item's VARREF 'FIO_FILE_INDEX' generates 8 bits."
+    },
+    {
+      "kind": "WIDTHEXPAND",
+      "file": "sys/hps_io.sv",
+      "line": 645,
+      "column": 5,
+      "message": "Operator CASE expects 16 bits on the Case Item, but Case Item's VARREF 'FIO_FILE_TX' generates 8 bits."
+    },
+    {
+      "kind": "WIDTHEXPAND",
+      "file": "sys/hps_io.sv",
+      "line": 645,
+      "column": 5,
+      "message": "Operator CASE expects 16 bits on the Case Item, but Case Item's VARREF 'FIO_FILE_TX_DAT' generates 8 bits."
+    },
+    {
+      "kind": "CASEX",
+      "file": "sys/hps_io.sv",
+      "line": 324,
+      "column": 4,
+      "message": "Suggest casez (with ?'s) in place of casex (with X's)"
+    },
+    {
+      "kind": "CASEX",
+      "file": "sys/hps_io.sv",
+      "line": 352,
+      "column": 4,
+      "message": "Suggest casez (with ?'s) in place of casex (with X's)"
+    },
+    {
+      "kind": "CASEINCOMPLETE",
+      "file": "sys/hps_io.sv",
+      "line": 645,
+      "column": 5,
+      "message": "Case values incompletely covered (example pattern 0x0)"
+    },
+    {
+      "kind": "UNOPTFLAT",
+      "file": "sys/hps_io.sv",
+      "line": 33,
+      "column": 20,
+      "message": "Signal unoptimizable: Circular combinational logic: '<packed HPS_BUS inout>'"
+    }
+  ]
+}

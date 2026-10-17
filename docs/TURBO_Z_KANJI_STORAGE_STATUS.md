@@ -1,9 +1,21 @@
 # Turbo Z Kanji physical storage contract
 
-October 10, 2026. The physical decoder and full-size selector/store components
+October 14 integration follow-up: the separate default-off
+[external-font machine profile](TURBO_Z_EXTERNAL_MACHINE_STATUS.md) now connects
+DDR, committed VRAM writes and renderer packets, with owned reset/upload drains
+and retained-cache reconstruction. Complete-machine synthetic CPU/80/40-column
+pixel gates pass, including CPU VRAM readback and changed-font replacement.
+The corrected-source full Quartus build/RBF passes at 534 M10Ks / 25,512 ALMs.
+Timing fails and physical feature acceptance remains open.
+Native font conversion, broader text policies and physical acceptance stay open.
+Earlier standalone-only scope statements below describe those checkpoints.
+
+
+October 14, 2026. The physical decoder and full-size selector/store components
 are implemented/tested. Default-off second-level machine storage and normal-size
-glyph rendering now have an early synthetic CPU/pixel pass; full-matrix,
-native-font and FPGA backing-storage acceptance remain open. This does not
+glyph rendering pass the exhaustive synthetic CPU/pixel matrix and hardened
+source/artifact-preserving orchestration. Broader modes, native fonts and FPGA
+backing-storage acceptance remain open. This does not
 complete work group 3 or Z7.
 
 ## Primary pin trace
@@ -177,6 +189,55 @@ with original evidence and monitored sources unchanged.
 
 The [external-font implementation plan](TURBO_Z_EXTERNAL_FONT_PLAN.md) records
 full storage, display deadlines, coherence, reset-drain and physical gates.
-The isolated [DDR backend](TURBO_Z_DDR_BACKEND_STATUS.md) now passes full-font
-32/100-MHz and lifecycle/boundary diagnostics; it is not yet integrated with
-ordered loading, display caching or a board.
+The isolated [DDR backend](TURBO_Z_DDR_BACKEND_STATUS.md) passes full-font
+32/100-MHz and lifecycle/boundary diagnostics. The frontend below adds standalone
+ordered loading; display caching and board integration remain open.
+
+## October 14 hardened rerun and external frontend
+
+The resumed `run_z_kanji_machine_suite.py --run` finishes zero in
+`x1-z-kanji-machine-suite-g9t3irkg`, log
+`/tmp/x1-z-kanji-resumed-hardened-suite.log`. All eleven collection/audit phases
+pass: early probe/render, seventeen auditor controls, the fifteen-case full
+matrix, and three exact machine negatives with independent provenance audits.
+The full audit confirms 262,688 CPU reads, fifteen frames, 3,072,000 exact
+pixels, physical frame periods and unchanged evidence. Collector binding is
+still `b05977f68aab2207e48a0b8a5c2624f5f4b841b140ab02ceccc142a0d94ad857`;
+this reruns the existing machine source, not a new native or FPGA profile.
+
+Separate read-only rehashing confirms all 1,191 final-manifest files and phase
+seals. Manifest SHA-256:
+`219ae368f56b632f52a9310ef47df05ffe1bbeeba6108390dd424f03d37fcc35`.
+The new `test-z-kanji-suite-driver` also passes fourteen synthetic child-driver
+cases, including source/artifact tampering and owned deadline/interruption
+cleanup. It does not execute RTL. The October 10 interrupted run is preserved.
+The supplemental negative-evidence regression also passes all fifteen exact
+controls against the new negative folders, preserving original evidence and
+sources: `x1-z-kanji-negative-audit-regression-ctpc6b2q`, log
+`/tmp/x1-z-kanji-resume-negative-audit-regression.log`.
+
+The standalone [external-font frontend](TURBO_Z_FRONTEND_STATUS.md) now passes
+twenty-four 32/100-MHz upload/CPU/reset/retry profiles and fourteen exact RTL
+mutants, including independent high-address read metadata. Backend and frontend
+remain outside the machine manifest. The subsequent standalone
+[full-glyph cache](TURBO_Z_CACHE_STATUS.md) now qualifies digital publication
+and fits in 138 M10Ks/3,720 ALMs. The standalone
+[fair service/lifecycle gate](TURBO_Z_FONT_SERVICE_STATUS.md) now passes its
+connected component diagnostics. Actual CPU/VRAM/renderer and reset dispatch,
+native font/ASIC behavior and physical acceptance remain open.
+The later [CPU service boundary](TURBO_Z_CPU_SERVICE_STATUS.md) now passes real
+TV80/PCG execution with competing cache refills, retained-font reset and owned-
+read recovery. It remains outside the actual machine/renderer source graph.
+The subsequent [cache-half gate](TURBO_Z_CACHE_HALF_STATUS.md) now selects a
+half from the committed descriptor, requalifies sixty component/CPU cases and
+source-binds both current cache fits at 138 M10Ks. Actual CPU VRAM writes,
+coherent renderer request/load and physical machine integration remain open.
+The later [write-boundary component](TURBO_Z_VRAM_WRITE_STATUS.md) passes real
+CPU OUT/IN, three VRAMs and coherent cache publication in eighteen connected
+cases. Machine decode/renderer wiring and reset/lifecycle reconstruction remain
+open; this is not an enabled Z profile or a new FPGA fit.
+The later [committed-cache renderer gate](TURBO_Z_CACHE_RENDER_STATUS.md)
+now checks the actual CRTC/RGB pipeline in a separate fixture, with 1,920,000
+exact 80/40-column pixels and matched live-VRAM/glyph-source controls. Actual
+shared-machine/DDR and lifecycle wiring, native fonts and physical acceptance
+remain open; the full-size simulation store is still separate.

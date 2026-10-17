@@ -1,5 +1,12 @@
 # Video reset input timing experiment — not qualified
 
+October 16 follow-up: the separate external-font revision has its own
+[two-pin bounded gate](EXTERNAL_FONT_RESET_TIMING_STATUS.md). It does not
+select this four-pin palette/core constraint. Its fresh fit passes scoped
+eight-corner reset/data checks but still fails global setup/hold/recovery;
+no hardware acceptance is claimed. The older Z-profile evidence below keeps
+its original scope.
+
 October 9, 2026. The source-bound Z fit's recovery failures include raw reset
 sources into two `x1_reset_release` pipelines. Their downstream outputs release
 after two local clock edges. These are different timing contracts: excluding

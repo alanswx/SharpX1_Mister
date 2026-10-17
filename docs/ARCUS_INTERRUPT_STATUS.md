@@ -5,6 +5,18 @@ Arcus is not accepted gameplay. This follows the
 and start inputs remain exploratory. No original ROM/font/media/state bytes
 are patched or bundled.
 
+## Common Source macOS follow-up (October 15)
+
+The existing local sibling now builds and executes through a
+[qualified headless CLI](CSP_MAC_REFERENCE_STATUS.md). A 4,000-frame native
+Arcus run and cold repeat produce identical CPU/I/O/frame CSVs, memory and
+four actual PNGs. The logo progresses to an `ARCUS`-labelled panel interface.
+This is not the historical black-handler endpoint or accepted gameplay.
+The run uses the pseudo-controller, synthetic zero-filled CSP virtual Kanji,
+user ANK fonts and explicit PSG-only configuration. It is therefore not a
+matched-device interrupt-policy comparison with the earlier RTL/MAME/Xmil
+profiles. No CTC/IRQ policy was changed to obtain this result.
+
 ## New RTC/X3/DMA/Kanji stage (October 10)
 
 The completed 16-second combined cold/repeat, frozen runner

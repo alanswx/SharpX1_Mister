@@ -1,0 +1,251 @@
+{
+  "scope": "Reviewed diagnostic inventory, not suppressions or hardware CDC acceptance. 32 inherited cpu/TV80 warnings plus two fixture reset-observation SYNCASYNCNET warnings. No warning in new bridge permitted.",
+  "source_sha256": {
+    "rtl/cpu.v": "1c29db19f60006dab1f2c947e920d16b3ae4cb5fb0c6e90e80753b0b70b74879",
+    "rtl/tv80/tv80_core.v": "fe7f95b061b2750121477dcb46154b7cc73b03b35d521007f67ad4e222a7d830",
+    "rtl/tv80/tv80_mcode.v": "7d17d36ae8748c090621f0e46b570f1d0f1f30cd48096c482bb41a08965b75b5",
+    "rtl/tv80/tv80_reg.v": "3e1d2bd99693e397a87cf4d63aab244763d1990880ab82324672bc2833930e53",
+    "rtl/tv80/tv80e.v": "d5efecac70701951fea6bf9a60bfba48f44b8fc05c51fd96b8718923995c9c02",
+    "verilator/tests/x1_z_kanji_cpu_service_tb.sv": "26bb3e04e7f658116cce9cfebed9bd8f220ce16676d9f91bdb307ee3eeebc582"
+  },
+  "warnings": [
+    {
+      "code": "PINCONNECTEMPTY",
+      "file": "rtl/tv80/tv80e.v",
+      "line": 88,
+      "column": 7,
+      "message": "Instance pin connected by name with empty reference: 'IntE'"
+    },
+    {
+      "code": "PINCONNECTEMPTY",
+      "file": "rtl/tv80/tv80e.v",
+      "line": 89,
+      "column": 7,
+      "message": "Instance pin connected by name with empty reference: 'stop'"
+    },
+    {
+      "code": "PINMISSING",
+      "file": "rtl/tv80/tv80_core.v",
+      "line": 1026,
+      "column": 12,
+      "message": "Instance has missing pin: 'DIRSET'"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/cpu.v",
+      "line": 8,
+      "column": 20,
+      "message": "Signal is not used: 'cen'"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/tv80/tv80e.v",
+      "line": 69,
+      "column": 17,
+      "message": "Bits of signal are not used: 'mcycle'[6:1]"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/tv80/tv80e.v",
+      "line": 70,
+      "column": 17,
+      "message": "Bits of signal are not used: 'tstate'[6:3,0]"
+    },
+    {
+      "code": "UNUSEDPARAM",
+      "file": "rtl/tv80/tv80_core.v",
+      "line": 89,
+      "column": 17,
+      "message": "Parameter is not used: 'aNone'"
+    },
+    {
+      "code": "UNUSEDPARAM",
+      "file": "rtl/tv80/tv80_mcode.v",
+      "line": 41,
+      "column": 25,
+      "message": "Parameter is not used: 'Flag_N'"
+    },
+    {
+      "code": "UNUSEDPARAM",
+      "file": "rtl/tv80/tv80_mcode.v",
+      "line": 42,
+      "column": 25,
+      "message": "Parameter is not used: 'Flag_P'"
+    },
+    {
+      "code": "UNUSEDPARAM",
+      "file": "rtl/tv80/tv80_mcode.v",
+      "line": 43,
+      "column": 25,
+      "message": "Parameter is not used: 'Flag_X'"
+    },
+    {
+      "code": "UNUSEDPARAM",
+      "file": "rtl/tv80/tv80_mcode.v",
+      "line": 44,
+      "column": 25,
+      "message": "Parameter is not used: 'Flag_H'"
+    },
+    {
+      "code": "UNUSEDPARAM",
+      "file": "rtl/tv80/tv80_mcode.v",
+      "line": 45,
+      "column": 25,
+      "message": "Parameter is not used: 'Flag_Y'"
+    },
+    {
+      "code": "UNUSEDPARAM",
+      "file": "rtl/tv80/tv80_mcode.v",
+      "line": 47,
+      "column": 25,
+      "message": "Parameter is not used: 'Flag_S'"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/tv80/tv80_mcode.v",
+      "line": 166,
+      "column": 17,
+      "message": "Bits of signal are not used: 'FF'[5,3,1]"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/tv80/tv80_reg.v",
+      "line": 43,
+      "column": 32,
+      "message": "Signal is not used: 'DIRSET'"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/tv80/tv80_reg.v",
+      "line": 66,
+      "column": 14,
+      "message": "Signal is not used: 'B'"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/tv80/tv80_reg.v",
+      "line": 67,
+      "column": 14,
+      "message": "Signal is not used: 'C'"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/tv80/tv80_reg.v",
+      "line": 68,
+      "column": 14,
+      "message": "Signal is not used: 'D'"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/tv80/tv80_reg.v",
+      "line": 69,
+      "column": 14,
+      "message": "Signal is not used: 'E'"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/tv80/tv80_reg.v",
+      "line": 70,
+      "column": 14,
+      "message": "Signal is not used: 'H'"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/tv80/tv80_reg.v",
+      "line": 71,
+      "column": 14,
+      "message": "Signal is not used: 'L'"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/tv80/tv80_reg.v",
+      "line": 73,
+      "column": 15,
+      "message": "Signal is not used: 'IX'"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/tv80/tv80_reg.v",
+      "line": 74,
+      "column": 15,
+      "message": "Signal is not used: 'IY'"
+    },
+    {
+      "code": "SYNCASYNCNET",
+      "file": "rtl/tv80/tv80_core.v",
+      "line": 164,
+      "column": 17,
+      "message": "Signal flopped as both synchronous and async: 'x1_z_kanji_cpu_service_tb.processor.Z80CPU.i_tv80_core.ALU_Op_r'"
+    },
+    {
+      "code": "SYNCASYNCNET",
+      "file": "rtl/tv80/tv80_core.v",
+      "line": 129,
+      "column": 17,
+      "message": "Signal flopped as both synchronous and async: 'x1_z_kanji_cpu_service_tb.processor.Z80CPU.i_tv80_core.mcycle'"
+    },
+    {
+      "code": "SYNCASYNCNET",
+      "file": "rtl/tv80/tv80_core.v",
+      "line": 172,
+      "column": 17,
+      "message": "Signal flopped as both synchronous and async: 'x1_z_kanji_cpu_service_tb.processor.Z80CPU.i_tv80_core.IntCycle'"
+    },
+    {
+      "code": "SYNCASYNCNET",
+      "file": "rtl/tv80/tv80_core.v",
+      "line": 173,
+      "column": 17,
+      "message": "Signal flopped as both synchronous and async: 'x1_z_kanji_cpu_service_tb.processor.Z80CPU.i_tv80_core.NMICycle'"
+    },
+    {
+      "code": "SYNCASYNCNET",
+      "file": "rtl/tv80/tv80_core.v",
+      "line": 98,
+      "column": 22,
+      "message": "Signal flopped as both synchronous and async: 'x1_z_kanji_cpu_service_tb.processor.Z80CPU.i_tv80_core.F'"
+    },
+    {
+      "code": "SYNCASYNCNET",
+      "file": "rtl/tv80/tv80_core.v",
+      "line": 156,
+      "column": 17,
+      "message": "Signal flopped as both synchronous and async: 'x1_z_kanji_cpu_service_tb.processor.Z80CPU.i_tv80_core.BusA'"
+    },
+    {
+      "code": "SYNCASYNCNET",
+      "file": "rtl/tv80/tv80_core.v",
+      "line": 155,
+      "column": 17,
+      "message": "Signal flopped as both synchronous and async: 'x1_z_kanji_cpu_service_tb.processor.Z80CPU.i_tv80_core.BusB'"
+    },
+    {
+      "code": "SYNCASYNCNET",
+      "file": "rtl/tv80/tv80_core.v",
+      "line": 122,
+      "column": 17,
+      "message": "Signal flopped as both synchronous and async: 'x1_z_kanji_cpu_service_tb.processor.Z80CPU.i_tv80_core.ISet'"
+    },
+    {
+      "code": "SYNCASYNCNET",
+      "file": "verilator/tests/x1_z_kanji_cpu_service_tb.sv",
+      "line": 17,
+      "column": 10,
+      "message": "Signal flopped as both synchronous and async: 'x1_z_kanji_cpu_service_tb.video_reset'"
+    },
+    {
+      "code": "SYNCASYNCNET",
+      "file": "verilator/tests/x1_z_kanji_cpu_service_tb.sv",
+      "line": 6,
+      "column": 25,
+      "message": "Signal flopped as both synchronous and async: 'x1_z_kanji_cpu_service_tb.cpu_reset'"
+    },
+    {
+      "code": "SYNCASYNCNET",
+      "file": "rtl/tv80/tv80_core.v",
+      "line": 121,
+      "column": 17,
+      "message": "Signal flopped as both synchronous and async: 'x1_z_kanji_cpu_service_tb.processor.Z80CPU.i_tv80_core.IR'"
+    }
+  ]
+}

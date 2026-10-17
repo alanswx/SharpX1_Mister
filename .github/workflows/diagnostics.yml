@@ -32,7 +32,9 @@ jobs:
     # The earlier 52-target job took 41m47s including the pinned tool build.
     # Keep full mixed-pixel/DIP/X3 matrices, per-target limits and assertions;
     # give the expanded job headroom rather than shortening those tests.
-    timeout-minutes: 90
+    # The complete seven-bank scope guard now exhausts 1,048,576 packings;
+    # preserve those cases and allow the additional diagnostic runtime.
+    timeout-minutes: 180
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -84,7 +86,7 @@ jobs:
             test-machine-dma-restart-irq test-machine-dma-restart-irq-snapshot test-machine-dma-restart-fdc test-machine-dma-restart-board test-machine-dma-restart-visible \
             test-board-single \
             test-dma-irq-bridge test-machine-dma-irq test-machine-dma-irq-nested test-machine-dma-irq-keyboard test-machine-dma-irq-snapshot \
-            test-kanji-conversion test-kanji-address test-z-kanji-address test-z-kanji-components test-kanji-decode test-kanji-rom test-kanji-cg-selector test-kanji-cg-access test-kanji-cg-cpu \
+            test-kanji-conversion test-kanji-address test-z-kanji-address test-z-kanji-components test-z-kanji-ddr test-z-kanji-frontend test-z-font-hps-upload test-z-kanji-cache test-z-kanji-cache-half test-z-kanji-arbiter test-z-kanji-quiesce test-z-kanji-cpu-service test-z-kanji-vram test-z-kanji-video test-z-kanji-render test-machine-z-external-font test-machine-z-font-completion test-machine-z-font-warm-reset test-machine-z-font-active-reset test-z-kanji-suite-driver test-kanji-decode test-kanji-rom test-kanji-cg-selector test-kanji-cg-access test-kanji-cg-cpu \
             test-machine-kanji test-machine-kanji-fast test-machine-kanji-snapshot \
             test-machine-kanji-x3 test-machine-kanji-x3-fast test-machine-kanji-x3-snapshot test-machine-kanji-reset \
             test-machine-kanji-loader test-machine-dma-kanji test-rtc-x3-dma-kanji-runner test-rtc-x3-dma-kanji-keyboard test-rtc-x3-dma-kanji-pixels test-rtc-x3-dma-kanji-active-pixels test-machine-z-priority-cdc test-machine-z-priority-inflight-reset test-machine-z-combined-control-reset test-z-text-visibility \
@@ -114,6 +116,16 @@ jobs:
             # Bound each original fixture without changing its assertions or
             # simulated duration. A stall must fail with an identifiable target.
             limit_s=180
+            # Full seven-profile scope test, including every mixed packing,
+            # plus source-bound preservation audits; do not trim its matrix.
+            if [ "${target}" = test-hdmi-handoff-input-sdc ]; then limit_s=5400; fi
+            # Full-font upload/readback at both rates, resets and matched mutants.
+            case "${target}" in test-z-kanji-ddr|test-z-kanji-frontend|test-z-font-hps-upload|test-z-kanji-arbiter|test-z-kanji-quiesce|test-z-kanji-cpu-service) limit_s=600 ;; esac
+            # Genuine PS/2 no-reset control, retained 6,144-byte CPU scan, both widths.
+            if [ "${target}" = test-machine-z-font-warm-reset ]; then limit_s=1800; fi
+            if [ "${target}" = test-machine-z-font-active-reset ]; then limit_s=2400; fi
+            # Every font byte through refill/VID scanout, plus exact cache faults.
+            case "${target}" in test-z-kanji-cache|test-z-kanji-cache-half|test-z-kanji-vram|test-z-kanji-render|test-machine-z-external-font|test-machine-z-font-completion) limit_s=900 ;; esac
             # Both complete nominal-rate media-cancellation matrices; retain
             # all cases and their independent whole-medium assertions.
             case "${target}" in test-machine-fdc-timing-media|test-machine-fdc-timing-boundary) limit_s=600 ;; esac

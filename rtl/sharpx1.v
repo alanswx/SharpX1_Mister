@@ -2,7 +2,7 @@
 // See docs/BASE_X1_CONTRACT.md for address-map sources and limitations.
 module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0, TURBO_DSW = 241, TURBO_DMA_RESTART_IRQ = 0, TURBO_Z_PALETTE_CPU = 0, TURBO_Z_VIDEO = 0, TURBO_Z_MULTIMODE = 0, TURBO_Z_INTERNAL8 = 0, TURBO_Z_TEXT_CPU = 0, TURBO_SIO = 0, TURBO_FM_CPU = 0, RTC_ENABLE = 0, TURBO_Z_EFFECT_CPU = 0, TURBO_DMA_KANJI_EXPERIMENT = 0, D88_ADDRESS_BITS = 20, TURBO_HD_SELECT = 0, TURBO_HD_MEDIA = 0,
     TURBO_FDC_TIMING = 0, FDC_CLOCK_HZ = 1000000, CASSETTE_ENABLE = 0,
-    TURBO_Z_KANJI = 0) (
+    TURBO_Z_KANJI = 0, TURBO_Z_EXTERNAL_FONT = 0) (
     input clk_sys, clk_28636, reset,
     input pal, scandouble,
     input ioctl_download,
@@ -11,6 +11,17 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     input [24:0] ioctl_addr,
     input [7:0] ioctl_dout,
     output ioctl_wait,
+    // Default-off full-font DDR backing; all ports inactive in ordinary profiles.
+    output DDRAM_CLK,
+    input DDRAM_BUSY,
+    output [7:0] DDRAM_BURSTCNT,
+    output [28:0] DDRAM_ADDR,
+    input [63:0] DDRAM_DOUT,
+    input DDRAM_DOUT_READY,
+    output DDRAM_RD,
+    output [63:0] DDRAM_DIN,
+    output [7:0] DDRAM_BE,
+    output DDRAM_WE,
     input ps2_clk_in, ps2_data_in,
     // Experimental serial inputs are already synchronous to clk_sys.
     // Board pin CDC/electrical mapping is not supplied by this interface.
@@ -50,7 +61,13 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     wire core_reset, cpu_run, dma_reset, dma_draining;
     wire dma_busrq_n, cpu_busak_n;
     wire dma_owner = TURBO && TURBO_DMA && !cpu_busak_n;
-    generate if (TURBO && TURBO_DMA) begin : dma_reset_domain
+    wire font_machine_reset, font_cpu_run, font_ioctl_wait, font_write_wait_n;
+    generate if (TURBO_Z_EXTERNAL_FONT) begin : external_font_reset
+        assign core_reset=font_machine_reset;
+        assign cpu_run=font_cpu_run;
+        assign dma_reset=core_reset;
+        assign dma_draining=0;
+    end else if (TURBO && TURBO_DMA) begin : dma_reset_domain
         x1_dma_reset reset_guard (
             .clk(clk_sys), .reset_request(reset), .dma_busak_n(cpu_busak_n),
             .dma_busrq_n(dma_busrq_n), .machine_reset(core_reset),
@@ -62,7 +79,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         assign dma_reset = reset;
         assign dma_draining = 0;
     end endgenerate
-    assign ioctl_wait = TURBO && TURBO_DMA && dma_draining;
+    assign ioctl_wait = (TURBO && TURBO_DMA && dma_draining) || (TURBO_Z_EXTERNAL_FONT && font_ioctl_wait);
     // X3 alone has the independent faster video domain. Assert immediately,
     // release its state only on that clock; base/single reset phase is intact.
     wire video_reset;
@@ -145,6 +162,8 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
             $error("DMA/Kanji qualification requires Turbo, DMA, Kanji and X3 video");
         if (TURBO_KANJI_RENDER && !TURBO_KANJI)
             $error("TURBO_KANJI_RENDER requires the explicit physical Kanji ROM profile");
+        if (TURBO_Z_EXTERNAL_FONT && (!TURBO_Z_KANJI || TURBO_Z_VIDEO || RTC_ENABLE || TURBO_SIO || TURBO_FM_CPU || CASSETTE_ENABLE))
+            $error("external font profile requires Z Kanji; combined experimental devices remain unqualified");
         if (TURBO_Z_KANJI && !(TURBO && TURBO_VIDEO_MASTER && TURBO_KANJI && TURBO_KANJI_RENDER && !SINGLE_CLOCK && !TURBO_DMA))
             $error("Z Kanji simulation profile requires Turbo/X3/Kanji/render and excludes single-clock/DMA");
         if (TURBO && (TURBO_DSW < 0 || TURBO_DSW > 255))
@@ -206,7 +225,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     wire [7:0] z_effect_data;
     wire sio_wait_n;
     wire crtc_wait_n;
-    wire machine_wait_n=cg_wait_n && z_palette_wait_n && sio_wait_n && fm_wait_n && crtc_wait_n;
+    wire machine_wait_n=font_write_wait_n && cg_wait_n && z_palette_wait_n && sio_wait_n && fm_wait_n && crtc_wait_n;
     wire fm_selected,fm_read_tail,fm_wait_n,fm_irq_n,fm_sample,fm_protocol_error;
     wire [7:0] fm_data;
     wire signed [15:0] fm_left,fm_right;
@@ -895,10 +914,24 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     wire kan_write = TURBO && io_write && !dam && a[15:11] == 5'b00111;
     wire attr_write = io_write && !dam && a[15:12] == 4'h2;
     wire cg_access = io_cycle && !dam && a[15:10] == 6'b000101;
+    wire [10:0] font_ram_address;
+    wire [7:0] font_ram_data;
+    wire [2:0] font_ram_write;
+    wire [7:0] font_text, font_attr, font_kan;
+    wire font_packet_partial;
+    // This provisional base-compatible policy is entirely video-local.
+    // Unknown Kanji metadata is irrelevant only to simple low-scan ANK/PCG;
+    // high scan, expansion and underline keep the full-metadata requirement.
+    wire font_partial_ank_allowed = !turbo_scrn_video[0] && !turbo_scrn_video[2] && !turbo_scrn_video[7];
+    wire font_text_packet_valid = z_kanji_display_valid && (!font_packet_partial || font_partial_ank_allowed);
+    wire [4:0] video_phase;
+    wire [10:0] vram_cpu_address=TURBO_Z_EXTERNAL_FONT ? font_ram_address : a[10:0];
+    wire [7:0] vram_cpu_data=TURBO_Z_EXTERNAL_FONT ? font_ram_data : data_out;
+    wire [2:0] vram_write=TURBO_Z_KANJI ? (TURBO_Z_EXTERNAL_FONT ? font_ram_write : {kan_write,attr_write,text_write}) : 3'd0;
     generate if (TURBO_Z_KANJI) begin : z_pcg_selector
         x1_z_pcg_selector selector (
-            .clk(clk_sys), .text_write(text_write), .attr_write(attr_write), .kan_write(kan_write),
-            .address(a[10:0]), .data(data_out), .nibble(a[3:0]), .plane(a[9:8]),
+            .clk(clk_sys), .text_write(vram_write[0]), .attr_write(vram_write[1]), .kan_write(vram_write[2]),
+            .address(vram_cpu_address), .data(vram_cpu_data), .nibble(a[3:0]), .plane(a[9:8]),
             .font16_mode(turbo_scrn[6]), .byte_address(cg_selected_addr),
             .font_address(cg_selected_font_addr), .font16_select(cg_selected_font16),
             .unsupported(cg_selected_unsupported), .kanji_select(cg_selected_kanji),
@@ -938,7 +971,29 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     // Explicit physical first-level ROM upload, not an emulator filename/JIS
     // conversion. The host must hold both resets through the falling commit.
     // Rendering is a separate opt-in provisional X Millennium row policy.
-    generate if (TURBO_Z_KANJI) begin : z_kanji
+    generate if (TURBO_Z_EXTERNAL_FONT) begin : external_font
+        x1_z_kanji_machine service (
+            .clk_sys(clk_sys), .clk_vid(clk_28636), .reset_request(reset),
+            .machine_reset(font_machine_reset), .cpu_run(font_cpu_run), .video_reset(video_reset),
+            .ioctl_download(ioctl_download), .ioctl_wr(ioctl_wr), .ioctl_index(ioctl_index),
+            .ioctl_data(ioctl_dout), .ioctl_address(ioctl_addr), .ioctl_wait(font_ioctl_wait),
+            .write_valid(text_write || attr_write || kan_write), .write_select({kan_write,attr_write,text_write}),
+            .cpu_cell(a[10:0]), .write_data(data_out), .write_wait_n(font_write_wait_n),
+            .ram_address(font_ram_address), .ram_data(font_ram_data), .ram_write(font_ram_write),
+            .ram_text(text_cpu), .ram_attr(attr_cpu), .ram_kan(kan_cpu),
+            .cpu_font_read(kanji_cpu_read), .cpu_font_address(kanji_cpu_addr),
+            .cpu_font_valid(kanji_cpu_valid), .cpu_font_data(kanji_cpu_data),
+            .loaded(kanji_loaded), .load_error(kanji_load_error),
+            .prefetch_start(z_graphics_start), .consume_capture(ce_pix && video_phase==5'b01010),
+            .beam_cell(vaddr[10:0]), .beam_row(graphics_ra[3:0]),
+            .allow_partial_ank(font_partial_ank_allowed), .packet_partial(font_packet_partial),
+            .packet_valid(z_kanji_display_valid), .text_data(font_text),
+            .attr_data(font_attr), .kan_data(font_kan), .glyph_data(kanji_display_data),
+            .DDRAM_CLK(DDRAM_CLK), .DDRAM_BUSY(DDRAM_BUSY), .DDRAM_BURSTCNT(DDRAM_BURSTCNT),
+            .DDRAM_ADDR(DDRAM_ADDR), .DDRAM_DOUT(DDRAM_DOUT), .DDRAM_DOUT_READY(DDRAM_DOUT_READY),
+            .DDRAM_RD(DDRAM_RD), .DDRAM_DIN(DDRAM_DIN), .DDRAM_BE(DDRAM_BE), .DDRAM_WE(DDRAM_WE)
+        );
+    end else if (TURBO_Z_KANJI) begin : z_kanji
         // Full physical simulation reference, not an FPGA BRAM fit solution.
         x1_z_kanji_rom rom (
             .cpu_clk(clk_sys), .video_clk(clk_28636),
@@ -976,9 +1031,16 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         assign kanji_cpu_valid = 0;
         assign kanji_display_data = 0;
     end endgenerate
-    x1_video_ram #(11) text_ram(clk_sys,a[10:0],data_out,text_write,text_cpu,clk_28636,vaddr[10:0],text_vid);
-    x1_video_ram #(11) attr_ram(clk_sys,a[10:0],data_out,attr_write,attr_cpu,clk_28636,vaddr[10:0],attr_vid);
-    x1_video_ram #(11) kan_ram(clk_sys,a[10:0],data_out,kan_write,kan_cpu,clk_28636,vaddr[10:0],kan_vid);
+    generate if (!TURBO_Z_EXTERNAL_FONT) begin : no_external_font
+        assign {DDRAM_CLK,DDRAM_BURSTCNT,DDRAM_ADDR,DDRAM_RD,DDRAM_DIN,DDRAM_BE,DDRAM_WE}='0;
+        assign font_machine_reset=0; assign font_cpu_run=0; assign font_ioctl_wait=0;
+        assign font_write_wait_n=1; assign font_ram_address=0; assign font_ram_data=0; assign font_ram_write=0;
+        assign font_text=0; assign font_attr=0; assign font_kan=0;
+        assign font_packet_partial=0;
+    end endgenerate
+    x1_video_ram #(11) text_ram(clk_sys,vram_cpu_address,vram_cpu_data,TURBO_Z_EXTERNAL_FONT ? font_ram_write[0] : text_write,text_cpu,clk_28636,vaddr[10:0],text_vid);
+    x1_video_ram #(11) attr_ram(clk_sys,vram_cpu_address,vram_cpu_data,TURBO_Z_EXTERNAL_FONT ? font_ram_write[1] : attr_write,attr_cpu,clk_28636,vaddr[10:0],attr_vid);
+    x1_video_ram #(11) kan_ram(clk_sys,vram_cpu_address,vram_cpu_data,TURBO_Z_EXTERNAL_FONT ? font_ram_write[2] : kan_write,kan_cpu,clk_28636,vaddr[10:0],kan_vid);
     localparam GRAM_AW = TURBO ? 15 : 14;
     wire [GRAM_AW-1:0] gram_cpu_addr = GRAM_AW'({turbo_scrn[4], a[13:0]});
     x1_gram_address #(.TURBO(TURBO)) gram_address (
@@ -1042,7 +1104,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         assign crtc_wait_n=1;
         assign crtc_bus_write=0; assign crtc_bus_rs=0; assign crtc_bus_data=0;
     end endgenerate
-    x1_vid #(.ENABLE_CRTC(SINGLE_CLOCK || TURBO_VIDEO_MASTER), .TURBO_SUPPORT(TURBO), .TURBO_CLOCKS(TURBO_VIDEO_MASTER), .SEPARATE_VIDEO_RESET(TURBO_VIDEO_MASTER), .KANJI_RENDER(TURBO_KANJI_RENDER && !TURBO_Z_KANJI), .SEPARATE_CRTC_BUS(TURBO_VIDEO_MASTER), .Z_KANJI_RENDER(TURBO_Z_KANJI)) display (
+    x1_vid #(.ENABLE_CRTC(SINGLE_CLOCK || TURBO_VIDEO_MASTER), .TURBO_SUPPORT(TURBO), .TURBO_CLOCKS(TURBO_VIDEO_MASTER), .SEPARATE_VIDEO_RESET(TURBO_VIDEO_MASTER), .KANJI_RENDER(TURBO_KANJI_RENDER && !TURBO_Z_KANJI), .SEPARATE_CRTC_BUS(TURBO_VIDEO_MASTER), .Z_KANJI_RENDER(TURBO_Z_KANJI), .EXTERNAL_TEXT_PACKET(TURBO_Z_EXTERNAL_FONT)) display (
         .I_VIDEO_RESET(video_reset),
         .I_CRTC_BUS_CLK(clk_28636), .I_CRTC_BUS_RS(crtc_bus_rs),
         .I_CRTC_BUS_DATA(crtc_bus_data), .I_CRTC_BUS_WRITE(crtc_bus_write),
@@ -1056,18 +1118,21 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         .I_PAL_CS(io_cycle && a[15:10] == 6'b000100 && !z_palette_selected),
         .I_TXT_CS(1'b0), .I_ATT_CS(1'b0), .I_KAN_CS(1'b0),
         .I_GRB_CS(1'b0), .I_GRR_CS(1'b0), .I_GRG_CS(1'b0),
-        .I_VCLK(clk_28636), .I_CLK1(display_blink), .O_VQ(), .I_W40(TURBO_VIDEO_MASTER ? width_video : mode_c[6]),
+        .I_VCLK(clk_28636), .I_CLK1(display_blink), .O_VQ(video_phase), .I_W40(TURBO_VIDEO_MASTER ? width_video : mode_c[6]),
         .O_VA(vaddr), .O_GRAPHICS_RA(graphics_ra),
         .O_GRAPHICS_START(z_graphics_start),.O_GRAPHICS_LOAD(z_graphics_load),
         .O_CG_TRANSPARENT(z_cg_transparent),.O_GRAPHICS_DISP(z_graphics_disp),.O_CG_COLOR(z_cg_color),
         .O_TXT_WE(), .O_ATT_WE(), .O_KAN_WE(),
-        .I_TXT_D(text_vid), .I_ATT_D(attr_vid), .I_KAN_D(TURBO ? kan_vid : 8'd0),
+        .I_TXT_D(TURBO_Z_EXTERNAL_FONT ? font_text : text_vid),
+        .I_ATT_D(TURBO_Z_EXTERNAL_FONT ? font_attr : attr_vid),
+        .I_KAN_D(TURBO_Z_EXTERNAL_FONT ? font_kan : (TURBO ? kan_vid : 8'd0)),
         .O_GRB_WE(), .O_GRR_WE(), .O_GRG_WE(),
         .I_GRB_D(grb_vid), .I_GRR_D(grr_vid), .I_GRG_D(grg_vid),
         .O_CGA(cgaddr), .O_ANK16_ADDR(ank16_addr), .I_CG_D(cg_data),
         .O_KANJI_ADDR(kanji_display_addr), .O_KANJI_SELECT(kanji_display_select), .O_KANJI_LEVEL1(kanji_display_level1),
         .O_Z_KANJI_ADDR(z_kanji_display_addr), .O_Z_KANJI_SELECT(z_kanji_display_select),
         .I_Z_KANJI_VALID(z_kanji_display_valid), .O_Z_KANJI_MISS(z_kanji_display_miss),
+        .I_TEXT_PACKET_VALID(!TURBO_Z_EXTERNAL_FONT || font_text_packet_valid),
         .O_Z_KANJI_UNSUPPORTED(z_kanji_display_unsupported),
         .I_PCGB_D(pcgb_vid), .I_PCGR_D(pcgr_vid), .I_PCGG_D(pcgg_vid),
         .O_R(r), .O_G(g), .O_B(b), .O_HSYNC(HSync), .O_VSYNC(VSync), .O_VDISP(vdisp),

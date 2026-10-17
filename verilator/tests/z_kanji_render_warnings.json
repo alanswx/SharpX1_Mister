@@ -1,0 +1,465 @@
+{
+  "scope": "Same reviewed 63 diagnostics; source locations refreshed after explicit packet-valid LOAD gate. Full-metadata renderer fixture now enables external text validity and drives the actual packet-valid pin. No added warnings/suppressions or physical acceptance.",
+  "source_sha256": {
+    "rtl/x1_z_kanji_video.sv": "e62d1e21b8242b40f031bdd3bbdeedfaa6dc9b40823b88e3c18d10c67a9ea07b",
+    "rtl/x1_z_kanji_vram_write.sv": "dc3e28c9a04a7842572eb1b0886cc321a32ac6687ad5d6b83dbba39dbcb31487",
+    "rtl/x1_z_kanji_cache.sv": "e9671fb7ef9548f265cc50c4e3effdc6358c3d292c90eca1ca2b4788ca310f0e",
+    "rtl/x1_z_kanji_frontend.sv": "85e660931cf0ff72dc794a54a03a7c19f23bba18001ec532fb544f28db2535fd",
+    "rtl/x1_z_kanji_ddr.sv": "638861b6a6b06c0307e8bc045d239c766079b1875d6b8c3ab21fe4ea6248558d",
+    "rtl/x1_video_ram.v": "1fa229b296d9e289c67650cd46d75b38167e183db0b6eac21dfee99b485d6534",
+    "rtl/cpu.v": "1c29db19f60006dab1f2c947e920d16b3ae4cb5fb0c6e90e80753b0b70b74879",
+    "rtl/tv80/tv80e.v": "d5efecac70701951fea6bf9a60bfba48f44b8fc05c51fd96b8718923995c9c02",
+    "rtl/tv80/tv80_core.v": "fe7f95b061b2750121477dcb46154b7cc73b03b35d521007f67ad4e222a7d830",
+    "rtl/tv80/tv80_mcode.v": "7d17d36ae8748c090621f0e46b570f1d0f1f30cd48096c482bb41a08965b75b5",
+    "rtl/tv80/tv80_alu.v": "6e89303814fea0d6e7fd9a5388c9485322dd11879ac4c34e319ad1e5b6ce93c5",
+    "rtl/tv80/tv80_reg.v": "3e1d2bd99693e397a87cf4d63aab244763d1990880ab82324672bc2833930e53",
+    "rtl/x1_video_timing.sv": "17a0cc7cc3c88dc63e15047bcffa4fb7ed5bb858eaa96e2933ff43d96ba5f2f2",
+    "rtl/x1_text_raster.sv": "f99a957ac56def61fb44724af21dbf9471dcd9d4f1fc2937629cd5364081f8db",
+    "rtl/legacy/x1_vid.v": "835097037d3c570b5815da7bf116412c4c24129bc703e9343bef418fffec5c24",
+    "rtl/legacy/crtc/crtc6845s.v": "0e4803badc6c093e1a57fa5808df81d8ab081f13223b05813baaeae78f1b80fd",
+    "verilator/tests/x1_z_kanji_render_tb.sv": "120d64f55859da0ee3b8b383239b3581593ea0ee7503cfbf448ddc1b00abb81b"
+  },
+  "warnings": [
+    {
+      "code": "DECLFILENAME",
+      "file": "rtl/legacy/crtc/crtc6845s.v",
+      "line": 150,
+      "column": 8,
+      "message": "Filename 'crtc6845s' does not match MODULE name: 'mpu_if'"
+    },
+    {
+      "code": "PINCONNECTEMPTY",
+      "file": "rtl/legacy/x1_vid.v",
+      "line": 509,
+      "column": 24,
+      "message": "Instance pin connected by name with empty reference: 'rom_address'"
+    },
+    {
+      "code": "PINCONNECTEMPTY",
+      "file": "rtl/legacy/x1_vid.v",
+      "line": 509,
+      "column": 40,
+      "message": "Instance pin connected by name with empty reference: 'rom_oe_n'"
+    },
+    {
+      "code": "PINCONNECTEMPTY",
+      "file": "rtl/legacy/x1_vid.v",
+      "line": 508,
+      "column": 6,
+      "message": "Instance pin connected by name with empty reference: 'glyph_oe_n'"
+    },
+    {
+      "code": "PINCONNECTEMPTY",
+      "file": "rtl/legacy/x1_vid.v",
+      "line": 509,
+      "column": 6,
+      "message": "Instance pin connected by name with empty reference: 'level2_select'"
+    },
+    {
+      "code": "PINCONNECTEMPTY",
+      "file": "rtl/tv80/tv80e.v",
+      "line": 88,
+      "column": 7,
+      "message": "Instance pin connected by name with empty reference: 'IntE'"
+    },
+    {
+      "code": "PINCONNECTEMPTY",
+      "file": "rtl/tv80/tv80e.v",
+      "line": 89,
+      "column": 7,
+      "message": "Instance pin connected by name with empty reference: 'stop'"
+    },
+    {
+      "code": "PINMISSING",
+      "file": "rtl/tv80/tv80_core.v",
+      "line": 1026,
+      "column": 12,
+      "message": "Instance has missing pin: 'DIRSET'"
+    },
+    {
+      "code": "PROCASSINIT",
+      "file": "rtl/legacy/x1_vid.v",
+      "line": 525,
+      "column": 19,
+      "message": "Procedural assignment to declaration with initial value: 'glyph_blank'"
+    },
+    {
+      "code": "PROCASSINIT",
+      "file": "rtl/legacy/x1_vid.v",
+      "line": 531,
+      "column": 20,
+      "message": "Procedural assignment to declaration with initial value: 'raster_valid'"
+    },
+    {
+      "code": "PROCASSINIT",
+      "file": "rtl/legacy/x1_vid.v",
+      "line": 524,
+      "column": 30,
+      "message": "Procedural assignment to declaration with initial value: 'miss'"
+    },
+    {
+      "code": "PROCASSINIT",
+      "file": "rtl/legacy/x1_vid.v",
+      "line": 531,
+      "column": 34,
+      "message": "Procedural assignment to declaration with initial value: 'rows_valid'"
+    },
+    {
+      "code": "SYNCASYNCNET",
+      "file": "rtl/tv80/tv80_core.v",
+      "line": 121,
+      "column": 17,
+      "message": "Signal flopped as both synchronous and async: 'x1_z_kanji_render_tb.processor.Z80CPU.i_tv80_core.IR'"
+    },
+    {
+      "code": "SYNCASYNCNET",
+      "file": "rtl/tv80/tv80_core.v",
+      "line": 122,
+      "column": 17,
+      "message": "Signal flopped as both synchronous and async: 'x1_z_kanji_render_tb.processor.Z80CPU.i_tv80_core.ISet'"
+    },
+    {
+      "code": "SYNCASYNCNET",
+      "file": "rtl/tv80/tv80_core.v",
+      "line": 129,
+      "column": 17,
+      "message": "Signal flopped as both synchronous and async: 'x1_z_kanji_render_tb.processor.Z80CPU.i_tv80_core.mcycle'"
+    },
+    {
+      "code": "SYNCASYNCNET",
+      "file": "rtl/tv80/tv80_core.v",
+      "line": 155,
+      "column": 17,
+      "message": "Signal flopped as both synchronous and async: 'x1_z_kanji_render_tb.processor.Z80CPU.i_tv80_core.BusB'"
+    },
+    {
+      "code": "SYNCASYNCNET",
+      "file": "rtl/tv80/tv80_core.v",
+      "line": 156,
+      "column": 17,
+      "message": "Signal flopped as both synchronous and async: 'x1_z_kanji_render_tb.processor.Z80CPU.i_tv80_core.BusA'"
+    },
+    {
+      "code": "SYNCASYNCNET",
+      "file": "rtl/tv80/tv80_core.v",
+      "line": 164,
+      "column": 17,
+      "message": "Signal flopped as both synchronous and async: 'x1_z_kanji_render_tb.processor.Z80CPU.i_tv80_core.ALU_Op_r'"
+    },
+    {
+      "code": "SYNCASYNCNET",
+      "file": "rtl/tv80/tv80_core.v",
+      "line": 172,
+      "column": 17,
+      "message": "Signal flopped as both synchronous and async: 'x1_z_kanji_render_tb.processor.Z80CPU.i_tv80_core.IntCycle'"
+    },
+    {
+      "code": "SYNCASYNCNET",
+      "file": "rtl/tv80/tv80_core.v",
+      "line": 173,
+      "column": 17,
+      "message": "Signal flopped as both synchronous and async: 'x1_z_kanji_render_tb.processor.Z80CPU.i_tv80_core.NMICycle'"
+    },
+    {
+      "code": "SYNCASYNCNET",
+      "file": "rtl/tv80/tv80_core.v",
+      "line": 98,
+      "column": 22,
+      "message": "Signal flopped as both synchronous and async: 'x1_z_kanji_render_tb.processor.Z80CPU.i_tv80_core.F'"
+    },
+    {
+      "code": "SYNCASYNCNET",
+      "file": "verilator/tests/x1_z_kanji_render_tb.sv",
+      "line": 172,
+      "column": 9,
+      "message": "Signal flopped as both synchronous and async: 'x1_z_kanji_render_tb.video_reset'"
+    },
+    {
+      "code": "UNUSEDPARAM",
+      "file": "rtl/tv80/tv80_core.v",
+      "line": 89,
+      "column": 17,
+      "message": "Parameter is not used: 'aNone'"
+    },
+    {
+      "code": "UNUSEDPARAM",
+      "file": "rtl/tv80/tv80_mcode.v",
+      "line": 41,
+      "column": 25,
+      "message": "Parameter is not used: 'Flag_N'"
+    },
+    {
+      "code": "UNUSEDPARAM",
+      "file": "rtl/tv80/tv80_mcode.v",
+      "line": 42,
+      "column": 25,
+      "message": "Parameter is not used: 'Flag_P'"
+    },
+    {
+      "code": "UNUSEDPARAM",
+      "file": "rtl/tv80/tv80_mcode.v",
+      "line": 43,
+      "column": 25,
+      "message": "Parameter is not used: 'Flag_X'"
+    },
+    {
+      "code": "UNUSEDPARAM",
+      "file": "rtl/tv80/tv80_mcode.v",
+      "line": 44,
+      "column": 25,
+      "message": "Parameter is not used: 'Flag_H'"
+    },
+    {
+      "code": "UNUSEDPARAM",
+      "file": "rtl/tv80/tv80_mcode.v",
+      "line": 45,
+      "column": 25,
+      "message": "Parameter is not used: 'Flag_Y'"
+    },
+    {
+      "code": "UNUSEDPARAM",
+      "file": "rtl/tv80/tv80_mcode.v",
+      "line": 47,
+      "column": 25,
+      "message": "Parameter is not used: 'Flag_S'"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/legacy/x1_vid.v",
+      "line": 321,
+      "column": 12,
+      "message": "Bits of signal are not used: 'load_attribute'[6]"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/legacy/crtc/crtc6845s.v",
+      "line": 207,
+      "column": 13,
+      "message": "Bits of signal are not used: 'R_Intr'[3:2]"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/legacy/x1_vid.v",
+      "line": 234,
+      "column": 13,
+      "message": "Bits of signal are not used: 'crtc_ma'[13:11]"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/legacy/crtc/crtc6845s.v",
+      "line": 91,
+      "column": 14,
+      "message": "Signal is not used: 'W_DScue'"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/legacy/crtc/crtc6845s.v",
+      "line": 92,
+      "column": 14,
+      "message": "Signal is not used: 'W_CScue'"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/legacy/x1_vid.v",
+      "line": 106,
+      "column": 14,
+      "message": "Bits of signal are not used: 'I_A'[15:10,7:1]"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/tv80/tv80_reg.v",
+      "line": 66,
+      "column": 14,
+      "message": "Signal is not used: 'B'"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/tv80/tv80_reg.v",
+      "line": 67,
+      "column": 14,
+      "message": "Signal is not used: 'C'"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/tv80/tv80_reg.v",
+      "line": 68,
+      "column": 14,
+      "message": "Signal is not used: 'D'"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/tv80/tv80_reg.v",
+      "line": 69,
+      "column": 14,
+      "message": "Signal is not used: 'E'"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/tv80/tv80_reg.v",
+      "line": 70,
+      "column": 14,
+      "message": "Signal is not used: 'H'"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/tv80/tv80_reg.v",
+      "line": 71,
+      "column": 14,
+      "message": "Signal is not used: 'L'"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/legacy/x1_vid.v",
+      "line": 334,
+      "column": 15,
+      "message": "Signal is not used: 'vsync_d'"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/tv80/tv80_reg.v",
+      "line": 73,
+      "column": 15,
+      "message": "Signal is not used: 'IX'"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/tv80/tv80_reg.v",
+      "line": 74,
+      "column": 15,
+      "message": "Signal is not used: 'IY'"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/tv80/tv80_mcode.v",
+      "line": 166,
+      "column": 17,
+      "message": "Bits of signal are not used: 'FF'[5,3,1]"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/tv80/tv80e.v",
+      "line": 69,
+      "column": 17,
+      "message": "Bits of signal are not used: 'mcycle'[6:1]"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/tv80/tv80e.v",
+      "line": 70,
+      "column": 17,
+      "message": "Bits of signal are not used: 'tstate'[6:3,0]"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/legacy/x1_vid.v",
+      "line": 120,
+      "column": 18,
+      "message": "Signal is not used: 'I_GRR_CS'"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/cpu.v",
+      "line": 8,
+      "column": 20,
+      "message": "Signal is not used: 'cen'"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/legacy/x1_vid.v",
+      "line": 120,
+      "column": 29,
+      "message": "Signal is not used: 'I_GRG_CS'"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/legacy/x1_vid.v",
+      "line": 522,
+      "column": 32,
+      "message": "Bits of signal are not used: 'kan_latched'[5]"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/tv80/tv80_reg.v",
+      "line": 43,
+      "column": 32,
+      "message": "Signal is not used: 'DIRSET'"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/legacy/x1_vid.v",
+      "line": 334,
+      "column": 5,
+      "message": "Signal is not used: 'hsync_d'"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/legacy/x1_vid.v",
+      "line": 111,
+      "column": 7,
+      "message": "Signal is not used: 'I_RD'"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/legacy/x1_vid.v",
+      "line": 115,
+      "column": 7,
+      "message": "Signal is not used: 'I_CG_CS'"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/legacy/x1_vid.v",
+      "line": 117,
+      "column": 7,
+      "message": "Signal is not used: 'I_TXT_CS'"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/legacy/x1_vid.v",
+      "line": 118,
+      "column": 7,
+      "message": "Signal is not used: 'I_ATT_CS'"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/legacy/x1_vid.v",
+      "line": 119,
+      "column": 7,
+      "message": "Signal is not used: 'I_KAN_CS'"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/legacy/x1_vid.v",
+      "line": 120,
+      "column": 7,
+      "message": "Signal is not used: 'I_GRB_CS'"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/legacy/crtc/crtc6845s.v",
+      "line": 89,
+      "column": 8,
+      "message": "Signal is not used: 'W_Vmode'"
+    },
+    {
+      "code": "UNUSEDSIGNAL",
+      "file": "rtl/legacy/crtc/crtc6845s.v",
+      "line": 90,
+      "column": 8,
+      "message": "Signal is not used: 'W_IntSync'"
+    },
+    {
+      "code": "WIDTHEXPAND",
+      "file": "rtl/legacy/crtc/crtc6845s.v",
+      "line": 237,
+      "column": 9,
+      "message": "Operator CASE expects 5 bits on the Case Item, but Case Item's CONST '4'h5' generates 4 bits."
+    },
+    {
+      "code": "WIDTHTRUNC",
+      "file": "rtl/legacy/x1_vid.v",
+      "line": 288,
+      "column": 20,
+      "message": "Operator ASSIGNW expects 11 bits on the Assign RHS, but Assign RHS's VARREF 'crtc_ma' generates 14 bits."
+    }
+  ]
+}

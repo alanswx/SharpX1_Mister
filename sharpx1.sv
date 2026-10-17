@@ -178,7 +178,7 @@ assign USER_OUT = '1;
 assign {UART_RTS, UART_TXD, UART_DTR} = 0;
 assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
 assign {SDRAM_DQ, SDRAM_A, SDRAM_BA, SDRAM_CLK, SDRAM_CKE, SDRAM_DQML, SDRAM_DQMH, SDRAM_nWE, SDRAM_nCAS, SDRAM_nRAS, SDRAM_nCS} = 'Z;
-assign {DDRAM_CLK, DDRAM_BURSTCNT, DDRAM_ADDR, DDRAM_DIN, DDRAM_BE, DDRAM_RD, DDRAM_WE} = '0;  
+// DDR backing is owned by the explicit external-font machine profile.
 
 assign VGA_SL = 0;
 assign VGA_F1 = 0;
@@ -212,6 +212,9 @@ localparam CONF_STR = {
 	"F0,ROM,Load IPL;",
 `ifdef X1_TURBO_FOUNDATION
 	"F4,X1,Load 16-row ANK;",
+`endif
+`ifdef X1_TURBO_Z_EXTERNAL_FONT
+    "F5,ROM,Load physical Kanji font;",
 `endif
 	"S0,D88,Drive A;",
 	"S1,D88,Drive B;",
@@ -284,6 +287,7 @@ hps_io #(.CONF_STR(CONF_STR), .PS2DIV(1600), .VDNUM(2), .VIDEO_CDC(TURBO_VIDEO_M
 	.ioctl_dout(ioctl_data),
 	.ioctl_upload_req(1'b0), .ioctl_upload_index(8'd0),
 	.ioctl_din(8'd0), .ioctl_wait(machine_ioctl_wait),
+
 
 	.buttons(buttons),
 	.status(status),
@@ -381,11 +385,22 @@ end
 localparam TURBO_DMA_PROFILE = 0;
 `endif
 
+`ifdef X1_TURBO_Z_EXTERNAL_FONT
+localparam TURBO_Z_EXTERNAL_FONT_PROFILE = 1;
+`ifdef MISTER_FB
+initial $error("External-font DDR reservation excludes framebuffer builds");
+`endif
+`else
+localparam TURBO_Z_EXTERNAL_FONT_PROFILE = 0;
+`endif
+
 sharpx1 #(.SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ), .TURBO(TURBO_FOUNDATION), .TURBO_VIDEO_MASTER(TURBO_VIDEO_MASTER),
 	.TURBO_DMA(TURBO_DMA_PROFILE), .TURBO_DMA_IRQ(TURBO_DMA_PROFILE), .TURBO_DMA_RESTART_IRQ(TURBO_DMA_PROFILE), .TURBO_FM_CPU(TURBO_FM_PROFILE),
 	.TURBO_Z_PALETTE_CPU(TURBO_Z_VIDEO_PROFILE), .TURBO_Z_VIDEO(TURBO_Z_VIDEO_PROFILE),
 	.TURBO_Z_MULTIMODE(TURBO_Z_VIDEO_PROFILE), .TURBO_Z_INTERNAL8(TURBO_Z_VIDEO_PROFILE),
-	.TURBO_Z_TEXT_CPU(TURBO_Z_VIDEO_PROFILE)) sharpx1
+	.TURBO_Z_TEXT_CPU(TURBO_Z_VIDEO_PROFILE),
+    .TURBO_KANJI(TURBO_Z_EXTERNAL_FONT_PROFILE), .TURBO_KANJI_RENDER(TURBO_Z_EXTERNAL_FONT_PROFILE),
+    .TURBO_Z_KANJI(TURBO_Z_EXTERNAL_FONT_PROFILE), .TURBO_Z_EXTERNAL_FONT(TURBO_Z_EXTERNAL_FONT_PROFILE)) sharpx1
 (
 	.clk_sys(clk_sys),
 	.clk_28636(clk_28636),
@@ -397,10 +412,15 @@ sharpx1 #(.SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ), .TURBO(TURBO_FOUND
 
 	.ioctl_download(ioctl_download),
 	.ioctl_index(ioctl_index[7:0]),
-	.ioctl_wr(ioctl_wr && ((ioctl_index == 0 && ioctl_addr < (TURBO_FOUNDATION ? 27'd32768 : 27'd4096)) || (TURBO_FOUNDATION && ioctl_index == 4))),
-	.ioctl_addr(ioctl_index == 4 && ioctl_addr >= 27'd4096 ? 25'h1ffffff : ioctl_addr[24:0]),
+	.ioctl_wr(ioctl_wr && ((ioctl_index == 0 && ioctl_addr < (TURBO_FOUNDATION ? 27'd32768 : 27'd4096)) || (TURBO_FOUNDATION && ioctl_index == 4) || (TURBO_Z_EXTERNAL_FONT_PROFILE && ioctl_index == 5))),
+	.ioctl_addr((ioctl_index == 4 && ioctl_addr >= 27'd4096) ||
+        (TURBO_Z_EXTERNAL_FONT_PROFILE && ioctl_index == 5 && ioctl_addr >= 27'd262144)
+        ? 25'h1ffffff : ioctl_addr[24:0]),
 	.ioctl_dout(ioctl_data),
 	.ioctl_wait(machine_ioctl_wait),
+    .DDRAM_CLK(DDRAM_CLK), .DDRAM_BUSY(DDRAM_BUSY), .DDRAM_BURSTCNT(DDRAM_BURSTCNT),
+    .DDRAM_ADDR(DDRAM_ADDR), .DDRAM_DOUT(DDRAM_DOUT), .DDRAM_DOUT_READY(DDRAM_DOUT_READY),
+    .DDRAM_RD(DDRAM_RD), .DDRAM_DIN(DDRAM_DIN), .DDRAM_BE(DDRAM_BE), .DDRAM_WE(DDRAM_WE),
 	.ps2_clk_in(ps2_clk), .ps2_data_in(ps2_data),
 	.sio_external_rx_clock(1'b0),.sio_external_tx_clock(1'b0),
 	.sio_rxd(2'b11),.sio_cts_n(2'b11),.sio_dcd_n(2'b11),

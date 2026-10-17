@@ -27,7 +27,7 @@
     VIDEO / GRAPHIC RAM read is not supported
 
 ****************************************************************************/
-module x1_vid #(parameter ENABLE_CRTC = 0, TURBO_SUPPORT = 0, TURBO_CLOCKS = 0, SEPARATE_VIDEO_RESET = 0, KANJI_RENDER = 0, SEPARATE_CRTC_BUS = 0, Z_KANJI_RENDER = 0)(
+module x1_vid #(parameter ENABLE_CRTC = 0, TURBO_SUPPORT = 0, TURBO_CLOCKS = 0, SEPARATE_VIDEO_RESET = 0, KANJI_RENDER = 0, SEPARATE_CRTC_BUS = 0, Z_KANJI_RENDER = 0, EXTERNAL_TEXT_PACKET = 0)(
   I_VIDEO_RESET,
   I_CRTC_BUS_CLK, I_CRTC_BUS_RS, I_CRTC_BUS_DATA, I_CRTC_BUS_WRITE,
   I_TURBO_BLACK,
@@ -85,6 +85,7 @@ module x1_vid #(parameter ENABLE_CRTC = 0, TURBO_SUPPORT = 0, TURBO_CLOCKS = 0, 
   O_ANK16_ADDR,
   O_KANJI_ADDR, O_KANJI_SELECT, O_KANJI_LEVEL1,
   O_Z_KANJI_ADDR, O_Z_KANJI_SELECT, I_Z_KANJI_VALID, O_Z_KANJI_MISS, O_Z_KANJI_UNSUPPORTED,
+  I_TEXT_PACKET_VALID,
   I_CG_D  , I_PCGB_D , I_PCGR_D , I_PCGG_D,
 // VIDEO OUTPUT
   O_R     , O_G     , O_B,
@@ -168,6 +169,7 @@ output O_KANJI_SELECT, O_KANJI_LEVEL1;
 output [17:0] O_Z_KANJI_ADDR;
 output O_Z_KANJI_SELECT, O_Z_KANJI_MISS, O_Z_KANJI_UNSUPPORTED;
 input I_Z_KANJI_VALID;
+input I_TEXT_PACKET_VALID;
 input [7:0] I_CG_D  , I_PCGB_D , I_PCGR_D , I_PCGG_D;
 
 // VIDEO OUTPUT
@@ -318,6 +320,16 @@ reg att_b;
 wire [7:0] z_attr_latched;
 wire [7:0] load_attribute = Z_KANJI_RENDER ? z_attr_latched : att_d;
 wire z_glyph_blank;
+wire text_packet_blank;
+generate if(EXTERNAL_TEXT_PACKET) begin : external_text_validity
+  reg blank;
+  always @(posedge I_VCLK or posedge video_reset_active)
+    if(video_reset_active) blank<=1;
+    else if(video_step & ~QP & QA & ~QD & ~QC & ~QB) blank<=!I_TEXT_PACKET_VALID;
+  assign text_packet_blank=blank;
+end else begin : ordinary_text_validity
+  assign text_packet_blank=1'b0;
+end endgenerate
 
 reg hsync_d , vsync_d , disp_d;
 
@@ -575,7 +587,7 @@ wire cg_r = (att_pcg ? cgr_d[7] : cgg_d[7]) & att_r;
 wire cg_g = cgg_d[7] & att_g;
 
 // Reserved interline pixels cannot acquire reverse/blink glyph ink.
-wire [2:0] cg_col = z_glyph_blank || (underline_mode && !glyph_visible_d) ? 3'b000 :
+wire [2:0] cg_col = z_glyph_blank || text_packet_blank || (underline_mode && !glyph_visible_d) ? 3'b000 :
     {cg_g,cg_r,cg_b} ^ {col_rev,col_rev,col_rev};
 wire cg_trans = cg_col==3'b000;
 

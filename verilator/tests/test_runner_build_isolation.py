@@ -77,15 +77,27 @@ def build(directory, profile, code, force):
                          query.stdout + query.stderr), ('unproven parent target reuse', directory)
         assert subprocess.check_output([str(parent / 'Visolation')], text=True).strip() == '1 17'
         return 'borrowed parent executable; no child artifact'
-    return subprocess.check_output([str(executable)], text=True).strip()
+    output = subprocess.check_output([str(executable)], text=True).strip()
+    if not force and output == '1 17':
+        # A local link can borrow BOTH the parent main object and model
+        # archive. Prove that exact case rather than accepting arbitrary
+        # wrong child output as the intended counterfactual.
+        log = (directory / 'build.log').read_text()
+        assert ' ../isolation_main.o ' in log and ' ../Visolation__ALL.a ' in log
+        assert not (directory / 'isolation_main.o').exists()
+        assert not (directory / 'Visolation__ALL.a').exists()
+        assert executable.read_bytes() == (parent / 'Visolation').read_bytes()
+        return 'borrowed parent CPP and RTL objects; identical local executable'
+    return output
 
 assert build(parent, 1, 17, True) == '1 17'
-objects = [parent / 'isolation_main.o', parent / 'Visolation', parent / 'verilated.o']
+objects = [parent / 'isolation_main.o', parent / 'Visolation', parent / 'verilated.o', parent / 'Visolation__ALL.a']
 hashes = {str(path): hashlib.sha256(path.read_bytes()).hexdigest() for path in objects}
 unforced = build(parent / 'unforced', 2, 23, False)
 # Some future Verilator could remove its '..' VPATH; report that explicitly,
 # never manufacture a borrowed-object failure or relax the forced positive.
-assert unforced in ('1 23', '2 23', 'borrowed parent executable; no child artifact'), ('unexpected counterfactual failure', unforced)
+assert unforced in ('1 23', '2 23', 'borrowed parent executable; no child artifact',
+                    'borrowed parent CPP and RTL objects; identical local executable'), ('unexpected counterfactual failure', unforced)
 assert build(parent / 'forced', 2, 23, True) == '2 23'
 assert (parent / 'forced/isolation_main.o').is_file()
 assert ' ../isolation_main.o ' not in (parent / 'forced/build.log').read_text()

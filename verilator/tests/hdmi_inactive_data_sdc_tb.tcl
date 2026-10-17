@@ -62,7 +62,8 @@ proc get_fanins {args} {
     }
     set field $name
     if {[regexp {^d\[([0-9]+)\]$} $name -> bit]} {
-        if {$bit in {4 8 20}} {set bit 0}
+        # Independent fitted native aliases for the absent DV keepers.
+        switch $bit {4 {set bit 0} 8 {set bit 12} 20 {set bit 16}}
         set field [format {data[%d]} $bit]
     }
     set result [list ${::prefix}active_mode\[0\] osd:hdmi_osd|$name hdmi_dv_$field]
@@ -101,7 +102,9 @@ set new_packed {hdmi_dv_hs hdmi_dv_de hdmi_dv_data[0] hdmi_dv_data[6] hdmi_dv_da
 set fitted048_packed {hdmi_dv_hs hdmi_dv_de hdmi_dv_data[3] hdmi_dv_data[12] hdmi_dv_data[13] hdmi_dv_data[16] hdmi_dv_data[17]}
 set fitted3c_packed {hdmi_dv_hs hdmi_dv_vs hdmi_dv_data[6] hdmi_dv_data[13] hdmi_dv_data[16]}
 set fitted16fa_packed {hdmi_dv_hs hdmi_dv_vs hdmi_dv_data[5] hdmi_dv_data[6] hdmi_dv_data[9] hdmi_dv_data[11]}
-foreach profile {packed direct fitted4cd fitted048 fitted3c fitted16fa} {
+set fitted9cc_packed {hdmi_dv_hs hdmi_dv_vs hdmi_dv_de hdmi_dv_data[0] hdmi_dv_data[1] hdmi_dv_data[5] hdmi_dv_data[7] hdmi_dv_data[12] hdmi_dv_data[16] hdmi_dv_data[17] hdmi_dv_data[19] hdmi_dv_data[23]}
+set profiles {packed direct fitted4cd fitted048 fitted3c fitted16fa fitted9cc}
+foreach profile $profiles {
 set pins $original_pins
 set packed_prefetch $original_packed
 if {$profile eq "direct"} {set packed_prefetch {}}
@@ -109,6 +112,7 @@ if {$profile eq "fitted4cd"} {set packed_prefetch $new_packed}
 if {$profile eq "fitted048"} {set packed_prefetch $fitted048_packed}
 if {$profile eq "fitted3c"} {set packed_prefetch $fitted3c_packed}
 if {$profile eq "fitted16fa"} {set packed_prefetch $fitted16fa_packed}
+if {$profile eq "fitted9cc"} {set packed_prefetch $fitted9cc_packed}
 foreach name $prefetch {
     set old [expr {$name in $original_packed ? "asdata" : "d"}]
     set new [expr {$name in $packed_prefetch ? "asdata" : "d"}]
@@ -139,12 +143,17 @@ foreach group {output prefetch} targets [list $outputs $prefetch] {
 if {$cuts ne $expected || [llength $cuts] != 77} {error "inactive-data candidate cut unintended clocks/pins"}
 puts "PASS: 77 exact inactive DATA-pin cuts; twenty invalid clock/keeper/driver/pin scopes reject before constraints"
 }
-# Exhaust all combinations over the union of the seventeen changing keepers.
+# Exhaust all combinations over the independently specified profile union.
 set fault {}
-set changed_keepers [lsort -unique [concat $original_packed $new_packed $fitted048_packed $fitted3c_packed $fitted16fa_packed]]
-if {[llength $changed_keepers] != 17} {error "mixed-profile coverage union changed"}
+set accepted_packings [list {} [lsort $original_packed] [lsort $new_packed] [lsort $fitted048_packed] [lsort $fitted3c_packed] [lsort $fitted16fa_packed] [lsort $fitted9cc_packed]]
+if {[llength [lsort -unique $accepted_packings]] != [llength $profiles]} {error "whole-profile fixtures are not distinct"}
+set changed_keepers [lsort -unique [concat {*}$accepted_packings]]
+set combination_count [expr {1 << [llength $changed_keepers]}]
+set expected_rejected [expr {$combination_count - [llength $accepted_packings]}]
+puts "MIXED PROFILE MATRIX: [llength $changed_keepers] changing keepers; $combination_count combinations; [llength $accepted_packings] exact profiles skipped"
 set rejected 0
-for {set mask 0} {$mask < (1 << 17)} {incr mask} {
+set skipped 0
+for {set mask 0} {$mask < $combination_count} {incr mask} {
     set pins $original_pins
     set bit 0
     set selected {}
@@ -156,11 +165,11 @@ for {set mask 0} {$mask < (1 << 17)} {incr mask} {
         set pins [lreplace $pins $index $index ${name}|$new]
         incr bit
     }
-    if {$selected eq {} || $selected eq [lsort $original_packed] || $selected eq [lsort $new_packed] || $selected eq [lsort $fitted048_packed] || $selected eq [lsort $fitted3c_packed] || $selected eq [lsort $fitted16fa_packed]} {continue}
+    if {$selected in $accepted_packings} {incr skipped; continue}
     set cuts {}
     if {![catch {source $candidate} problem]} {error "mixed unreviewed packing accepted: $mask"}
     if {[llength $cuts]} {error "partial constraints applied for mixed packing: $mask"}
     incr rejected
 }
-if {$rejected != 131066} {error "incomplete mixed-profile rejection matrix"}
-puts "PASS: six exact native pin profiles; 131066 unreviewed mixed profiles reject before any cut"
+if {$skipped != [llength $accepted_packings] || $rejected != $expected_rejected} {error "incomplete mixed-profile rejection matrix"}
+puts "PASS: [llength $profiles] exact native pin profiles; $rejected unreviewed mixed profiles reject before any cut"

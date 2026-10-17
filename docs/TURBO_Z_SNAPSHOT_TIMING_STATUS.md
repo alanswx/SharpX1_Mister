@@ -1,5 +1,13 @@
 # Z video-measurement snapshot: bounded payload timing
 
+October 16 external-font follow-up: [the separate font revision](EXTERNAL_FONT_TIMING_STATUS.md)
+now uses a font-only loader for its actual 74-bit logical synthesis inventory,
+delegating to this unchanged strict 72-bit fitted/STA contract. New source-bound
+RBF c783fb3e completes; all eight selected corners and 1,152 rows pass with
+minimum setup/hold +20.504/+0.498 ns, maximum data 12.876 ns. Global timing
+still fails and hardware is unexecuted. The original Z revision's assignments
+and the shared SDC below are unchanged; earlier evidence retains its scope.
+
 October 9, 2026. This addresses one identified held-bus timing contract,
 not full Turbo Z timing closure. No RTL behavior or private asset changes.
 

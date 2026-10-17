@@ -685,6 +685,9 @@ ascal
 	.RAMBASE(32'h20000000),
 `ifdef X1_TURBO_Z_VIDEO_EXPERIMENT
 	.LOCAL_RESET_RELEASE("true"),
+`elsif X1_SCALER_LOCAL_RESET_RELEASE
+	// Narrow board opt-in: per-domain two-edge release without Z video.
+	.LOCAL_RESET_RELEASE("true"),
 `endif
 `ifdef MISTER_SMALL_VBUF
 	.RAMSIZE(32'h00200000),

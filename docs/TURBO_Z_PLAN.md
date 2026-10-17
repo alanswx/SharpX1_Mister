@@ -1,9 +1,41 @@
 # X1 Turbo Z roadmap (output foundation only)
 
-October 10 continuation: see [current development handoff](DEVELOPMENT_HANDOFF.md)
+October 14 integration follow-up: the separate default-off
+[external-font machine profile](TURBO_Z_EXTERNAL_MACHINE_STATUS.md) now connects
+DDR, committed VRAM writes and renderer packets, with owned reset/upload drains
+and retained-cache reconstruction. Complete-machine synthetic CPU/80/40-column
+pixel gates pass, including CPU VRAM readback and changed-font replacement.
+The corrected-source full Quartus build/RBF passes at 534 M10Ks / 25,512 ALMs.
+Timing fails and physical feature acceptance remains open.
+Native font conversion, broader text policies and physical acceptance stay open.
+Earlier standalone-only scope statements below describe those checkpoints.
+
+
+October 14 continuation: see [current development handoff](DEVELOPMENT_HANDOFF.md)
 and [full-size Kanji contract/components](TURBO_Z_KANJI_STORAGE_STATUS.md).
-The two-level selector/store is qualified only as synthetic components;
-shared-machine CPU/pixel and external FPGA storage acceptance remain open.
+The full-size synthetic shared-machine CPU/pixel matrix passes. The standalone
+[external glyph cache](TURBO_Z_CACHE_STATUS.md) now also passes digital scanout/
+publication tests and fits in 138 M10Ks. Subsequent standalone
+[fair service/lifecycle components](TURBO_Z_FONT_SERVICE_STATUS.md) pass 35
+simulation/fault runs; actual machine/renderer/reset integration, native fonts
+and physical FPGA storage acceptance remain open.
+The separate [CPU service diagnostic](TURBO_Z_CPU_SERVICE_STATUS.md) now adds
+twelve complete TV80/PCG boots under cache traffic plus exact rejecting controls.
+Actual VRAM/renderer and reset dispatch remain integration work.
+The later [committed-half cache gate](TURBO_Z_CACHE_HALF_STATUS.md) passes
+sixty focused/default/lifecycle/CPU cases after correcting Quartus RAM
+inference. Both current standalone cache profiles fit at 138 M10Ks, without
+enabling machine/board wiring. Connect actual VRAM-write admission and
+coherent renderer consumption next.
+The subsequent [VRAM transaction gate](TURBO_Z_VRAM_WRITE_STATUS.md) now
+qualifies the separate writer with real TV80/VRAM/cache execution and fifteen
+rejecting controls. Integrate it with machine decode/renderer, writer-drain/
+lifecycle ordering and retained-VRAM reconstruction next. No combined FPGA
+fit, native visibility or Z0–Z9 completion is inferred.
+The later [cache-renderer gate](TURBO_Z_CACHE_RENDER_STATUS.md) adds a packet
+adapter and actual CRTC/RGB qualification in a separate fixture: eighteen
+unit/connected cases and ten exact 80/40-column frames. Whole-machine/DDR and
+lifecycle integration, native behavior and combined FPGA timing remain open.
 No Z0–Z9 completion is inferred from this checkpoint.
 
 October 6, 2026. Turbo Z is now explicitly part of the user's active goal,

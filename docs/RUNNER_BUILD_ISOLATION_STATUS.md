@@ -1,5 +1,20 @@
 # Verilator runner object isolation
 
+October 16 checker follow-up: an actual unforced nested build in
+`verilator/obj_dir_headless/runner-isolation-anhdbsxh/` links both
+`../isolation_main.o` and `../Visolation__ALL.a`, creating a local executable
+with CPP=1/RTL=17 that is byte-identical to the parent. Both corresponding
+local child objects are absent. The first ordinary regression rejects this
+previously unlisted subtype (`/tmp/x1-base-text-regression.log`). The checker
+now accepts that counterfactual only with all those exact proofs; plain
+CPP=1/RTL=17 is insufficient. It also protects the parent RTL archive hash.
+The forced child must still independently produce CPP=2/RTL=23 with a local
+C++ object, and all 32 current recipes must retain internal `-B`. No recipe
+or build flags change. The isolated recheck is terminal zero in
+`/tmp/x1-base-text-isolation-recheck.log`; whole-regression status is tracked
+in the development handoff. The preserved original artifact proves the new
+branch; no negative is manufactured.
+
 October 10, 2026. Build-system repair; no machine RTL or snapshot-format change.
 
 ## Actual failure

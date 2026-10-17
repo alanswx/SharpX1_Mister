@@ -110,3 +110,13 @@ set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_fdc_stream_adapter.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_fdc_completion.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/vendor/wd1793.sv
 set_global_assignment -name VERILOG_FILE rtl/vendor/x1_fdc_index_ram.v
+
+# Default-off full-font external service; ordinary profiles synthesize it away.
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_z_kanji_ddr.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_z_kanji_frontend.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_z_kanji_cache.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_z_kanji_arbiter.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_z_kanji_cpu_port.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_z_kanji_vram_write.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_z_kanji_video.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_z_kanji_machine.sv

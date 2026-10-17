@@ -1,5 +1,44 @@
 # Native BASIC acceptance: initial disk probe
 
+October 16 local colors: [eight-color PSET/PRESET](BASIC_COLOR_REFERENCE_STATUS.md)
+passes 22 reference cases, nine cold repeats and four rejecting controls.
+Independent audit checks 3,248,128 exact pixels and all 192 CPU GRAM writes,
+including a preserved shared-byte neighbor. RTL/hardware color acceptance
+remains open; MiSTer is still with the user.
+
+October 16 local disk follow-up: [native SAVE/NEW/LOAD/LIST/RUN](BASIC_SAVE_LOAD_REFERENCE_STATUS.md)
+passes nine reference cases with 1,802,240 exact pixels, two saved images
+cold-reopened and five rejecting controls. Writable-copy CLI v4 passes 22
+preservation/default-policy cases. Raw clock metadata is not normalized.
+Hardware SAVE/LOAD is unexecuted; MiSTer has been returned to the user.
+General compatibility/licensing remain open.
+
+October 16 graphics follow-up: [bounded PSET/LINE](BASIC_NATIVE_GRAPHICS_STATUS.md)
+now passes native command/Ok, point/diagonal pixels, repeats and rejecting
+controls in the frozen base reference and current MiSTer font profile.
+Independent audit checks 346,112 reference pixels / 105 CPU GRAM writes and
+168,960 hardware pixels in 15 raw PNGs. SAVE/LOAD, broader graphics and
+general BASIC compatibility remain open; RBF/timing status is unchanged.
+
+October 16 follow-up: [the base-compatible external-font candidate](BASE_TEXT_COMPATIBILITY_STATUS.md)
+builds as source-bound RBF 4c0a95f2 and cold-repeats native arithmetic with
+unmodified base/Turbo IPLs on MiSTer. Base Main R/T reset and LIST/RUN also
+pass; 21 raw PNGs / 245,760 exact pixels are independently audited. Ordinary
+regression passes 164 reports. Timing still fails; graphics, SAVE/LOAD,
+broader models/releases, native fonts and licensing remain open.
+
+October 15 follow-up: the local Common Source macOS reference now passes an
+[eight-case native arithmetic/program/reset gate](BASIC_REFERENCE_RESET_STATUS.md).
+It reproduces command results and qualifies idle-prompt retained reset with a
+new `81`, real IPL instruction restart and rejecting controls. Its font and
+Caps behavior differ from RTL and are checked explicitly. A separate warm
+probe on the historical fixed-FDC RTL checkpoint timed out without acceptance; the earlier
+cold-only acceptance below retains its original scope.
+The [actual Turbo-IPL MiSTer follow-up](BASIC_HARDWARE_RESET_STATUS.md) also
+passes native arithmetic, LIST/RUN and both Main reset commands with exact
+pixels and unchanged assets on fd9a0850. It does not establish other-profile
+boot, SAVE/LOAD, physical timing closure or general BASIC compatibility.
+
 October 10, 2026. BASIC compatibility and licensing remain open. This probe
 uses a locally supplied collection; no download or redistribution permission
 is inferred. Private media, RAM dumps and RGB evidence remain ignored.

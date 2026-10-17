@@ -1,0 +1,35 @@
+# Standalone component resource/inference probe, NOT a MiSTer board revision.
+set_global_assignment -name FAMILY "Cyclone V"
+set_global_assignment -name DEVICE 5CSEBA6U23I7
+set_global_assignment -name TOP_LEVEL_ENTITY x1_z_kanji_cache
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
+set_global_assignment -name SYSTEMVERILOG_FILE x1_z_kanji_cache.sv
+set_global_assignment -name SDC_FILE kanji_cache.sdc
+set_global_assignment -name NUM_PARALLEL_PROCESSORS 2
+set_instance_assignment -name VIRTUAL_PIN ON -to invalidate
+set_instance_assignment -name VIRTUAL_PIN ON -to invalidate_done
+set_instance_assignment -name VIRTUAL_PIN ON -to update_valid
+set_instance_assignment -name VIRTUAL_PIN ON -to update_ready
+set_instance_assignment -name VIRTUAL_PIN ON -to update_cell[*]
+set_instance_assignment -name VIRTUAL_PIN ON -to update_glyph[*]
+set_instance_assignment -name VIRTUAL_PIN ON -to update_descriptor[*]
+set_instance_assignment -name VIRTUAL_PIN ON -to update_done
+set_instance_assignment -name VIRTUAL_PIN ON -to update_done_ready
+set_instance_assignment -name VIRTUAL_PIN ON -to update_done_cell[*]
+set_instance_assignment -name VIRTUAL_PIN ON -to update_done_glyph[*]
+set_instance_assignment -name VIRTUAL_PIN ON -to update_done_descriptor[*]
+set_instance_assignment -name VIRTUAL_PIN ON -to font_read
+set_instance_assignment -name VIRTUAL_PIN ON -to font_address[*]
+set_instance_assignment -name VIRTUAL_PIN ON -to font_valid
+set_instance_assignment -name VIRTUAL_PIN ON -to font_data[*]
+set_instance_assignment -name VIRTUAL_PIN ON -to font_response_ack
+set_instance_assignment -name VIRTUAL_PIN ON -to vid_request
+set_instance_assignment -name VIRTUAL_PIN ON -to vid_cell[*]
+set_instance_assignment -name VIRTUAL_PIN ON -to vid_offset[*]
+set_instance_assignment -name VIRTUAL_PIN ON -to vid_response_valid
+set_instance_assignment -name VIRTUAL_PIN ON -to vid_response_hit
+set_instance_assignment -name VIRTUAL_PIN ON -to vid_response_cell[*]
+set_instance_assignment -name VIRTUAL_PIN ON -to vid_response_offset[*]
+set_instance_assignment -name VIRTUAL_PIN ON -to vid_response_glyph[*]
+set_instance_assignment -name VIRTUAL_PIN ON -to vid_response_descriptor[*]
+set_instance_assignment -name VIRTUAL_PIN ON -to vid_response_data[*]
