@@ -20,14 +20,11 @@ Suggested new-session prompt:
 2. Read `docs/EXTERNAL_FONT_RESET_TIMING_STATUS.md` for the latest completed
    build and `docs/SCALER_RESET_TIMING_AUDIT.md` for the next implementation
    seam. Dated sections below preserve detailed prior evidence and limits.
-3. Inspect `git status --short`. Branch is `master`, HEAD
-   `9ca0416ef7048be1056df2dd8af69c67cf713450`, but substantial implementation,
-   diagnostics and documentation are **uncommitted or untracked**. Resume in
-   this existing workspace; a checkout of HEAD does not contain the current
-   result. Do not reset/clean/stash away existing work as routine startup.
-4. Preserve the **13 pre-existing tracked deletions** in
-   `verilator/obj_dir/`. That historical generated directory is tracked;
-   never regenerate or clean it as ordinary simulator output. Use unique
+3. Inspect `git status --short`. As of `d26ce1f` (October 17) all earlier
+   dirty/untracked work is committed and pushed to `alanswx/master`. Do not
+   reset/clean/stash away later work as routine startup.
+4. The 13 stale tracked `verilator/obj_dir/` files were deleted by user
+   decision and committed in `d26ce1f`; do not re-add them. Use unique
    ignored output directories for new builds.
 5. Preserve ignored `output_files/`, private media, local snapshots, frozen
    runners/oracles and rejecting attempts. Do not convert snapshot formats,

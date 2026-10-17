@@ -405,10 +405,9 @@ The historical Q13 project is not evidence of current build compatibility.
 ## Generated files and cleanup
 
 `verilator/obj_dir_headless/` is ignored build output. `make -C verilator clean`
-removes that directory only. `verilator/obj_dir/` contains tracked historical
-generated sources despite its ignore entry. Do not remove or regenerate those
-tracked artifacts as routine cleanup. Inspect tracked files before deleting
-any build directory. Keep new build outputs outside source and firmware trees.
+removes that directory only. The stale tracked `verilator/obj_dir/` sources
+were removed by user decision in `d26ce1f`; the path stays ignored and must not
+be re-added. Inspect tracked files before deleting any build directory. Keep new build outputs outside source and firmware trees.
 `obj_dir_interactive/` and `obj_dir_fast/` are also ignored, separate outputs;
 the existing clean target intentionally does not remove them.
 
