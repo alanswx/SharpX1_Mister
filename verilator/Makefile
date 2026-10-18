@@ -2847,6 +2847,10 @@ lint-wrapper-turbo-z-font-single:
 	$(V) --lint-only --timing --top-module emu -DX1_SINGLE_CLOCK -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_TURBO_Z_EXTERNAL_FONT -DX1_SCALER_LOCAL_RESET_RELEASE -Itests \
 		../sharpx1.sv ../sys/hps_io.sv tests/board_pll_lint.v ../rtl/x1_joystick_map.v $(MACHINE_SRC) -Wno-fatal
 .PHONY: lint-wrapper-turbo-z-font-single
+lint-wrapper-turbo-z-video-single:
+	$(V) --lint-only --timing --top-module emu -DX1_SINGLE_CLOCK -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_TURBO_Z_VIDEO_EXPERIMENT -Itests \
+		../sharpx1.sv ../sys/hps_io.sv tests/board_pll_lint.v ../rtl/x1_joystick_map.v $(MACHINE_SRC) -Wno-fatal
+.PHONY: lint-wrapper-turbo-z-video-single
 
 test-machine-z-external-font:
 	ulimit -c 0; python3 -B tests/test_z_external_font_machine.py
