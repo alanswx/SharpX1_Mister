@@ -128,8 +128,16 @@ in 192's `/media/fat/screenshots/SharpX1/`; 192 was returned to MENU.
 uses only the framework group SDC; none of the six two-clock Z video
 exception files. Eight-corner inventory: **zero failing paths in all 32
 reports**; summary minimum slack +0.242 ns (hold); 56% ALMs, 56% block
-memory. Evidence: `output_files/X3_SINGLE_ZVIDEO_20261018/`. No hardware or
-single-clock Z pixel simulation has been run for this revision yet.
+memory. Evidence: `output_files/X3_SINGLE_ZVIDEO_20261018/`.
+
+`make -C verilator test-machine-z-single` runs the existing Z CPU/pixel
+matrices on the single-clock X3 master (`Z_SINGLE=1`; the test's
+`--single-x3` option requires SYS = video = 42,954,540 Hz). All 44 cases pass:
+- multi-mode: wide64/tall64/dual64 × identity/custom palette × cold/warm (16)
+- internal-8: 4 cases
+- paired64: six priorities × palette × reset (24)
+
+No Z hardware run has been made for this revision yet.
 
 Decision (user, October 18): continue on the single X3 master. The two-clock
 X3 revisions stay buildable but frozen, to be retired once their single-clock
