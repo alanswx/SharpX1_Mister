@@ -1,5 +1,26 @@
 # Sharp X1 development handoff
 
+## October 18, 2026 — single-clock X3 master (latest)
+
+User decision: move X3 off two unrelated clocks onto one 42.95 MHz master
+with enables. See `docs/X3_SINGLE_CLOCK_STATUS.md`. Revision
+`sharpx1_turbo_z_font_single` (commit `97bf6d2` plus docs/test follow-up)
+has **zero failing timing paths at all eight corners**; RBF `242e0bea…`.
+On user-authorized **MiSTer 192** only (not 14 or 126), the 80/40-column
+font diagnostics match their oracles exactly, and Galaga boots from D88 and
+starts Stage 1. 192 was returned to MENU. Hardware availability is granted per
+session; ask again before using it.
+
+This supersedes the two-clock "Next/Then" timing items (scaler reset/size,
+cache publication, HDMI mux) for this revision: those crossings are now
+same-clock or follow stock MiSTer clock groups. The two-clock revisions and
+their evidence are unchanged. Open: I/O constraints, physical reset/MTBF,
+moving `sharpx1_turbo_z_video` to the single master, then the broader
+priorities (fonts, Turbo/Z modes, IRQ/RTC coexistence, dual drive/2HD,
+including the user's merged D88/2D-by-extension mount).
+The black-box comparison with the closed-source core is in
+`docs/OTHER_X1_CORE_COMPARISON.md`.
+
 ## Restart here — October 17, 2026
 
 This entry is the starting point for a new LLM/Codex session. The user asked

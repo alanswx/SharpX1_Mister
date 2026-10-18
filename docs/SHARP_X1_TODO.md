@@ -1,5 +1,15 @@
 # Sharp X1 core bring-up TODO
 
+October 18 single-clock X3: by user decision, the new opt-in revision
+[`sharpx1_turbo_z_font_single`](X3_SINGLE_CLOCK_STATUS.md) runs SYS and VID
+on one 42.95 MHz X3 master with enables (MR16 gets a 32 MHz-average rate
+enable). Its source-bound RBF `242e0bea…` has **zero failing timing paths in
+all eight corners** (the two-clock font revision fails ~26,370). On MiSTer
+192 the 80/40-column font diagnostics match their oracles exactly
+(384,000 pixels), and Galaga boots and starts Stage 1. Simulation, the
+external-font machine and existing-profile regressions pass. The two-clock
+revisions are unchanged.
+
 October 16 local reset timing: [the fresh font-profile gate](EXTERNAL_FONT_RESET_TIMING_STATUS.md)
 passes eight-corner stage/release timing, all 487 native fanouts and the
 existing dimensions payload. RBF `b570e529…` builds; global timing remains
@@ -29,11 +39,11 @@ These are broader acceptance gates; the dated bounded passes below remain
 valid within their recorded profiles. Hardware-only tests are deferred while
 the user has MiSTer.
 
-- [ ] Close source-bound FPGA timing/CDC: the latest external-font RBF builds
-  but fails setup/hold/recovery. The core video-reset and dimensions gates
-  pass; separately qualify scaler reset release and size CDC, cache
-  publication and HDMI clock switching, then refit and check all corners.
-  Do not hide paths with broad cuts.
+- [ ] Close source-bound FPGA timing/CDC: the single-clock X3 font revision
+  now has zero failing paths at all eight corners (October 18). Remaining:
+  I/O port constraints (3 inputs, 44 outputs), physical reset/MTBF gates,
+  a decision on retiring the two-clock X3 revisions, and moving the Z video
+  revision to the single master. Do not hide paths with broad cuts.
 - [ ] Convert and qualify native Kanji/fonts against documented physical
   storage and model contracts; expand the cache/text path beyond its bounded
   simple/normal-cell modes. Synthetic fonts are not native-font acceptance.

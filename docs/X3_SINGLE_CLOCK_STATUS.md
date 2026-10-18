@@ -69,6 +69,54 @@ non-savable, `obj_dir_v12_x3_single`) and runs:
 These are digital simulation results at the nominal master. They do not
 establish native game boot, Kanji/font pixels, fitted timing or hardware.
 
-Existing-profile regressions after the MR16 change (unchanged `rate_ce=1`
-path): recorded in the handoff once complete. The board revision's Quartus
-fit, eight-corner timing and MiSTer boot remain open.
+Existing-profile regressions after the MR16 change all pass: the MR16 RTC
+driver at CE 1/2/3/17/32 (with its unretained negative), the 12 retained-
+response reset cases (negative still rejected) and the 28.57 MHz
+`test-board-single` matrix.
+
+External-font machine (`test_z_external_font_machine.py --single-x3`): all
+five frozen cases pass, with exact 80/40-column frames, CPU traces and the
+three fault controls rejected at their markers. Single-X3 mode runs one
+free-running clock, so three stopped-VID-only terms (`upload_wait` held while
+VID is stopped; CPU held after release with VID stopped) are not asserted,
+and the CPU-read cancel phase uses an IPL START: on one clock a font START is
+acknowledged at once and would really begin an empty upload. Stopped-video
+behaviour is therefore not covered in this mode. The two-clock mode is
+unchanged and passes all five cases on the final testbench.
+
+## Quartus and timing (October 18)
+
+Source-bound build `quartus-linux-qVRrLqJI` from clean commit `97bf6d2`,
+Quartus 17.0.2, exit 0. RBF SHA-256
+`242e0beac4d4496ea3ddd7c9f95ac2783ab0d6e4aaa88387dab9a65fdb7db820`.
+65% ALMs (27,097), 37,881 registers, 76% block-memory bits. The X3 PLL is
+reported at 42.95 MHz (23.280 ns).
+
+The eight-corner inventory (slow/fast × −40/0/85/100 °C; setup, hold,
+recovery, removal) reports **zero failing paths in all 32 reports**. The
+two-clock font revision had ~26,370 setup, 4 hold and 2 recovery failures
+per slow corner. TimeQuest summary minima: X3 master setup +3.574, hold
++0.251, recovery +6.882, removal +0.690 ns; HDMI setup +0.579 ns. Zero
+unconstrained clocks; 3 input and 44 output ports remain unconstrained, as
+in the earlier single revision. This is digital STA, not I/O or physical
+signoff. Evidence: `output_files/X3_SINGLE_FONT_20261018/` (ignored).
+
+## MiSTer 192 (user-authorized, October 18)
+
+Deployed under new names `/media/fat/_Computer/X1X3S_20261018/` and
+read-only media in `/media/fat/games/SharpX1/HWTest/X1X3S_20261018/`; all
+hashes verified on the device. Raw screenshots came from mrext
+`raw_screenshot`, and pixel comparisons used `scripts/compare_video_png.py`
+(no scaling, cropping or tolerance).
+
+| Case | Result |
+| --- | --- |
+| October 15 diagnostic IPL, 80 columns + synthetic physical font | 256,000/256,000 pixels match `diagnostic-80-expected.ppm` |
+| Diagnostic IPL, 40 columns | 128,000/128,000 pixels match `diagnostic-40-expected.ppm` |
+| Native Turbo IPL + ANK16 + synthetic font + Galaga D88 (`d0cdeb82…`) | Title screen; Space → level select; Space → Stage 1 |
+
+Assets: synthetic font `d18c7cb9…`, diagnostic IPLs `b1e6bdc7…`/`792d8520…`,
+native Turbo IPL `21289570…`, ANK16 `e356dd19…`. The font is synthetic, not
+native Kanji. This is a bounded boot/pixel/input check, not gameplay,
+audio, write, reset-retention or long-run acceptance. Six screenshots remain
+in 192's `/media/fat/screenshots/SharpX1/`; 192 was returned to MENU.

@@ -2,10 +2,13 @@
 // Original complete-machine public-upload/DDR/reset/CPU/pixel diagnostic.
 // Hierarchy is observation only. Generated assets, no native/private ROMs.
 `timescale 1ps/1ps
-module z_external_font_machine_tb #(parameter bit CORRUPT_READ=0);
-    bit clk=0,vclk=0,video_run=1,ddr_run=1,reset=1,download=0,wr=0;
-    always #15625 clk=~clk;
-    always #11640 if(video_run) vclk=~vclk;
+// SINGLE_X3 drives both machine clocks from one free-running X3 master;
+// its video-stop phases therefore leave the clock running.
+module z_external_font_machine_tb #(parameter bit CORRUPT_READ=0, parameter bit SINGLE_X3=0);
+    bit sclk=0,vclk=0,video_run=1,ddr_run=1,reset=1,download=0,wr=0;
+    always #15625 sclk=~sclk;
+    always #11640 if(video_run || SINGLE_X3) vclk=~vclk;
+    wire clk=SINGLE_X3 ? vclk : sclk;
     logic [7:0] index=0,data=0;
     logic [24:0] address=0;
     wire upload_wait,ce_pix,hs,vs,hb,vb;
@@ -28,7 +31,8 @@ module z_external_font_machine_tb #(parameter bit CORRUPT_READ=0);
     logic [7:0] read_value=0;
     logic [15:0] read_port=0;
     string font_path,ipl_path,output_path;
-    sharpx1 #(.TURBO(1),.TURBO_VIDEO_MASTER(1),.TURBO_KANJI(1),
+    sharpx1 #(.SINGLE_CLOCK(SINGLE_X3),.MASTER_HZ(SINGLE_X3 ? 42954540 : 28636364),
+        .TURBO(1),.TURBO_VIDEO_MASTER(1),.TURBO_KANJI(1),
         .TURBO_KANJI_RENDER(1),.TURBO_Z_KANJI(1),.TURBO_Z_EXTERNAL_FONT(1)) dut (
         .clk_sys(clk),.clk_28636(vclk),.reset(reset),.pal(1'b0),.scandouble(1'b0),
         .ioctl_download(download),.ioctl_index(index),.ioctl_wr(wr),
@@ -178,7 +182,8 @@ module z_external_font_machine_tb #(parameter bit CORRUPT_READ=0);
         assert(!dut.core_reset && !dut.cpu_ce && upload_wait && commits==before_commits)
             else $fatal(1,"Z_EXTERNAL_EARLY_RESET_UPLOAD");
         @(negedge clk);ddr_run=1;repeat(64) tick();
-        assert(!dut.core_reset && upload_wait && commits==before_commits)
+        // Stopped-VID-only terms: one X3 clock cannot stop video alone.
+        assert(!dut.core_reset && (SINGLE_X3 || upload_wait) && commits==before_commits)
             else $fatal(1,"Z_EXTERNAL_STOPPED_VIDEO_DRAIN");
         @(negedge clk);video_run=1;
         wait(dut.core_reset && !upload_wait);repeat(8) tick();
@@ -188,12 +193,14 @@ module z_external_font_machine_tb #(parameter bit CORRUPT_READ=0);
         // consume its delayed response while consumer reset remains asserted.
         wait(dut.kanji_cpu_read && !dut.external_font.service.arbiter.owner_cache &&
             dut.external_font.service.arbiter.state==1 && pending);
-        @(negedge clk);reset=1;ddr_run=0;video_run=0;download=1;index=5;wr=0;
+        // One X3 clock acknowledges a font START at once, so an empty font
+        // upload would really begin; single mode cancels under an IPL START.
+        @(negedge clk);reset=1;ddr_run=0;video_run=0;download=1;index=SINGLE_X3 ? 8'd0 : 8'd5;wr=0;
         repeat(64) tick();
         assert(dut.core_reset && !dut.cpu_ce && !dut.kanji_cpu_valid && upload_wait && pending)
             else $fatal(1,"Z_EXTERNAL_CPU_CANCEL_OWNER");
         @(negedge clk);ddr_run=1;repeat(64) tick();
-        assert(!pending && !dut.kanji_cpu_valid && upload_wait && ddr_writes==262144)
+        assert(!pending && !dut.kanji_cpu_valid && (SINGLE_X3 || upload_wait) && ddr_writes==262144)
             else $fatal(1,"Z_EXTERNAL_CPU_CANCEL_DRAIN");
         // Withdraw the blocked font START before VID can acknowledge drain.
         @(negedge clk);download=0;reset=0;video_run=1;
@@ -205,7 +212,7 @@ module z_external_font_machine_tb #(parameter bit CORRUPT_READ=0);
         @(negedge clk);reset=1;video_run=0;
         repeat(64) tick();assert(dut.core_reset) else $fatal(1,"Z_EXTERNAL_WARM_HOLD");
         @(negedge clk);reset=0;repeat(64) tick();
-        assert(!dut.cpu_ce) else $fatal(1,"Z_EXTERNAL_STOPPED_VIDEO_RELEASE");
+        assert(SINGLE_X3 || !dut.cpu_ce) else $fatal(1,"Z_EXTERNAL_STOPPED_VIDEO_RELEASE");
         @(negedge clk);video_run=1;
         check_retained();frame_limit=2;wait(!dut.halt_n);repeat(16) tick();
         wait(frames==2 && !capture);

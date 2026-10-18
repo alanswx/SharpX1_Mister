@@ -67,6 +67,8 @@ def expected_frame(columns,replaced):
 def main():
     global Program,assets
     resource.setrlimit(resource.RLIMIT_CORE,(0,0))
+    single_x3='--single-x3' in sys.argv[1:]
+    assert sys.argv[1:] in ([],['--single-x3']),'usage: [--single-x3]'
     out=Path(tempfile.mkdtemp(prefix='x1-z-external-machine-')).resolve();print('EVIDENCE='+str(out),flush=True)
     order=re.findall(r'^set_global_assignment -name (?:SYSTEMVERILOG_FILE|VERILOG_FILE) (\S+)\s*$',(ROOT/'rtl/machine.qip').read_text(),re.M)
     own=['verilator/tests/z_external_font_machine_tb.sv','verilator/tests/test_z_external_font_machine.py','verilator/tests/z80_fixture.py','verilator/tests/z_kanji_machine_assets.py','rtl/machine.qip','bios/reference/fw_subcpu/verilog/X1SUB.BIN']
@@ -81,7 +83,7 @@ def main():
         return module
     Program=frozen_module('verilator/tests/z80_fixture.py','external_frozen_z80').Program
     assets=frozen_module('verilator/tests/z_kanji_machine_assets.py','external_frozen_assets')
-    report={'status':'running','source_sha256':hashes,'cases':[],'tool':subprocess.check_output(['verilator','--version'],text=True).strip()}
+    report={'status':'running','single_x3':single_x3,'source_sha256':hashes,'cases':[],'tool':subprocess.check_output(['verilator','--version'],text=True).strip()}
     def save():(out/'terminal.json').write_text(json.dumps(report,indent=2)+'\n')
     save()
     for columns,fault in ((80,0),(40,0),(80,1),(80,2),(80,3)):
@@ -95,7 +97,7 @@ def main():
             before,after=('assign machine_reset=state!=RUN && (state!=DRAIN || writer_idle);','assign machine_reset=state!=RUN;') if fault==2 else ('if(|ram_write) journal[writer_cell]<=writer_descriptor;',"if(1'b0 && |ram_write) journal[writer_cell]<=writer_descriptor;")
             assert original.count(before)==1
             variant=folder/'x1_z_kanji_machine.sv';variant.write_text(original.replace(before,after));c['mutated_service_sha256']=sha(variant)
-        obj=folder/'obj';cmd=['verilator','--binary','--timing','--assert','-Wno-fatal','--top-module','z_external_font_machine_tb','--Mdir',str(obj),'-j','2',f'-GCORRUPT_READ={int(fault==1)}',str(out/'sources'/own[0])]+[str(variant if n==service else out/'sources'/n) for n in order]
+        obj=folder/'obj';cmd=['verilator','--binary','--timing','--assert','-Wno-fatal','--top-module','z_external_font_machine_tb','--Mdir',str(obj),'-j','2',f'-GCORRUPT_READ={int(fault==1)}',f'-GSINGLE_X3={int(single_x3)}',str(out/'sources'/own[0])]+[str(variant if n==service else out/'sources'/n) for n in order]
         with (folder/'build.log').open('w') as log:r=subprocess.run(cmd,cwd=out/'sources',stdout=log,stderr=subprocess.STDOUT,timeout=240)
         c.update(build_exit=r.returncode,build_log_sha256=sha(folder/'build.log'));save();assert r.returncode==0,'compile failure is not rejection'
         warnings=[line for line in (folder/'build.log').read_text().splitlines() if line.startswith('%Warning')];c['warnings']=warnings
