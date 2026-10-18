@@ -28,7 +28,8 @@ main() {
   [[ "$mode" == --build ]] || { echo 'Preflight passed; no build started.'; return 0; }
   # Refuse competing Quartus jobs on this shared host. This is a best-effort
   # check, not a host-wide lock: coordinate before starting another project.
-  if pgrep -x 'quartus_(sh|map|fit|asm|sta)' >/dev/null; then
+  # X1_ALLOW_CONCURRENT_QUARTUS=1 records an owner-approved concurrent build.
+  if [[ "${X1_ALLOW_CONCURRENT_QUARTUS:-0}" != 1 ]] && pgrep -x 'quartus_(sh|map|fit|asm|sta)' >/dev/null; then
     echo 'Quartus is already running; coordinate with its owner first.' >&2; return 1;
   fi
   mkdir -p "$root/output_files"
@@ -51,6 +52,7 @@ main() {
   {
     printf '%s\n' "source_commit=$(git rev-parse HEAD)" "snapshot=$snapshot" \
       "host=$(hostname)" "project=sharpx1 revision=$revision" \
+      "concurrent_quartus_allowed=${X1_ALLOW_CONCURRENT_QUARTUS:-0}" \
       'flow=quartus_sh --flow compile (including project flow hooks)' \
       "started_utc=$(date -u +%FT%TZ)" "$version"
     sha256sum "$build/input.sha256" "$root/scripts/build_quartus_linux.sh"
