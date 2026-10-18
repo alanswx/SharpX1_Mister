@@ -84,3 +84,6 @@ verilator/obj_dir_v17_*/
 software/
 /x1/
 references/software/private-downloads/
+
+# Local third-party reference material (archives, scans, dumps): never commit.
+references/local/
