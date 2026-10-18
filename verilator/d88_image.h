@@ -31,8 +31,10 @@ inline void validate_d88(const std::vector<uint8_t>& bytes, unsigned address_bit
         std::vector<size_t> tracks;
         for (size_t i = 0; i < 164; ++i) {
             size_t offset = u32(base + 32 + i * 4);
-            if (!offset) continue;
-            if (offset < 688 || offset >= size) fail("track offset outside volume");
+            // Some D88 writers mark an absent track with the volume end
+            // instead of zero; treat exactly that offset as absent too.
+            if (!offset || offset == size) continue;
+            if (offset < 688 || offset > size) fail("track offset outside volume");
             if (!tracks.empty() && offset <= tracks.back())
                 unsupported("non-increasing track offsets (forward-only scanner)");
             tracks.push_back(offset);

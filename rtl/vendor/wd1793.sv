@@ -1902,11 +1902,14 @@ generate
 								d_acc[ADDRESS_BITS-1:16] <= scan_data[ADDRESS_BITS-17:0];
 								d_acc_high <= |(scan_data >> (ADDRESS_BITS-16));
 							end
-							3: if((D88_ONLY || ADDRESS_BITS > 20) && (|scan_data || d_acc_high ||
+							// Strict modes: an offset equal to the volume size marks an
+							// absent track (some D88 writers use it instead of zero).
+							3: if((D88_ONLY || ADDRESS_BITS > 20) && !(~|scan_data && !d_acc_high && d_acc == d_tot[ADDRESS_BITS-1:0] && ~|(d_tot >> ADDRESS_BITS)) && (|scan_data || d_acc_high ||
 							           (|d_acc && (d_acc < ADDRESS_BITS'(24'h2b0) ||
 							            d_acc <= d_last_off || {1'b0, d_acc} + (ADDRESS_BITS+1)'(16) > {1'b0, d_tot[ADDRESS_BITS-1:0]})))) begin
 									d88_bad <= 1;
-								end else if(|d_acc && ~|scan_data && (d77_cnt < 8'd164)) begin
+								end else if(|d_acc && ~|scan_data && !((D88_ONLY || ADDRESS_BITS > 20) &&
+							           ~|scan_data && !d_acc_high && d_acc == d_tot[ADDRESS_BITS-1:0] && ~|(d_tot >> ADDRESS_BITS)) && (d77_cnt < 8'd164)) begin
 									d_last_off <= d_acc;
 									d77_pres[d77_cnt] <= {rel[9:2] - 8'd8, d_acc};
 									d77_cnt <= d77_cnt + 1'd1;

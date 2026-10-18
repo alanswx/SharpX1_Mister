@@ -135,7 +135,7 @@ test-machine-fdc-default-state:
 test-fdc-capacity-class:
 	python3 tests/test_fdc_capacity_class.py --vendor-sha $(FDC_TIMING_VENDOR_SHA)
 .PHONY: test-fdc-capacity-class
-FDC_TIMING_VENDOR_SHA := bc5b092823668620e1f8939c8ba19e938e418dcef3cc3a3624f0ea40a919de28
+FDC_TIMING_VENDOR_SHA := 4654ee9c69f36abf145b61d0517410d18650fff72325d848962080f6a8613abf
 test-fdc-strict-timing:
 	python3 tests/test_fdc_strict_timing.py --vendor-sha $(FDC_TIMING_VENDOR_SHA)
 test-fdc-strict-legacy:
@@ -775,6 +775,8 @@ Z_VIDEO_DIR ?= obj_dir_v13_z_video
 Z_MULTIMODE ?= 0
 Z_INTERNAL8 ?= 0
 Z_TEXT_CPU ?= 0
+# Z_SINGLE=1: one 42,954,540 Hz X3 master (board *_single revisions).
+Z_SINGLE ?= 0
 turbo-z-video: $(Z_VIDEO_DIR)/Vtop
 $(Z_VIDEO_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	# Force local objects: Verilator's inherited VPATH includes '..', which can
@@ -782,7 +784,8 @@ $(Z_VIDEO_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d
 	$(V) -cc --timing --assert --trace-fst --exe --build -j 4 --Mdir $(Z_VIDEO_DIR) --top-module top \
 	  -GTURBO=1 -GTURBO_VIDEO_MASTER=1 -GTURBO_Z_PALETTE_CPU=1 -GTURBO_Z_VIDEO=1 \
 	  -GTURBO_Z_MULTIMODE=$(Z_MULTIMODE) -GTURBO_Z_INTERNAL8=$(Z_INTERNAL8) -GTURBO_Z_TEXT_CPU=$(Z_TEXT_CPU) \
-	  -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_Z_PALETTE_CPU -DX1_Z_VIDEO $(if $(filter 1,$(Z_MULTIMODE)),-DX1_Z_MULTIMODE) $(if $(filter 1,$(Z_INTERNAL8)),-DX1_Z_INTERNAL8) $(if $(filter 1,$(Z_TEXT_CPU)),-DX1_Z_TEXT_CPU)" \
+	  $(if $(filter 1,$(Z_SINGLE)),-GSINGLE_CLOCK=1 -GMASTER_HZ=42954540) \
+	  -CFLAGS "-std=c++20 -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_Z_PALETTE_CPU -DX1_Z_VIDEO $(if $(filter 1,$(Z_MULTIMODE)),-DX1_Z_MULTIMODE) $(if $(filter 1,$(Z_INTERNAL8)),-DX1_Z_INTERNAL8) $(if $(filter 1,$(Z_TEXT_CPU)),-DX1_Z_TEXT_CPU) $(if $(filter 1,$(Z_SINGLE)),-DX1_SINGLE_CLOCK -DX1_SINGLE_MASTER_HZ=42954540)" \
 	  -MAKEFLAGS "OPT_FAST=-O3 -B" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 .PHONY: turbo-z-video
 turbo-z-paired:
@@ -911,6 +914,34 @@ test-machine-z-multimode: turbo-z-multimode
 	    done; \
 	  done
 .PHONY: test-machine-z-multimode
+# The same Z CPU/pixel matrices on the single-clock X3 master used by
+# sharpx1_turbo_z_video_single. Isolated directories; two-clock runs unchanged.
+test-machine-z-single:
+	$(MAKE) turbo-z-video Z_SINGLE=1 Z_MULTIMODE=1 Z_VIDEO_DIR=obj_dir_v13_z_multimode_single
+	$(MAKE) turbo-z-video Z_SINGLE=1 Z_MULTIMODE=1 Z_INTERNAL8=1 Z_VIDEO_DIR=obj_dir_v13_z_internal8_single
+	$(MAKE) turbo-z-video Z_SINGLE=1 Z_MULTIMODE=1 Z_TEXT_CPU=1 Z_VIDEO_DIR=obj_dir_v13_z_paired_single
+	@set -e; root=$$(mktemp -d obj_dir_v13_z_multimode_single/single-matrix-XXXXXX); \
+	  cp tests/test_machine_z_video.py tests/z80_fixture.py $$root/; \
+	  for mode in wide64 tall64 dual64; do \
+	    screens=0; [ $$mode != dual64 ] || screens="0 1"; \
+	    for screen in $$screens; do for palette in identity custom; do for reset in cold warm; do \
+	      palette_arg=; [ $$palette != custom ] || palette_arg=--custom; reset_arg=; [ $$reset != warm ] || reset_arg=--warm; \
+	      python3 $$root/test_machine_z_video.py --single-x3 obj_dir_v13_z_multimode_single/Vtop --mode $$mode --screen $$screen \
+	        $$palette_arg $$reset_arg --output $$root/mm-$$mode-$$screen-$$palette-$$reset; \
+	    done; done; done; \
+	  done; \
+	  for palette in identity custom; do for reset in cold warm; do \
+	    palette_arg=; [ $$palette != custom ] || palette_arg=--custom; reset_arg=; [ $$reset != warm ] || reset_arg=--warm; \
+	    python3 $$root/test_machine_z_video.py --single-x3 obj_dir_v13_z_internal8_single/Vtop --mode internal8 \
+	      $$palette_arg $$reset_arg --output $$root/i8-$$palette-$$reset; \
+	  done; done; \
+	  for priority in 0x10 0x18 0x11 0x19 0x12 0x1a; do for palette in identity custom; do for reset in cold warm; do \
+	    palette_arg=; [ $$palette != custom ] || palette_arg=--custom; reset_arg=; [ $$reset != warm ] || reset_arg=--warm; \
+	    python3 $$root/test_machine_z_video.py --single-x3 obj_dir_v13_z_paired_single/Vtop --mode paired64 --priority $$priority \
+	      --screen 1 $$palette_arg $$reset_arg --output $$root/p-$$priority-$$palette-$$reset; \
+	  done; done; done; \
+	  echo "PASS: Z multimode/internal8/paired CPU-pixel matrices on the single-clock X3 master ($$root)"
+.PHONY: test-machine-z-single
 Z_PALETTE_DIR ?= obj_dir_v12_z_palette_cpu
 Z_PALETTE_CPU ?= 1
 turbo-z-palette-cpu: $(Z_PALETTE_DIR)/Vtop

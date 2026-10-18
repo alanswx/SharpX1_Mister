@@ -28,6 +28,13 @@ def changed(offset, value, fmt="<I"):
     return image
 
 
+def end_marked():
+    image = volume()
+    for track in range(2, 164):
+        struct.pack_into("<I", image, 32 + track * 4, len(image))
+    return image
+
+
 def padded_volume(size):
     image = volume()
     assert size >= len(image)
@@ -50,7 +57,9 @@ cases = [
     ("bad volume size", changed(28, 687), "invalid D88: volume size"),
     ("truncated volume", volume()[:-1], "invalid D88: volume size"),
     ("offset into header", changed(32, 687), "invalid D88: track offset"),
-    ("offset past end", changed(32, len(volume())), "invalid D88: track offset"),
+    ("offset past end", changed(32, len(volume()) + 1), "invalid D88: track offset"),
+    # Some writers mark absent tracks with the volume end instead of zero.
+    ("end-of-volume absent tracks", end_marked(), None),
     ("offset high bits", changed(32, 0x100000), "invalid D88: track offset"),
     ("overlapping offsets", changed(36, 688), "unsupported D88: non-increasing"),
     ("zero sector count", changed(688 + 4, 0, "<H"), "invalid D88: zero sector count"),

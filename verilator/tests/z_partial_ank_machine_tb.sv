@@ -131,8 +131,10 @@ module z_partial_ank_machine_tb #(parameter integer KIND=0, COLUMNS=80, OMIT_RES
             end
             if(capture && !hb && !vb) begin
                 assert(x<COLUMNS*8 && y<200) else $fatal(1,"PARTIAL_MACHINE_PIXEL_COORD");
-                ink=(expected_ank[65*8+y%8] & (8'h80>>(x%8)))!=0;
-                expected=KIND==0 && !ink ? 12'hfff : 12'd0;
+                // KIND 5: double-width 'P' (attribute bit 7) spans each cell pair.
+                ink=KIND==5 ? (expected_ank[80*8+y%8] & (8'h80>>((x%16)/2)))!=0
+                            : (expected_ank[65*8+y%8] & (8'h80>>(x%8)))!=0;
+                expected=(KIND==0 || KIND==5) && !ink ? 12'hfff : 12'd0;
                 assert(rgb==expected) else $fatal(1,"PARTIAL_MACHINE_PIXELS frame=%0d x=%0d y=%0d actual=%03x expected=%03x",frames,x,y,rgb,expected);
                 $fdisplay(frame_fd,"%0d,%0d,%03x",y,x,rgb);x++;
             end
@@ -156,7 +158,7 @@ module z_partial_ank_machine_tb #(parameter integer KIND=0, COLUMNS=80, OMIT_RES
         assert($value$plusargs("FONT=%s",font_path) && $value$plusargs("IPL=%s",ipl_path) &&
             $value$plusargs("ANK=%s",ank_path) && $value$plusargs("OUTPUT=%s",output_path))
             else $fatal(1,"PARTIAL_MACHINE_PATHS");
-        assert((COLUMNS==40 || COLUMNS==80) && KIND>=0 && KIND<=4)
+        assert((COLUMNS==40 || COLUMNS==80) && KIND>=0 && KIND<=5)
             else $fatal(1,"PARTIAL_MACHINE_PROFILE");
         $readmemh(font_path,font);$readmemh(ipl_path,ipl);$readmemh(ank_path,expected_ank);
         trace_fd=$fopen({output_path,"/events.csv"},"w");
@@ -177,7 +179,7 @@ module z_partial_ank_machine_tb #(parameter integer KIND=0, COLUMNS=80, OMIT_RES
         wait(boots==1 && frames==1);@(negedge clk);cold_commits=commits;
         assert(cold_commits==(KIND==1 ? 2048 : 4096)) else $fatal(1,"PARTIAL_MACHINE_COMMITS");
         for(integer c=0;c<2048;c++)
-            assert(dut.external_font.service.journal[c]==(KIND==1 ? 32'h02000f00 : 32'h03000f41))
+            assert(dut.external_font.service.journal[c]==(KIND==1 ? 32'h02000f00 : KIND==5 ? 32'h03008f50 : 32'h03000f41))
                 else $fatal(1,"PARTIAL_MACHINE_COLD_MASK");
         if(OMIT_RESET==0) begin
             reset=1;repeat(64) tick();@(negedge clk);reset=0;
@@ -188,7 +190,7 @@ module z_partial_ank_machine_tb #(parameter integer KIND=0, COLUMNS=80, OMIT_RES
         wait(frames==2);repeat(32) tick();
         assert(commits==cold_commits && !download) else $fatal(1,"PARTIAL_MACHINE_RETAINED_WRITES");
         for(integer c=0;c<2048;c++)
-            assert(dut.external_font.service.journal[c]==(KIND==1 ? 32'h02000f00 : 32'h03000f41))
+            assert(dut.external_font.service.journal[c]==(KIND==1 ? 32'h02000f00 : KIND==5 ? 32'h03008f50 : 32'h03000f41))
                 else $fatal(1,"PARTIAL_MACHINE_WARM_MASK");
         $fclose(trace_fd);$fclose(read_fd);
         $display("PASS PARTIAL_MACHINE kind=%0d columns=%0d boots=%0d fetch_boots=%0d commits=%0d reads=%0d frames=%0d",KIND,COLUMNS,boots,fetch_boots,commits,read_count,frames);

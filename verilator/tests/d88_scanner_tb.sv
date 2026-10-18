@@ -88,7 +88,7 @@ module d88_scanner_tb;
               2: le32(28,687);
               3: size=975;
               4: le32(32,687);
-              5: le32(32,976);
+              5: le32(32,977); // past the volume end; exactly 976 means absent
               6: le32(32,32'h1002b0);
               7: le32(36,688);
               8: image[692]=0;
@@ -103,6 +103,10 @@ module d88_scanner_tb;
             endcase
             mount_image(); finish_scan(c==0,$sformatf("case %0d",c));
         end
+        // Some D88 writers mark absent tracks with the volume end, not zero.
+        valid_image(); for(int t=2;t<164;t++) le32(32+t*4,976);
+        mount_image(); finish_scan(1,"end-of-volume absent track offsets");
+        assert(dut.edsk_size==2) else $fatal(1,"end-of-volume offsets created tracks");
         // First volume's boundary, not the concatenated container's boundary.
         valid_image(); size=1952; mount_image(); finish_scan(1,"concatenated first volume");
         // Total file exceeds the address space, but the selected first

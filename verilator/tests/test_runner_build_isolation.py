@@ -23,10 +23,14 @@ for line in lines:
     command = ''
 assert len(recipes) == 33, 'runner recipe coverage changed; review new profiles'
 # The single-clock X3 runner must elaborate exactly the master its C++ clocks.
-x3_recipes = [command for command in recipes if '-GMASTER_HZ=42954540' in command]
+x3_recipes = [command for command in recipes if '-GMASTER_HZ=42954540 -GRAW_2D_MEDIA=1' in command]
 assert len(x3_recipes) == 1, 'single-clock X3 recipe missing/duplicated'
+# The optional Z single-clock master must pair RTL and C++ frequencies too.
+z_recipes = [command for command in recipes if '$(Z_SINGLE)' in command]
+assert len(z_recipes) == 1 and '-GSINGLE_CLOCK=1 -GMASTER_HZ=42954540' in z_recipes[0] \
+    and '-DX1_SINGLE_CLOCK -DX1_SINGLE_MASTER_HZ=42954540' in z_recipes[0], 'Z single-clock flags mismatch'
 for required in ('-GSINGLE_CLOCK=1', '-GTURBO_VIDEO_MASTER=1', '-DX1_SINGLE_MASTER_HZ=42954540',
-                 '-DX1_TURBO_VIDEO_MASTER', '-GRAW_2D_MEDIA=1', '-DX1_RAW_2D_MEDIA'):
+                 '-DX1_TURBO_VIDEO_MASTER', '-DX1_RAW_2D_MEDIA'):
     assert required in x3_recipes[0], 'single-clock X3 RTL/C++ profile flag mismatch: ' + required
 # The new opt-in FDC recipe must not borrow a different rate/DMA model or
 # report a C++ profile that disagrees with its elaborated RTL parameters.

@@ -314,6 +314,8 @@ def main():
     parser.add_argument("--reverse", action="store_true", help="alternate native reverse attributes between cell groups")
     parser.add_argument("--screen", type=int, choices=(0, 1), default=0)
     parser.add_argument("--timeout", type=float, default=900)
+    parser.add_argument("--single-x3", action="store_true",
+                        help="require the single-clock X3 master (SYS = VID = 42,954,540 Hz)")
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=False)
     executable = args.executable.resolve()
@@ -358,7 +360,7 @@ def main():
     if args.mode == "internal8":
         assert report["z_internal8_experiment"], report
     assert report["intra_assignment_delays"] and report["turbo_video_master"], report
-    assert report["sys_hz"] == 32000000 and report["video_hz"] == 42954540, report
+    assert report["sys_hz"] == (42954540 if args.single_x3 else 32000000) and report["video_hz"] == 42954540, report
     assert report["halted"] and report["peek"].startswith(b"ZVID".hex()), report
     assert report["frames"] >= 3, report
     if args.warm:

@@ -41,11 +41,13 @@ def program(Program, kind, columns):
     for register, value in enumerate(regs):
         out(0x1800, register)
         out(0x1801, value)
-    out(0x1fd0, {0: 0, 1: 0, 2: 1, 3: 0x80, 4: 4}[kind])
+    out(0x1fd0, {0: 0, 1: 0, 2: 1, 3: 0x80, 4: 4, 5: 0}[kind])
+    # Kind 5: double-width (attribute bit 7) asymmetric 'P' in every cell.
+    attribute, character = (0x8f, 80) if kind == 5 else (0x0f, 65)
     p.word(0x3a, 0xf040)
     p.emit(0xfe, 0xa5)
     p.jump(0xca, 'retained')
-    for plane, value in [('attribute', 0x0f), *([] if kind == 1 else [('text', 65)])]:
+    for plane, value in [('attribute', attribute), *([] if kind == 1 else [('text', character)])]:
         p.word(0x01, 0x2800 if plane == 'attribute' else 0x3000)
         p.word(0x11, 2048)
         p.emit(0x26, value)
@@ -59,7 +61,7 @@ def program(Program, kind, columns):
     p.store(0xf041, 2)
     p.label('readback')
     for cell in (0, 1023, 1999, 2047):
-        for port, value in [(0x2800 | cell, 0x0f), *([] if kind == 1 else [(0x3000 | cell, 65)])]:
+        for port, value in [(0x2800 | cell, attribute), *([] if kind == 1 else [(0x3000 | cell, character)])]:
             p.word(0x01, port)
             p.emit(0xed, 0x78, 0xfe, value)
             p.jump(0xc2, 'fail')
@@ -117,6 +119,7 @@ def main():
         cases = [(0, 80, 'base80', None), (0, 40, 'base40', None),
                  (1, 80, 'missing-text', None), (2, 80, 'high-scan', None),
                  (3, 80, 'underline', None), (4, 80, 'expanded', None),
+                 (5, 80, 'double-width80', None), (5, 40, 'double-width40', None),
                  (0, 80, 'no-reset', 'PARTIAL_MACHINE_REBOOT'),
                  (0, 80, 'skip-partial-rebuild', 'PARTIAL_MACHINE_PIXELS'),
                  (3, 80, 'unsafe-mode-permission', 'PARTIAL_MACHINE_PIXELS')]
@@ -175,15 +178,19 @@ def main():
                     for count, row in enumerate(csv.DictReader((folder / f'frame-{number}.csv').open()), 1):
                         y, x = divmod(count - 1, columns * 8)
                         assert (int(row['y']), int(row['x'])) == (y, x)
-                        ink = bool(ank[65 * 8 + y % 8] & (128 >> (x % 8)))
-                        assert int(row['rgb12'], 16) == (0xfff if kind == 0 and not ink else 0)
+                        if kind == 5:
+                            ink = bool(ank[80 * 8 + y % 8] & (128 >> ((x % 16) // 2)))
+                        else:
+                            ink = bool(ank[65 * 8 + y % 8] & (128 >> (x % 8)))
+                        assert int(row['rgb12'], 16) == (0xfff if kind in (0, 5) and not ink else 0)
                     assert count == columns * 8 * 200
                 case['exact_pixels'] = columns * 8 * 200 * 2
                 events = list(csv.DictReader((folder / 'events.csv').open()))
                 assert [r['event'] for r in events] == ['boot', 'halt', 'boot', 'halt']
                 reads = [(int(r['address'], 16), int(r['data'], 16)) for r in csv.DictReader((folder / 'reads.csv').open())]
+                attribute, character = (0x8f, 80) if kind == 5 else (0x0f, 65)
                 expected = [(p, v) for cell in (0, 1023, 1999, 2047)
-                            for p, v in [(0x2800 | cell, 0x0f), *([] if kind == 1 else [(0x3000 | cell, 65)])]]
+                            for p, v in [(0x2800 | cell, attribute), *([] if kind == 1 else [(0x3000 | cell, character)])]]
                 assert reads == expected * 2
                 case['cpu_reads'] = len(reads)
             case.update(verified=True, artifacts={p.name: sha(p) for p in folder.iterdir() if p.is_file()})

@@ -417,8 +417,9 @@ begin
           cg_line <= raster_font_row;
         end
 `endif
-        // CG load
-        if(Z_KANJI_RENDER || ~att_h2x || ~crtc_ma[0])
+        // CG load. Z Kanji cells carry their own glyph half per cell; ANK/PCG
+        // double width keeps the ordinary even-cell load and half-rate shift.
+        if((Z_KANJI_RENDER && O_Z_KANJI_SELECT) || ~att_h2x || ~crtc_ma[0])
         begin
           cgb_d  <= I_PCGB_D; // blue
           cgr_d  <= I_PCGR_D; // reg
