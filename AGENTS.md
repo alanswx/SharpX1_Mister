@@ -134,8 +134,10 @@ timer's inherited N+1-tick period and test both actual master frequencies.
 Never claim compatibility or timing closure from a boot screenshot.
 `turbo-video`/`turbo-video-fast` are separate, opt-in X3 video experiments:
 32 MHz system and nominal 42.954540 MHz video with high/low-scan enables.
-Do not run the compensated single-clock MR16 at X3 or silently change the
-default model. Index 4 / `--font16` accepts character-major 4096-byte ANK;
+Do not run the compensated 28.6-MHz single-clock MR16 at X3 or silently
+change the default model. The separate opt-in single-clock X3 master
+(`turbo-x3-single`, `sharpx1_turbo_z_font_single`) instead gives MR16 a
+32-MHz-average rate enable; see `docs/X3_SINGLE_CLOCK_STATUS.md`. Index 4 / `--font16` accepts character-major 4096-byte ANK;
 do not embed private font bytes. See `docs/TURBO_VIDEO_CLOCK_STATUS.md` for
 exact checks and missing Kanji/text/high-speed PCG behavior. The FPGA revision
 `sharpx1_turbo_video` requests its own PLL; record the fitted frequency,

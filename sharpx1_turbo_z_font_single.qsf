@@ -1,0 +1,13 @@
+# Single-clock X3 external-font board qualification profile. SYS and VID are
+# one X3 PLL master (fitted 42,954,545.45 Hz); Z80/PSG/FDC use fractional
+# enables and MR16 a 32-MHz-average rate enable. No native Z identity or
+# timing acceptance. The two-clock sharpx1_turbo_z_font revision is unchanged.
+source sharpx1_turbo_video.qsf
+set_global_assignment -name VERILOG_MACRO "X1_SINGLE_CLOCK=1"
+set_global_assignment -name VERILOG_MACRO "X1_TURBO_Z_EXTERNAL_FONT=1"
+set_global_assignment -name VERILOG_MACRO "X1_SCALER_LOCAL_RESET_RELEASE=1"
+set_global_assignment -name NUM_PARALLEL_PROCESSORS 2
+# Framework parity only: the X3 master takes stock CLK_VIDEO's clock groups.
+# The two-clock font SDCs are not used: their 31.25-ns payload bound would
+# loosen a now same-clock path, and no raw reset-pin cut is selected.
+set_global_assignment -name SDC_FILE scripts/constraints/x3_single_clock_groups.sdc

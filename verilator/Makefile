@@ -945,6 +945,25 @@ test-board-single: turbo-board-single
 	python3 tests/test_subcpu.py ./$(BOARD_SINGLE_DIR)/Vtop
 	python3 tests/test_dual_disk.py ./$(BOARD_SINGLE_DIR)/Vtop
 .PHONY: turbo-board-single turbo-board-single-fast test-board-single
+# Single-clock X3: SYS and VID share the nominal 42,954,540 Hz X3 master.
+# The Z80/PSG/FDC/FM use fractional enables; MR16 uses a 32-MHz rate enable.
+# Isolated, non-savable diagnostic runners; existing profiles stay unchanged.
+X3_SINGLE_DIR ?= obj_dir_v12_x3_single
+X3_SINGLE_TIMING ?= --timing
+turbo-x3-single: $(X3_SINGLE_DIR)/Vtop
+$(X3_SINGLE_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
+	$(V) -cc $(X3_SINGLE_TIMING) --assert --trace-fst --exe --build -j 4 --Mdir $(X3_SINGLE_DIR) --top-module top \
+		$(TURBO_DSW_FLAGS) -GTURBO=1 -GTURBO_VIDEO_MASTER=1 -GSINGLE_CLOCK=1 -GMASTER_HZ=42954540 \
+		-CFLAGS "-std=c++20 -DX1_SINGLE_CLOCK -DX1_SINGLE_MASTER_HZ=42954540 -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER" \
+		-MAKEFLAGS "OPT_FAST=-O3 -B" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
+turbo-x3-single-fast:
+	$(MAKE) turbo-x3-single X3_SINGLE_DIR=obj_dir_v12_x3_single_fast X3_SINGLE_TIMING=--no-timing
+test-x3-single: turbo-x3-single test-sub-timer test-clock-enables
+	python3 tests/test_single_clock.py ./$(X3_SINGLE_DIR)/Vtop --hz 42954540
+	python3 tests/test_keyboard_poll.py ./$(X3_SINGLE_DIR)/Vtop
+	python3 tests/test_subcpu.py ./$(X3_SINGLE_DIR)/Vtop
+	python3 tests/test_dual_disk.py ./$(X3_SINGLE_DIR)/Vtop
+.PHONY: turbo-x3-single turbo-x3-single-fast test-x3-single
 turbo-fast: obj_dir_turbo_fast/Vtop
 turbo-video: obj_dir_turbo_video/Vtop
 turbo-video-fast: obj_dir_turbo_video_fast/Vtop
@@ -1922,14 +1941,16 @@ test-game-single: single-fast
 test-game-reset-single: single-fast
 	python3 tests/test_game_reset.py ./obj_dir_single_fast/Vtop obj_dir_single_fast/cross-start.state $(GAME_DISK)
 
-test-clock-enables: obj_dir_single/enable/Vclock_enables_tb obj_dir_single/crtc/Vcrtc_enable_tb
+test-clock-enables: obj_dir_single/enable/Vclock_enables_tb obj_dir_single/enable_x3/Vclock_enables_tb obj_dir_single/crtc/Vcrtc_enable_tb
 	./obj_dir_single/enable/Vclock_enables_tb
+	./obj_dir_single/enable_x3/Vclock_enables_tb
 	./obj_dir_single/crtc/Vcrtc_enable_tb
 
-test-sub-timer: obj_dir_single/subtimer/Vsub_timer_tb obj_dir_single/subtimer_board/Vsub_timer_tb obj_dir_single/subtimer_base/Vsub_timer_tb
+test-sub-timer: obj_dir_single/subtimer/Vsub_timer_tb obj_dir_single/subtimer_board/Vsub_timer_tb obj_dir_single/subtimer_base/Vsub_timer_tb obj_dir_single/subtimer_x3/Vsub_timer_tb
 	./obj_dir_single/subtimer/Vsub_timer_tb
 	./obj_dir_single/subtimer_board/Vsub_timer_tb
 	./obj_dir_single/subtimer_base/Vsub_timer_tb
+	./obj_dir_single/subtimer_x3/Vsub_timer_tb
 
 obj_dir_single/subtimer/Vsub_timer_tb: tests/sub_timer_tb.sv ../rtl/mr16_x1.v ../rtl/mr16core.v
 	mkdir -p $(@D)
@@ -1946,9 +1967,18 @@ obj_dir_single/subtimer_base/Vsub_timer_tb: tests/sub_timer_tb.sv ../rtl/mr16_x1
 	$(V) --binary --timing --assert --top-module sub_timer_tb --Mdir obj_dir_single/subtimer_base \
 		-GCLOCK_HZ=32000000 -j 4 ../rtl/mr16core.v ../rtl/mr16_x1.v tests/sub_timer_tb.sv -Wno-fatal
 
+# Single-clock X3 master: zero or one virtual 32-MHz tick per edge.
+obj_dir_single/subtimer_x3/Vsub_timer_tb: tests/sub_timer_tb.sv ../rtl/mr16_x1.v ../rtl/mr16core.v
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module sub_timer_tb --Mdir obj_dir_single/subtimer_x3 \
+		-GCLOCK_HZ=42954540 -j 4 ../rtl/mr16core.v ../rtl/mr16_x1.v tests/sub_timer_tb.sv -Wno-fatal
+
 obj_dir_single/enable/Vclock_enables_tb: tests/clock_enables_tb.sv ../rtl/x1_clock_enables.v
 	$(V) --binary --timing --assert --top-module clock_enables_tb --Mdir obj_dir_single/enable \
 		-j 4 ../rtl/x1_clock_enables.v tests/clock_enables_tb.sv -Wno-fatal
+obj_dir_single/enable_x3/Vclock_enables_tb: tests/clock_enables_tb.sv ../rtl/x1_clock_enables.v
+	$(V) --binary --timing --assert --top-module clock_enables_tb --Mdir obj_dir_single/enable_x3 \
+		-GMASTER_HZ=42954540 -j 4 ../rtl/x1_clock_enables.v tests/clock_enables_tb.sv -Wno-fatal
 
 obj_dir_single/crtc/Vcrtc_enable_tb: tests/crtc_enable_tb.sv ../rtl/legacy/crtc/crtc6845s.v
 	$(V) --binary --timing --assert --top-module crtc_enable_tb --Mdir obj_dir_single/crtc \
@@ -2813,6 +2843,10 @@ lint-wrapper-turbo-z-font:
 	$(V) --lint-only --timing --top-module emu -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_TURBO_Z_EXTERNAL_FONT -Itests \
 		../sharpx1.sv ../sys/hps_io.sv tests/board_pll_lint.v ../rtl/x1_joystick_map.v $(MACHINE_SRC) -Wno-fatal
 .PHONY: lint-wrapper-turbo-z-font
+lint-wrapper-turbo-z-font-single:
+	$(V) --lint-only --timing --top-module emu -DX1_SINGLE_CLOCK -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_TURBO_Z_EXTERNAL_FONT -DX1_SCALER_LOCAL_RESET_RELEASE -Itests \
+		../sharpx1.sv ../sys/hps_io.sv tests/board_pll_lint.v ../rtl/x1_joystick_map.v $(MACHINE_SRC) -Wno-fatal
+.PHONY: lint-wrapper-turbo-z-font-single
 
 test-machine-z-external-font:
 	ulimit -c 0; python3 -B tests/test_z_external_font_machine.py

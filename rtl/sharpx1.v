@@ -142,8 +142,12 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     initial begin
         if(TURBO_Z_PALETTE_CPU && (!TURBO || TURBO_DMA))
             $error("CPU-only Z palette experiment requires TURBO and excludes unqualified DMA ownership");
-        if(TURBO_Z_VIDEO && !(TURBO_Z_PALETTE_CPU && TURBO_VIDEO_MASTER && !SINGLE_CLOCK))
-            $error("Z video experiment requires palette CPU and enabled X3, not compensated single-clock timing");
+        // One clock may drive X3 only as the exact nominal X3 master; the
+        // 28.6-MHz compensated single clock remains excluded from X3/Z.
+        if(SINGLE_CLOCK && TURBO_VIDEO_MASTER && MASTER_HZ != 42954540)
+            $error("single-clock X3 requires the 42954540 Hz master");
+        if(TURBO_Z_VIDEO && !(TURBO_Z_PALETTE_CPU && TURBO_VIDEO_MASTER))
+            $error("Z video experiment requires palette CPU and enabled X3 (independent or single X3 master)");
         if(TURBO_Z_MULTIMODE && !TURBO_Z_VIDEO)
             $error("Z multi-mode experiment requires Z video");
         if(TURBO_Z_INTERNAL8 && !TURBO_Z_MULTIMODE)
@@ -164,8 +168,8 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
             $error("TURBO_KANJI_RENDER requires the explicit physical Kanji ROM profile");
         if (TURBO_Z_EXTERNAL_FONT && (!TURBO_Z_KANJI || TURBO_Z_VIDEO || RTC_ENABLE || TURBO_SIO || TURBO_FM_CPU || CASSETTE_ENABLE))
             $error("external font profile requires Z Kanji; combined experimental devices remain unqualified");
-        if (TURBO_Z_KANJI && !(TURBO && TURBO_VIDEO_MASTER && TURBO_KANJI && TURBO_KANJI_RENDER && !SINGLE_CLOCK && !TURBO_DMA))
-            $error("Z Kanji simulation profile requires Turbo/X3/Kanji/render and excludes single-clock/DMA");
+        if (TURBO_Z_KANJI && !(TURBO && TURBO_VIDEO_MASTER && TURBO_KANJI && TURBO_KANJI_RENDER && !TURBO_DMA))
+            $error("Z Kanji simulation profile requires Turbo/X3/Kanji/render and excludes DMA");
         if (TURBO && (TURBO_DSW < 0 || TURBO_DSW > 255))
             $error("TURBO_DSW must be an explicit raw eight-bit switch configuration");
     end

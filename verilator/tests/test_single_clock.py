@@ -9,7 +9,7 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("executable", type=pathlib.Path)
 parser.add_argument("--hz", type=int, default=28636364)
 args = parser.parse_args()
-assert args.hz in (28636364, 28571428)
+assert args.hz in (28636364, 28571428, 42954540)
 exe = str(args.executable.resolve())
 
 def run(cycles, reset=64, extra=()):
@@ -30,6 +30,6 @@ with tempfile.TemporaryDirectory(prefix="x1-single-clock-") as folder:
     trace = pathlib.Path(folder) / "clock.fst"
     assert run(4096, extra=("--trace", str(trace))) == run(4096)
     assert trace.stat().st_size > 0
-wrong_hz = 28571428 if args.hz == 28636364 else 28636364
+wrong_hz = 28571428 if args.hz != 28571428 else 28636364
 assert subprocess.run([exe, "--video-hz", str(wrong_hz)], capture_output=True).returncode == 2
 print("PASS: single clock, physical duration, fractional CPU rate, repeatable reset, FST, incompatible-clock rejection")

@@ -1,10 +1,10 @@
-# Reporting only for the new three-pipeline experimental Z profile.
+# Reporting only for the two-stage scaler release revisions (Z video, external font).
 # Run sequentially after the fitter is idle and originals are preserved.
 package require ::quartus::project
 package require ::quartus::sta
 set revision [lindex $quartus(args) 0]
 set candidate [lindex $quartus(args) 1]
-if {$revision ne "sharpx1_turbo_z_video"} {error "expected experimental Z"}
+if {$revision ni {sharpx1_turbo_z_video sharpx1_turbo_z_font}} {error "expected a two-stage scaler release revision"}
 project_open sharpx1 -revision $revision
 create_timing_netlist -model slow -temperature 100 -voltage 1100
 read_sdc

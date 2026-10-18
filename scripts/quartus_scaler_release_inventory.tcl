@@ -2,7 +2,7 @@
 package require ::quartus::project
 package require ::quartus::sta
 set revision [lindex $quartus(args) 0]
-if {$revision ne "sharpx1_turbo_z_video"} {error "expected experimental Z"}
+if {$revision ni {sharpx1_turbo_z_video sharpx1_turbo_z_font}} {error "expected a two-stage scaler release revision"}
 project_open sharpx1 -revision $revision
 create_timing_netlist -model slow -temperature 100 -voltage 1100
 set regs [get_registers {*ascal*|*release_pipe*}]

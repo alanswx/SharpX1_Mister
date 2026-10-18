@@ -45,13 +45,15 @@ proc report_timing args {
 }
 foreach name {set_false_path set_clock_groups set_max_delay set_min_delay set_multicycle_path} {proc $name args {error "must not add exceptions"}}
 proc run_tool {} {global quartus tool; source $tool}
-foreach mode {valid missing_raw missing_stage duplicate_stage extra_stage wrong_bit replica lookup_missing wrong_revision} {
+foreach mode {valid valid_font missing_raw missing_stage duplicate_stage extra_stage wrong_bit replica lookup_missing wrong_revision} {
     set quartus(args) sharpx1_turbo_z_video
     if {$mode eq "wrong_revision"} {set quartus(args) sharpx1}
+    if {$mode eq "valid_font"} {set quartus(args) sharpx1_turbo_z_font}
+    set rev $quartus(args)
     set corners {}
     set reports {}
     set failed [catch {run_tool} message]
-    if {$mode ne "valid"} {
+    if {$mode ni {valid valid_font}} {
         if {!$failed || [dict size $reports] || [llength $corners]} {error "$mode accepted invalid profile"}
         continue
     }
@@ -64,7 +66,7 @@ foreach mode {valid missing_raw missing_stage duplicate_stage extra_stage wrong_
                 foreach kind {chain input output} {
                     if {$kind eq "chain"} {set checks {setup hold}} else {set checks {recovery removal}}
                     foreach check $checks {
-                        set file output_files/sharpx1_turbo_z_video_scaler_release_${model}_${temperature}_${domain}_${kind}_${check}.rpt
+                        set file output_files/${rev}_scaler_release_${model}_${temperature}_${domain}_${kind}_${check}.rpt
                         if {![dict exists $reports $file]} {error "missing report"}
                         set args [dict get $reports $file]
                         if {[lindex $args 0] ne "-$check"} {error "wrong check"}
@@ -82,4 +84,4 @@ foreach mode {valid missing_raw missing_stage duplicate_stage extra_stage wrong_
         }
     }
 }
-puts "PASS: 144 reports, eight corners, six distinct scaler stages; eight invalid profiles reject (mock only)"
+puts "PASS: 144 reports per Z/font revision, eight corners, six distinct scaler stages; eight invalid profiles reject (mock only)"

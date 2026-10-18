@@ -322,10 +322,12 @@ assign clk_28636 = legacy_video_pll;
 assign turbo_video_locked = 1'b1;
 `endif
 `ifdef X1_SINGLE_CLOCK
-// Opt-in experiment uses the existing video's actual PLL frequency.
+// Opt-in experiment uses the existing video's actual PLL frequency. With X3
+// the master is the X3 PLL (fitted 42,954,545.45 Hz); enables use the
+// nominal 42,954,540 Hz divisible by four, a 0.13 ppm rate difference.
 assign clk_sys = clk_28636;
 localparam SINGLE_CLOCK = 1;
-localparam MASTER_HZ = 28571428;
+localparam MASTER_HZ = TURBO_VIDEO_MASTER ? 42954540 : 28571428;
 `else
 assign clk_sys = clk_sys_pll;
 localparam SINGLE_CLOCK = 0;
@@ -368,8 +370,8 @@ localparam TURBO_FM_PROFILE = 0;
 `ifdef X1_TURBO_Z_VIDEO_EXPERIMENT
 localparam TURBO_Z_VIDEO_PROFILE = 1;
 initial begin
-	if (!TURBO_FOUNDATION || !TURBO_VIDEO_MASTER || SINGLE_CLOCK)
-		$error("Z video board experiment requires independent X3 Turbo video");
+	if (!TURBO_FOUNDATION || !TURBO_VIDEO_MASTER)
+		$error("Z video board experiment requires X3 Turbo video");
 end
 `else
 localparam TURBO_Z_VIDEO_PROFILE = 0;

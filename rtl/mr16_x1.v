@@ -64,10 +64,30 @@ wire iack;
 wire [15:0] d_addr, d_in , d_out;
 wire [1:0] d_wr;
 
+// Masters above 32 MHz (single-clock X3) advance the core on an average
+// 32-MHz rate enable. At or below 32 MHz rate_ce is constant one, so those
+// profiles are unchanged. The enable is never used as a fabric clock.
+localparam FAST_MASTER = CLOCK_HZ > 32000000;
+wire rate_ce;
+generate if (FAST_MASTER) begin : rate_enable
+  localparam [23:0] MASTER_UNITS = CLOCK_HZ / 4;
+  reg [23:0] rate_phase;
+  assign rate_ce = rate_phase >= MASTER_UNITS - 24'd8000000;
+  always @(posedge I_CLK or posedge I_RESET)
+    if (I_RESET) rate_phase <= 0;
+    else rate_phase <= rate_ce ? rate_phase + 24'd8000000 - MASTER_UNITS
+                               : rate_phase + 24'd8000000;
+  initial if (CLOCK_HZ % 4 != 0 || CLOCK_HZ > 64000000)
+    $error("fast MR16 master must be divisible by four and at most 64 MHz");
+end else begin : native_rate
+  assign rate_ce = 1'b1;
+end endgenerate
+wire core_ce = I_CLKEN & rate_ce;
+
 mr16core #(4) cpu(
   .reset(I_RESET),
   .clk(I_CLK),
-  .clk_en(I_CLKEN),
+  .clk_en(core_ce),
   .ivector(vector),
   .iack(iack),
   .d_addr(d_addr), .d_bus_in(d_in), .d_bus_out(d_out), .d_wr(d_wr)
@@ -153,15 +173,15 @@ begin
     O_IA        <= 1'b0;
     O_IB        <= 1'b0;
   end else begin
-    // IN ack signal
-    O_I4 <= io_cs & ~wr16 & (d_addr[4:1]==4'b0100);
-    O_I5 <= io_cs & ~wr16 & (d_addr[4:1]==4'b0101);
-    O_I6 <= io_cs & ~wr16 & (d_addr[4:1]==4'b0110);
-    O_I7 <= io_cs & ~wr16 & (d_addr[4:1]==4'b0111);
-    O_I8 <= io_cs & ~wr16 & (d_addr[4:1]==4'b1000);
-    O_I9 <= io_cs & ~wr16 & (d_addr[4:1]==4'b1001);
-    O_IA <= io_cs & ~wr16 & (d_addr[4:1]==4'b1010);
-    O_IB <= io_cs & ~wr16 & (d_addr[4:1]==4'b1011);
+    // IN ack signal: one pulse per virtual 32-MHz edge of the held read
+    O_I4 <= rate_ce & io_cs & ~wr16 & (d_addr[4:1]==4'b0100);
+    O_I5 <= rate_ce & io_cs & ~wr16 & (d_addr[4:1]==4'b0101);
+    O_I6 <= rate_ce & io_cs & ~wr16 & (d_addr[4:1]==4'b0110);
+    O_I7 <= rate_ce & io_cs & ~wr16 & (d_addr[4:1]==4'b0111);
+    O_I8 <= rate_ce & io_cs & ~wr16 & (d_addr[4:1]==4'b1000);
+    O_I9 <= rate_ce & io_cs & ~wr16 & (d_addr[4:1]==4'b1001);
+    O_IA <= rate_ce & io_cs & ~wr16 & (d_addr[4:1]==4'b1010);
+    O_IB <= rate_ce & io_cs & ~wr16 & (d_addr[4:1]==4'b1011);
     // OUT port
     if(io_cs & wr16)
     begin
@@ -198,7 +218,7 @@ end
 
 always @(posedge I_CLK)
 begin
-  if(I_CLKEN)
+  if(core_ce)
   begin
     vector <= 4'b0000;
     // lowest
@@ -211,11 +231,11 @@ begin
   end
 end
 
-assign O_ACK[0]  = (vector == `VECTOR_INT0/2) & iack;
-assign O_ACK[1]  = (vector == `VECTOR_INT1/2) & iack;
-assign timer_ack = (vector == `VECTOR_TIMER/2) & iack;
-assign O_ACK[2]  = (vector == `VECTOR_INT2/2) & iack;
-assign O_ACK[3]  = (vector == `VECTOR_INT3/2) & iack;
+assign O_ACK[0]  = (vector == `VECTOR_INT0/2) & iack & rate_ce;
+assign O_ACK[1]  = (vector == `VECTOR_INT1/2) & iack & rate_ce;
+assign timer_ack = (vector == `VECTOR_TIMER/2) & iack & rate_ce;
+assign O_ACK[2]  = (vector == `VECTOR_INT2/2) & iack & rate_ce;
+assign O_ACK[3]  = (vector == `VECTOR_INT3/2) & iack & rate_ce;
 
 //***************************************************************************
 // data input mux
@@ -234,7 +254,8 @@ mux_2 #(16) top_din_mux(
 // Opt-in experiment: retain the one-SYS response tail when the instruction
 // pipeline stops after an enabled edge. This is not a native bus WAIT model.
 // Ordinary machine instantiations leave RETAIN_RESPONSE disabled.
-generate if (RETAIN_RESPONSE) begin : response_retention
+// A fast master stops the pipeline between rate enables, so it always retains.
+generate if (RETAIN_RESPONSE || FAST_MASTER) begin : response_retention
   reg previous_ce;
   reg held_valid;
   reg [15:0] held_data;
@@ -247,8 +268,8 @@ generate if (RETAIN_RESPONSE) begin : response_retention
       held_valid <= 1'b1;
       held_data <= raw_d_in;
     end else begin
-      previous_ce <= I_CLKEN;
-      if (I_CLKEN) held_valid <= 1'b0;
+      previous_ce <= core_ce;
+      if (core_ce) held_valid <= 1'b0;
       else if (previous_ce) begin
         held_valid <= 1'b1;
         held_data <= raw_d_in;
@@ -301,19 +322,32 @@ reg [TIMER_WIDTH-1:0] timer_cnt , timer_int;
 reg [2:0] timer_ctrl; // bit0=IRQ,1=RUN,2=INT EN,3=reset counter
 
 // Firmware timer counts are in 32 MHz units, independent of the master rate.
-// Supported machine clocks are 16..32 MHz, requiring one or two virtual ticks.
+// Machine clocks of 16..32 MHz need one or two virtual ticks per edge.
 // Carry overshoot across reloads so a fractional tick is not lost each period.
 // All supported clock/rate values are divisible by four; omit constant low
 // accumulator bits rather than leave reset-only storage for synthesis.
+// Masters above 32 MHz instead advance zero or one virtual tick per edge.
+localparam FAST_MASTER = CLOCK_HZ > 32000000;
 localparam [23:0] CLOCK_UNITS = CLOCK_HZ / 4;
-localparam [23:0] EXTRA_UNITS = (32000000 - CLOCK_HZ) / 4;
+localparam [23:0] EXTRA_UNITS = FAST_MASTER ? 24'd0 : (32000000 - CLOCK_HZ) / 4;
 localparam [23:0] EXTRA_THRESHOLD = CLOCK_UNITS - EXTRA_UNITS;
 wire [23:0] tick_phase;
+wire rate_tick;
 wire extra_tick = EXTRA_UNITS != 0 && tick_phase >= EXTRA_THRESHOLD;
 generate
     if (CLOCK_HZ == 32000000) begin : native_timer_rate
         assign tick_phase = 24'd0;
+        assign rate_tick = 1'b1;
+    end else if (FAST_MASTER) begin : fast_timer_rate
+        reg [23:0] phase;
+        assign tick_phase = phase;
+        assign rate_tick = phase >= CLOCK_UNITS - 24'd8000000;
+        always @(posedge I_CLK or posedge I_RESET)
+            if (I_RESET) phase <= 0;
+            else phase <= rate_tick ? phase + 24'd8000000 - CLOCK_UNITS
+                                    : phase + 24'd8000000;
     end else begin : fractional_timer_rate
+        assign rate_tick = 1'b1;
         reg [23:0] phase;
         assign tick_phase = phase;
         always @(posedge I_CLK or posedge I_RESET)
@@ -323,7 +357,7 @@ generate
     end
 endgenerate
 wire timer_run = timer_ctrl[1] && I_GATE;
-wire [TIMER_WIDTH-1:0] timer_step = timer_run ? (extra_tick ? 2 : 1) : 0;
+wire [TIMER_WIDTH-1:0] timer_step = timer_run && rate_tick ? (extra_tick ? 2 : 1) : 0;
 wire [TIMER_WIDTH-1:0] next_timer = timer_cnt - timer_step;
 wire timer_overflow = ~timer_cnt[TIMER_WIDTH-1] & next_timer[TIMER_WIDTH-1];
 wire timer_ctr_load = (I_CS & I_WR &  I_A);
