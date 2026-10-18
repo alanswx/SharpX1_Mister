@@ -76,5 +76,9 @@ Evidence (PNGs, contact sheets, SHA-256 list): `output_files/COMPAT_20261018/`.
 On the X3 single runner it cycles every ~4.78 s: the IPL loads the boot
 program (`1E00`), then 0.34 s later the program re-enables the IPL ROM
 (`1D00`) and the IPL boots again. The disk image is standard 2D D88 with no
-status or deleted flags. A base-X1 run with the MAME-set base IPL is next, to
-test whether the program depends on base IPL ROM contents.
+status or deleted flags. On the **base-X1** headless runner with the MAME-set
+base IPL (`ipl.x1`, `0513077c…`, from `~/Downloads/x1.zip`), it also stays at
+"IPL is loading" after 40 s (2,274 disk requests). So the turbo IPL is not the
+cause. Next: compare against a reference emulator, to separate a bad dump or
+copy protection from a controller gap. This needs approval to run the
+downloaded MAME binary.
