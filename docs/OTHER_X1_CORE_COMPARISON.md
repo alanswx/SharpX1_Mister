@@ -51,7 +51,9 @@ Reset and Reset-and-close. Model/clock profiles are separate RBF revisions.
 
 ## Gaps relative to that core (proposed work, not defects)
 
-1. **Raw 2D (and possibly DSK) disk images.** Our machine selects the vendor
+1. **Raw 2D (and possibly DSK) disk images.** Raw 2D is now implemented by
+   extension on the shared mount ([status](RAW_2D_DISK_STATUS.md)); DSK is
+   still open. Original note: our machine selects the vendor
    controller's strict `D88_ONLY` mode. Per the user's direction, use one mount
    entry per drive (for example `S0,D882D ,Drive A;`) and select the format
    from the extension index. Stock Main sends

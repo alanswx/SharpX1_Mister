@@ -1,5 +1,9 @@
 # Base-X1 disk verification
 
+October 18: [raw X1 2D media](RAW_2D_DISK_STATUS.md) now shares each drive's
+D88 mount, selected by the extension Main reports (`S0,D882D ,Drive A;`).
+It is enabled on boards and the X3 single runner, and off in savable v17 profiles.
+
 The [Turbo 2HD plan](TURBO_HD_DISK_PLAN.md) separates address/index expansion
 from native selector, density clock, RPM and format acceptance. The new
 [wide-D88 experiment](WIDE_D88_STATUS.md) passes original CPU high-address and

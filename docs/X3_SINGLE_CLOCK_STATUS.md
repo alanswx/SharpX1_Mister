@@ -120,3 +120,17 @@ native Turbo IPL `21289570…`, ANK16 `e356dd19…`. The font is synthetic, not
 native Kanji. This is a bounded boot/pixel/input check, not gameplay,
 audio, write, reset-retention or long-run acceptance. Six screenshots remain
 in 192's `/media/fat/screenshots/SharpX1/`; 192 was returned to MENU.
+
+## Z video revision (October 18)
+
+`sharpx1_turbo_z_video_single` (commit `64e5aba`, build
+`quartus-linux-p2uikiXE`, RBF `61c1526d6ad5d514a68566003a293032e18605e071de1565125bfbf39f357fba`)
+uses only the framework group SDC; none of the six two-clock Z video
+exception files. Eight-corner inventory: **zero failing paths in all 32
+reports**; summary minimum slack +0.242 ns (hold); 56% ALMs, 56% block
+memory. Evidence: `output_files/X3_SINGLE_ZVIDEO_20261018/`. No hardware or
+single-clock Z pixel simulation has been run for this revision yet.
+
+Decision (user, October 18): continue on the single X3 master. The two-clock
+X3 revisions stay buildable but frozen, to be retired once their single-clock
+counterparts are qualified.
