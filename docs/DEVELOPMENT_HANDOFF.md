@@ -2,6 +2,13 @@
 
 ## October 18, 2026 — single-clock X3 master (latest)
 
+Later October 18: merged D88/raw-2D mount by extension
+(`docs/RAW_2D_DISK_STATUS.md`): simulation, full regressions, board timing and
+MiSTer 192 OSD/MGL boots pass. `sharpx1_turbo_z_video_single` closes timing
+(RBF `61c1526d…`), with no hardware run yet. misterubuntu builds may run
+concurrently with other projects when the user says so; use
+`X1_ALLOW_CONCURRENT_QUARTUS=1`.
+
 User decision: move X3 off two unrelated clocks onto one 42.95 MHz master
 with enables. See `docs/X3_SINGLE_CLOCK_STATUS.md`. Revision
 `sharpx1_turbo_z_font_single` (commit `97bf6d2` plus docs/test follow-up)

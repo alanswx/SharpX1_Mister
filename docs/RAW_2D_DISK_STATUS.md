@@ -73,8 +73,30 @@ frames, zero writes). The final frames differ in 6 of 64,000 pixels, all in
 column x=1 (rows 22–136), consistent with the one-frame phase offset from the
 D88 header scan. Evidence: `output_files/RAW2D_SIM_20261018/` (ignored).
 
+## Board build and MiSTer 192 (October 18)
+
+Build `quartus-linux-26YmmMuS`, revision `sharpx1_turbo_z_font_single`,
+clean commit `a94991b`, RBF
+`be628ed55a31c3213c0dc45ee11677a26fb2206109f13cfefbdf91c788829350`.
+Eight-corner inventory: zero failing paths in all 32 reports. (A duplicate
+build from identical compiler inputs, `6C8k1Zkq`, was stopped unfinished.)
+
+On user-authorized MiSTer 192, deployed under new names `X1RAW_20261018`
+with read-only media and hashes verified on the device:
+
+| Case | Result |
+| --- | --- |
+| MGL `type="s"` raw `Galaga.2d` in A | Title; Space, Space → Stage 1 |
+| MGL raw `Galaga.2d` in A + `Galaga.d88` in B | Title; Stage 1 (Galaga does not read B: coexistence only) |
+| ROM-only MGL, then real OSD `Drive A *.D88,2D` → `Galaga.2d`, OSD Reset | Browser lists `.d88` and `.2d` and hides `.tap`; title; Stage 1 |
+
+No config files were written; 192 was returned to MENU. Screenshots
+(raw mrext for core frames, capture card for the OSD) and hashes:
+`output_files/RAW2D_HW_20261018/` (ignored). This is a bounded boot/input
+check, not gameplay, write or B-drive read acceptance on hardware.
+
 ## Open
 
-Board build and MiSTer OSD/MGL mount, native 2D software boot from raw media,
-DSK (CPC-style EDSK), 2DD/2HD raw sizes, raw media in snapshots, and
+Raw writes and B-drive reads on hardware, other native 2D software from raw
+media, DSK (CPC-style EDSK), 2DD/2HD raw sizes, raw media in snapshots, and
 deleted/CRC semantics on raw media.
