@@ -216,8 +216,10 @@ localparam CONF_STR = {
 `ifdef X1_TURBO_Z_EXTERNAL_FONT
     "F5,ROM,Load physical Kanji font;",
 `endif
-	"S0,D88,Drive A;",
-	"S1,D88,Drive B;",
+	// One entry per drive. Main reports the extension's list position in
+	// ioctl_index[7:6] before each mount: 0 = D88 container, 1 = raw X1 2D.
+	"S0,D882D ,Drive A;",
+	"S1,D882D ,Drive B;",
 	"O[1],Disk writes,Protected,Enabled;",
 	"-;",
 	"T[0],Reset;",
@@ -260,6 +262,7 @@ wire img_readonly;
 wire [63:0] img_size;
 reg [1:0] media_present = 0;
 reg [1:0] media_readonly = 2'b11;
+reg [1:0] media_raw = 0;
 reg [23:0] media_size [0:1];
 initial begin media_size[0] = 0; media_size[1] = 0; end
 always @(posedge clk_sys) begin
@@ -267,6 +270,7 @@ always @(posedge clk_sys) begin
 		media_present[d] <= img_size != 0 && img_size <= 64'd1048575;
 		media_size[d] <= img_size[23:0];
 		media_readonly[d] <= img_readonly;
+		media_raw[d] <= ioctl_index[7:6] == 2'd1;
 	end
 end
 
@@ -396,7 +400,7 @@ initial $error("External-font DDR reservation excludes framebuffer builds");
 localparam TURBO_Z_EXTERNAL_FONT_PROFILE = 0;
 `endif
 
-sharpx1 #(.SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ), .TURBO(TURBO_FOUNDATION), .TURBO_VIDEO_MASTER(TURBO_VIDEO_MASTER),
+sharpx1 #(.RAW_2D_MEDIA(1), .SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ), .TURBO(TURBO_FOUNDATION), .TURBO_VIDEO_MASTER(TURBO_VIDEO_MASTER),
 	.TURBO_DMA(TURBO_DMA_PROFILE), .TURBO_DMA_IRQ(TURBO_DMA_PROFILE), .TURBO_DMA_RESTART_IRQ(TURBO_DMA_PROFILE), .TURBO_FM_CPU(TURBO_FM_PROFILE),
 	.TURBO_Z_PALETTE_CPU(TURBO_Z_VIDEO_PROFILE), .TURBO_Z_VIDEO(TURBO_Z_VIDEO_PROFILE),
 	.TURBO_Z_MULTIMODE(TURBO_Z_VIDEO_PROFILE), .TURBO_Z_INTERNAL8(TURBO_Z_VIDEO_PROFILE),
@@ -434,6 +438,7 @@ sharpx1 #(.SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ), .TURBO(TURBO_FOUND
 	.tape_sample_ready(), .tape_underflow(), .tape_mode(), .tape_sensor(),
 	.disk_ready(media_present[0]), .img_mounted(img_mounted[0]),
 	.disk_wp(!status[1] || media_readonly[0]), .img_size(media_size[0]),
+	.disk_raw(media_raw[0]), .disk_raw_b(media_raw[1]),
 	.disk_ready_b(media_present[1]), .img_mounted_b(img_mounted[1]),
 	.disk_wp_b(!status[1] || media_readonly[1]), .img_size_b(media_size[1]),
 	.sd_drive(fdc_sd_drive), .sd_lba(fdc_sd_lba), .sd_rd(fdc_sd_rd), .sd_wr(fdc_sd_wr), .sd_ack(sd_ack[fdc_sd_drive]),

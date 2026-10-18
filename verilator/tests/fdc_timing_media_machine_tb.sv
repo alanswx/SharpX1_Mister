@@ -35,7 +35,7 @@ module fdc_timing_media_machine_tb #(parameter RATE=1000000, ADDRESS_BITS=20);
         .sio_rxd(2'b11),.sio_cts_n(2'b11),.sio_dcd_n(2'b11),
         .sio_txd(),.sio_rts_n(),.sio_dtr_n(),
         .disk_ready(1'b1),.img_mounted(mounted|mount_a),.disk_wp(1'b0),.img_size(24'(TOTAL)),
-        .disk_ready_b(1'b1),.img_mounted_b(mounted|mount_b),.disk_wp_b(1'b0),.img_size_b(24'(TOTAL)),
+        .disk_ready_b(1'b1),.img_mounted_b(mounted|mount_b),.disk_wp_b(1'b0),.img_size_b(24'(TOTAL)),.disk_raw(1'b0),.disk_raw_b(1'b0),
         .sd_drive(owner),.sd_lba(lba),.sd_rd(sd_rd),.sd_wr(sd_wr),.sd_ack(ack),
         .sd_buff_addr(host_addr),.sd_buff_dout(host_data),.sd_buff_din(host_read),.sd_buff_wr(host_wr),
         .ce_pix(),.HBlank(),.HSync(),.VBlank(),.VSync(),.video(),.rgb(),.rgb12(),

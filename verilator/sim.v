@@ -1,6 +1,6 @@
 `timescale 1ps/1ps
 // Instantiate the same machine as the MiSTer wrapper.
-module top #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0, TURBO_DSW = 241, TURBO_DMA_RESTART_IRQ = 0, TURBO_Z_PALETTE_CPU = 0, TURBO_Z_VIDEO = 0, TURBO_Z_MULTIMODE = 0, TURBO_Z_INTERNAL8 = 0, TURBO_Z_TEXT_CPU = 0, TURBO_FM_CPU = 0, RTC_ENABLE = 0, TURBO_DMA_KANJI_EXPERIMENT = 0, D88_ADDRESS_BITS = 20, TURBO_HD_SELECT = 0, TURBO_HD_MEDIA = 0,
+module top #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0, TURBO_DSW = 241, TURBO_DMA_RESTART_IRQ = 0, TURBO_Z_PALETTE_CPU = 0, TURBO_Z_VIDEO = 0, TURBO_Z_MULTIMODE = 0, TURBO_Z_INTERNAL8 = 0, TURBO_Z_TEXT_CPU = 0, TURBO_FM_CPU = 0, RTC_ENABLE = 0, TURBO_DMA_KANJI_EXPERIMENT = 0, D88_ADDRESS_BITS = 20, TURBO_HD_SELECT = 0, TURBO_HD_MEDIA = 0,
     TURBO_FDC_TIMING = 0, FDC_CLOCK_HZ = 1000000) (
     input clk_sys, clk_28636, reset,
     input ioctl_download,
@@ -15,6 +15,10 @@ module top #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_
     input [23:0] img_size,
     input disk_ready_b, img_mounted_b, disk_wp_b,
     input [23:0] img_size_b,
+`ifdef X1_RAW_2D_MEDIA
+    // Only raw-media profiles add these pins; v17 savable tops stay unchanged.
+    input disk_raw, disk_raw_b,
+`endif
     output sd_drive,
     output [7:0] debug_disk_control,
     output debug_disk_motor, debug_disk_ready,
@@ -49,7 +53,7 @@ module top #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_
     output reg [63:0] dma_grants = 0, dma_reads = 0, dma_writes = 0,
     cpu_fdc_data_reads = 0, cpu_fdc_data_writes = 0
 );
-    sharpx1 #(.SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ), .TURBO(TURBO), .TURBO_VIDEO_MASTER(TURBO_VIDEO_MASTER), .TURBO_DMA(TURBO_DMA), .TURBO_DMA_IRQ(TURBO_DMA_IRQ), .TURBO_KANJI(TURBO_KANJI), .TURBO_KANJI_RENDER(TURBO_KANJI_RENDER), .TURBO_DSW(TURBO_DSW), .TURBO_DMA_RESTART_IRQ(TURBO_DMA_RESTART_IRQ), .TURBO_Z_PALETTE_CPU(TURBO_Z_PALETTE_CPU), .TURBO_Z_VIDEO(TURBO_Z_VIDEO), .TURBO_Z_MULTIMODE(TURBO_Z_MULTIMODE), .TURBO_Z_INTERNAL8(TURBO_Z_INTERNAL8), .TURBO_Z_TEXT_CPU(TURBO_Z_TEXT_CPU), .TURBO_FM_CPU(TURBO_FM_CPU), .RTC_ENABLE(RTC_ENABLE), .TURBO_DMA_KANJI_EXPERIMENT(TURBO_DMA_KANJI_EXPERIMENT), .D88_ADDRESS_BITS(D88_ADDRESS_BITS), .TURBO_HD_SELECT(TURBO_HD_SELECT), .TURBO_HD_MEDIA(TURBO_HD_MEDIA), .TURBO_FDC_TIMING(TURBO_FDC_TIMING), .FDC_CLOCK_HZ(FDC_CLOCK_HZ)) machine (
+    sharpx1 #(.RAW_2D_MEDIA(RAW_2D_MEDIA), .SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ), .TURBO(TURBO), .TURBO_VIDEO_MASTER(TURBO_VIDEO_MASTER), .TURBO_DMA(TURBO_DMA), .TURBO_DMA_IRQ(TURBO_DMA_IRQ), .TURBO_KANJI(TURBO_KANJI), .TURBO_KANJI_RENDER(TURBO_KANJI_RENDER), .TURBO_DSW(TURBO_DSW), .TURBO_DMA_RESTART_IRQ(TURBO_DMA_RESTART_IRQ), .TURBO_Z_PALETTE_CPU(TURBO_Z_PALETTE_CPU), .TURBO_Z_VIDEO(TURBO_Z_VIDEO), .TURBO_Z_MULTIMODE(TURBO_Z_MULTIMODE), .TURBO_Z_INTERNAL8(TURBO_Z_INTERNAL8), .TURBO_Z_TEXT_CPU(TURBO_Z_TEXT_CPU), .TURBO_FM_CPU(TURBO_FM_CPU), .RTC_ENABLE(RTC_ENABLE), .TURBO_DMA_KANJI_EXPERIMENT(TURBO_DMA_KANJI_EXPERIMENT), .D88_ADDRESS_BITS(D88_ADDRESS_BITS), .TURBO_HD_SELECT(TURBO_HD_SELECT), .TURBO_HD_MEDIA(TURBO_HD_MEDIA), .TURBO_FDC_TIMING(TURBO_FDC_TIMING), .FDC_CLOCK_HZ(FDC_CLOCK_HZ)) machine (
         .clk_sys(clk_sys), .clk_28636(clk_28636), .reset(reset),
         .pal(1'b0), .scandouble(1'b0),
         .ioctl_download(ioctl_download), .ioctl_index(ioctl_index),
@@ -66,7 +70,13 @@ module top #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_
         .sio_rxd(2'b11),.sio_cts_n(2'b11),.sio_dcd_n(2'b11),
         .sio_txd(),.sio_rts_n(),.sio_dtr_n(),
         .disk_ready(disk_ready), .img_mounted(img_mounted), .disk_wp(disk_wp), .img_size(img_size),
-        .disk_ready_b(disk_ready_b), .img_mounted_b(img_mounted_b), .disk_wp_b(disk_wp_b), .img_size_b(img_size_b), .sd_drive(sd_drive),
+        .disk_ready_b(disk_ready_b), .img_mounted_b(img_mounted_b), .disk_wp_b(disk_wp_b), .img_size_b(img_size_b),
+`ifdef X1_RAW_2D_MEDIA
+        .disk_raw(disk_raw), .disk_raw_b(disk_raw_b),
+`else
+        .disk_raw(1'b0), .disk_raw_b(1'b0),
+`endif
+        .sd_drive(sd_drive),
         .sd_lba(sd_lba), .sd_rd(sd_rd), .sd_wr(sd_wr), .sd_ack(sd_ack),
         .sd_buff_addr(sd_buff_addr), .sd_buff_dout(sd_buff_dout),
         .sd_buff_din(sd_buff_din), .sd_buff_wr(sd_buff_wr),

@@ -11,7 +11,7 @@ module disk_media_tb;
     wire changing, ready, wp;
     wire [23:0] size;
     x1_disk_media dut(clk,selected,mounted,present,readonly,size_a,size_b,
-                      idle,active,changing,ready,wp,size);
+                      idle,active,changing,ready,wp,size,2'b00,);
     task settle;
         repeat(3) @(negedge clk);
     endtask

@@ -329,11 +329,11 @@ reg [2:0] timer_ctrl; // bit0=IRQ,1=RUN,2=INT EN,3=reset counter
 // Masters above 32 MHz instead advance zero or one virtual tick per edge.
 localparam FAST_MASTER = CLOCK_HZ > 32000000;
 localparam [23:0] CLOCK_UNITS = CLOCK_HZ / 4;
-localparam [23:0] EXTRA_UNITS = FAST_MASTER ? 24'd0 : (32000000 - CLOCK_HZ) / 4;
+localparam [23:0] EXTRA_UNITS = (32000000 - CLOCK_HZ) / 4;
 localparam [23:0] EXTRA_THRESHOLD = CLOCK_UNITS - EXTRA_UNITS;
 wire [23:0] tick_phase;
 wire rate_tick;
-wire extra_tick = EXTRA_UNITS != 0 && tick_phase >= EXTRA_THRESHOLD;
+wire extra_tick = !FAST_MASTER && EXTRA_UNITS != 0 && tick_phase >= EXTRA_THRESHOLD;
 generate
     if (CLOCK_HZ == 32000000) begin : native_timer_rate
         assign tick_phase = 24'd0;

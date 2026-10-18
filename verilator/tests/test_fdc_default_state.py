@@ -29,8 +29,9 @@ def main():
     parameters = re.findall(r'\b(\w+)\s*=', header.split('(', 2)[1])
     inactive_hd = "wire hd_selected=1'b0;\n" if not re.search(r'\bhd_selected\b', header) else ''
     inactive_fdc = "wire fdc_ce=1'b0;\n" if not re.search(r'\bfdc_ce\b', header) else ''
+    inactive_raw = "wire raw_2d=1'b0;\n" if not re.search(r'\braw_2d\b', header) else ''
     wrapper = ('module fdc_default_state_top' + header + ');\n' +
-               inactive_hd + inactive_fdc + 'wd1793 #(' +
+               inactive_hd + inactive_fdc + inactive_raw + 'wd1793 #(' +
                ', '.join(f'.{p}({p})' for p in parameters) +
                ') dut(.*);\nendmodule\n')
     (out / 'wrapper.sv').write_text(wrapper)

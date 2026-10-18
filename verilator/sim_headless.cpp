@@ -123,6 +123,7 @@ int main(int argc, char **argv) {
         const char *disk_output = nullptr;
         const char *disk_b_path = nullptr, *disk_b_output = nullptr;
         const char *save_path = nullptr, *restore_path = nullptr;
+        bool disk_raw2d = false, disk_b_raw2d = false;
         bool progress = false, io_only = false, interactive = false, joystick_keys = false;
         FrameCapture frame;
         AudioCapture audio;
@@ -167,6 +168,8 @@ int main(int argc, char **argv) {
             else if (!std::strcmp(argv[i], "--disk-output") && i + 1 < argc) disk_output = argv[++i];
             else if (!std::strcmp(argv[i], "--disk-b") && i + 1 < argc) disk_b_path = argv[++i];
             else if (!std::strcmp(argv[i], "--disk-b-output") && i + 1 < argc) disk_b_output = argv[++i];
+            else if (!std::strcmp(argv[i], "--disk-raw2d")) disk_raw2d = true;
+            else if (!std::strcmp(argv[i], "--disk-b-raw2d")) disk_b_raw2d = true;
             else if (!std::strcmp(argv[i], "--keys") && i + 1 < argc) keys_path = argv[++i];
             else if (!std::strcmp(argv[i], "--frame") && i + 1 < argc) frame.path = argv[++i];
             else if (!std::strcmp(argv[i], "--audio") && i + 1 < argc) audio.path = argv[++i];
@@ -185,7 +188,7 @@ int main(int argc, char **argv) {
             else if (!std::strcmp(argv[i], "--save-state") && i + 1 < argc) save_path = argv[++i];
             else if (!std::strcmp(argv[i], "--restore-state") && i + 1 < argc) restore_path = argv[++i];
             else if (argv[i][0] != '-') cycles = number(argv[i]);
-            else throw std::runtime_error("usage: Vtop [cycles] [--cycles N] [--reset-cycles N] [--reset-at MS (repeatable) --reset-for-us US] [--video-hz N] [--trace output.fst] [--rom IMAGE] [--ram IMAGE --load-address A --entry A] [--disk IMAGE --disk-output NEW_COPY] [--disk-b IMAGE --disk-b-output NEW_COPY] [--keys SCRIPT] [--frame IMAGE.ppm] [--audio OUTPUT.wav] [--dump PREFIX] [--video-dump PREFIX [--fetch-start-ms N --fetch-end-ms N]] [--peek A] [--bus-trace CSV --io-only --bus-events --bus-start-ms N --bus-end-ms N] [--progress] [--interactive [--joystick-keys]] [--save-state FILE] [--restore-state FILE] [--joya BYTE --joyb BYTE]");
+            else throw std::runtime_error("usage: Vtop [cycles] [--cycles N] [--reset-cycles N] [--reset-at MS (repeatable) --reset-for-us US] [--video-hz N] [--trace output.fst] [--rom IMAGE] [--ram IMAGE --load-address A --entry A] [--disk IMAGE --disk-output NEW_COPY] [--disk-b IMAGE --disk-b-output NEW_COPY] [--disk-raw2d] [--disk-b-raw2d] [--keys SCRIPT] [--frame IMAGE.ppm] [--audio OUTPUT.wav] [--dump PREFIX] [--video-dump PREFIX [--fetch-start-ms N --fetch-end-ms N]] [--peek A] [--bus-trace CSV --io-only --bus-events --bus-start-ms N --bus-end-ms N] [--progress] [--interactive [--joystick-keys]] [--save-state FILE] [--restore-state FILE] [--joya BYTE --joyb BYTE]");
         }
 #ifdef X1_RTC_EXPERIMENT
         // Fail before opening any snapshot or producing a state file. The
@@ -333,8 +336,20 @@ int main(int argc, char **argv) {
 #else
         constexpr unsigned d88_address_bits = 20;
 #endif
-        if (disk_path) validate_d88(disk, d88_address_bits);
-        if (disk_b_path) validate_d88(disk_b, d88_address_bits);
+        // Raw X1 2D media is headerless 40x2x16x256; the host format flag is
+        // what the MiSTer wrapper latches from the mount's extension index.
+        if ((disk_raw2d && !disk_path) || (disk_b_raw2d && !disk_b_path))
+            throw std::runtime_error("raw-2D flag requires that drive's image");
+#ifndef X1_RAW_2D_MEDIA
+        if (disk_raw2d || disk_b_raw2d)
+            throw std::runtime_error("raw-2D media requires a RAW_2D_MEDIA runner profile");
+#endif
+        if ((disk_raw2d || disk_b_raw2d) && (save_path || restore_path))
+            throw std::runtime_error("raw-2D media is not part of the snapshot format");
+        if (disk_raw2d && disk.size() != 327680) throw std::runtime_error("raw 2D image must be 327680 bytes");
+        if (disk_b_raw2d && disk_b.size() != 327680) throw std::runtime_error("raw 2D B image must be 327680 bytes");
+        if (disk_path && !disk_raw2d) validate_d88(disk, d88_address_bits);
+        if (disk_b_path && !disk_b_raw2d) validate_d88(disk_b, d88_address_bits);
         uint64_t disk_fingerprint = 14695981039346656037ULL;
         for (auto byte : disk) { disk_fingerprint ^= byte; disk_fingerprint *= 1099511628211ULL; }
         uint64_t disk_b_fingerprint = 14695981039346656037ULL;
@@ -410,6 +425,10 @@ int main(int argc, char **argv) {
         top.img_mounted_b = !disk_b.empty();
         top.disk_wp_b = disk_b_output ? 0 : 1;
         top.img_size_b = disk_b.size();
+#ifdef X1_RAW_2D_MEDIA
+        top.disk_raw = disk_raw2d;
+        top.disk_raw_b = disk_b_raw2d;
+#endif
         top.sd_ack = 0;
         top.sd_buff_addr = 0;
         top.sd_buff_dout = 0;

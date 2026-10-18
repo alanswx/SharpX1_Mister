@@ -1,6 +1,6 @@
 // Sharp X1 base-machine integration. Shared by MiSTer and simulation.
 // See docs/BASE_X1_CONTRACT.md for address-map sources and limitations.
-module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0, TURBO_DSW = 241, TURBO_DMA_RESTART_IRQ = 0, TURBO_Z_PALETTE_CPU = 0, TURBO_Z_VIDEO = 0, TURBO_Z_MULTIMODE = 0, TURBO_Z_INTERNAL8 = 0, TURBO_Z_TEXT_CPU = 0, TURBO_SIO = 0, TURBO_FM_CPU = 0, RTC_ENABLE = 0, TURBO_Z_EFFECT_CPU = 0, TURBO_DMA_KANJI_EXPERIMENT = 0, D88_ADDRESS_BITS = 20, TURBO_HD_SELECT = 0, TURBO_HD_MEDIA = 0,
+module sharpx1 #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0, TURBO_DSW = 241, TURBO_DMA_RESTART_IRQ = 0, TURBO_Z_PALETTE_CPU = 0, TURBO_Z_VIDEO = 0, TURBO_Z_MULTIMODE = 0, TURBO_Z_INTERNAL8 = 0, TURBO_Z_TEXT_CPU = 0, TURBO_SIO = 0, TURBO_FM_CPU = 0, RTC_ENABLE = 0, TURBO_Z_EFFECT_CPU = 0, TURBO_DMA_KANJI_EXPERIMENT = 0, D88_ADDRESS_BITS = 20, TURBO_HD_SELECT = 0, TURBO_HD_MEDIA = 0,
     TURBO_FDC_TIMING = 0, FDC_CLOCK_HZ = 1000000, CASSETTE_ENABLE = 0,
     TURBO_Z_KANJI = 0, TURBO_Z_EXTERNAL_FONT = 0) (
     input clk_sys, clk_28636, reset,
@@ -38,6 +38,9 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     input [23:0] img_size,
     input disk_ready_b, img_mounted_b, disk_wp_b,
     input [23:0] img_size_b,
+    // Per-drive headerless X1 2D format, latched by the host with each mount.
+    // Ignored unless RAW_2D_MEDIA; ordinary savable v17 profiles leave it off.
+    input disk_raw, disk_raw_b,
     output sd_drive,
     output [31:0] sd_lba,
     output sd_rd, sd_wr,
@@ -843,13 +846,14 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     wire [1:0] active_drive;
     wire media_changing, selected_ready, selected_wp, transport_idle;
     wire [23:0] selected_size;
-    x1_disk_media disk_media (
+    wire selected_raw;
+    x1_disk_media #(.RAW(RAW_2D_MEDIA)) disk_media (
         .clk(clk_sys), .selected(drive),
         .mounted({img_mounted_b,img_mounted}),
         .present({disk_ready_b,disk_ready}), .readonly({disk_wp_b,disk_wp}),
-        .size_a(img_size), .size_b(img_size_b), .transport_idle(transport_idle),
+        .size_a(img_size), .size_b(img_size_b), .raw({disk_raw_b,disk_raw}), .transport_idle(transport_idle),
         .active(active_drive), .changing(media_changing),
-        .ready(selected_ready), .wp(selected_wp), .size(selected_size)
+        .ready(selected_ready), .wp(selected_wp), .size(selected_size), .selected_raw(selected_raw)
     );
     assign sd_drive = active_drive[0];
     x1_disk_control #(.MOTOR_HOLD_CYCLES(SINGLE_CLOCK ? MASTER_HZ * 6 / 5 : 38400000), .PHYSICAL_DRIVES(2)) disk_control (
@@ -861,7 +865,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
     generate if(D88_ADDRESS_BITS!=20 && D88_ADDRESS_BITS!=24) begin : invalid_d88_width
         initial $fatal(1,"shared D88 addressing permits ordinary20 or experimental24 only");
     end endgenerate
-    wd1793 #(.RWMODE(1), .EDSK(1), .HEADLOAD_STATUS(1), .INDEX_CYCLES(800000), .D88_ONLY(1), .PHYSICAL_DRIVES(2), .ADDRESS_BITS(D88_ADDRESS_BITS), .MAX_SECTORS(D88_ADDRESS_BITS==24 ? 4095 : 1992), .D88_CAPACITY_CHECK(TURBO_HD_MEDIA), .STRICT_D88_TIMING(TURBO_FDC_TIMING)) fdc (
+    wd1793 #(.RWMODE(1), .EDSK(1), .HEADLOAD_STATUS(1), .INDEX_CYCLES(800000), .D88_ONLY(1), .PHYSICAL_DRIVES(2), .ADDRESS_BITS(D88_ADDRESS_BITS), .MAX_SECTORS(D88_ADDRESS_BITS==24 ? 4095 : 1992), .D88_CAPACITY_CHECK(TURBO_HD_MEDIA), .STRICT_D88_TIMING(TURBO_FDC_TIMING), .RAW_2D(RAW_2D_MEDIA)) fdc (
         .clk_sys(clk_sys), .ce(pe4M4), .reset(core_reset), .fdc_ce(fdc_chip_ce),
         .io_en(!dam && a[15:2] == 14'h03fe), .rd(io_read), .wr(io_write),
         .addr(a[1:0]), .din(data_out), .dout(fdc_data),
@@ -876,7 +880,7 @@ module sharpx1 #(parameter SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TU
         .sd_buff_addr(sd_buff_addr), .sd_buff_dout(sd_buff_dout),
         .sd_buff_din(sd_buff_din), .sd_buff_wr(sd_buff_wr),
         .input_active(1'b0), .input_addr(D88_ADDRESS_BITS'(0)), .input_data(8'd0), .input_wr(1'b0),
-        .buff_addr(), .buff_read(), .buff_din(8'd0), .hd_selected(disk_hd_selected)
+        .buff_addr(), .buff_read(), .buff_din(8'd0), .hd_selected(disk_hd_selected), .raw_2d(selected_raw)
     );
 
     wire [13:0] vaddr;

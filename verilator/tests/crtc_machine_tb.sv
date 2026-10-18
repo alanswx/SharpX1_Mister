@@ -19,7 +19,7 @@ module crtc_machine_tb;
         .ioctl_addr(address),.ioctl_dout(data),.ioctl_wait(load_wait),
         .ps2_clk_in(1'b1),.ps2_data_in(1'b1),.joya_n(8'hff),.joyb_n(8'hff),
         .disk_ready(1'b0),.img_mounted(1'b0),.disk_wp(1'b1),.img_size(24'd0),
-        .disk_ready_b(1'b0),.img_mounted_b(1'b0),.disk_wp_b(1'b1),.img_size_b(24'd0),
+        .disk_ready_b(1'b0),.img_mounted_b(1'b0),.disk_wp_b(1'b1),.img_size_b(24'd0),.disk_raw(1'b0),.disk_raw_b(1'b0),
         .sd_ack(1'b0),.sd_buff_addr(9'd0),.sd_buff_dout(8'd0),.sd_buff_wr(1'b0),
         .debug_addr(16'd0),.cpu_halt_n(halt_n),
         .sd_drive(),.debug_disk_control(),.debug_disk_motor(),.debug_disk_ready(),

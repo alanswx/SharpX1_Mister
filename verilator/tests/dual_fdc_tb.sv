@@ -11,7 +11,7 @@ module dual_fdc_tb #(parameter EJECT_WRITE = 0);
     wire changing, selected_ready, wp, transport_idle;
     wire [23:0] size;
     x1_disk_media media(clk,selected,mounted,present,2'b10,size_a,size_b,
-                        transport_idle,active,changing,selected_ready,wp,size);
+                        transport_idle,active,changing,selected_ready,wp,size,2'b00,);
     wire prepare, sd_rd, sd_wr, drq;
     wire [31:0] lba;
     reg [8:0] host_addr=0;

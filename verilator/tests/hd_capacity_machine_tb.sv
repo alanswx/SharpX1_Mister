@@ -19,7 +19,7 @@ module hd_capacity_machine_tb #(parameter ENABLE_SELECT=1);
         .sio_external_rx_clock(1'b0),.sio_external_tx_clock(1'b0),
         .sio_rxd(2'b11),.sio_cts_n(2'b11),.sio_dcd_n(2'b11),
         .disk_ready(1'b0),.img_mounted(1'b0),.disk_wp(1'b1),.img_size(24'd0),
-        .disk_ready_b(1'b0),.img_mounted_b(1'b0),.disk_wp_b(1'b1),.img_size_b(24'd0),
+        .disk_ready_b(1'b0),.img_mounted_b(1'b0),.disk_wp_b(1'b1),.img_size_b(24'd0),.disk_raw(1'b0),.disk_raw_b(1'b0),
         .sd_ack(1'b0),.sd_buff_addr(9'd0),.sd_buff_dout(8'd0),.sd_buff_wr(1'b0));
     task automatic emit(input logic [7:0] value);
         assert(size<8192);program_bytes[size++]=value;

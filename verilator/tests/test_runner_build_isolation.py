@@ -21,7 +21,13 @@ for line in lines:
     if '$(V_SRC) sim_headless.cpp' in command:
         recipes.append(command)
     command = ''
-assert len(recipes) == 32, 'runner recipe coverage changed; review new profiles'
+assert len(recipes) == 33, 'runner recipe coverage changed; review new profiles'
+# The single-clock X3 runner must elaborate exactly the master its C++ clocks.
+x3_recipes = [command for command in recipes if '-GMASTER_HZ=42954540' in command]
+assert len(x3_recipes) == 1, 'single-clock X3 recipe missing/duplicated'
+for required in ('-GSINGLE_CLOCK=1', '-GTURBO_VIDEO_MASTER=1', '-DX1_SINGLE_MASTER_HZ=42954540',
+                 '-DX1_TURBO_VIDEO_MASTER', '-GRAW_2D_MEDIA=1', '-DX1_RAW_2D_MEDIA'):
+    assert required in x3_recipes[0], 'single-clock X3 RTL/C++ profile flag mismatch: ' + required
 # The new opt-in FDC recipe must not borrow a different rate/DMA model or
 # report a C++ profile that disagrees with its elaborated RTL parameters.
 fdc_recipes = [command for command in recipes if '-GTURBO_FDC_TIMING=1' in command]

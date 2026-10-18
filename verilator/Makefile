@@ -135,7 +135,7 @@ test-machine-fdc-default-state:
 test-fdc-capacity-class:
 	python3 tests/test_fdc_capacity_class.py --vendor-sha $(FDC_TIMING_VENDOR_SHA)
 .PHONY: test-fdc-capacity-class
-FDC_TIMING_VENDOR_SHA := e04791cce6887ef5c3981f0c9c1cf6b5efe083bbd43813845afaca3dc25ca820
+FDC_TIMING_VENDOR_SHA := bc5b092823668620e1f8939c8ba19e938e418dcef3cc3a3624f0ea40a919de28
 test-fdc-strict-timing:
 	python3 tests/test_fdc_strict_timing.py --vendor-sha $(FDC_TIMING_VENDOR_SHA)
 test-fdc-strict-legacy:
@@ -953,8 +953,8 @@ X3_SINGLE_TIMING ?= --timing
 turbo-x3-single: $(X3_SINGLE_DIR)/Vtop
 $(X3_SINGLE_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc $(X3_SINGLE_TIMING) --assert --trace-fst --exe --build -j 4 --Mdir $(X3_SINGLE_DIR) --top-module top \
-		$(TURBO_DSW_FLAGS) -GTURBO=1 -GTURBO_VIDEO_MASTER=1 -GSINGLE_CLOCK=1 -GMASTER_HZ=42954540 \
-		-CFLAGS "-std=c++20 -DX1_SINGLE_CLOCK -DX1_SINGLE_MASTER_HZ=42954540 -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER" \
+		$(TURBO_DSW_FLAGS) -GTURBO=1 -GTURBO_VIDEO_MASTER=1 -GSINGLE_CLOCK=1 -GMASTER_HZ=42954540 -GRAW_2D_MEDIA=1 +define+X1_RAW_2D_MEDIA \
+		-CFLAGS "-std=c++20 -DX1_SINGLE_CLOCK -DX1_SINGLE_MASTER_HZ=42954540 -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_RAW_2D_MEDIA" \
 		-MAKEFLAGS "OPT_FAST=-O3 -B" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 turbo-x3-single-fast:
 	$(MAKE) turbo-x3-single X3_SINGLE_DIR=obj_dir_v12_x3_single_fast X3_SINGLE_TIMING=--no-timing
@@ -964,6 +964,19 @@ test-x3-single: turbo-x3-single test-sub-timer test-clock-enables
 	python3 tests/test_subcpu.py ./$(X3_SINGLE_DIR)/Vtop
 	python3 tests/test_dual_disk.py ./$(X3_SINGLE_DIR)/Vtop
 .PHONY: turbo-x3-single turbo-x3-single-fast test-x3-single
+# Raw X1 2D media beside D88 on the X3 single-clock machine, plus a matched
+# mutation: a copied tree whose raw writes keep the D88 header RMW must fail.
+test-raw-2d: turbo-x3-single
+	python3 tests/test_raw_2d.py ./$(X3_SINGLE_DIR)/Vtop
+test-raw-2d-mutant:
+	set -e; tmp=$$(mktemp -d /tmp/x1-raw2d-mutant-XXXXXX); \
+	(cd .. && git ls-files rtl references/chip-src verilator | grep -v '^verilator/obj_dir' | tar -cf - -T -) | tar -xf - -C $$tmp; \
+	python3 -c "import sys;p=sys.argv[1]+'/rtl/vendor/wd1793.sv';s=open(p).read();a='if(D88_ONLY && !format && !(RAW_2D && raw_r)) begin';assert s.count(a)==1;open(p,'w').write(s.replace(a,'if(D88_ONLY && !format) begin'))" $$tmp; \
+	$(MAKE) -C $$tmp/verilator turbo-x3-single X3_SINGLE_DIR=obj_dir_mutant X3_SINGLE_TIMING=--no-timing >$$tmp/build.log 2>&1; \
+	if python3 tests/test_raw_2d.py $$tmp/verilator/obj_dir_mutant/Vtop >$$tmp/run.log 2>&1; then echo "FAIL: mutant accepted ($$tmp)"; exit 1; fi; \
+	grep -q "raw write must change only its own sector" $$tmp/run.log || { echo "FAIL: mutant rejected for another reason ($$tmp)"; tail -5 $$tmp/run.log; exit 1; }; \
+	echo "PASS: header-RMW mutant rejected at the raw-write oracle ($$tmp)"
+.PHONY: test-raw-2d test-raw-2d-mutant
 turbo-fast: obj_dir_turbo_fast/Vtop
 turbo-video: obj_dir_turbo_video/Vtop
 turbo-video-fast: obj_dir_turbo_video_fast/Vtop

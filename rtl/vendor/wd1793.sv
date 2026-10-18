@@ -29,7 +29,7 @@
 // rejects selected FM access rather than silently reading an MFM sector.
 module wd1793 #(parameter RWMODE=0, EDSK=1, HEADLOAD_STATUS=0, INDEX_CYCLES=35001,
                D88_ONLY=0, PHYSICAL_DRIVES=1, ADDRESS_BITS=20, MAX_SECTORS=1992,
-               D88_CAPACITY_CHECK=0, STRICT_D88_TIMING=0)
+               D88_CAPACITY_CHECK=0, STRICT_D88_TIMING=0, RAW_2D=0)
 (
 	input        clk_sys,     // sys clock
 	input        ce,          // ce at CPU clock rate
@@ -109,6 +109,9 @@ module wd1793 #(parameter RWMODE=0, EDSK=1, HEADLOAD_STATUS=0, INDEX_CYCLES=3500
 	output       buff_read,	  // buffer RAM read enable
 	input  [7:0] buff_din,    // buffer RAM data input
 	input        hd_selected, // opt-in D88 capacity class; unused by defaults
+	// RAW_2D only: mount the selected image as headerless X1 2D, sampled with
+	// img_size when the mount completes. Constant zero when RAW_2D=0.
+	input        raw_2d,
 	input        fdc_ce      // explicit nominal chip-clock event; timing opt-in only
 );
 
@@ -150,6 +153,16 @@ reg [5:0] ack = 0;
 reg sd_busy = 0;
 // X1 strict container mode never falls back to raw geometry after a bad scan.
 reg d88_bad = 0, d88_valid = 0;
+// Original X1 raw-2D adapter: 40 cylinders x 2 sides x 16 sectors x 256 bytes,
+// cylinder-major with sides interleaved (327,680 bytes, no headers). The index
+// is filled arithmetically into the same table a D88 scan builds; reads and
+// writes then use the unchanged runtime path. Raw media has no D88 header to
+// update, so a raw write skips the strict-D88 metadata RMW.
+localparam [23:0] RAW_2D_BYTES = 24'd327680;
+reg raw_r = 0, raw_start = 0;
+reg raw_run = 0, raw_side = 0, raw_valid_pending = 0;
+reg [5:0] raw_cylinder = 0;
+reg [3:0] raw_sector = 0;
 reg [ADDRESS_BITS:0] d88_end = 0;
 reg mount_pending = 0;
 wire media_ready = ready && (!D88_ONLY || d88_valid) &&
@@ -640,6 +653,7 @@ always @(posedge clk_sys) begin
 	reg [2:0] old_disk_index;
 	reg       have_image;
 
+	if(RAW_2D) raw_start <= 0;
 	if(RWMODE) begin
 		old_mounted <= img_mounted;
 		// A re-scan is what makes selecting a different sub-disk take effect,
@@ -676,7 +690,8 @@ always @(posedge clk_sys) begin
 				// Container size is not the selected volume's size. Keep the
 				// selected-header/extent guards below, but permit a
 				// larger concatenated file whose selected volume is reachable.
-				scan_active<= !D88_ONLY || img_size_id >= 24'h2b0;
+				scan_active<= (!D88_ONLY || img_size_id >= 24'h2b0) && !(RAW_2D && raw_2d);
+				if(RAW_2D) raw_start <= D88_ONLY && raw_2d && img_size_id == RAW_2D_BYTES;
 				scan_addr  <= 0;
 				scan_state <= 0;
 				scan_wr    <= 0;
@@ -684,6 +699,7 @@ always @(posedge clk_sys) begin
 			end
 			disk_size <= img_size[ADDRESS_BITS-1:0];
 			layout_r  <= layout;
+			if(RAW_2D) raw_r <= raw_2d;
 		end
 	end else begin
 		scan_active <= input_active;
@@ -1080,7 +1096,7 @@ always @(posedge clk_sys) begin
 						sd_block <= sd_block + 1'd1;
 						if(sd_block < blk_max) state <= STATE_WAIT_WRITE_1;
 						else begin
-							if(D88_ONLY && !format) begin
+							if(D88_ONLY && !format && !(RAW_2D && raw_r)) begin
 								metadata_busy <= 1;
 								metadata_second <= 0;
 								state <= STATE_METADATA_READ;
@@ -1693,12 +1709,33 @@ generate
 
 			old_active <= scan_active;
 			edsk_wren <= 0;
+			if(RAW_2D) raw_valid_pending <= 0;
 `ifdef DEBUG_FDC_SCAN
 			if(~scan_active & old_active)
 				$display("D77SCAN done: fmt=%0d bytes=%0d tracks=%0d sectors=%0d spt_size=%0d wp=%0d",
 							fmt, scan_addr, d77_cnt, edsk_size, spt_size, d77_wp);
 `endif
-			if(scan_active & ~old_active) begin
+			if(RAW_2D && raw_start) begin
+				d88_bad <= 0;
+				d88_valid <= 0;
+				d88_end <= 0;
+				edsk_size <= 0;
+				spt_size <= 8'd80;
+				var_size <= 0;
+				fmt <= FMT_D77;
+				d77_wp <= 0;
+				d77_cnt <= 0;
+				d77_rd <= 0;
+				d_st <= 0;
+				clr_cnt <= 0;
+				clr_run <= 1;
+				raw_run <= 1;
+				raw_cylinder <= 0;
+				raw_side <= 0;
+				raw_sector <= 0;
+				if(D88_CAPACITY_CHECK) capacity_disk_type <= 8'h00;
+			end
+			else if(scan_active & ~old_active) begin
 				d88_bad <= 0;
 				d88_valid <= 0;
 				d88_end <= 0;
@@ -1732,6 +1769,27 @@ generate
 				clr_cnt <= clr_cnt + 1'd1;
 				if(clr_cnt == 8'd165) clr_run <= 0;
 			end
+			else if(RAW_2D && raw_run) begin
+				// Entry n is sector n of the file: (C*2+H)*16+R-1, at n*256.
+				edsk_wren   <= 1;
+				edsk_wraddr <= edsk_size;
+				edsk_wrdata <= {1'b0, raw_cylinder, raw_side, {2'b00, raw_cylinder}, {7'd0, raw_side},
+				                {4'd0, raw_sector} + 8'd1, 2'd1, 2'b00, 1'b0,
+				                ADDRESS_BITS'(edsk_size) << 8};
+				edsk_size <= edsk_size + 1'd1;
+				if(raw_sector == 0) spt[(raw_side ? 8'd40 : 8'd0) + {2'b00, raw_cylinder}] <= 8'd16;
+				raw_sector <= raw_sector + 1'd1;
+				if(&raw_sector) begin
+					raw_side <= !raw_side;
+					if(raw_side) raw_cylinder <= raw_cylinder + 1'd1;
+					if(raw_side && raw_cylinder == 6'd39) begin
+						raw_run <= 0;
+						d88_end <= (ADDRESS_BITS+1)'(RAW_2D_BYTES);
+						raw_valid_pending <= 1;
+					end
+				end
+			end
+			if(RAW_2D && raw_valid_pending) d88_valid <= 1;
 
 			old_wr <= scan_wr;
 			if(D88_ONLY && !scan_active && old_active) begin
@@ -1739,7 +1797,10 @@ generate
 				d88_valid <= !d88_bad && fmt == FMT_D77 && d_st == 0 &&
 				             d77_rd == d77_cnt && {1'b0, scan_addr} == d88_end;
 			end
-			if(D88_ONLY && (img_mounted || mount_pending)) d88_valid <= 0;
+			if(D88_ONLY && (img_mounted || mount_pending)) begin
+				d88_valid <= 0;
+				if(RAW_2D) raw_run <= 0;
+			end
 			if(scan_wr & ~old_wr & scan_active && !((D88_ONLY || ADDRESS_BITS > 20 || MAX_SECTORS != 1992) && d88_bad)) begin
 
 				//---------------------------------------------------------

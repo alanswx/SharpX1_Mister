@@ -3,7 +3,8 @@
 // switching images serializes a rescan behind completion of the old request.
 // Caller retains per-drive descriptors across reset; mount pulses invalidate
 // the active index before their updated descriptors are used for a rescan.
-module x1_disk_media (
+// RAW=0 keeps selected_raw constant zero and adds no logic.
+module x1_disk_media #(parameter RAW = 0) (
     input clk,
     input [1:0] selected,
     input [1:0] mounted, present, readonly,
@@ -12,7 +13,10 @@ module x1_disk_media (
     output reg [1:0] active,
     output changing,
     output ready, wp,
-    output [23:0] size
+    output [23:0] size,
+    // Per-drive raw-2D format, latched by the caller with each mount.
+    input [1:0] raw,
+    output selected_raw
 );
     reg pending;
     initial begin active = 0; pending = 1; end
@@ -22,6 +26,8 @@ module x1_disk_media (
     // Protection is a live host policy (OSD can disable writes without a mount).
     assign wp = !valid || readonly[active[0]];
     assign size = valid && present[active[0]] ? (active[0] ? size_b : size_a) : 24'd0;
+    // Sampled by the FDC together with size when the rescan begins.
+    assign selected_raw = RAW != 0 && valid && present[active[0]] && raw[active[0]];
     always @(posedge clk) begin
         if (changing) begin
             pending <= 1;
