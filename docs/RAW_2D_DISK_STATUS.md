@@ -57,6 +57,22 @@ A and a D88 in drive B, on the X3 single-clock runner, real Z80/FDC/SD path:
 The full `make test`, `test-x3-single`, FDC strict timing/legacy, capacity
 class and address-width suites pass after the change.
 
+## Real media cross-check
+
+The `Galaga.2d` copy used on the closed-source core (SHA-256 `75dc785e…`,
+327,680 bytes) is byte-identical to the local `Galaga.d88` (`d0cdeb82…`;
+16 x 256-byte sectors on all 80 tracks, C/H matching the track table)
+converted in exactly the implemented cylinder, side, sector order. All
+1,280 raw sectors sit at their computed positions. This independent dump
+confirms the geometry rather than relying only on our own generator.
+
+On the fast X3 single runner (non-timing build, 480,000,000 reference
+cycles = 15 s, native Turbo IPL `21289570…` + ANK16 `e356dd19…`), raw
+`Galaga.2d` and `Galaga.d88` both reach the Galaga title screen (929 vs 928
+frames, zero writes). The final frames differ in 6 of 64,000 pixels, all in
+column x=1 (rows 22–136), consistent with the one-frame phase offset from the
+D88 header scan. Evidence: `output_files/RAW2D_SIM_20261018/` (ignored).
+
 ## Open
 
 Board build and MiSTer OSD/MGL mount, native 2D software boot from raw media,
