@@ -224,7 +224,10 @@ localparam CONF_STR = {
 	"-;",
 	"T[0],Reset;",
 	"R[0],Reset and close OSD;",
-	"V,v",`BUILD_DATE 
+	"V,v",`BUILD_DATE,
+	// x1_joystick_map routes MiSTer bits 4/5 to the X1 PSG trigger A/B pins.
+	";J,Trigger A,Trigger B;",
+	"jn,A,B;"
 };
 
 wire forced_scandoubler;
