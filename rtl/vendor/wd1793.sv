@@ -1434,9 +1434,14 @@ always @(posedge clk_sys) begin
 								end
 							'hD:	// FORCE INTERRUPT (type IV)
 								begin
-									cmd_mode <= 0;
+									// Interrupting a running command keeps its status type
+									// and only ends BUSY (MAME wd_fdc interrupt_start; WD179x).
+									// Type I status is reloaded only when no command runs.
+									// Valis polls for 00 after D8 ends a multi-sector read;
+									// type I would expose head-loaded (20h) and retry forever.
 									if(state != STATE_IDLE) state <= STATE_ABORT;
 									else begin
+										cmd_mode <= 0;
 										{s_wrfault,s_seekerr,s_crcerr,s_lostdata, s_drq_busy} <= 0;
 										// Only I3 interrupts immediately. I0/I1 wait for
 										// READY transitions; I2 waits for an index edge.

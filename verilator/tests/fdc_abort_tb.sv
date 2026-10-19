@@ -38,6 +38,10 @@ module fdc_abort_tb;
         assert(!busy && !drq && irq == interrupt_expected)
             else $fatal(1, "abort active=%0d expected_irq=%0d actual_irq=%0d busy=%0d drq=%0d",
                         active, interrupt_expected, irq, busy, drq);
+        // Interrupting a running command keeps its (type II) status; only an
+        // idle force interrupt reloads type I status (MAME wd_fdc, WD179x).
+        assert(dut.cmd_mode == active)
+            else $fatal(1, "force interrupt status type active=%0d cmd_mode=%0d", active, dut.cmd_mode);
         // D0 must also clear an interrupt left by D8.
         send(8'hD0);
         repeat (10) @(negedge clk);

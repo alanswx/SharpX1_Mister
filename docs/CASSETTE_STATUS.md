@@ -125,6 +125,30 @@ MiSTer 192, raw mrext captures in `output_files/CASSETTE_20261018/hw/`:
 | X3 font single | Galaga raw .2d | Title; Space gives the level menu ✓ (disk path intact) |
 | `sharpx1_cassette` | Base IPL, controller, 3D Bomberman (44.1 kHz, software list `3dbomb`) | Loads; title art, then instructions after Space ✓ |
 
+### Software-list tape sweep (MiSTer 192, X3 core `31b499ca…`)
+
+All 163 MAME 0.289 software-list TAPs pass the board's admission rules.
+Ten were run with the native Turbo IPL and the joystick-off controller. Each
+got one capture at `min(length, 200 s) + 25 s` and another after Space;
+the list and hashes are in `output_files/CASSETTE_20261018/softlist/`.
+
+| ID | Title | Rate | Result |
+| --- | --- | --- | --- |
+| KS01 | Space Burger | 8 kHz | Game, then GAME OVER/Push space ✓ |
+| KS02 | Star World II | 8 kHz | Title ✓ |
+| KS03 | Barricade | 8 kHz | IPL "File mode error": software list says "In BASIC, type LOAD and then RUN" |
+| KS04 | Atama no Taisou | 8 kHz | Same; a BASIC tape |
+| KS05 | Star Stream | 44.1 kHz | Still "WAIT A MOMENT PLEASE." at 109 s (inconclusive; MAME marks it unsupported) |
+| KS06 | Maharito | 44.1 kHz | Title, HIT SPACE KEY ✓ |
+| KS07 | Yakyūkyō | 24 kHz | Title ✓ |
+| KS08 | Wingman | 48 kHz | Still loading at 225 s of a 650 s tape (inconclusive) |
+| KS09 | Z Gundam | 22.05 kHz | Title ✓ |
+| KS10 | Wakusei Mephius | 32 kHz | IPL "File mode error" (no reference; MAME marks it unsupported) |
+
+Six of the eight non-BASIC tapes reach a title or game, at four different
+non-8-kHz rates. The non-8 kHz titles have no emulator reference here,
+because MAME only plays 8 kHz tapes.
+
 Still open on the board: Car Chase, the only 176.4 kHz tape (its payload is
 4 bytes shorter than the declared bit count, so the exact-length rule rejects
 it); format 0; rewind/fast-forward except by remounting; recording and APSS;

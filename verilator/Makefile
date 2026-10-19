@@ -135,7 +135,7 @@ test-machine-fdc-default-state:
 test-fdc-capacity-class:
 	python3 tests/test_fdc_capacity_class.py --vendor-sha $(FDC_TIMING_VENDOR_SHA)
 .PHONY: test-fdc-capacity-class
-FDC_TIMING_VENDOR_SHA := 4654ee9c69f36abf145b61d0517410d18650fff72325d848962080f6a8613abf
+FDC_TIMING_VENDOR_SHA := e5b3f4f79b493c9957fb7d46a12d516973b62aea0a6573af6226ab7b782470a9
 test-fdc-strict-timing:
 	python3 tests/test_fdc_strict_timing.py --vendor-sha $(FDC_TIMING_VENDOR_SHA)
 test-fdc-strict-legacy:
