@@ -1,7 +1,7 @@
 // Sharp X1 base-machine integration. Shared by MiSTer and simulation.
 // See docs/BASE_X1_CONTRACT.md for address-map sources and limitations.
 module sharpx1 #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0, TURBO_DSW = 241, TURBO_DMA_RESTART_IRQ = 0, TURBO_Z_PALETTE_CPU = 0, TURBO_Z_VIDEO = 0, TURBO_Z_MULTIMODE = 0, TURBO_Z_INTERNAL8 = 0, TURBO_Z_TEXT_CPU = 0, TURBO_SIO = 0, TURBO_FM_CPU = 0, RTC_ENABLE = 0, TURBO_Z_EFFECT_CPU = 0, TURBO_DMA_KANJI_EXPERIMENT = 0, D88_ADDRESS_BITS = 20, TURBO_HD_SELECT = 0, TURBO_HD_MEDIA = 0,
-    TURBO_FDC_TIMING = 0, FDC_CLOCK_HZ = 1000000, CASSETTE_ENABLE = 0, CASSETTE_RUNTIME_RATE = 0, TURBO_FM_CTC = 0,
+    TURBO_FDC_TIMING = 0, FDC_CLOCK_HZ = 1000000, CASSETTE_ENABLE = 0, CASSETTE_RUNTIME_RATE = 0, TURBO_FM_CTC = 0, SUB_CAPS_OFF = 0,
     TURBO_Z_KANJI = 0, TURBO_Z_EXTERNAL_FONT = 0) (
     input clk_sys, clk_28636, reset,
     input pal, scandouble,
@@ -782,7 +782,7 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636
         ioctl_download && ioctl_wr && ioctl_index==6 && ioctl_addr<8192;
     wire rtc_power_reset = RTC_ENABLE && core_reset && !ioctl_wait &&
         ioctl_download && ioctl_wr && ioctl_index==7 && ioctl_addr==0 && ioctl_dout==1;
-    x1_sub #(.CLOCK_HZ(SINGLE_CLOCK ? MASTER_HZ : 32000000), .PS2_RECEIVE_ONLY(1), .IRQ_ACK_ONCE(TURBO), .RTC_ENABLE(RTC_ENABLE), .CASSETTE_ENABLE(CASSETTE_ENABLE)) subCPU (
+    x1_sub #(.CLOCK_HZ(SINGLE_CLOCK ? MASTER_HZ : 32000000), .PS2_RECEIVE_ONLY(1), .CAPS_OFF(SUB_CAPS_OFF), .IRQ_ACK_ONCE(TURBO), .RTC_ENABLE(RTC_ENABLE), .CASSETTE_ENABLE(CASSETTE_ENABLE)) subCPU (
         .I_reset(core_reset), .I_rtc_power_reset(rtc_power_reset), .I_clk(clk_sys), .I_cs(sub_cs),
         .I_cassette_mode(tape_mode[1:0]), .I_cassette_sensor(tape_sensor),
         .O_cassette_command(cassette_command),

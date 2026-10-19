@@ -1024,7 +1024,7 @@ turbo-x3-single-fm: $(X3_FM_DIR)/Vtop
 $(X3_FM_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc $(X3_FM_TIMING) --assert --trace-fst --exe --build -j 4 --Mdir $(X3_FM_DIR) --top-module top \
 		$(TURBO_DSW_FLAGS) -GTURBO=1 -GTURBO_VIDEO_MASTER=1 -GSINGLE_CLOCK=1 -GMASTER_HZ=42954540 -GRAW_2D_MEDIA=1 \
-		-GTURBO_FM_CPU=1 -GTURBO_FM_CTC=1 +define+X1_RAW_2D_MEDIA \
+		-GTURBO_FM_CPU=1 -GTURBO_FM_CTC=1 -GSUB_CAPS_OFF=1 +define+X1_RAW_2D_MEDIA \
 		-CFLAGS "-std=c++20 -DX1_SINGLE_CLOCK -DX1_SINGLE_MASTER_HZ=42954540 -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_RAW_2D_MEDIA -DX1_TURBO_FM_CPU" \
 		-MAKEFLAGS "OPT_FAST=-O3 -B" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 turbo-x3-single-fm-fast:
