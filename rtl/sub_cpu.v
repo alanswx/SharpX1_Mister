@@ -306,11 +306,10 @@ end else if (CASSETTE_ENABLE) begin : experimental_cassette
     .rom_cs(pgm_cs),.ram_cs(decoded_ram),.rom_word_address(rom_word));
   assign wram_cs = decoded_ram && !sub_addr[11];
   reg selected_ram;
-  // Two byte-wide dual-port memories (upload/readback port, CPU read port)
-  // so synthesis maps the 8-KiB program to block RAM, not registers.
-  reg [7:0] cassette_program_l[0:4095];
-  reg [7:0] cassette_program_h[0:4095];
-  reg [7:0] cpu_program_l, cpu_program_h, firmware_read_l, firmware_read_h;
+  // Two byte-wide true dual-port memories (upload/readback port, CPU read
+  // port) so the 8-KiB program maps to one block-RAM copy, not registers or
+  // a duplicated read port. Readback during an upload write returns new data.
+  wire [7:0] cpu_program_l, cpu_program_h, firmware_read_l, firmware_read_h;
   reg firmware_odd;
   // Until a controller image is uploaded, low-bank reads come from the
   // ordinary embedded sub_rom, so a missing upload behaves like the
@@ -322,16 +321,16 @@ end else if (CASSETTE_ENABLE) begin : experimental_cassette
     firmware_odd <= I_fa[0];
     if (program_upload) controller_loaded <= 1'b1;
   end
-  always @(posedge I_clk) begin
-    if (program_upload && !I_fa[0]) cassette_program_l[I_fa[12:1]] <= I_D;
-    firmware_read_l <= cassette_program_l[I_fa[12:1]];
-  end
-  always @(posedge I_clk) cpu_program_l <= cassette_program_l[rom_word];
-  always @(posedge I_clk) begin
-    if (program_upload && I_fa[0]) cassette_program_h[I_fa[12:1]] <= I_D;
-    firmware_read_h <= cassette_program_h[I_fa[12:1]];
-  end
-  always @(posedge I_clk) cpu_program_h <= cassette_program_h[rom_word];
+  x1_tdp_ram #(.AW(12),.DW(8)) cassette_program_l (
+    .clock_a(I_clk), .address_a(I_fa[12:1]), .data_a(I_D),
+    .wren_a(program_upload && !I_fa[0]), .q_a(firmware_read_l),
+    .clock_b(I_clk), .address_b(rom_word), .data_b(8'd0), .wren_b(1'b0),
+    .q_b(cpu_program_l));
+  x1_tdp_ram #(.AW(12),.DW(8)) cassette_program_h (
+    .clock_a(I_clk), .address_a(I_fa[12:1]), .data_a(I_D),
+    .wren_a(program_upload && I_fa[0]), .q_a(firmware_read_h),
+    .clock_b(I_clk), .address_b(rom_word), .data_b(8'd0), .wren_b(1'b0),
+    .q_b(cpu_program_h));
   assign rtc_rdata = msel ? (controller_loaded ? {cpu_program_h, cpu_program_l} : pgm_data) :
     selected_ram ? wram_data : 16'hffff;
   assign rtc_firmware_data = firmware_odd ? firmware_read_h : firmware_read_l;

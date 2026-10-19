@@ -50,6 +50,7 @@ set_global_assignment -name VERILOG_FILE rtl/sub_rom.v
 set_global_assignment -name VERILOG_FILE rtl/mr16_x1.v
 set_global_assignment -name VERILOG_FILE rtl/mr16core.v
 set_global_assignment -name VERILOG_FILE rtl/x1_adec.v
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_tdp_ram.sv
 set_global_assignment -name VERILOG_FILE rtl/x1_video_ram.v
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_gram_address.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_video_timing.sv

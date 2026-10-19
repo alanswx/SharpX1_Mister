@@ -28,7 +28,7 @@ def main():
     inputs += sorted((ROOT / "bios/reference/fw_subcpu").glob("*.asm"))
     inputs += sorted((ROOT / "bios/reference/fw_subcpu").glob("*.inc"))
     inputs += [ROOT / "bios/reference/fw_subcpu/verilog/X1SUB.BIN"]
-    inputs += [ROOT / "rtl" / name for name in ("sub_cpu.v", "sub_rom.v", "dpram.sv",
+    inputs += [ROOT / "rtl" / name for name in ("sub_cpu.v", "sub_rom.v", "x1_tdp_ram.sv", "dpram.sv",
                "mr16core.v", "mr16_x1.v", "x1_mr16_rom_decode.sv", "x1_rtc_clock_enable.sv",
                "x1_cz880_rtc.sv", "x1_upd1990_counter.sv", "x1_upd1990_calendar.sv")]
     inputs += runners

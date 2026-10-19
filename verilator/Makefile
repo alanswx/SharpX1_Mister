@@ -1986,7 +1986,7 @@ test-turbo-raster: turbo test-gram-address
 
 .PHONY: test-turbo-raster
 
-SUB_IRQ_SRC = ../rtl/mr16core.v ../rtl/mr16_x1.v ../rtl/sub_rom.v ../rtl/sub_cpu.v ../rtl/dpram.sv ../rtl/x1_irq_bridge.sv tests/sub_irq_ack_tb.sv
+SUB_IRQ_SRC = ../rtl/mr16core.v ../rtl/mr16_x1.v ../rtl/sub_rom.v ../rtl/sub_cpu.v ../rtl/x1_tdp_ram.sv ../rtl/dpram.sv ../rtl/x1_irq_bridge.sv tests/sub_irq_ack_tb.sv
 SUB_IRQ_HZ = 32000000 28636364 28571428
 SUB_IRQ_BINS = $(foreach hz,$(SUB_IRQ_HZ),$(HEADLESS_DIR)/subirq/$(hz)/Vsub_irq_ack_tb)
 
@@ -2316,7 +2316,7 @@ test-rtc-mr16-firmware-control: $(HEADLESS_DIR)/rtc-mr16-firmware-1/Vrtc_mr16_fi
 	ulimit -c 0; python3 tests/test_rtc_mr16_firmware.py --control $^
 .PHONY: test-rtc-mr16-firmware-control
 
-SUB_RTC_SOURCES = tests/sub_rtc_tb.sv ../rtl/sub_cpu.v ../rtl/sub_rom.v ../rtl/dpram.sv $(filter-out tests/rtc_mr16_compact_tb.sv,$(RTC_COMPACT_SOURCES))
+SUB_RTC_SOURCES = tests/sub_rtc_tb.sv ../rtl/sub_cpu.v ../rtl/sub_rom.v ../rtl/x1_tdp_ram.sv ../rtl/dpram.sv $(filter-out tests/rtc_mr16_compact_tb.sv,$(RTC_COMPACT_SOURCES))
 SUB_RTC_HZ = 32000000 28636364 28571428
 test-sub-rtc: $(foreach hz,$(SUB_RTC_HZ),$(HEADLESS_DIR)/sub-rtc-$(hz)/Vsub_rtc_tb)
 	ulimit -c 0; python3 tests/test_sub_rtc.py $^

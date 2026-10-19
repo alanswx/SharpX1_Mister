@@ -23,7 +23,7 @@ assert 0x2F00 | (((receiver - entry) // 2) & 0xFF) == 0x2FFB
 binary = (firmware / "verilog/X1SUB.BIN").read_bytes()
 assert binary[entry:entry+2] == bytes.fromhex("0071")
 sources = [root / name for name in (
-    "rtl/mr16core.v", "rtl/mr16_x1.v", "rtl/sub_rom.v", "rtl/sub_cpu.v",
+    "rtl/mr16core.v", "rtl/mr16_x1.v", "rtl/sub_rom.v", "rtl/sub_cpu.v", "rtl/x1_tdp_ram.sv",
     "rtl/dpram.sv", "verilator/tests/keyboard_receiver_tb.sv")]
 with tempfile.TemporaryDirectory(prefix="x1-keyboard-receiver-") as folder:
     for hz, receive_only in ((32000000, 0), (32000000, 1),
