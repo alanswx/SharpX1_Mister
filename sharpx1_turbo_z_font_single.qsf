@@ -14,3 +14,6 @@ set_global_assignment -name SDC_FILE scripts/constraints/x3_single_clock_groups.
 # Read-only cassette deck: S2 TAP (4-192 kHz) streamed from SD; controller via
 # F6 or boot1.rom. Without a controller the ordinary embedded MR16 ROM runs.
 set_global_assignment -name VERILOG_MACRO "X1_CASSETTE=1"
+# YM2151 FM board: CPU bus at 0700/0701 plus its CTC at 0704-0707 on the
+# interrupt chain (FM CTC > main CTC > keyboard); signed stereo audio.
+set_global_assignment -name VERILOG_MACRO "X1_TURBO_FM_CPU=1"

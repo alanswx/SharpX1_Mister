@@ -296,6 +296,34 @@ $(HEADLESS_DIR)/machine-fm-single-board/Vmachine_fm_tb: tests/machine_fm_tb.sv $
 	$(V) --binary --timing --assert --top-module machine_fm_tb -GSINGLE_CLOCK=1 -GMASTER_HZ=28571428 --Mdir $(@D) -j 4 tests/machine_fm_tb.sv $(MACHINE_SRC) -Wno-fatal
 .PHONY: test-machine-fm
 
+# Default-off FM-board CTC (0704) and FM > CTC > keyboard IM2 chain; real Z80.
+test-machine-fm-ctc: $(HEADLESS_DIR)/machine-fm-ctc/Vmachine_fm_ctc_tb $(HEADLESS_DIR)/machine-fm-ctc-x3/Vmachine_fm_ctc_tb $(HEADLESS_DIR)/machine-fm-ctc-absent/Vmachine_fm_ctc_tb
+	./$(HEADLESS_DIR)/machine-fm-ctc/Vmachine_fm_ctc_tb
+	./$(HEADLESS_DIR)/machine-fm-ctc-x3/Vmachine_fm_ctc_tb
+	@ulimit -c 0; if ./$(HEADLESS_DIR)/machine-fm-ctc-absent/Vmachine_fm_ctc_tb >$(HEADLESS_DIR)/machine-fm-ctc-absent/negative.log 2>&1; then \
+		echo 'ERROR: absent FM CTC unexpectedly passed'; exit 1; \
+	fi; grep -q 'FM CTC probe absent ff/ff' $(HEADLESS_DIR)/machine-fm-ctc-absent/negative.log || \
+		{ echo 'ERROR: wrong absent FM CTC failure'; exit 1; }; \
+	echo 'PASS absent FM CTC rejects the detection probe (reads ff/ff)'
+	@ulimit -c 0; set -e; m=$(HEADLESS_DIR)/machine-fm-ctc-reti-mutant; rm -rf $$m; mkdir -p $$m; \
+	sed 's/assign ctc_reti = reti && fm_depth == 0;/assign ctc_reti = reti;/' ../rtl/x1_fm_irq_bridge.sv > $$m/x1_fm_irq_bridge.sv; \
+	grep -q 'assign ctc_reti = reti;' $$m/x1_fm_irq_bridge.sv; \
+	$(V) --binary --timing --assert --top-module machine_fm_ctc_tb --Mdir $$m/obj -j 4 tests/machine_fm_ctc_tb.sv \
+		$(filter-out ../rtl/x1_fm_irq_bridge.sv,$(MACHINE_SRC)) $$m/x1_fm_irq_bridge.sv -Wno-fatal >$$m/build.log 2>&1; \
+	if $$m/obj/Vmachine_fm_ctc_tb >$$m/run.log 2>&1; then echo 'ERROR: RETI-broadcast mutant passed'; exit 1; fi; \
+	grep -q 'FM chain ACK/RETI routing' $$m/run.log || { echo 'ERROR: wrong RETI mutant failure'; exit 1; }; \
+	echo 'PASS RETI-broadcast mutant rejected by the routing ledger'
+$(HEADLESS_DIR)/machine-fm-ctc/Vmachine_fm_ctc_tb: tests/machine_fm_ctc_tb.sv $(MACHINE_SRC) Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module machine_fm_ctc_tb --Mdir $(@D) -j 4 tests/machine_fm_ctc_tb.sv $(MACHINE_SRC) -Wno-fatal
+$(HEADLESS_DIR)/machine-fm-ctc-x3/Vmachine_fm_ctc_tb: tests/machine_fm_ctc_tb.sv $(MACHINE_SRC) Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module machine_fm_ctc_tb -GSINGLE_CLOCK=1 -GMASTER_HZ=42954540 --Mdir $(@D) -j 4 tests/machine_fm_ctc_tb.sv $(MACHINE_SRC) -Wno-fatal
+$(HEADLESS_DIR)/machine-fm-ctc-absent/Vmachine_fm_ctc_tb: tests/machine_fm_ctc_tb.sv $(MACHINE_SRC) Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module machine_fm_ctc_tb -GFM_CTC=0 --Mdir $(@D) -j 4 tests/machine_fm_ctc_tb.sv $(MACHINE_SRC) -Wno-fatal
+.PHONY: test-machine-fm-ctc
+
 test-machine-fm-audio: $(HEADLESS_DIR)/machine-fm-audio-$(FM_MASTER_HZ)/Vmachine_fm_tb
 	./$(HEADLESS_DIR)/machine-fm-audio-$(FM_MASTER_HZ)/Vmachine_fm_tb +OUTPUT=$(HEADLESS_DIR)/machine-fm-audio-$(FM_MASTER_HZ)/mixed +IPL_OUTPUT=$(HEADLESS_DIR)/machine-fm-audio-$(FM_MASTER_HZ)/generated.ipl
 	python3 tests/test_fm_psg_audio.py $(HEADLESS_DIR)/machine-fm-audio-$(FM_MASTER_HZ)/mixed --profiles 0 4
@@ -2921,7 +2949,7 @@ lint-wrapper-turbo-z-font:
 		../sharpx1.sv ../sys/hps_io.sv tests/board_pll_lint.v ../rtl/x1_joystick_map.v $(MACHINE_SRC) -Wno-fatal
 .PHONY: lint-wrapper-turbo-z-font
 lint-wrapper-turbo-z-font-single:
-	$(V) --lint-only --timing --top-module emu -DX1_SINGLE_CLOCK -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_TURBO_Z_EXTERNAL_FONT -DX1_SCALER_LOCAL_RESET_RELEASE -DX1_CASSETTE -Itests \
+	$(V) --lint-only --timing --top-module emu -DX1_SINGLE_CLOCK -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_TURBO_Z_EXTERNAL_FONT -DX1_SCALER_LOCAL_RESET_RELEASE -DX1_CASSETTE -DX1_TURBO_FM_CPU -Itests \
 		../sharpx1.sv ../sys/hps_io.sv tests/board_pll_lint.v ../rtl/x1_joystick_map.v ../rtl/x1_tap_sd_stream.sv $(MACHINE_SRC) -Wno-fatal
 .PHONY: lint-wrapper-turbo-z-font-single
 lint-wrapper-turbo-z-video-single:

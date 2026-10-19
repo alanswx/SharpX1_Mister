@@ -1,7 +1,7 @@
 // Sharp X1 base-machine integration. Shared by MiSTer and simulation.
 // See docs/BASE_X1_CONTRACT.md for address-map sources and limitations.
 module sharpx1 #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0, TURBO_DSW = 241, TURBO_DMA_RESTART_IRQ = 0, TURBO_Z_PALETTE_CPU = 0, TURBO_Z_VIDEO = 0, TURBO_Z_MULTIMODE = 0, TURBO_Z_INTERNAL8 = 0, TURBO_Z_TEXT_CPU = 0, TURBO_SIO = 0, TURBO_FM_CPU = 0, RTC_ENABLE = 0, TURBO_Z_EFFECT_CPU = 0, TURBO_DMA_KANJI_EXPERIMENT = 0, D88_ADDRESS_BITS = 20, TURBO_HD_SELECT = 0, TURBO_HD_MEDIA = 0,
-    TURBO_FDC_TIMING = 0, FDC_CLOCK_HZ = 1000000, CASSETTE_ENABLE = 0, CASSETTE_RUNTIME_RATE = 0,
+    TURBO_FDC_TIMING = 0, FDC_CLOCK_HZ = 1000000, CASSETTE_ENABLE = 0, CASSETTE_RUNTIME_RATE = 0, TURBO_FM_CTC = 0,
     TURBO_Z_KANJI = 0, TURBO_Z_EXTERNAL_FONT = 0) (
     input clk_sys, clk_28636, reset,
     input pal, scandouble,
@@ -170,12 +170,14 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636
             $error("DMA/Kanji qualification requires Turbo, DMA, Kanji and X3 video");
         if (TURBO_KANJI_RENDER && !TURBO_KANJI)
             $error("TURBO_KANJI_RENDER requires the explicit physical Kanji ROM profile");
-        // Cassette is admitted: its controller uses index 6 and the read-only
-        // deck has no bus/DMA ownership; other combinations stay unqualified.
-        if (TURBO_Z_EXTERNAL_FONT && (!TURBO_Z_KANJI || TURBO_Z_VIDEO || RTC_ENABLE || TURBO_SIO || TURBO_FM_CPU))
+        // Cassette and FM (CPU bus + FM-board CTC) are admitted: neither owns
+        // the bus or DMA; other combinations stay unqualified.
+        if (TURBO_Z_EXTERNAL_FONT && (!TURBO_Z_KANJI || TURBO_Z_VIDEO || RTC_ENABLE || TURBO_SIO))
             $error("external font profile requires Z Kanji; combined experimental devices remain unqualified");
         if (TURBO_Z_KANJI && !(TURBO && TURBO_VIDEO_MASTER && TURBO_KANJI && TURBO_KANJI_RENDER && !TURBO_DMA))
             $error("Z Kanji simulation profile requires Turbo/X3/Kanji/render and excludes DMA");
+        if (TURBO_FM_CTC && (!TURBO || !TURBO_FM_CPU || TURBO_DMA_IRQ || TURBO_SIO))
+            $error("TURBO_FM_CTC requires the FM CPU profile and the compatible interrupt chain");
         if (CASSETTE_RUNTIME_RATE && !CASSETTE_ENABLE)
             $error("CASSETTE_RUNTIME_RATE requires CASSETTE_ENABLE");
         if (TURBO && (TURBO_DSW < 0 || TURBO_DSW > 255))
@@ -583,6 +585,30 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636
         .iei(ctc_iei), .irq(ctc_irq), .ieo(ctc_ieo), .ack(ctc_ack),
         .reti(ctc_reti), .vector(ctc_vector), .zc(ctc_zc)
     );
+    // Default-off FM-board CTC (CZ-8BS1, 0704-0707; MAME ctc_ym): 4 MHz clock,
+    // ZC0 cascades into TRG3, TRG0-2 held high. Games also probe it to detect
+    // the FM board. Separate parameter keeps v17 FM snapshot state unchanged.
+    wire fm_ctc_cs = TURBO_FM_CTC && io_cycle && !dam && !dma_owner && a[15:2] == 14'h01c1;
+    wire [7:0] fm_ctc_data, fm_ctc_vector;
+    wire fm_ctc_irq, fm_ctc_ieo, fm_ctc_ack, fm_ctc_reti;
+    generate if (TURBO_FM_CTC) begin : fm_board_ctc
+        reg fm_ctc_write_old;
+        always @(posedge clk_sys or posedge core_reset)
+            if (core_reset) fm_ctc_write_old <= 0;
+            else fm_ctc_write_old <= fm_ctc_cs && io_write;
+        wire [3:0] fm_ctc_zc;
+        x1_ctc fm_ctc (
+            .clk(clk_sys), .reset(core_reset), .ce(pe4M4),
+            .wr(fm_ctc_cs && io_write && !fm_ctc_write_old), .channel(a[1:0]),
+            .din(data_out), .dout(fm_ctc_data),
+            .trigger({fm_ctc_zc[0],3'b111}),
+            .iei(1'b1), .irq(fm_ctc_irq), .ieo(fm_ctc_ieo), .ack(fm_ctc_ack),
+            .reti(fm_ctc_reti), .vector(fm_ctc_vector), .zc(fm_ctc_zc)
+        );
+    end else begin : no_fm_board_ctc
+        assign fm_ctc_data = 8'hff; assign fm_ctc_vector = 8'hff;
+        assign fm_ctc_irq = 0; assign fm_ctc_ieo = 1;
+    end endgenerate
     generate if(TURBO && TURBO_SIO) begin : serial_irq_chain
         x1_sio_irq_bridge irq_bridge(
             .clk(clk_sys),.reset(core_reset),.m1_n(m1),.mreq_n(mreq),
@@ -596,6 +622,7 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636
             .irq(machine_irq),.keyboard_ack(keyboard_ack),.ctc_ack(ctc_ack),
             .ctc_iei(ctc_iei),.ctc_reti(ctc_reti),.ack_vector(irq_vector));
         assign ctc_selected=!m1 && !iorq && !sio_irq && !dma_irq && ctc_irq;
+        assign fm_ctc_ack = 0; assign fm_ctc_reti = 0;
     end else if (TURBO_DMA_IRQ) begin : completion_irq_chain
         assign sio_iei=1;assign sio_ack=0;assign sio_reti=0;
         // Inspected CZ-851/852 chain; upstream SIO/external are absent here.
@@ -610,6 +637,21 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636
             .ctc_iei(ctc_iei),.ctc_reti(ctc_reti),.ack_vector(irq_vector)
         );
         assign ctc_selected = !m1 && !iorq && !dma_irq && ctc_irq;
+        assign fm_ctc_ack = 0; assign fm_ctc_reti = 0;
+    end else if (TURBO_FM_CTC) begin : fm_irq_chain
+        assign sio_iei=1;assign sio_ack=0;assign sio_reti=0;
+        assign dma_iei = 1; assign dma_ack = 0; assign dma_reti = 0;
+        x1_fm_irq_bridge irq_bridge (
+            .clk(clk_sys),.reset(core_reset),.m1_n(m1),.mreq_n(mreq),
+            .iorq_n(iorq),.rd_n(rd),.data(di),
+            .keyboard_irq(!sub_int_n),.ctc_irq(ctc_irq),.fm_ctc_irq(fm_ctc_irq),
+            .ctc_ieo(ctc_ieo),.ctc_vector(ctc_vector),.fm_ctc_vector(fm_ctc_vector),
+            .keyboard_vector(sub_data),.irq(machine_irq),.keyboard_ack(keyboard_ack),
+            .ctc_ack(ctc_ack),.fm_ctc_ack(fm_ctc_ack),.ctc_reti(ctc_reti),.fm_ctc_reti(fm_ctc_reti),
+            .ack_vector(irq_vector),.fm_service_depth()
+        );
+        assign ctc_iei = fm_ctc_ieo;
+        assign ctc_selected = !m1 && !iorq && !fm_ctc_irq && ctc_irq;
     end else begin : compatible_irq_chain
         assign sio_iei=1;assign sio_ack=0;assign sio_reti=0;
         assign dma_iei = 1; assign dma_ack = 0; assign dma_reti = 0;
@@ -617,6 +659,7 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636
         assign keyboard_ack = compatible_keyboard_ack;
         assign ctc_ack = compatible_ctc_ack; assign ctc_iei = compatible_ctc_iei;
         assign ctc_reti = compatible_ctc_reti; assign ctc_selected = compatible_ctc_selected;
+        assign fm_ctc_ack = 0; assign fm_ctc_reti = 0;
         assign irq_vector = compatible_vector;
     end endgenerate
     // Keep the default instance path/state layout unchanged for v12 snapshots.
@@ -770,6 +813,7 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636
               : sub_cs && io_read && !dam ? sub_data
               : ppi_cs && io_read ? ppi_data
               : ctc_cs && io_read ? ctc_data
+              : fm_ctc_cs && io_read ? fm_ctc_data
               : dma_cs && io_read ? dma_data
               : dsw_selected ? dsw_data
               : (z_text_selected && io_read) || z_text_tail ? z_text_data
