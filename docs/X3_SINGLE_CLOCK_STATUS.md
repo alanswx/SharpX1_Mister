@@ -151,3 +151,12 @@ controller, ordinary-ROM fallback). Build `quartus-linux-AJf4dzRg`
 failing paths in all 32 eight-corner reports. On MiSTer 192 the native Turbo
 IPL loads Zero Fighter from tape, and Galaga still boots from a raw .2d. See
 `docs/CASSETTE_STATUS.md`.
+
+## FM, DMA and true dual-port RAM on the font revision (October 19)
+
+The revision now adds FM with the FM-board CTC, then DMA with completion/
+restart IRQ (`X1_TURBO_DMA_FONT`). Video/PCG/controller RAM are explicit true
+dual-port blocks. Build `wKLdfk5S` (commit `4fcb116`, seed 2), RBF
+`ec195e63…`: 431/553 M10K, 75% ALMs, 0 failing paths in all 32 reports.
+Hardware titles, audio and the open Sorcerian case are in
+`docs/DMA_BOARD_BUILD_STATUS.md`.

@@ -6,6 +6,12 @@ MiSTer 192, raw `Galaga.2d` boots to Stage 1 via MGL and via the real OSD
 browser, also beside a D88 in B. The board build has zero failing timing
 paths. The Z video single-clock revision also closes timing at all corners.
 
+October 19: the X3 font board now has DMA (completion/restart IRQ), FM and
+its CTC. Zeliard, Ys II, Xanadu II, Tetris, Gall Force, Relics, Mappy, Silver
+Ghost, Valis and Dione reach their screens on MiSTer 192, with HDMI audio
+recorded. **Open:** Sorcerian stays black on hardware (FDC→GRAM I/O DMA); see
+[DMA board status](DMA_BOARD_BUILD_STATUS.md).
+
 October 18 single-clock X3: by user decision, the new opt-in revision
 [`sharpx1_turbo_z_font_single`](X3_SINGLE_CLOCK_STATUS.md) runs SYS and VID
 on one 42.95 MHz X3 master with enables (MR16 gets a 32 MHz-average rate

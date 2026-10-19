@@ -1,5 +1,63 @@
 # DMA single-clock FPGA qualification revision
 
+## October 19, 2026: DMA on the X3 font board (`sharpx1_turbo_z_font_single`)
+
+**Build PASS, eight-corner timing PASS (0 failing paths), bounded hardware
+PASS for 9 of 10 titles; Sorcerian open.**
+
+Source `4fcb116` adds `X1_TURBO_DMA_FONT` to the X3 external-font revision:
+the Z80 DMA with completion/restart IRQ and the DMA/Kanji shared-bus profile.
+The FM board, its CTC and the cassette deck stay enabled. Chain: FM CTC > DMA >
+main CTC > keyboard. FDC DRQ drives DMA RDY. A reset drains an owned DMA pair
+before the font service pauses the machine.
+
+It builds on `7cfc26f`, which makes video/PCG/controller RAM explicit true
+dual-port blocks (`rtl/x1_tdp_ram.sv`; Verilator keeps a behavioral model).
+Quartus had built each as two duplicated copies. RAM blocks fell from 545 to
+431 of 553, and seed builds dropped from about 41 to 18–21 minutes.
+
+| Build | Seed | RBF SHA-256 | ALMs | M10K | Timing (32 reports) |
+|---|---|---|---|---|---|
+| `ULBkGxA0` (TDP only, `7cfc26f`) | 2 | `d0e7b09c…` | 31,594 | 431 | 0 failing paths |
+| `wKLdfk5S` (TDP + DMA, `4fcb116`) | 2 | `ec195e633c91d642ea82314260ae07472620c339aebfd228dd09e96e5aa4a434` | 31,413 | 431 | 0 failing paths |
+| `ELPLI0QX` (TDP + DMA) | 4 | `6c6da30f…` | 31,389 | 431 | not inventoried |
+
+Simulation:
+- `test-x3-fm-dma-irq` runs the real-CPU nested DMA-over-CTC fixtures (plain,
+  and keyboard with `--caps-off`). It also runs restart IRQ (3 modes × A/B
+  source) and FDC restart (2 drives × 3 modes × A/B, real DRQ). All pass on the
+  X3 FM/FM-CTC/DMA runner at 42.95 MHz.
+- `test-machine-fm-ctc` adds an X3 DMA-present case.
+- Zeliard, which stalled at "IPL is loading" without DMA, makes 36,352 DMA
+  transfers in the runner. It reaches its intro and has audio from 16 to 70 s.
+
+Hardware: MiSTer 192, `_Computer/X1DMA_20261019`, with the CAPS-off
+controller. HDMI audio was enabled for this round by setting `dvi_mode=0`;
+the original ini is kept as `MiSTer.ini.bak_dvi_20261019`. Audio was recorded
+from the capture stream with `kvms record`.
+
+| Title | Result |
+|---|---|
+| Zeliard | Kanji intro over the crest art; music until about 69 s (runner: 70 s) |
+| Ys II | Kanji story intro (30 s) and credits (55 s); music |
+| Xanadu Scenario II | Title art |
+| Tetris | Title art; music |
+| Gall Force | Title with Kanji menu |
+| Relics | Static-noise intro, matching the MAME frame; audio |
+| Mappy | Title |
+| Silver Ghost | Team menu |
+| Valis | Title; music (RMS about 6,400) |
+| Dione | Disk prompt; FM music after Return (RMS 3,100–4,300; runner 3,500–4,800) |
+| **Sorcerian** | **Black from 15 s to at least 100 s** (raw core frames), while the DMA runner shows stars at 40 s and MAME the title at 60 s |
+
+Galaga (level select) and the Zero Fighter tape (attract screen) did not
+regress. Sorcerian's DMA reads the FDC data port (`0FFB`, fixed) into
+graphics RAM through I/O, at incrementing addresses from `7800`, 1 KiB per
+block, paced by DRQ. This is unlike Zeliard's memory destination. Its
+diagnosis is open.
+These are bounded screen/audio observations, not gameplay or timing acceptance.
+
+
 October 16 local `sharpx1_turbo_z_font` timing follow-up:
 **build PASS, selected snapshot payload timing PASS, global timing FAIL,
 hardware UNEXECUTED**. The font-only loader admits the measured 74-bit logical

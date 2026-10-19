@@ -54,8 +54,9 @@ the existing four-chip half-major loader. See `TURBO_Z_KANJI_STORAGE_STATUS.md`;
 do not silently accept earlier raw dumps or truncate glyph exports for it;
 `scripts/prepare_z_kanji.py` is the explicit, pinned model-40 permutation (level 1 only).
 The default-off `TURBO_Z_KANJI` shared-machine integration is in bring-up,
-not yet CPU/pixel-qualified. It requires Turbo/X3/Kanji/render, excludes DMA
-and has no advertised savable/board profile. Its complete 256-KiB store is a
+not yet CPU/pixel-qualified. It requires Turbo/X3/Kanji/render; DMA needs
+`TURBO_DMA_KANJI_EXPERIMENT` (the X3 font board's `X1_TURBO_DMA_FONT`). It has
+no savable profile. Its complete 256-KiB store is a
 simulation reference, not an FPGA BRAM fit solution. Highest-cell selectors
 use 37FF/3FFF/27FF without the historical four-cell fallback. Keep address/
 attribute/raster bundles and response validity aligned to glyph load; mask
@@ -258,6 +259,13 @@ the documented row/width or native BASIC acceptance matrix. Mode 01 graphics
 interleaves both GRAM pages; pixel fixtures must initialize both through CPU
 writes. Freeze/hash each runner before a long test, not after another build
 may have replaced it. Older frozen game qualifications remain historical.
+`sharpx1_turbo_z_font_single` also enables FM + FM CTC and DMA (completion/
+restart IRQ; chain FM CTC > DMA > main CTC > keyboard). Use
+`turbo-x3-single-fm-dma(-fast)`, `test-x3-fm-dma-irq` and
+`docs/DMA_BOARD_BUILD_STATUS.md`. Video/PCG/controller RAM are explicit true
+dual-port `x1_tdp_ram` blocks (VERILATOR model); inferred read+R/W RAM had
+been duplicated. The revision is near its routing limit: try more than one
+`QUARTUS_SEED`.
 `sharpx1_cassette` (base two-clock) and `sharpx1_turbo_z_font_single` have
 cassette: S2 TAP streamed by board-only `rtl/x1_tap_sd_stream.sv` (4-192 kHz
 via the transport's default-off RUNTIME_RATE, rewound on mount), controller
