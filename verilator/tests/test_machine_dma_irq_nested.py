@@ -13,7 +13,12 @@ import tempfile
 from test_machine_dma import Fixture
 
 
-def fixture(keyboard=False):
+# MR16 E6-style key replies for the F make: CAPS held (inherited firmware
+# default) gives status b7/f7 and 'F'; boards/X3 FM runners release CAPS.
+KEY_REPLY = {False: "b746f700", True: "bf66ff00"}
+
+
+def fixture(keyboard=False, caps_off=False):
     f = Fixture()
     p = f.p
     payload = bytes((0x31, 0xA5, 0x7D, 0xC3))
@@ -56,7 +61,7 @@ def fixture(keyboard=False):
     p.compare_memory(0x9104, 0xCC)
     if keyboard:
         p.compare_memory(0xF024, 2)
-        for index, value in enumerate(bytes.fromhex("b746f700")):
+        for index, value in enumerate(bytes.fromhex(KEY_REPLY[caps_off])):
             p.compare_memory(0xF100 + index, value)
     for i, value in enumerate(b"NEST"):
         p.store(0xF000 + i, value)
@@ -152,11 +157,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("executable", type=pathlib.Path)
     parser.add_argument("--keyboard", action="store_true")
+    parser.add_argument("--caps-off", action="store_true",
+                        help="runner built with SUB_CAPS_OFF=1 (CAPS released)")
     args = parser.parse_args()
     exe = str(args.executable.resolve())
     with tempfile.TemporaryDirectory(prefix="x1-dma-ctc-nested-") as directory:
         root = pathlib.Path(directory)
-        code, payload = fixture(args.keyboard)
+        code, payload = fixture(args.keyboard, args.caps_off)
         rom = root / "nested.rom"
         rom.write_bytes(code)
         keys = root / "keyboard.keys"
@@ -180,7 +187,7 @@ def main():
             assert ram[0xF020:0xF024] == bytes((3, 1, 1, 1))
             assert ram[0x9000:0x9004] == payload and ram[0x9100:0x9104] == payload
             if args.keyboard:
-                assert ram[0xF024] == 2 and ram[0xF100:0xF104] == bytes.fromhex("b746f700"), \
+                assert ram[0xF024] == 2 and ram[0xF100:0xF104] == bytes.fromhex(KEY_REPLY[args.caps_off]), \
                     (report, ram[0xF024], ram[0xF100:0xF108].hex())
                 assert report["ps2_bytes_sent"] == 3, report
             reports.append(report)

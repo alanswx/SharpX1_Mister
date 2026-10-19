@@ -1043,6 +1043,14 @@ turbo-x3-single-fm-dma:
 turbo-x3-single-fm-dma-fast:
 	$(MAKE) turbo-x3-single-fm X3_FM_DIR=obj_dir_x3_single_fm_dma_fast X3_FM_TIMING=--no-timing X3_FM_DMA=1
 .PHONY: turbo-x3-single-fm turbo-x3-single-fm-fast turbo-x3-single-fm-dma turbo-x3-single-fm-dma-fast
+# Existing real-CPU DMA IRQ fixtures on the board-parity X3 FM/FM-CTC/DMA
+# runner (CAPS released, chain FM CTC > DMA > CTC > keyboard, FM CTC idle).
+test-x3-fm-dma-irq: turbo-x3-single-fm-dma-fast
+	python3 tests/test_machine_dma_irq_nested.py ./obj_dir_x3_single_fm_dma_fast/Vtop
+	python3 tests/test_machine_dma_irq_nested.py ./obj_dir_x3_single_fm_dma_fast/Vtop --keyboard --caps-off
+	python3 tests/test_machine_dma_restart_irq.py ./obj_dir_x3_single_fm_dma_fast/Vtop --sys-hz 42954540
+	python3 tests/test_machine_dma_restart_fdc.py ./obj_dir_x3_single_fm_dma_fast/Vtop --sys-hz 42954540
+.PHONY: test-x3-fm-dma-irq
 
 # Non-savable tape profiles: the board SD TAP streamer feeds the cassette deck.
 X3_CASSETTE_DIR ?= obj_dir_x3_single_cassette
