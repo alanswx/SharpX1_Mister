@@ -268,8 +268,9 @@ assign sd_lba[1] = fdc_sd_lba;
 assign sd_buff_din[0] = fdc_sd_din;
 assign sd_buff_din[1] = fdc_sd_din;
 wire [5:0] sd_blk_cnt[VDNUM];
-generate for (genvar v = 0; v < VDNUM; v = v + 1) begin : sd_single_block
-	assign sd_blk_cnt[v] = 6'd0;
+genvar sd_v;
+generate for (sd_v = 0; sd_v < VDNUM; sd_v = sd_v + 1) begin : sd_single_block
+	assign sd_blk_cnt[sd_v] = 6'd0;
 end endgenerate
 assign sd_rd[1:0] = fdc_sd_rd ? (fdc_sd_drive ? 2'b10 : 2'b01) : 2'b00;
 assign sd_wr[1:0] = fdc_sd_wr ? (fdc_sd_drive ? 2'b10 : 2'b01) : 2'b00;
