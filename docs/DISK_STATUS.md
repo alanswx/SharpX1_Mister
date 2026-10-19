@@ -306,3 +306,15 @@ passed the generated-media suite. FPGA validation is separate; see
 Native read-only CROSS Chase boot and remote-key start are now observed on
 MiSTer; see [hardware scope](HARDWARE_BRINGUP.md). INTRQ is not exposed by the
 base machine, so hardware game boot cannot validate the force-interrupt output.
+
+## Force interrupt during a command (October 2026)
+
+In the vendored WD179x, Force Interrupt (`Dx`) used to switch to type I status
+even when it interrupted a running command. After `D8` ended a read, the
+status therefore showed head-loaded (`20h`). Valis issues a multi-sector
+READ, takes 2 KiB, sends `D8` and requires status `00`. It retried forever
+(black screen). Type I status is now loaded only when the controller is
+idle, matching MAME `wd_fdc` `interrupt_start` and the data sheet; an
+interrupted command keeps type II status and only clears BUSY.
+`test-fdc-abort` asserts the status type, and the old code fails it. Valis
+reaches its title in `turbo-x3-single-fm`, matching MAME (commit `22eafbb`).

@@ -32,8 +32,8 @@ to CPU/CTC; CT1/CT2 are not invented CTC inputs. The base unsigned PSG audio
 port and MiSTer audio path are unchanged. **Enabling this CPU profile does
 not yet provide mixed FM sound to MiSTer or the C++ WAV interface.**
 
-No ASIC mirrors, optional `0704..0707` CTC or Turbo Z capability signature
-are invented. Native select/WAIT/pin timing, IRQ routing, DMA-owned FM
+No ASIC mirrors or Turbo Z capability signature are invented. (The optional
+`0704..0707` CTC is now a separate default-off parameter; see below.) Native select/WAIT/pin timing, IRQ routing, DMA-owned FM
 transactions, signed PSG conversion and stereo/mono gain/output remain gates.
 Licenses and JT51 provenance are unchanged; source-notice/release review
 remains necessary before distribution.
@@ -177,3 +177,41 @@ The post-build frozen input audit checks 376 entries: 375 match and only
 Quartus-rewritten `sharpx1.qpf` differs. Preserve that exception rather than
 claiming a fully matching manifest. Host checkout remains clean.
 Audit log: `/tmp/x1-quartus-832766f-post-input.log`.
+
+## FM-board CTC and the X3 font board (October 2026)
+
+`TURBO_FM_CTC=1` (default off) adds the CZ-8BS1 board's Z80 CTC at
+`0704..0707` (`fm_board_ctc` in `rtl/sharpx1.v`). Channel 3 is triggered from
+channel 0's ZC/TO, as in MAME `x1.cpp`; channels 1/2 have no trigger input.
+The interrupt chain is FM CTC > main CTC (`1FA0`) > keyboard, via
+`rtl/x1_fm_irq_bridge.sv`. A depth counter routes each RETI to the FM CTC
+while one of its interrupts is in service and to the main chain otherwise.
+It requires `TURBO_FM_CPU=1`. The YM2151 IRQ output is still not connected
+to the CPU.
+
+`make -C verilator test-machine-fm-ctc` uses a real Z80 in IM2 at 32 MHz
+two-clock and on the single-clock X3 master. It runs the board-detection
+probe (two distinct channel-2 reads), FM ch0 timer and ch3 cascade interrupts,
+and a main-CTC handler that re-enables interrupts so FM interrupts nest
+inside it. It checks every acknowledge vector and RETI route, and that all
+channels leave service. Two controls must fail: an absent CTC (probe reads
+`FF`) and a mutant that sends every RETI to the main CTC.
+
+`turbo-x3-single-fm(-fast)` is a non-savable X3 single-clock runner with FM,
+the FM CTC and `SUB_CAPS_OFF=1`. In it, Valis (after the disk fix below) and
+Dione play FM music. This is digital mix agreement in simulation, not
+analog/hardware sound.
+
+The board revision `sharpx1_turbo_z_font_single` now enables FM, the FM CTC
+and the cassette deck. The build before the CAPS/FDC fixes (RBF
+`6d9169b4…`, Quartus job `5KHi1TZF`) fits in 77% of ALMs with 0 failing
+paths in all 32 timing reports. FM audio has not been heard on MiSTer 192,
+because its HDMI is set to `dvi_mode=1` (no audio).
+
+**Dione and CAPS LOCK.** The inherited MR16 firmware starts with CAPS on, so
+MR16 command `E6` returns status `F7` (modifier held) instead of `FF`. Dione
+polls `E6` and never starts its music. All board revisions and the X3 FM
+runner now set `SUB_CAPS_OFF=1` (`sub_rom` word `0B0` `70F7`→`70FF`).
+With it, the runner plays from 46 s (RMS 0 until 45 s, then about
+3,500–4,800); MAME plays from 56 s. Simulation defaults keep CAPS on, so the
+qualified typed-text oracles stay unchanged.

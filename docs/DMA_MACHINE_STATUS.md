@@ -251,3 +251,18 @@ The local O0 build/run also passes all **32 groups / 5,955,942 clock edges**,
 including 256/65,536/65,537 transfers at CE=1/4; log
 `/tmp/x1-dma-ci-o0-local.log`. This does not by itself establish hosted compiler
 acceptance; inspect the new CI result before promoting all 19 targets.
+
+## Software-list DMA usage scan (October 2026)
+
+MAME `x1turbo` ran each of 176 software-list disk titles for 60 s, with a Lua
+write tap on the DMA ports. Results:
+
+- 60 titles write the DMA more than 40 times (heavy use).
+- 107 write it 1–40 times.
+- 9 never write it.
+
+The heavy users include Zeliard (DMA FDC reads; it stalls in the
+non-DMA X3 core), Ys II, Xanadu Scenario II, Tetris, Silver Ghost, Sorcerian,
+Relics, Mappy, Bosconian and Gall Force. This 60-s window is a lower bound
+on DMA use, not a compatibility result. No board revision enables DMA in the
+main X3 core yet; that integration is the next large compatibility item.
