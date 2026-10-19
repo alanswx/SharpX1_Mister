@@ -48,11 +48,18 @@ main() {
   hash_inputs "$snapshot" > "$build/input.sha256"
   cmp "$build/source-before.sha256" "$build/source-after.sha256"
   cmp "$build/source-before.sha256" "$build/input.sha256"
+  # QUARTUS_SEED=N overrides the fitter seed in the snapshot only (the source
+  # revision is unchanged); the override is recorded in the manifest.
+  if [[ -n "${QUARTUS_SEED:-}" ]]; then
+    [[ "$QUARTUS_SEED" =~ ^[0-9]+$ ]] || { echo 'QUARTUS_SEED must be a number' >&2; return 2; }
+    printf 'set_global_assignment -name SEED %s\n' "$QUARTUS_SEED" >> "$snapshot/$revision.qsf"
+  fi
   git status --short > "$build/git-status.txt"
   {
     printf '%s\n' "source_commit=$(git rev-parse HEAD)" "snapshot=$snapshot" \
       "host=$(hostname)" "project=sharpx1 revision=$revision" \
       "concurrent_quartus_allowed=${X1_ALLOW_CONCURRENT_QUARTUS:-0}" \
+      "seed_override=${QUARTUS_SEED:-none}" \
       'flow=quartus_sh --flow compile (including project flow hooks)' \
       "started_utc=$(date -u +%FT%TZ)" "$version"
     sha256sum "$build/input.sha256" "$root/scripts/build_quartus_linux.sh"
