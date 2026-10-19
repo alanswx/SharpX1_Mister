@@ -585,9 +585,10 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
         assign sio_wait_n=&flow_wait;
         reg read_tail;
         always @(posedge clk_sys)
-            if(core_reset || mem_read) read_tail<=0;
+            if(core_reset || mem_read || dma_owner) read_tail<=0;
             else if(sio_selected && io_read) read_tail<=1;
-        assign sio_read_tail=read_tail && mreq;
+        // As for FM: an owned DMA I/O read must not see the CPU's held reply.
+        assign sio_read_tail=read_tail && mreq && !dma_owner;
     end else begin : no_turbo_sio
         assign sio_irq=0;assign sio_ieo=sio_iei;assign sio_in_service=0;
         assign sio_vector=8'hff;assign sio_data=8'hff;

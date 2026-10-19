@@ -28,12 +28,18 @@ module machine_fm_tb #(parameter FM_ENABLED=1,SINGLE_CLOCK=0,MASTER_HZ=32000000,
         .audio_left(audio_left),.audio_right(audio_right),.audio_mono(audio_mono),.audio_sample(audio_sample));
     reg [7:0] program_bytes[0:8191];
     integer pc=0,dispatches=0,busy_reads=0,wait_edges=0,dma_reads=0,dma_writes=0,dam_writes=0,tail_checks=0;
+    // DMA I/O reads that begin with no CPU memory read since the last FM
+    // status read: the case where a retained FM reply could replace the
+    // owned read's data (Sorcerian lost one FDC byte per sector this way).
+    integer dma_io_after_fm=0;
+    reg fm_reply_pending=0,dma_io_old=0;
     reg read_old=0,write_old=0,fm_read_old=0;
     reg [7:0] last_status=0;
     reg ppi_high_seen=0,ppi_low_seen=0;
     wire fm_read=dut.fm_selected && dut.io_read;
     wire dma_read=dut.dma_owner && !dut.mreq && !dut.rd;
     wire dma_write=dut.dma_owner && !dut.mreq && !dut.wr;
+    wire dma_io_read=dut.dma_owner && !dut.iorq && !dut.rd;
     wire observed_dispatch,observed_a0,observed_busy;
     wire [1:0] observed_ct;
     wire [31:0] observed_dc;
@@ -50,6 +56,7 @@ module machine_fm_tb #(parameter FM_ENABLED=1,SINGLE_CLOCK=0,MASTER_HZ=32000000,
     always @(posedge clk) begin
         if(dut.core_reset) begin
             dispatches=0;busy_reads=0;wait_edges=0;dma_reads=0;dma_writes=0;dam_writes=0;tail_checks=0;
+            dma_io_after_fm=0;fm_reply_pending=0;
             ppi_high_seen=0;ppi_low_seen=0;
         end else begin
             if(observed_dispatch) begin
@@ -65,6 +72,13 @@ module machine_fm_tb #(parameter FM_ENABLED=1,SINGLE_CLOCK=0,MASTER_HZ=32000000,
             end
             if(!dut.fm_wait_n) wait_edges++;
             if(dma_read && !read_old) dma_reads++;
+            if(fm_read) fm_reply_pending=1;
+            else if(!dut.dma_owner && !dut.mreq && !dut.rd) fm_reply_pending=0;
+            if(dma_io_read) begin
+                if(!dma_io_old && fm_reply_pending) dma_io_after_fm++;
+                assert(!dut.fm_read_tail && dut.di==8'hff)
+                    else $fatal(1,"owned DMA I/O read saw retained FM reply %h",dut.di);
+            end
             if(dma_write && !write_old) dma_writes++;
             if(dut.dam && dut.io_write && dut.a==16'h0700) begin
                 dam_writes++;assert(!dut.fm_selected) else $fatal(1,"DAM write reached FM");
@@ -79,7 +93,7 @@ module machine_fm_tb #(parameter FM_ENABLED=1,SINGLE_CLOCK=0,MASTER_HZ=32000000,
                 else $fatal(1,"disabled FM signed audio active");
             assert(!dut.fm_protocol_error) else $fatal(1,"shared CPU overran FM queue");
         end
-        read_old<=dma_read;write_old<=dma_write;fm_read_old<=fm_read && !dut.core_reset;
+        read_old<=dma_read;write_old<=dma_write;dma_io_old<=dma_io_read;fm_read_old<=fm_read && !dut.core_reset;
     end
     task automatic emit(input [7:0] value);program_bytes[pc]=value;pc++;endtask
     task automatic load(input [7:0] value);emit(8'h3e);emit(value);endtask
@@ -116,8 +130,11 @@ module machine_fm_tb #(parameter FM_ENABLED=1,SINGLE_CLOCK=0,MASTER_HZ=32000000,
                 dut.RAM.mem[16'h4101],dut.RAM.mem[16'h4102],dut.RAM.mem[16'h4103]);
         assert(dispatches==(AUDIO_TEST ? 480 : 10) && busy_reads>0 && wait_edges>0 && dam_writes>0 && tail_checks>0 &&
             ppi_high_seen && ppi_low_seen &&
-            dma_reads==4 && dma_writes==4 && observed_ct==3 && dut.fm_irq_n && !dut.dma_owner)
-            else $fatal(1,"shared FM bus/queue/DAM/DMA counts dispatch=%0d busy=%0d wait=%0d dam=%0d DMA=%0d/%0d",dispatches,busy_reads,wait_edges,dam_writes,dma_reads,dma_writes);
+            dma_reads==4 && dma_writes==68 && observed_ct==3 && dut.fm_irq_n && !dut.dma_owner &&
+            dma_io_after_fm>0)
+            else $fatal(1,"shared FM bus/queue/DAM/DMA counts dispatch=%0d busy=%0d wait=%0d dam=%0d DMA=%0d/%0d io-after-FM=%0d",dispatches,busy_reads,wait_edges,dam_writes,dma_reads,dma_writes,dma_io_after_fm);
+        for(integer i=0;i<64;i++) assert(dut.RAM.mem[16'h9100+16'(i)]==8'hff)
+            else $fatal(1,"I/O-source DMA byte %0d after FM status read is %h",i,dut.RAM.mem[16'h9100+16'(i)]);
         for(integer i=0;i<4;i++) assert(dut.RAM.mem[16'h9000+16'(i)]==8'h31+8'(i))
             else $fatal(1,"shared FM concurrent DMA payload");
         $display("PASS shared IPL CPU/JT51 MASTER=%0d single=%0d busy/status/WAIT/retained tail, DAM and real DMA isolation; warm reboot",MASTER_HZ,SINGLE_CLOCK);
@@ -252,6 +269,12 @@ module machine_fm_tb #(parameter FM_ENABLED=1,SINGLE_CLOCK=0,MASTER_HZ=32000000,
         out_byte(8'h90);out_byte(8'h8a);out_byte(8'hcf);out_byte(8'h87);
         port(16'h0701);poll(1,1);store(16'h4101);
         reg_write(8'h14,8'h10);port(16'h0700);emit(8'hed);emit(8'h78);store(16'h4102);
+        // 64 bytes from unmapped I/O 0702 (reads FF), fixed, to 9100 in byte
+        // mode while the CPU loops on FM status reads at 0701.
+        port(16'h1f80);out_byte(8'hc3);out_byte(8'h7d);out_byte(8'h02);out_byte(8'h07);
+        out_byte(8'h3f);out_byte(0);out_byte(8'h2c);out_byte(8'h10);out_byte(8'h8d);
+        out_byte(0);out_byte(8'h91);out_byte(8'h8a);out_byte(8'hcf);out_byte(8'h87);
+        port(16'h0701);emit(8'h1e);emit(0);emit(8'hed);emit(8'h78);emit(8'h1d);emit(8'h20);emit(8'hfb);
         if(AUDIO_TEST && !OWNED_RESET) audio_program();
         mark(8'haa);emit(8'h76);
         assert(pc<8192) else $fatal(1,"FM generated IPL overflow");

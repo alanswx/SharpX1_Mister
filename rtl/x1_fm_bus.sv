@@ -27,9 +27,11 @@ module x1_fm_bus #(parameter integer MASTER_HZ=32000000) (
         .cen_chip(),.cen_half(),.protocol_error(protocol_error));
     always @(posedge clk or posedge reset) begin
         if(reset) begin read_hold<=0;held_status<=8'hff;end
-        else if(!mreq_n && !rd_n) read_hold<=0;
+        // DMA cycles never sample the CPU's retained response: a held status
+        // would otherwise replace the first owned I/O read (FDC data at 0FFB).
+        else if(!cpu_allowed || (!mreq_n && !rd_n)) read_hold<=0;
         else if(read_access) begin read_hold<=1;held_status<=status;end
     end
-    assign read_tail=!reset && mreq_n && read_hold;
+    assign read_tail=!reset && cpu_allowed && mreq_n && read_hold;
     assign response=read_access ? status : held_status;
 endmodule
