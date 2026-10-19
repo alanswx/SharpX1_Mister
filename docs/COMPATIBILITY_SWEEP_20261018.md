@@ -68,7 +68,10 @@ reports. The eight titles that did not pass were rerun on 192:
 | T15 | Zion | Title ✓ |
 
 Overall, 14 of 15 boot sets reach a title, menu or prompt. Kanji-heavy
-screens need a native Kanji ROM; the synthetic test font shows noise there.
+screens needed a native Kanji ROM; the synthetic test font shows noise there.
+With the model-40 level-1 image (`scripts/prepare_z_kanji.py`), Jail Break
+and Storm now render readable Japanese on 192; see
+`docs/TURBO_Z_KANJI_STORAGE_STATUS.md`.
 Evidence (PNGs, contact sheets, SHA-256 list): `output_files/COMPAT_20261018/`.
 
 ## Othello (image problem, not a core bug)

@@ -51,7 +51,8 @@ board acceptance from those synthetic pixels.
 `test-z-kanji-address` covers only the CZ-880 physical pin decoder, not a
 machine profile. Its local ROM format interleaves half at A0 and differs from
 the existing four-chip half-major loader. See `TURBO_Z_KANJI_STORAGE_STATUS.md`;
-do not silently accept earlier raw dumps or truncate glyph exports for it.
+do not silently accept earlier raw dumps or truncate glyph exports for it;
+`scripts/prepare_z_kanji.py` is the explicit, pinned model-40 permutation (level 1 only).
 The default-off `TURBO_Z_KANJI` shared-machine integration is in bring-up,
 not yet CPU/pixel-qualified. It requires Turbo/X3/Kanji/render, excludes DMA
 and has no advertised savable/board profile. Its complete 256-KiB store is a

@@ -241,3 +241,31 @@ now checks the actual CRTC/RGB pipeline in a separate fixture, with 1,920,000
 exact 80/40-column pixels and matched live-VRAM/glyph-source controls. Actual
 shared-machine/DDR and lifecycle wiring, native fonts and physical acceptance
 remain open; the full-size simulation store is still separate.
+
+## Native level-1 image for the external-font board (October 18)
+
+`scripts/prepare_z_kanji.py` builds the 262,144-byte index-5 image from the
+audited model-40 archive. It reuses `prepare_kanji.py`'s archive SHA-256
+(`c2449695…`) and member SHA-1 pins; the members match MAME `x1turbo`
+`kanji1`–`kanji4`. The Neo Kobe "[BIOS] X1turbo model40 (CZ-862C)" archive is
+byte-identical to the pinned one. The transform is a pure permutation:
+
+- earlier (`x1_kanji_address`): `half*65536 + bank*4096 + character*16 + row`
+- Z chip (`x1_z_kanji_address`): `bank*8192 + character*32 + row*2 + half`
+
+Both decoders name the same DKAN3..0, DCHA7..0 and K4Y..K1Y nets. This is an
+inference from net names, not a dump of CZ-880 chips. The script checks
+sample bytes against the member files. Level 2 (IC66) has no source in this
+set and is filled with `00`, so level-2 Kanji render blank. Output SHA-256
+`30540b94…` is private (`output_files/ZKANJI_20261018/`, ignored).
+
+MiSTer 192, `sharpx1_turbo_z_font_single` RBF `31b499ca…`, native Turbo IPL,
+ANK16, this image on F5:
+
+- Jail Break (T06): the title page reads 「しばらくお待ちください。アドベンチャーゲーム
+  『脱獄・JAILBREAK』〔漢字版〕 … セーブしたデータがありますか？(Y/N)」.
+- Storm (T13, two drives): 「ドライブ数を指定して下さい 1 2」.
+
+Both showed noise with the synthetic font in the October 18 sweep. These are
+visual checks of level-1 text, not pixel-exact comparisons. Level-2 glyphs,
+the 306,176-byte CZ-880C glyph export and native ASIC timing remain open.
