@@ -223,6 +223,7 @@ localparam CONF_STR = {
 `ifdef X1_CASSETTE
 	// 8 kHz TAP waveform images; each mount starts rewound. The deck
 	// controller extension loads as boot1.rom (index 0x40) or index 6.
+	"F6,BIN,Load tape controller;",
 	"S2,TAP,Tape;",
 `endif
 	"O[1],Disk writes,Protected,Enabled;",
