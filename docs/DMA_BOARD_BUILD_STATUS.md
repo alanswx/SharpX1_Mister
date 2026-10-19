@@ -1,9 +1,49 @@
 # DMA single-clock FPGA qualification revision
 
+## October 19, 2026: FDC command deferral; Sorcerian boots
+
+**Sorcerian reaches its story text and title with music on MiSTer 192; the
+other titles do not regress. Seed-6 timing: 8 failing setup paths in the
+framework HDMI domain (see below).**
+
+Source `11c7f30` enables `FDC_DEFER_COMMAND` on boards. A command written
+while the controller rescans the newly selected drive's D88 now reports BUSY
+and runs after the scan, instead of being dropped (see `DISK_STATUS.md`).
+Sorcerian had been black because its RESTORE on drive 1 was dropped.
+
+| Build | Seed | Result |
+|---|---|---|
+| `YIlMaLg5`, `5AQih3hX` | 2, 4 | Killed at 75 minutes, still in the fitter |
+| `1QI7FBWZ`, `XVtwYqQx` | 5, 7 | No fit (error 170143) |
+| `JgvgRDWb` | 6 | Built in 18 minutes. RBF `ebcdf711f60f04264db6c6ff45f78d4e54d3749eceb917274702ecf8329e8af9`. 31,551 ALMs, 431/553 M10K. Timing: 8 setup paths fail in four slow corners, worst −0.265 ns (−40 °C), all pll_hdmi→pll_hdmi (`hdmi_out_de`/`hdmi_out_d[22]`, `ascal o_vcpt_pre3`); 0 in the other 28 reports and none in core clocks |
+
+Hardware: MiSTer 192, `_Computer/X1FDC_20261019` (`x3fdc.rbf`, MGLs copied
+from `X1DMA_20261019` with only the RBF path changed). HDMI audio recorded with
+`kvms record`.
+
+| Title | Result |
+|---|---|
+| **Sorcerian** | Black until 14 s (loading), story text ("A long time ago…") at 19–42 s, title with "Copyright 1987 FALCOM" at 51–61 s, then the starfield attract scene (the runner also settles there at 60–75 s). Audio from 15 s, RMS 2,000–3,200 |
+| Zeliard | Kanji intro over the crest art; audio RMS 1,865 |
+| Xanadu Scenario II | Status screen with castle art; audio |
+| Tetris | Title art; music (RMS 5,404) |
+| Gall Force | Title with Kanji menu |
+| Relics | Intro; audio |
+| Mappy | Title / top 5 |
+| Silver Ghost | Team menu |
+| Valis | Title; music (RMS 6,917) |
+| Ys II | Kanji vertical story intro; music |
+| Dione | Disk prompt; FM music after Return (RMS 3,899) |
+| Galaga | Attract screen |
+| Zero Fighter (K01 tape) | Attract screen at 150 s |
+
+These are bounded screen/audio observations at 25–60 s (Sorcerian to 61 s;
+K01 to 150 s), not gameplay acceptance.
+
 ## October 19, 2026: DMA on the X3 font board (`sharpx1_turbo_z_font_single`)
 
 **Build PASS, eight-corner timing PASS (0 failing paths), bounded hardware
-PASS for 9 of 10 titles; Sorcerian open.**
+PASS for 9 of 10 titles; Sorcerian open (fixed by `11c7f30`, above).**
 
 Source `4fcb116` adds `X1_TURBO_DMA_FONT` to the X3 external-font revision:
 the Z80 DMA with completion/restart IRQ and the DMA/Kanji shared-bus profile.

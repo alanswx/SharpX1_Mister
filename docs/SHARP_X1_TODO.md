@@ -9,8 +9,11 @@ paths. The Z video single-clock revision also closes timing at all corners.
 October 19: the X3 font board now has DMA (completion/restart IRQ), FM and
 its CTC. Zeliard, Ys II, Xanadu II, Tetris, Gall Force, Relics, Mappy, Silver
 Ghost, Valis and Dione reach their screens on MiSTer 192, with HDMI audio
-recorded. **Open:** Sorcerian stays black on hardware (FDC→GRAM I/O DMA); see
-[DMA board status](DMA_BOARD_BUILD_STATUS.md).
+recorded. Sorcerian was black because a RESTORE written during the
+drive-switch D88 rescan was dropped. The FDC now defers it (`11c7f30`), and
+Sorcerian reaches its story text and title with music. See
+[DMA board status](DMA_BOARD_BUILD_STATUS.md). Open: a build of this revision
+with zero failing timing paths (seed 6 has 8 HDMI-domain setup failures).
 
 October 18 single-clock X3: by user decision, the new opt-in revision
 [`sharpx1_turbo_z_font_single`](X3_SINGLE_CLOCK_STATUS.md) runs SYS and VID

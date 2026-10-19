@@ -318,3 +318,29 @@ idle, matching MAME `wd_fdc` `interrupt_start` and the data sheet; an
 interrupted command keeps type II status and only clears BUSY.
 `test-fdc-abort` asserts the status type, and the old code fails it. Valis
 reaches its title in `turbo-x3-single-fm`, matching MAME (commit `22eafbb`).
+
+## Command written during a drive-switch rescan (October 2026)
+
+The board has one WD1793 and one track index. Selecting the other drive makes
+`x1_disk_media` rescan that drive's D88 over SD. On MiSTer each SD request
+waits on the HPS, so the rescan takes milliseconds. The vendor controller
+accepted a command only when `state == STATE_IDLE && transport_idle`, so a
+command written during the rescan was silently dropped: BUSY never rose.
+Sorcerian selects drive 1 and sends RESTORE (`FFC=81`, then `02`), then polls
+BUSY. On hardware it stayed black.
+
+The headless runner's `--sd-latency-us N` delays each SD acknowledgement.
+With 500 or 2000 µs the runner reproduces the hang: status stays `84`/`44`,
+there are no DMA writes, and the CPU loops at `C279`. With no latency the
+runner reaches the story text.
+
+`DEFER_BLOCKED_COMMAND=1` latches such a command, reports BUSY at once, and
+issues it when the transport is idle. Force Interrupt (`Dx`) cancels a
+deferred command. Boards set it through `FDC_DEFER_COMMAND=1`. It is off by
+default and in strict-timing mode, and the ordinary simulator default state is
+unchanged. `test-fdc-defer` runs a 4000-clock-latency mount: the deferred
+RESTORE shows BUSY within 4 clocks and completes on track 0 after the scan.
+Its `DEFER=0` build must fail as "dropped". With the fix, the runner reaches the
+story text at 2 ms latency, and Sorcerian reaches its title on MiSTer 192 (see
+`DMA_BOARD_BUILD_STATUS.md`). This does not model native drive-select or
+head-load timing.
