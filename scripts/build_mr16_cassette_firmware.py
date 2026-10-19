@@ -141,7 +141,42 @@ def patch_sites(baseline, symbols):
     return sites
 
 
-def validate(image, symbols, baseline, original, sites):
+# Optional board default: start with PS/2 joystick emulation off. MiSTer joysticks
+# already drive the PSG ports, and the emulation consumes A/Z/X/C and the keypad
+# (C is the IPL's CMT key); F12, which toggles it, opens the MiSTer OSD.
+JOY_DEFAULT_ON = ("mov", "r0,#JOY_EN | IND_REQ:8")
+JOY_DEFAULT_OFF = ("mov", "r0,#IND_REQ:8")
+
+
+JOY_PATTERN = r"(?m)^(\s*mov\s+r0,\s*#)JOY_EN \| (IND_REQ:8.*)$"
+
+
+def joystick_site(baseline, defines, symbols):
+    """Locate the one initializer by assembling the substituted source."""
+    text = (SOURCE / "x1sub.asm").read_text(encoding="latin1")
+    text, count = re.subn(JOY_PATTERN, r"\1\2", text)
+    if count != 1:
+        raise AssemblyError("missing/ambiguous joystick default source line")
+    with tempfile.TemporaryDirectory(prefix="x1-cassette-joystick-") as directory:
+        scratch = pathlib.Path(directory)
+        for pattern in ("*.inc", "*.asm"):
+            for item in SOURCE.glob(pattern):
+                shutil.copy2(item, scratch / item.name)
+        (scratch / "x1sub.asm").write_text(text, encoding="latin1")
+        patched, _, _ = assemble(scratch / "x1sub.asm", defines)
+    changed = [i for i in range(len(baseline)) if patched[i] != baseline[i]]
+    old = instruction(*JOY_DEFAULT_ON, symbols)
+    new = instruction(*JOY_DEFAULT_OFF, symbols)
+    if not changed or len(old) != len(new):
+        raise AssemblyError("joystick default patch has no single-instruction effect")
+    address = changed[0] & ~1
+    if changed[-1] >= address + len(old) or baseline[address:address + len(old)] != old or \
+            patched[address:address + len(new)] != new:
+        raise AssemblyError("joystick default patch is not exactly one instruction")
+    return address, len(old)
+
+
+def validate(image, symbols, baseline, original, sites, joystick=None):
     if len(image) != 8192:
         raise AssemblyError("cassette image must be exactly 8192 packed bytes")
     for name, address in original.items():
@@ -159,6 +194,10 @@ def validate(image, symbols, baseline, original, sites):
             raise AssemblyError("hook instruction changed size")
         expected[address:address + 4] = replacement
         allowed.update(range(address, address + 4))
+    if joystick is not None:
+        address, size = joystick
+        expected[address:address + size] = instruction(*JOY_DEFAULT_OFF, symbols)
+        allowed.update(range(address, address + size))
     for command in (9, 10, 11):
         address = original["cmd_tbl"] + 4 * command
         expected[address:address + 2] = symbols[f"cassette_cmd_e{command:x}"].to_bytes(2, "little")
@@ -171,7 +210,7 @@ def validate(image, symbols, baseline, original, sites):
     return sorted(allowed), sorted(changed)
 
 
-def build(receive_only=False, with_report=False):
+def build(receive_only=False, with_report=False, joystick_off=False):
     inputs = [pathlib.Path(__file__), ROOT / "scripts/assemble_mr16.py"] + \
              sorted(SOURCE.glob("*.asm")) + sorted(SOURCE.glob("*.inc")) + \
              [SOURCE / "verilog/X1SUB.BIN"]
@@ -184,6 +223,7 @@ def build(receive_only=False, with_report=False):
     if locations["dseg"] != 0x1156 or original["ram_end"] != 0x1800:
         raise AssemblyError("inherited 2KiB RAM/allocation contract changed")
     sites = patch_sites(baseline, original)
+    joystick = joystick_site(baseline, defines, original) if joystick_off else None
     text = (SOURCE / "x1sub.asm").read_text(encoding="latin1")
     substitutions = [
         (r"(?m)^(\s*mov\s+r0,\s*#)start(\s*;entry point.*)$", r"\1cassette_start\2"),
@@ -195,6 +235,8 @@ def build(receive_only=False, with_report=False):
                                       ("eb", "host_w", "cmt_sens")):
         substitutions.append((rf"(?mi)^(\s*dw\s+){handler}(\s*,\s*{pointer}\s*;{command}\b.*)$",
                               rf"\1cassette_cmd_{command}\2"))
+    if joystick_off:
+        substitutions.append((JOY_PATTERN, r"\1\2"))
     for pattern, replacement in substitutions:
         text, count = re.subn(pattern, replacement, text)
         if count != 1:
@@ -216,12 +258,12 @@ def build(receive_only=False, with_report=False):
     low = bytearray(flat[:4096])
     low[padding:] = baseline[padding:]
     image = bytes(low) + flat[0x4000:0x5000]
-    allowed, changed = validate(image, symbols, baseline, original, sites)
+    allowed, changed = validate(image, symbols, baseline, original, sites, joystick)
     for name, digest in frozen.items():
         if hashlib.sha256((ROOT / name).read_bytes()).hexdigest() != digest:
             raise AssemblyError(f"source changed during cassette link: {name}")
     report = {"scope": "static link/parity only; MR16/machine execution unqualified",
-              "receive_only": receive_only, "image_sha256": hashlib.sha256(image).hexdigest(),
+              "receive_only": receive_only, "joystick_off": joystick_off, "image_sha256": hashlib.sha256(image).hexdigest(),
               "baseline_sha256": hashlib.sha256(baseline).hexdigest(),
               "allowed_low_bytes": allowed, "changed_low_bytes": changed,
               "sites": sites, "extension_end": symbols["cassette_extension_end"],
@@ -233,10 +275,12 @@ def build(receive_only=False, with_report=False):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--receive-only", action="store_true")
+    parser.add_argument("--joystick-off", action="store_true",
+                        help="board default: PS/2 joystick emulation starts disabled")
     parser.add_argument("--output-dir", type=pathlib.Path,
                         help="new directory under /tmp or ignored repository output_files")
     args = parser.parse_args()
-    image, symbols, report = build(args.receive_only, with_report=True)
+    image, symbols, report = build(args.receive_only, with_report=True, joystick_off=args.joystick_off)
     if args.output_dir:
         dest = args.output_dir.resolve()
         roots = (pathlib.Path(tempfile.gettempdir()).resolve(), pathlib.Path("/tmp").resolve(),

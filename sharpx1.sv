@@ -230,6 +230,9 @@ localparam CONF_STR = {
 	"-;",
 	"T[0],Reset;",
 	"R[0],Reset and close OSD;",
+`ifdef X1_CASSETTE
+	"I,Tape ready (rewound),Tape format not supported;",
+`endif
 	"V,v",`BUILD_DATE,
 	// x1_joystick_map routes MiSTer bits 4/5 to the X1 PSG trigger A/B pins.
 	";J,Trigger A,Trigger B;",
@@ -268,6 +271,8 @@ assign sd_lba[0] = fdc_sd_lba;
 assign sd_lba[1] = fdc_sd_lba;
 assign sd_buff_din[0] = fdc_sd_din;
 assign sd_buff_din[1] = fdc_sd_din;
+reg tape_info_req = 0;
+reg [7:0] tape_info = 0;
 wire [5:0] sd_blk_cnt[VDNUM];
 genvar sd_v;
 generate for (sd_v = 0; sd_v < VDNUM; sd_v = sd_v + 1) begin : sd_single_block
@@ -316,7 +321,7 @@ hps_io #(.CONF_STR(CONF_STR), .PS2DIV(1600), .VDNUM(VDNUM), .VIDEO_CDC(TURBO_VID
 	.buttons(buttons),
 	.status(status),
 	.status_menumask(16'd0), .status_in(128'd0), .status_set(1'b0),
-	.info_req(1'b0), .info(8'd0), .video_rotated(1'b0), .new_vmode(1'b0),
+	.info_req(tape_info_req), .info(tape_info), .video_rotated(1'b0), .new_vmode(1'b0),
 	.joystick_0(joy0), .joystick_1(joy1),
 	.joystick_0_rumble(16'd0), .joystick_1_rumble(16'd0),
 	.joystick_2_rumble(16'd0), .joystick_3_rumble(16'd0),
@@ -339,7 +344,17 @@ wire tape_mount, tape_present, tape_empty;
 wire tape_sample_valid, tape_sample_level, tape_sample_last, tape_sample_ready;
 wire tape_underflow;
 wire [7:0] tape_mode, tape_sensor;
+wire tape_loaded, tape_rejected;
 generate if (CASSETTE_PROFILE) begin : tape_slot
+	// One OSD info message per mount outcome (CONF_STR I entries 1/2).
+	reg old_loaded = 0, old_rejected = 0;
+	always @(posedge clk_sys) begin
+		old_loaded <= tape_loaded;
+		old_rejected <= tape_rejected;
+		tape_info_req <= 0;
+		if (tape_loaded && !old_loaded) begin tape_info <= 8'd1; tape_info_req <= 1; end
+		if (tape_rejected && !old_rejected) begin tape_info <= 8'd2; tape_info_req <= 1; end
+	end
 	assign sd_wr[2] = 1'b0;
 	assign sd_buff_din[2] = 8'hff;
 	x1_tap_sd_stream tap_stream (
@@ -350,9 +365,10 @@ generate if (CASSETTE_PROFILE) begin : tape_slot
 		.tape_mount(tape_mount), .tape_present(tape_present), .tape_empty(tape_empty),
 		.sample_valid(tape_sample_valid), .sample_level(tape_sample_level),
 		.sample_last(tape_sample_last), .sample_ready(tape_sample_ready),
-		.loaded(), .rejected()
+		.loaded(tape_loaded), .rejected(tape_rejected)
 	);
 end else begin : no_tape_slot
+	assign {tape_loaded, tape_rejected} = 2'b00;
 	assign {tape_mount, tape_present, tape_empty} = 3'b000;
 	assign {tape_sample_valid, tape_sample_level, tape_sample_last} = 3'b000;
 end endgenerate
