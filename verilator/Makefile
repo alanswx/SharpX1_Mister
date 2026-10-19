@@ -2848,6 +2848,17 @@ lint-wrapper:
 	$(V) --lint-only --timing --top-module emu -Itests ../sharpx1.sv ../sys/hps_io.sv \
 		tests/board_pll_lint.v ../rtl/x1_joystick_map.v $(MACHINE_SRC) -Wno-fatal
 
+lint-wrapper-cassette:
+	$(V) --lint-only --timing --top-module emu -DX1_CASSETTE -Itests ../sharpx1.sv ../sys/hps_io.sv \
+		tests/board_pll_lint.v ../rtl/x1_joystick_map.v ../rtl/x1_tap_sd_stream.sv $(MACHINE_SRC) -Wno-fatal
+
+.PHONY: lint-wrapper-cassette
+
+# Board TAP SD streamer with the real transport; synthetic images only.
+test-tap-sd-stream:
+	ulimit -c 0; python3 -B tests/test_tap_sd_stream.py
+.PHONY: test-tap-sd-stream
+
 lint-wrapper-turbo-video:
 	$(V) --lint-only --timing --top-module emu -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -Itests \
 		../sharpx1.sv ../sys/hps_io.sv tests/board_pll_lint.v ../rtl/x1_joystick_map.v \

@@ -220,6 +220,11 @@ localparam CONF_STR = {
 	// ioctl_index[7:6] before each mount: 0 = D88 container, 1 = raw X1 2D.
 	"S0,D882D ,Drive A;",
 	"S1,D882D ,Drive B;",
+`ifdef X1_CASSETTE
+	// 8 kHz TAP waveform images; each mount starts rewound. The deck
+	// controller extension loads as boot1.rom (index 0x40) or index 6.
+	"S2,TAP,Tape;",
+`endif
 	"O[1],Disk writes,Protected,Enabled;",
 	"-;",
 	"T[0],Reset;",
@@ -245,9 +250,15 @@ wire [31:0] joy0, joy1;
 wire [7:0] joya_n, joyb_n;
 x1_joystick_map joya_map (.joystick(joy0), .pins_n(joya_n));
 x1_joystick_map joyb_map (.joystick(joy1), .pins_n(joyb_n));
-wire [31:0] sd_lba[2];
-wire [7:0] sd_buff_din[2];
-wire [1:0] sd_rd, sd_wr, sd_ack;
+`ifdef X1_CASSETTE
+localparam CASSETTE_PROFILE = 1;
+`else
+localparam CASSETTE_PROFILE = 0;
+`endif
+localparam VDNUM = CASSETTE_PROFILE ? 3 : 2;
+wire [31:0] sd_lba[VDNUM];
+wire [7:0] sd_buff_din[VDNUM];
+wire [VDNUM-1:0] sd_rd, sd_wr, sd_ack;
 wire sd_buff_wr;
 wire fdc_sd_rd, fdc_sd_wr, fdc_sd_drive;
 wire [31:0] fdc_sd_lba;
@@ -256,11 +267,15 @@ assign sd_lba[0] = fdc_sd_lba;
 assign sd_lba[1] = fdc_sd_lba;
 assign sd_buff_din[0] = fdc_sd_din;
 assign sd_buff_din[1] = fdc_sd_din;
-assign sd_rd = fdc_sd_rd ? (fdc_sd_drive ? 2'b10 : 2'b01) : 2'b00;
-assign sd_wr = fdc_sd_wr ? (fdc_sd_drive ? 2'b10 : 2'b01) : 2'b00;
+wire [5:0] sd_blk_cnt[VDNUM];
+generate for (genvar v = 0; v < VDNUM; v = v + 1) begin : sd_single_block
+	assign sd_blk_cnt[v] = 6'd0;
+end endgenerate
+assign sd_rd[1:0] = fdc_sd_rd ? (fdc_sd_drive ? 2'b10 : 2'b01) : 2'b00;
+assign sd_wr[1:0] = fdc_sd_wr ? (fdc_sd_drive ? 2'b10 : 2'b01) : 2'b00;
 wire [13:0] sd_buff_addr;
 wire [7:0] sd_buff_dout;
-wire [1:0] img_mounted;
+wire [VDNUM-1:0] img_mounted;
 wire img_readonly;
 wire [63:0] img_size;
 reg [1:0] media_present = 0;
@@ -277,7 +292,7 @@ always @(posedge clk_sys) begin
 	end
 end
 
-hps_io #(.CONF_STR(CONF_STR), .PS2DIV(1600), .VDNUM(2), .VIDEO_CDC(TURBO_VIDEO_MASTER)) hps_io
+hps_io #(.CONF_STR(CONF_STR), .PS2DIV(1600), .VDNUM(VDNUM), .VIDEO_CDC(TURBO_VIDEO_MASTER)) hps_io
 (
 	.clk_sys(clk_sys),
 	.HPS_BUS(HPS_BUS),
@@ -309,12 +324,36 @@ hps_io #(.CONF_STR(CONF_STR), .PS2DIV(1600), .VDNUM(2), .VIDEO_CDC(TURBO_VIDEO_M
 	.ps2_kbd_led_status(3'd0), .ps2_kbd_led_use(3'd0),
 	.ps2_mouse_clk_in(1'b1), .ps2_mouse_data_in(1'b1),
 	.img_mounted(img_mounted), .img_readonly(img_readonly), .img_size(img_size),
-	.sd_lba(sd_lba), .sd_blk_cnt('{6'd0,6'd0}), .sd_rd(sd_rd), .sd_wr(sd_wr), .sd_ack(sd_ack),
+	.sd_lba(sd_lba), .sd_blk_cnt(sd_blk_cnt), .sd_rd(sd_rd), .sd_wr(sd_wr), .sd_ack(sd_ack),
 	.sd_buff_addr(sd_buff_addr), .sd_buff_dout(sd_buff_dout),
 	.sd_buff_din(sd_buff_din), .sd_buff_wr(sd_buff_wr),
 	
 	.ps2_key(ps2_key)
 );
+
+// Read-only tape slot (S2). Mounts survive machine reset; the deck itself
+// is the machine's x1_cassette_transport.
+wire tape_mount, tape_present, tape_empty;
+wire tape_sample_valid, tape_sample_level, tape_sample_last, tape_sample_ready;
+wire tape_underflow;
+wire [7:0] tape_mode, tape_sensor;
+generate if (CASSETTE_PROFILE) begin : tape_slot
+	assign sd_wr[2] = 1'b0;
+	assign sd_buff_din[2] = 8'hff;
+	x1_tap_sd_stream tap_stream (
+		.clk(clk_sys), .reset(!turbo_video_locked),
+		.img_mounted(img_mounted[2]), .img_size(img_size),
+		.sd_lba(sd_lba[2]), .sd_rd(sd_rd[2]), .sd_ack(sd_ack[2]),
+		.sd_buff_addr(sd_buff_addr[8:0]), .sd_buff_dout(sd_buff_dout), .sd_buff_wr(sd_buff_wr),
+		.tape_mount(tape_mount), .tape_present(tape_present), .tape_empty(tape_empty),
+		.sample_valid(tape_sample_valid), .sample_level(tape_sample_level),
+		.sample_last(tape_sample_last), .sample_ready(tape_sample_ready),
+		.loaded(), .rejected()
+	);
+end else begin : no_tape_slot
+	assign {tape_mount, tape_present, tape_empty} = 3'b000;
+	assign {tape_sample_valid, tape_sample_level, tape_sample_last} = 3'b000;
+end endgenerate
 
 ///////////////////////   CLOCKS   ///////////////////////////////
 
@@ -403,7 +442,10 @@ initial $error("External-font DDR reservation excludes framebuffer builds");
 localparam TURBO_Z_EXTERNAL_FONT_PROFILE = 0;
 `endif
 
-sharpx1 #(.RAW_2D_MEDIA(1), .SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ), .TURBO(TURBO_FOUNDATION), .TURBO_VIDEO_MASTER(TURBO_VIDEO_MASTER),
+// Main loads boot1.rom as index 0x40 at core start; MGL may use index 6.
+wire cassette_controller_index = CASSETTE_PROFILE && (ioctl_index == 16'd6 || ioctl_index == 16'h0040);
+
+sharpx1 #(.RAW_2D_MEDIA(1), .CASSETTE_ENABLE(CASSETTE_PROFILE), .SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ), .TURBO(TURBO_FOUNDATION), .TURBO_VIDEO_MASTER(TURBO_VIDEO_MASTER),
 	.TURBO_DMA(TURBO_DMA_PROFILE), .TURBO_DMA_IRQ(TURBO_DMA_PROFILE), .TURBO_DMA_RESTART_IRQ(TURBO_DMA_PROFILE), .TURBO_FM_CPU(TURBO_FM_PROFILE),
 	.TURBO_Z_PALETTE_CPU(TURBO_Z_VIDEO_PROFILE), .TURBO_Z_VIDEO(TURBO_Z_VIDEO_PROFILE),
 	.TURBO_Z_MULTIMODE(TURBO_Z_VIDEO_PROFILE), .TURBO_Z_INTERNAL8(TURBO_Z_VIDEO_PROFILE),
@@ -420,8 +462,9 @@ sharpx1 #(.RAW_2D_MEDIA(1), .SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ), 
 	.ce_pix(ce_pix),
 
 	.ioctl_download(ioctl_download),
-	.ioctl_index(ioctl_index[7:0]),
-	.ioctl_wr(ioctl_wr && ((ioctl_index == 0 && ioctl_addr < (TURBO_FOUNDATION ? 27'd32768 : 27'd4096)) || (TURBO_FOUNDATION && ioctl_index == 4) || (TURBO_Z_EXTERNAL_FONT_PROFILE && ioctl_index == 5))),
+	.ioctl_index(cassette_controller_index ? 8'd6 : ioctl_index[7:0]),
+	.ioctl_wr(ioctl_wr && ((ioctl_index == 0 && ioctl_addr < (TURBO_FOUNDATION ? 27'd32768 : 27'd4096)) || (TURBO_FOUNDATION && ioctl_index == 4) || (TURBO_Z_EXTERNAL_FONT_PROFILE && ioctl_index == 5) ||
+		(cassette_controller_index && ioctl_addr < 27'd8192))),
 	.ioctl_addr((ioctl_index == 4 && ioctl_addr >= 27'd4096) ||
         (TURBO_Z_EXTERNAL_FONT_PROFILE && ioctl_index == 5 && ioctl_addr >= 27'd262144)
         ? 25'h1ffffff : ioctl_addr[24:0]),
@@ -435,16 +478,16 @@ sharpx1 #(.RAW_2D_MEDIA(1), .SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ), 
 	.sio_rxd(2'b11),.sio_cts_n(2'b11),.sio_dcd_n(2'b11),
 	.sio_txd(),.sio_rts_n(),.sio_dtr_n(),
 	.joya_n(joya_n), .joyb_n(joyb_n),
-	// No board revision enables the provisional cassette/controller profile.
-	.tape_mount(1'b0), .tape_present(1'b0), .tape_empty(1'b0),
-	.tape_sample_valid(1'b0), .tape_sample_level(1'b0), .tape_sample_last(1'b0),
-	.tape_sample_ready(), .tape_underflow(), .tape_mode(), .tape_sensor(),
+	// Only the X1_CASSETTE revision connects the deck and its controller.
+	.tape_mount(tape_mount), .tape_present(tape_present), .tape_empty(tape_empty),
+	.tape_sample_valid(tape_sample_valid), .tape_sample_level(tape_sample_level), .tape_sample_last(tape_sample_last),
+	.tape_sample_ready(tape_sample_ready), .tape_underflow(tape_underflow), .tape_mode(tape_mode), .tape_sensor(tape_sensor),
 	.disk_ready(media_present[0]), .img_mounted(img_mounted[0]),
 	.disk_wp(!status[1] || media_readonly[0]), .img_size(media_size[0]),
 	.disk_raw(media_raw[0]), .disk_raw_b(media_raw[1]),
 	.disk_ready_b(media_present[1]), .img_mounted_b(img_mounted[1]),
 	.disk_wp_b(!status[1] || media_readonly[1]), .img_size_b(media_size[1]),
-	.sd_drive(fdc_sd_drive), .sd_lba(fdc_sd_lba), .sd_rd(fdc_sd_rd), .sd_wr(fdc_sd_wr), .sd_ack(sd_ack[fdc_sd_drive]),
+	.sd_drive(fdc_sd_drive), .sd_lba(fdc_sd_lba), .sd_rd(fdc_sd_rd), .sd_wr(fdc_sd_wr), .sd_ack(fdc_sd_drive ? sd_ack[1] : sd_ack[0]),
 	.sd_buff_addr(sd_buff_addr[8:0]), .sd_buff_dout(sd_buff_dout),
 	.sd_buff_din(fdc_sd_din), .sd_buff_wr(sd_buff_wr),
 
