@@ -306,20 +306,29 @@ end else if (CASSETTE_ENABLE) begin : experimental_cassette
     .rom_cs(pgm_cs),.ram_cs(decoded_ram),.rom_word_address(rom_word));
   assign wram_cs = decoded_ram && !sub_addr[11];
   reg selected_ram;
-  reg [15:0] cassette_program[0:4095];
-  reg [15:0] cpu_program_data;
-  reg [7:0] firmware_read;
+  // Two byte-wide dual-port memories (upload/readback port, CPU read port)
+  // so synthesis maps the 8-KiB program to block RAM, not registers.
+  reg [7:0] cassette_program_l[0:4095];
+  reg [7:0] cassette_program_h[0:4095];
+  reg [7:0] cpu_program_l, cpu_program_h, firmware_read_l, firmware_read_h;
+  reg firmware_odd;
+  wire program_upload = I_reset && I_fcs && I_wr;
   always @(posedge I_clk) begin
     selected_ram <= wram_cs;
-    cpu_program_data <= cassette_program[rom_word];
-    firmware_read <= I_fa[0] ? cassette_program[I_fa[12:1]][15:8] : cassette_program[I_fa[12:1]][7:0];
-    if (I_reset && I_fcs && I_wr) begin
-      if (I_fa[0]) cassette_program[I_fa[12:1]][15:8] <= I_D;
-      else cassette_program[I_fa[12:1]][7:0] <= I_D;
-    end
+    firmware_odd <= I_fa[0];
   end
-  assign rtc_rdata = msel ? cpu_program_data : selected_ram ? wram_data : 16'hffff;
-  assign rtc_firmware_data = firmware_read;
+  always @(posedge I_clk) begin
+    if (program_upload && !I_fa[0]) cassette_program_l[I_fa[12:1]] <= I_D;
+    firmware_read_l <= cassette_program_l[I_fa[12:1]];
+  end
+  always @(posedge I_clk) cpu_program_l <= cassette_program_l[rom_word];
+  always @(posedge I_clk) begin
+    if (program_upload && I_fa[0]) cassette_program_h[I_fa[12:1]] <= I_D;
+    firmware_read_h <= cassette_program_h[I_fa[12:1]];
+  end
+  always @(posedge I_clk) cpu_program_h <= cassette_program_h[rom_word];
+  assign rtc_rdata = msel ? {cpu_program_h, cpu_program_l} : selected_ram ? wram_data : 16'hffff;
+  assign rtc_firmware_data = firmware_odd ? firmware_read_h : firmware_read_l;
   assign rtc_t1 = 1'b0;
 end else begin : ordinary_rtc_disabled
   assign pgm_cs = mem_cs & ~sub_addr[12];
