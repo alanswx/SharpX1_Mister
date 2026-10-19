@@ -98,6 +98,17 @@ controller, `C` was swallowed.
   `turbo-x3-single-cassette`, `base-cassette` (and `-fast`). They are
   non-savable, and the default generated state audits are unchanged.
 
+Runner checks (fast `--no-timing` builds, joystick-off controller
+`439a3863…`, no input):
+
+- `turbo-x3-single-cassette`, native Turbo IPL `21289570…`, Zero Fighter:
+  at 70 s the attract demo is running. The whole tape is read (81 SD sector
+  requests), the deck is stopped by the loader, and there is no underflow.
+  At 55 s the screen still read "IPL is loading ZERO".
+- `base-cassette`, base IPL `0513077c…`: Zero Fighter shows the same 70-s
+  attract demo. 3D Bomberman (44.1 kHz) plays to the tape end (sensor `02`,
+  1,337 requests, no underflow), and at 135 s the title art is being drawn.
+
 Builds (Quartus 17.0, commit `930a57d`):
 
 | Revision | Build | RBF | Fit | Eight-corner inventory |

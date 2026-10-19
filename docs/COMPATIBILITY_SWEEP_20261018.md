@@ -100,3 +100,13 @@ compare. The ~4.8 s versus ~7.5 s period reflects different FDC/drive timing
 models; both run the same load-and-restart path. No core change is planned
 unless a verified dump boots elsewhere. Snapshots:
 `output_files/COMPAT_20261018/mame/`.
+
+## Third pass: tape-enabled X3 core with native Kanji (RBF `31b499ca…`)
+
+Same 13 single-disk sets (Storm and Jail Break were checked separately),
+`sharpx1_turbo_z_font_single` with cassette (commit `930a57d`) and the
+model-40 level-1 Kanji image. One raw capture each at about 42 s; contact
+sheet at `output_files/ZKANJI_20261018/sweep_sheet.png`. Every title that
+passed in the second pass reaches the same screen. Othello (T10) still fails
+(bad image, see above). Senryaku Rengou Kantai now shows 「連合艦隊」 in native
+Kanji.
