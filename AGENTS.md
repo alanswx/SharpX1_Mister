@@ -257,11 +257,14 @@ the documented row/width or native BASIC acceptance matrix. Mode 01 graphics
 interleaves both GRAM pages; pixel fixtures must initialize both through CPU
 writes. Freeze/hash each runner before a long test, not after another build
 may have replaced it. Older frozen game qualifications remain historical.
-`sharpx1_cassette` is the only board revision with cassette: base two-clock X1,
-S2 TAP streamed by board-only `rtl/x1_tap_sd_stream.sv` (8 kHz, rewound on
-mount), controller via F6/index 6 or boot1.rom (index 0x40). Do not embed the
-controller; MGL `f` items need a matching CONF_STR `F` entry. Use
-`test-tap-sd-stream`, `lint-wrapper-cassette` and `docs/CASSETTE_STATUS.md`.
+`sharpx1_cassette` (base two-clock) and `sharpx1_turbo_z_font_single` have
+cassette: S2 TAP streamed by board-only `rtl/x1_tap_sd_stream.sv` (4-192 kHz
+via the transport's default-off RUNTIME_RATE, rewound on mount), controller
+via F6/index 6 or boot1.rom (index 0x40); before an upload the ordinary ROM
+runs. Do not embed the controller; MGL `f` items need a matching CONF_STR `F`
+entry. Use `test-tap-sd-stream`, `lint-wrapper-cassette`, the non-savable
+`turbo-x3-single-cassette`/`base-cassette` runners (`--tape`) and
+`docs/CASSETTE_STATUS.md`.
 Simulator disk writes require `--disk-output NEW_COPY`; private originals and
 snapshots remain ignored. See `docs/DISK_STATUS.md` for tested and missing cases.
 Vendor `STRICT_D88_TIMING=1` is a separate default-off SD/register experiment.

@@ -71,10 +71,54 @@ the F6 entry, Main skipped the MGL's index-6 item, and the IPL reported
 "Please turn on the Power SW slowly again !". With the joystick-on
 controller, `C` was swallowed.
 
-Still open on the board: the 176.4 kHz tape (Car Chase) and other rates,
-format 0, rewind/fast-forward except by remounting, recording/APSS, BASIC
-tapes via HuBASIC, a running RTC (Rally-X seed), Turbo/X3 revisions (the
-external-font profile still rejects cassette), and a single-clock variant.
+### Follow-up: runtime rates, X3 core, controller fallback (commit `930a57d`)
+
+- **Runtime sample rate.** `x1_cassette_transport` has a default-off
+  `RUNTIME_RATE` parameter that paces at a held `sample_hz`. The fixed-rate
+  expression, and the existing transport mutant that edits it, are
+  unchanged. `x1_tap_sd_stream` admits `MIN_HZ..MAX_HZ` and reports
+  `sample_hz`; boards accept 4–192 kHz. The MAME 0.289 software list has 163
+  TAPs: 141 at 8 kHz, 14 at 44.1 kHz, 4 at 48 kHz, 2 at 24 kHz, 1 at 32 kHz
+  and 1 at 22.05 kHz. MAME's own loader rejects every rate except 8 kHz.
+  `test-tap-sd-stream` now has 28 checks. The new ones cover
+  4/8/22.05/44.1/48/176.4 kHz cadence and drift, out-of-range rejections, and
+  a transport mutant that ignores the runtime rate (rejected on cadence).
+- **Controller fallback.** Until an index-6 upload arrives, the cassette
+  branch of `rtl/sub_cpu.v` serves low-bank program reads from the ordinary
+  embedded `sub_rom`. A missing controller therefore behaves like the ordinary
+  core (no deck control) instead of an empty program. On hardware the X3 core
+  without a controller reaches "IPL is looking for a program from CMT", which
+  requires a running sub-CPU; the empty program gave "Please turn on the
+  Power SW slowly again !". No new firmware is embedded.
+- **X3 main core.** The external-font profile now admits cassette, and
+  `sharpx1_turbo_z_font_single` defines `X1_CASSETTE`.
+- **Simulation runner.** With `+define+X1_CASSETTE`, `verilator/sim.v`
+  instantiates the board streamer on its own hps_io-style channel.
+  `sim_headless.cpp` adds `--tape` and `--tape-controller`. Targets:
+  `turbo-x3-single-cassette`, `base-cassette` (and `-fast`). They are
+  non-savable, and the default generated state audits are unchanged.
+
+Builds (Quartus 17.0, commit `930a57d`):
+
+| Revision | Build | RBF | Fit | Eight-corner inventory |
+| --- | --- | --- | --- | --- |
+| `sharpx1_turbo_z_font_single` (+cassette) | `AJf4dzRg` | `31b499ca…` | 70% ALMs, 79% BRAM | 0 failing paths in 32 reports |
+| `sharpx1_cassette` | `oyUG0tPv` | `0b035d1f…` | 51% ALMs, 38% BRAM | Base two-clock crossings only, as above |
+
+MiSTer 192, raw mrext captures in `output_files/CASSETTE_20261018/hw/`:
+
+| Core | Media | Result |
+| --- | --- | --- |
+| X3 font single | Native Turbo IPL, ANK16, controller, Zero Fighter TAP | "IPL is loading ZERO", attract demo; Space starts stage 1 ✓ |
+| X3 font single | Same without controller | Sub-CPU runs; IPL waits at "looking for a program from CMT" (ordinary behaviour) |
+| X3 font single | Galaga raw .2d | Title; Space gives the level menu ✓ (disk path intact) |
+| `sharpx1_cassette` | Base IPL, controller, 3D Bomberman (44.1 kHz, software list `3dbomb`) | Loads; title art, then instructions after Space ✓ |
+
+Still open on the board: Car Chase, the only 176.4 kHz tape (its payload is
+4 bytes shorter than the declared bit count, so the exact-length rule rejects
+it); format 0; rewind/fast-forward except by remounting; recording and APSS;
+BASIC tapes through HuBASIC; a running RTC (Rally-X seed). The external-font
+X3 core is the only Turbo revision with tape.
 
 October 10: the default-off `CASSETTE_ENABLE` shared-machine profile now connects
 a read-only SYS-timed waveform transport, executed MR16 setters/live E9/EA/EB

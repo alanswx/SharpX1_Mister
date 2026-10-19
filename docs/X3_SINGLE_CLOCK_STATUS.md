@@ -142,3 +142,12 @@ No Z hardware run has been made for this revision yet.
 Decision (user, October 18): continue on the single X3 master. The two-clock
 X3 revisions stay buildable but frozen, to be retired once their single-clock
 counterparts are qualified.
+
+## Cassette on the font revision (October 18)
+
+`sharpx1_turbo_z_font_single` now also defines `X1_CASSETTE` (S2 TAP, F6
+controller, ordinary-ROM fallback). Build `quartus-linux-AJf4dzRg`
+(commit `930a57d`), RBF `31b499ca…`: 70% ALMs, 79% block memory, and zero
+failing paths in all 32 eight-corner reports. On MiSTer 192 the native Turbo
+IPL loads Zero Fighter from tape, and Galaga still boots from a raw .2d. See
+`docs/CASSETTE_STATUS.md`.

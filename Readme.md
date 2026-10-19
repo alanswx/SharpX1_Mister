@@ -226,7 +226,9 @@ generated CPU-written GRAM sentinels are checked without injecting native RAM.
 The separate base-X1 `sharpx1_cassette` board revision now streams 8-kHz TAP
 images from the SD card (OSD S2, controller via F6/boot1.rom). On MiSTer 192,
 Zero Fighter, Bomber Man, Cannon Ball, Slalom and Sea Bomber load and start;
-see the board section of the cassette status. Other revisions stay cassette-free.
+see the board section of the cassette status. The X3 font single revision
+also has tape (4-192 kHz, including 44.1-kHz tapes MAME cannot play) and
+still closes timing. Without the controller it runs the ordinary MR16 ROM.
 
 The standalone [FDC byte-slot scheduler](docs/FDC_BYTE_SLOT_STATUS.md) passes
 exact enable-boundary and rejecting-negative checks. It is now connected through
