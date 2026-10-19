@@ -21,17 +21,23 @@ for line in lines:
     if '$(V_SRC) sim_headless.cpp' in command:
         recipes.append(command)
     command = ''
-assert len(recipes) == 33, 'runner recipe coverage changed; review new profiles'
+# 34: adds the X3 single-clock FM/FM-CTC runner (X3_FM_DIR).
+assert len(recipes) == 34, 'runner recipe coverage changed; review new profiles'
 # The single-clock X3 runner must elaborate exactly the master its C++ clocks.
-x3_recipes = [command for command in recipes if '-GMASTER_HZ=42954540 -GRAW_2D_MEDIA=1' in command]
+x3_all = [command for command in recipes if '-GMASTER_HZ=42954540 -GRAW_2D_MEDIA=1' in command]
+x3_recipes = [command for command in x3_all if '-GTURBO_FM_CPU=1' not in command]
 assert len(x3_recipes) == 1, 'single-clock X3 recipe missing/duplicated'
+# The X3 FM runner shares the X3 master and must pair its FM RTL/C++ flags.
+x3_fm = [command for command in x3_all if '-GTURBO_FM_CPU=1' in command]
+assert len(x3_fm) == 1 and '-DX1_TURBO_FM_CPU' in x3_fm[0] and '-GTURBO_FM_CTC=1' in x3_fm[0], \
+    'X3 FM recipe missing/duplicated or FM RTL/C++ flags mismatch'
 # The optional Z single-clock master must pair RTL and C++ frequencies too.
 z_recipes = [command for command in recipes if '$(Z_SINGLE)' in command]
 assert len(z_recipes) == 1 and '-GSINGLE_CLOCK=1 -GMASTER_HZ=42954540' in z_recipes[0] \
     and '-DX1_SINGLE_CLOCK -DX1_SINGLE_MASTER_HZ=42954540' in z_recipes[0], 'Z single-clock flags mismatch'
 for required in ('-GSINGLE_CLOCK=1', '-GTURBO_VIDEO_MASTER=1', '-DX1_SINGLE_MASTER_HZ=42954540',
                  '-DX1_TURBO_VIDEO_MASTER', '-DX1_RAW_2D_MEDIA'):
-    assert required in x3_recipes[0], 'single-clock X3 RTL/C++ profile flag mismatch: ' + required
+    assert required in x3_recipes[0] and required in x3_fm[0], 'single-clock X3 RTL/C++ profile flag mismatch: ' + required
 # The new opt-in FDC recipe must not borrow a different rate/DMA model or
 # report a C++ profile that disagrees with its elaborated RTL parameters.
 fdc_recipes = [command for command in recipes if '-GTURBO_FDC_TIMING=1' in command]
