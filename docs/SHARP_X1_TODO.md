@@ -1788,8 +1788,10 @@ Preserve each frozen runner; do not rebuild historical v05.
   corroborated by a second emulator. The default-off shared-machine read-only
   transport passes six actual CPU/MR16/PPI cases and three rejecting controls,
   including BREAK, EOF and retained-media reset. Native loading, other
-  formats/rates, recording, APSS and board acceptance remain open. See
-  [cassette status and connected gates](CASSETTE_STATUS.md).
+  formats/rates, recording and APSS remain open. The `sharpx1_cassette`
+  board revision streams 8-kHz TAPs from SD and loads five commercial tapes
+  on MiSTer 192; 176.4-kHz tapes, rewind, Turbo/X3 and single-clock variants
+  remain open. See [cassette status and connected gates](CASSETTE_STATUS.md).
 - [x] Connect PSG audio output and verify deterministic 1 kHz WAV waveform.
 - [ ] Verify noise, envelopes, full music and hardware audio/clock behavior.
 - [x] Verify all three tone channels, volume mute, repeatable noise with period

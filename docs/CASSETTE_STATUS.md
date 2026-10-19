@@ -1,5 +1,81 @@
 # Cassette bring-up status
 
+## Board revision `sharpx1_cassette` (October 18)
+
+Base X1 (two-clock: SYS 32 MHz, VID 28.571428 MHz) with the existing
+`CASSETTE_ENABLE` machine profile and a new board-only SD producer:
+
+- **OSD:** `S2,TAP` mounts a tape; `F6` loads the deck controller. Every mount
+  starts rewound at sample 0 (the TAP's stored position is ignored). The OSD
+  reports "Tape ready (rewound)" or "Tape format not supported".
+- **Producer:** `rtl/x1_tap_sd_stream.sv` reads the image through the hps_io
+  SD block interface (VDNUM 3), parses the header and holds one MSB-first
+  sample for `x1_cassette_transport`. Admission mirrors `x1_tap_image.h`:
+  old header with rate 8000, or new `TAPE` header with format 1, rate 8000,
+  write-protect flags limited to bit 4 and an exact payload length. Anything
+  else mounts as no tape. Two 512-byte slots keep the current and next sector
+  resident (0.512 s of tape each). It mounts the deck only after the first
+  sample is held, so PLAY never starts without data.
+- **Controller:** not embedded. Build it with
+  `python3 scripts/build_mr16_cassette_firmware.py --receive-only --joystick-off --output-dir DIR`
+  and load it as index 6 (OSD `F6` or an MGL `f` item) or as `boot1.rom`
+  (Main sends index 0x40, mapped to 6). An MGL `f` item only applies when
+  CONF_STR has a matching `F` option. `--joystick-off` changes exactly one
+  low-ROM byte (offset 376, `03`→`02`) so the inherited PS/2 joystick
+  emulation starts disabled; otherwise it eats A/Z/X/C and the keypad,
+  including the IPL's `C` (CMT) key, and F12 (its toggle) opens the MiSTer
+  OSD. The default builder outputs are unchanged.
+- **Memory fix:** the cassette branch of `rtl/sub_cpu.v` now stores the 8-KiB
+  controller as two byte-wide dual-port arrays. The previous 16-bit,
+  byte-written, two-read-port array synthesized to registers (the fitter
+  needed 7,812 LABs of 4,191). `test-machine-cassette` passes again on the
+  new memory: six CPU cases plus three rejecting controls.
+
+Checks:
+
+- `make -C verilator test-tap-sd-stream`: 18 checks against the real transport.
+  They cover old and new headers, a sector-exact payload, a partial last byte,
+  write-protect metadata, empty media, eight rejections (44.1/176.4 kHz,
+  format 0, unknown flags, long/short payload, old-header rate 0, truncated
+  header), remount rewind, a 20,000-cycle SD latency, exact 32-MHz cadence
+  and a bit-order mutant, which is rejected.
+- `make -C verilator lint-wrapper-cassette`. Default `lint-wrapper` warnings
+  are identical to before.
+- Quartus 17.0 build `quartus-linux-YHBWKu6Z` (commit `6a9b41e`), RBF
+  `4572260f…`: 50% ALMs, 38% block memory. The eight-corner inventory has
+  failing paths in 23 of 32 reports. Every one is a SYS↔VID crossing between
+  the two PLL outputs, inherited from the two-clock base design (PCG bus,
+  hps_io status/reset into video, MR16 blink). None is same-clock, and none
+  is in the tape streamer or the controller memory. This is not a timing
+  closure claim for the base two-clock revision.
+- Simulation (frozen cassette runner, base IPL `0513077c…`, joystick-on
+  controller `5463d65d…`): the Zero Fighter TAP loads without input. The IPL
+  falls back to CMT and starts PLAY at 5.85 s, and the loader stops the deck
+  at 47.0 s. The title/instructions frame appears, with zero underflow.
+
+MiSTer 192 hardware: same RBF, MGL with base IPL (index 0), joystick-off
+controller `439a3863…` (index 6), TAP on S2. Raw mrext captures are in
+`output_files/CASSETTE_20261018/hw/`, and media hashes in `media.sha256`.
+
+| ID | Tape | Header | Result |
+| --- | --- | --- | --- |
+| K01 | Zero Fighter | new, 8 kHz | Auto CMT load, "IPL is loading ZERO", attract demo; Space starts stage 1 ✓ |
+| K02 | Pock-Kun | new, 8 kHz | IPL "File mode error"; MAME 0.283 `x1 -cass` shows the same (not a machine-code file) |
+| K03 | Bomber Man | new, 8 kHz | Title, then maze gameplay after Space ✓ |
+| K04 | Cannon Ball | old, 8 kHz | Title, then gameplay after Space ✓ |
+| K05 | Slalom | new, 8 kHz | Instructions, then stage 1 after Space ✓ |
+| K06 | Sea Bomber | new, 8 kHz | Title/instructions ✓ |
+
+Earlier hardware attempts on this date are preserved as evidence. Without
+the F6 entry, Main skipped the MGL's index-6 item, and the IPL reported
+"Please turn on the Power SW slowly again !". With the joystick-on
+controller, `C` was swallowed.
+
+Still open on the board: the 176.4 kHz tape (Car Chase) and other rates,
+format 0, rewind/fast-forward except by remounting, recording/APSS, BASIC
+tapes via HuBASIC, a running RTC (Rally-X seed), Turbo/X3 revisions (the
+external-font profile still rejects cassette), and a single-clock variant.
+
 October 10: the default-off `CASSETTE_ENABLE` shared-machine profile now connects
 a read-only SYS-timed waveform transport, executed MR16 setters/live E9/EA/EB
 responses and PPI PB1. Six generated-IPL machine cases pass an independent
@@ -57,7 +133,7 @@ All eight actual ordinary base/Turbo generated headers/serializers compare
 byte-identical to `d2c2d5f`, with no added warnings. The existing RTC elapsed,
 retained-reset, transport and DMA-reset diagnostics finish their immutable
 evidence checks after integration. Wrapper DMA lint passes an interface check,
-not Quartus or hardware acceptance. No existing RBF enables cassette.
+not Quartus or hardware acceptance. (At this October 10 checkpoint no RBF enabled cassette.)
 
 ## Separate waveform-fed runner
 
