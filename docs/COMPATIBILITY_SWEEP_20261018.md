@@ -71,7 +71,7 @@ Overall, 14 of 15 boot sets reach a title, menu or prompt. Kanji-heavy
 screens need a native Kanji ROM; the synthetic test font shows noise there.
 Evidence (PNGs, contact sheets, SHA-256 list): `output_files/COMPAT_20261018/`.
 
-## Othello (open)
+## Othello (image problem, not a core bug)
 
 On the X3 single runner it cycles every ~4.78 s: the IPL loads the boot
 program (`1E00`), then 0.34 s later the program re-enables the IPL ROM
@@ -79,6 +79,21 @@ program (`1E00`), then 0.34 s later the program re-enables the IPL ROM
 status or deleted flags. On the **base-X1** headless runner with the MAME-set
 base IPL (`ipl.x1`, `0513077c…`, from `~/Downloads/x1.zip`), it also stays at
 "IPL is loading" after 40 s (2,274 disk requests). So the turbo IPL is not the
-cause. Next: compare against a reference emulator, to separate a bad dump or
-copy protection from a controller gap. This needs approval to run the
-downloaded MAME binary.
+cause.
+
+Reference check with MAME 0.283 (`~/Downloads/mame0283-arm64`, run headless
+through `scripts/mame_x1_headless.sh`; the 80C48 sub-CPU is undumped in MAME):
+
+| Driver | ROMs | Othello | Control |
+| --- | --- | --- | --- |
+| `x1` | `x1.zip` (MAME set) | Never gets past "IPL is under preparing" (blank screen alternates) | HuBASIC `Ok`, Alien Egg `SPEED [0-9] ?` ✓ |
+| `x1turbo` | `ipl.x1t` (SHA-1 `44620f57…`, matches MAME); base ANK; 8x8 and Kanji placeholders | Same loop as our core: "IPL is set for device" ↔ "IPL is loading モリタ ノ オセロ", period ~7.5 s | HuBASIC `Ok` ✓ |
+
+Because MAME fails the same way while the control disks boot, the
+`Morita Kazuro no Othello` image (SHA-1 `b7d5df1f…`) is most likely a bad or
+protection-stripped dump. It is not in MAME's `x1_flop` software list
+(`moritash` is the separate Shogi title), so no verified dump is available to
+compare. The ~4.8 s versus ~7.5 s period reflects different FDC/drive timing
+models; both run the same load-and-restart path. No core change is planned
+unless a verified dump boots elsewhere. Snapshots:
+`output_files/COMPAT_20261018/mame/`.

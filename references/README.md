@@ -118,3 +118,9 @@ X Millennium; `source/LICENSE.txt` identifies GPLv2, not a cleared ROM/font
 redistribution license. No reference code or assets were copied into the core.
 The [priority contract](../docs/TURBO_Z_PRIORITY_CONTRACT.md#additional-local-reference-ex1-composition)
 records raw-code opacity, backdrop and reduced-index disagreements.
+
+October 18 compatibility follow-up: `scripts/mame_x1_headless.sh` runs the same
+local MAME 0.283 binary headless (`x1` with the MAME `x1.zip` set; `x1turbo`
+with the matching local `ipl.x1t` and placeholder turbo font/Kanji files). It
+reproduced the Othello IPL reload loop while HuBASIC and Alien Egg controls
+booted; see `docs/COMPATIBILITY_SWEEP_20261018.md`.
