@@ -66,18 +66,37 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636
     wire dma_busrq_n, cpu_busak_n;
     wire dma_owner = TURBO && TURBO_DMA && !cpu_busak_n;
     wire font_machine_reset, font_cpu_run, font_ioctl_wait, font_write_wait_n;
-    generate if (TURBO_Z_EXTERNAL_FONT) begin : external_font_reset
+    wire font_reset_request;
+    generate if (TURBO_Z_EXTERNAL_FONT && TURBO_DMA) begin : external_font_dma_reset
+        // A reset first drains an owned DMA pair (CPU stopped, DMA and its
+        // target running); only then does the font service see the request.
+        // Font pauses for host downloads/reload still reset DMA directly; a
+        // runtime upload during an active transfer is not qualified.
+        wire guard_machine_reset, guard_cpu_run, guard_dma_reset;
+        x1_dma_reset reset_guard (
+            .clk(clk_sys), .reset_request(reset), .dma_busak_n(cpu_busak_n),
+            .dma_busrq_n(dma_busrq_n), .machine_reset(guard_machine_reset),
+            .cpu_run(guard_cpu_run), .dma_reset(guard_dma_reset), .draining(dma_draining)
+        );
+        assign font_reset_request=guard_machine_reset;
+        assign core_reset=font_machine_reset;
+        assign cpu_run=font_cpu_run && guard_cpu_run;
+        assign dma_reset=guard_dma_reset || font_machine_reset;
+    end else if (TURBO_Z_EXTERNAL_FONT) begin : external_font_reset
+        assign font_reset_request=reset;
         assign core_reset=font_machine_reset;
         assign cpu_run=font_cpu_run;
         assign dma_reset=core_reset;
         assign dma_draining=0;
     end else if (TURBO && TURBO_DMA) begin : dma_reset_domain
+        assign font_reset_request=reset;
         x1_dma_reset reset_guard (
             .clk(clk_sys), .reset_request(reset), .dma_busak_n(cpu_busak_n),
             .dma_busrq_n(dma_busrq_n), .machine_reset(core_reset),
             .cpu_run(cpu_run), .dma_reset(dma_reset), .draining(dma_draining)
         );
     end else begin : compatible_machine_reset
+        assign font_reset_request = reset;
         assign core_reset = reset;
         assign cpu_run = !reset;
         assign dma_reset = reset;
@@ -174,9 +193,11 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636
         // the bus or DMA; other combinations stay unqualified.
         if (TURBO_Z_EXTERNAL_FONT && (!TURBO_Z_KANJI || TURBO_Z_VIDEO || RTC_ENABLE || TURBO_SIO))
             $error("external font profile requires Z Kanji; combined experimental devices remain unqualified");
-        if (TURBO_Z_KANJI && !(TURBO && TURBO_VIDEO_MASTER && TURBO_KANJI && TURBO_KANJI_RENDER && !TURBO_DMA))
-            $error("Z Kanji simulation profile requires Turbo/X3/Kanji/render and excludes DMA");
-        if (TURBO_FM_CTC && (!TURBO || !TURBO_FM_CPU || TURBO_DMA_IRQ || TURBO_SIO))
+        // DMA is admitted only with the explicit DMA/Kanji shared-bus profile.
+        if (TURBO_Z_KANJI && !(TURBO && TURBO_VIDEO_MASTER && TURBO_KANJI && TURBO_KANJI_RENDER &&
+                               (!TURBO_DMA || TURBO_DMA_KANJI_EXPERIMENT)))
+            $error("Z Kanji profile requires Turbo/X3/Kanji/render; DMA needs the DMA/Kanji profile");
+        if (TURBO_FM_CTC && (!TURBO || !TURBO_FM_CPU || TURBO_SIO))
             $error("TURBO_FM_CTC requires the FM CPU profile and the compatible interrupt chain");
         if (CASSETTE_RUNTIME_RATE && !CASSETTE_ENABLE)
             $error("CASSETTE_RUNTIME_RATE requires CASSETTE_ENABLE");
@@ -195,7 +216,7 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636
             .busrq_n(dma_busrq_n), .busak_n(cpu_busak_n),
             .mreq_n(dma_mreq), .iorq_n(dma_iorq), .rd_n(dma_rd), .wr_n(dma_wr),
             .address(dma_a), .data_out(dma_data_out), .data_in(di),
-            .wait_n(cg_wait_n && crtc_wait_n), .rdy(!fdc_drq), .unsupported(dma_unsupported)
+            .wait_n(cg_wait_n && crtc_wait_n && font_write_wait_n && fm_wait_n), .rdy(!fdc_drq), .unsupported(dma_unsupported)
         );
     end else begin : no_turbo_dma
         assign dma_busrq_n = 1;
@@ -623,6 +644,29 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636
             .ctc_iei(ctc_iei),.ctc_reti(ctc_reti),.ack_vector(irq_vector));
         assign ctc_selected=!m1 && !iorq && !sio_irq && !dma_irq && ctc_irq;
         assign fm_ctc_ack = 0; assign fm_ctc_reti = 0;
+    end else if (TURBO_DMA_IRQ && TURBO_FM_CTC) begin : fm_dma_irq_chain
+        // FM CTC > DMA > main CTC > keyboard. The FM bridge treats DMA and
+        // the main CTC as one downstream group (DMA first, as in the
+        // CZ-851/852 chain); its group ACK/RETI are split like the DMA bridge.
+        assign sio_iei=1;assign sio_ack=0;assign sio_reti=0;
+        wire group_ack, group_reti;
+        x1_fm_irq_bridge irq_bridge (
+            .clk(clk_sys),.reset(core_reset),.m1_n(m1),.mreq_n(mreq),
+            .iorq_n(iorq),.rd_n(rd),.data(di),
+            .keyboard_irq(!sub_int_n),.ctc_irq(dma_irq || ctc_irq),.fm_ctc_irq(fm_ctc_irq),
+            .ctc_ieo(dma_ieo && ctc_ieo),.ctc_vector(dma_irq ? dma_vector : ctc_vector),
+            .fm_ctc_vector(fm_ctc_vector),
+            .keyboard_vector(sub_data),.irq(machine_irq),.keyboard_ack(keyboard_ack),
+            .ctc_ack(group_ack),.fm_ctc_ack(fm_ctc_ack),.ctc_reti(group_reti),.fm_ctc_reti(fm_ctc_reti),
+            .ack_vector(irq_vector),.fm_service_depth()
+        );
+        assign dma_iei = fm_ctc_ieo;
+        assign ctc_iei = dma_ieo;
+        assign dma_ack = group_ack && dma_irq;
+        assign ctc_ack = group_ack && !dma_irq && ctc_irq;
+        assign dma_reti = group_reti && dma_in_service;
+        assign ctc_reti = group_reti && !dma_in_service;
+        assign ctc_selected = !m1 && !iorq && !fm_ctc_irq && !dma_irq && ctc_irq;
     end else if (TURBO_DMA_IRQ) begin : completion_irq_chain
         assign sio_iei=1;assign sio_ack=0;assign sio_reti=0;
         // Inspected CZ-851/852 chain; upstream SIO/external are absent here.
@@ -1030,7 +1074,7 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636
     // Rendering is a separate opt-in provisional X Millennium row policy.
     generate if (TURBO_Z_EXTERNAL_FONT) begin : external_font
         x1_z_kanji_machine service (
-            .clk_sys(clk_sys), .clk_vid(clk_28636), .reset_request(reset),
+            .clk_sys(clk_sys), .clk_vid(clk_28636), .reset_request(font_reset_request),
             .machine_reset(font_machine_reset), .cpu_run(font_cpu_run), .video_reset(video_reset),
             .ioctl_download(ioctl_download), .ioctl_wr(ioctl_wr), .ioctl_index(ioctl_index),
             .ioctl_data(ioctl_dout), .ioctl_address(ioctl_addr), .ioctl_wait(font_ioctl_wait),

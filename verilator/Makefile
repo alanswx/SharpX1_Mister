@@ -297,9 +297,10 @@ $(HEADLESS_DIR)/machine-fm-single-board/Vmachine_fm_tb: tests/machine_fm_tb.sv $
 .PHONY: test-machine-fm
 
 # Default-off FM-board CTC (0704) and FM > CTC > keyboard IM2 chain; real Z80.
-test-machine-fm-ctc: $(HEADLESS_DIR)/machine-fm-ctc/Vmachine_fm_ctc_tb $(HEADLESS_DIR)/machine-fm-ctc-x3/Vmachine_fm_ctc_tb $(HEADLESS_DIR)/machine-fm-ctc-absent/Vmachine_fm_ctc_tb
+test-machine-fm-ctc: $(HEADLESS_DIR)/machine-fm-ctc/Vmachine_fm_ctc_tb $(HEADLESS_DIR)/machine-fm-ctc-x3/Vmachine_fm_ctc_tb $(HEADLESS_DIR)/machine-fm-ctc-absent/Vmachine_fm_ctc_tb $(HEADLESS_DIR)/machine-fm-ctc-x3-dma/Vmachine_fm_ctc_tb
 	./$(HEADLESS_DIR)/machine-fm-ctc/Vmachine_fm_ctc_tb
 	./$(HEADLESS_DIR)/machine-fm-ctc-x3/Vmachine_fm_ctc_tb
+	./$(HEADLESS_DIR)/machine-fm-ctc-x3-dma/Vmachine_fm_ctc_tb
 	@ulimit -c 0; if ./$(HEADLESS_DIR)/machine-fm-ctc-absent/Vmachine_fm_ctc_tb >$(HEADLESS_DIR)/machine-fm-ctc-absent/negative.log 2>&1; then \
 		echo 'ERROR: absent FM CTC unexpectedly passed'; exit 1; \
 	fi; grep -q 'FM CTC probe absent ff/ff' $(HEADLESS_DIR)/machine-fm-ctc-absent/negative.log || \
@@ -319,6 +320,9 @@ $(HEADLESS_DIR)/machine-fm-ctc/Vmachine_fm_ctc_tb: tests/machine_fm_ctc_tb.sv $(
 $(HEADLESS_DIR)/machine-fm-ctc-x3/Vmachine_fm_ctc_tb: tests/machine_fm_ctc_tb.sv $(MACHINE_SRC) Makefile
 	mkdir -p $(@D)
 	$(V) --binary --timing --assert --top-module machine_fm_ctc_tb -GSINGLE_CLOCK=1 -GMASTER_HZ=42954540 --Mdir $(@D) -j 4 tests/machine_fm_ctc_tb.sv $(MACHINE_SRC) -Wno-fatal
+$(HEADLESS_DIR)/machine-fm-ctc-x3-dma/Vmachine_fm_ctc_tb: tests/machine_fm_ctc_tb.sv $(MACHINE_SRC) Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module machine_fm_ctc_tb -GSINGLE_CLOCK=1 -GMASTER_HZ=42954540 -GDMA=1 --Mdir $(@D) -j 4 tests/machine_fm_ctc_tb.sv $(MACHINE_SRC) -Wno-fatal
 $(HEADLESS_DIR)/machine-fm-ctc-absent/Vmachine_fm_ctc_tb: tests/machine_fm_ctc_tb.sv $(MACHINE_SRC) Makefile
 	mkdir -p $(@D)
 	$(V) --binary --timing --assert --top-module machine_fm_ctc_tb -GFM_CTC=0 --Mdir $(@D) -j 4 tests/machine_fm_ctc_tb.sv $(MACHINE_SRC) -Wno-fatal
@@ -1020,16 +1024,25 @@ turbo-x3-single-fast:
 # Non-savable X3 single-clock FM profile: JT51 + FM-board CTC (board parity).
 X3_FM_DIR ?= obj_dir_x3_single_fm
 X3_FM_TIMING ?= --timing
+# X3_FM_DMA=1 adds the board's DMA with completion/restart IRQ (chain FM CTC >
+# DMA > main CTC > keyboard); use the -dma targets for isolated directories.
+X3_FM_DMA ?= 0
+X3_FM_DMA_RTL = $(if $(filter 1,$(X3_FM_DMA)),-GTURBO_DMA=1 -GTURBO_DMA_IRQ=1 -GTURBO_DMA_RESTART_IRQ=1,)
+X3_FM_DMA_CPP = $(if $(filter 1,$(X3_FM_DMA)),-DX1_TURBO_DMA -DX1_TURBO_DMA_IRQ -DX1_TURBO_DMA_RESTART_IRQ,)
 turbo-x3-single-fm: $(X3_FM_DIR)/Vtop
 $(X3_FM_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc $(X3_FM_TIMING) --assert --trace-fst --exe --build -j 4 --Mdir $(X3_FM_DIR) --top-module top \
 		$(TURBO_DSW_FLAGS) -GTURBO=1 -GTURBO_VIDEO_MASTER=1 -GSINGLE_CLOCK=1 -GMASTER_HZ=42954540 -GRAW_2D_MEDIA=1 \
-		-GTURBO_FM_CPU=1 -GTURBO_FM_CTC=1 -GSUB_CAPS_OFF=1 +define+X1_RAW_2D_MEDIA \
-		-CFLAGS "-std=c++20 -DX1_SINGLE_CLOCK -DX1_SINGLE_MASTER_HZ=42954540 -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_RAW_2D_MEDIA -DX1_TURBO_FM_CPU" \
+		-GTURBO_FM_CPU=1 -GTURBO_FM_CTC=1 -GSUB_CAPS_OFF=1 $(X3_FM_DMA_RTL) +define+X1_RAW_2D_MEDIA \
+		-CFLAGS "-std=c++20 -DX1_SINGLE_CLOCK -DX1_SINGLE_MASTER_HZ=42954540 -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_RAW_2D_MEDIA -DX1_TURBO_FM_CPU $(X3_FM_DMA_CPP)" \
 		-MAKEFLAGS "OPT_FAST=-O3 -B" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 turbo-x3-single-fm-fast:
 	$(MAKE) turbo-x3-single-fm X3_FM_DIR=obj_dir_x3_single_fm_fast X3_FM_TIMING=--no-timing
-.PHONY: turbo-x3-single-fm turbo-x3-single-fm-fast
+turbo-x3-single-fm-dma:
+	$(MAKE) turbo-x3-single-fm X3_FM_DIR=obj_dir_x3_single_fm_dma X3_FM_DMA=1
+turbo-x3-single-fm-dma-fast:
+	$(MAKE) turbo-x3-single-fm X3_FM_DIR=obj_dir_x3_single_fm_dma_fast X3_FM_TIMING=--no-timing X3_FM_DMA=1
+.PHONY: turbo-x3-single-fm turbo-x3-single-fm-fast turbo-x3-single-fm-dma turbo-x3-single-fm-dma-fast
 
 # Non-savable tape profiles: the board SD TAP streamer feeds the cassette deck.
 X3_CASSETTE_DIR ?= obj_dir_x3_single_cassette
@@ -2963,7 +2976,7 @@ lint-wrapper-turbo-z-font:
 		../sharpx1.sv ../sys/hps_io.sv tests/board_pll_lint.v ../rtl/x1_joystick_map.v $(MACHINE_SRC) -Wno-fatal
 .PHONY: lint-wrapper-turbo-z-font
 lint-wrapper-turbo-z-font-single:
-	$(V) --lint-only --timing --top-module emu -DX1_SINGLE_CLOCK -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_TURBO_Z_EXTERNAL_FONT -DX1_SCALER_LOCAL_RESET_RELEASE -DX1_CASSETTE -DX1_TURBO_FM_CPU -Itests \
+	$(V) --lint-only --timing --top-module emu -DX1_SINGLE_CLOCK -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_TURBO_Z_EXTERNAL_FONT -DX1_SCALER_LOCAL_RESET_RELEASE -DX1_CASSETTE -DX1_TURBO_FM_CPU -DX1_TURBO_DMA_FONT -Itests \
 		../sharpx1.sv ../sys/hps_io.sv tests/board_pll_lint.v ../rtl/x1_joystick_map.v ../rtl/x1_tap_sd_stream.sv $(MACHINE_SRC) -Wno-fatal
 .PHONY: lint-wrapper-turbo-z-font-single
 lint-wrapper-turbo-z-video-single:

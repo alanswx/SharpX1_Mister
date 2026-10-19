@@ -5,7 +5,9 @@
 // whose ISR re-enables interrupts so FM interrupts nest inside it.
 // No private assets/state. Not native CZ-8BS1 timing or chain-order proof.
 `timescale 1ps/1ps
-module machine_fm_ctc_tb #(parameter FM_CTC=1, SINGLE_CLOCK=0, MASTER_HZ=32000000);
+// DMA=1 adds the board's idle DMA (completion/restart IRQ): FM CTC > DMA >
+// main CTC > keyboard must still route every FM/main ACK and RETI exactly.
+module machine_fm_ctc_tb #(parameter FM_CTC=1, SINGLE_CLOCK=0, MASTER_HZ=32000000, DMA=0);
     localparam longint unsigned HALF_PS=64'd500000000000/64'(MASTER_HZ);
     reg clk=0,video_clk=0,reset=1;
     always #(HALF_PS) clk=~clk;
@@ -15,6 +17,7 @@ module machine_fm_ctc_tb #(parameter FM_CTC=1, SINGLE_CLOCK=0, MASTER_HZ=3200000
     reg [7:0] upload_data=0;
     wire upload_wait;
     sharpx1 #(.TURBO(1),.TURBO_FM_CPU(1),.TURBO_FM_CTC(FM_CTC),
+        .TURBO_DMA(DMA),.TURBO_DMA_IRQ(DMA),.TURBO_DMA_RESTART_IRQ(DMA),
         .SINGLE_CLOCK(SINGLE_CLOCK),.MASTER_HZ(MASTER_HZ)) dut(
         .clk_sys(clk),.clk_28636(SINGLE_CLOCK ? clk : video_clk),.reset(reset),
         .pal(1'b0),.scandouble(1'b0),.ioctl_download(download),.ioctl_index(8'd0),
@@ -55,16 +58,23 @@ module machine_fm_ctc_tb #(parameter FM_CTC=1, SINGLE_CLOCK=0, MASTER_HZ=3200000
     // Bus observers: count RETIs routed per CTC, check the vector on each ACK.
     integer fm_acks=0,main_acks=0,fm_retis=0,main_retis=0,max_depth=0;
     bit fm_idle=0;
+    wire [2:0] fm_depth;
+    generate if (FM_CTC && DMA) begin : dma_depth
+        assign fm_depth=dut.fm_dma_irq_chain.irq_bridge.fm_depth;
+    end else if (FM_CTC) begin : plain_depth
+        assign fm_depth=dut.fm_irq_chain.irq_bridge.fm_depth;
+    end else begin : no_depth
+        assign fm_depth=0;
+    end endgenerate
     generate if (FM_CTC) begin : observe
-        always @(posedge clk) fm_idle<=dut.fm_board_ctc.fm_ctc.in_service==0 &&
-            dut.fm_irq_chain.irq_bridge.fm_depth==0;
+        always @(posedge clk) fm_idle<=dut.fm_board_ctc.fm_ctc.in_service==0 && fm_depth==0;
         always @(posedge clk) if(!dut.core_reset) begin
             if(dut.fm_ctc_ack) fm_acks++;
             if(dut.ctc_ack) main_acks++;
             if(dut.fm_ctc_reti) fm_retis++;
             if(dut.ctc_reti) main_retis++;
-            if(int'(dut.fm_irq_chain.irq_bridge.fm_depth) > max_depth)
-                max_depth=int'(dut.fm_irq_chain.irq_bridge.fm_depth);
+            if(int'(fm_depth) > max_depth) max_depth=int'(fm_depth);
+            if(DMA) assert(!dut.dma_ack && !dut.dma_reti) else $fatal(1,"idle DMA received ACK/RETI");
             if(dut.fm_ctc_ack) assert(dut.irq_vector[7:3]==5'h04)
                 else $fatal(1,"FM CTC acknowledge vector %h",dut.irq_vector);
             if(dut.ctc_ack) assert(dut.irq_vector==8'h42)
@@ -142,8 +152,8 @@ module machine_fm_ctc_tb #(parameter FM_CTC=1, SINGLE_CLOCK=0, MASTER_HZ=3200000
                     fm_acks,fm_retis,main_acks,main_retis,max_depth);
             assert(fm_idle && dut.ctc.in_service==0)
                 else $fatal(1,"FM chain left a channel in service");
-            $display("PASS FM-board CTC MASTER=%0d single=%0d: probe %h/%h, IM2 ch0=%0d ch3=%0d main=%0d nested=%0d, ACK/RETI routed exactly",
-                MASTER_HZ,SINGLE_CLOCK,dut.RAM.mem[16'h4110],dut.RAM.mem[16'h4111],ch0,ch3,main,nested);
+            $display("PASS FM-board CTC MASTER=%0d single=%0d dma=%0d: probe %h/%h, IM2 ch0=%0d ch3=%0d main=%0d nested=%0d, ACK/RETI routed exactly",
+                MASTER_HZ,SINGLE_CLOCK,DMA,dut.RAM.mem[16'h4110],dut.RAM.mem[16'h4111],ch0,ch3,main,nested);
         end
         $finish;
     end
