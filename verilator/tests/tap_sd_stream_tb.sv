@@ -19,7 +19,7 @@ module tap_sd_stream_tb;
     string path, log_path, mode;
     int fd, remount_after, max_cycles;
 
-    logic img_mounted = 0;
+    logic img_mounted = 0, rewind = 0;
     logic [63:0] img_size = 0;
     wire [31:0] sd_lba;
     wire sd_rd;
@@ -36,7 +36,7 @@ module tap_sd_stream_tb;
     wire [7:0] applied_mode, sensor;
 
     x1_tap_sd_stream #(.MIN_HZ(MIN_HZ), .MAX_HZ(MAX_HZ)) dut(.clk(clk), .reset(reset),
-        .img_mounted(img_mounted), .img_size(img_size),
+        .img_mounted(img_mounted), .rewind(rewind), .img_size(img_size),
         .sd_lba(sd_lba), .sd_rd(sd_rd), .sd_ack(sd_ack),
         .sd_buff_addr(sd_buff_addr), .sd_buff_dout(sd_buff_dout), .sd_buff_wr(sd_buff_wr),
         .tape_mount(tape_mount), .tape_present(tape_present), .tape_empty(tape_empty),
@@ -142,9 +142,14 @@ module tap_sd_stream_tb;
         end
         repeat (100) @(negedge clk);
         command(8'd2);
-        if (mode == "remount") begin
+        if (mode == "remount" || mode == "rewind") begin
             while (accepted < remount_after) @(negedge clk);
-            mount_image();
+            if (mode == "rewind") begin
+                @(negedge clk);
+                rewind = 1;
+                @(negedge clk);
+                rewind = 0;
+            end else mount_image();
             wait_ready();
             $fdisplay(fd, "L %0d %0d %0d %0d", cycle, loaded, rejected, sample_hz);
             repeat (100) @(negedge clk);

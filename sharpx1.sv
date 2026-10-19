@@ -225,6 +225,7 @@ localparam CONF_STR = {
 	// controller extension loads as boot1.rom (index 0x40) or index 6.
 	"F6,BIN,Load tape controller;",
 	"S2,TAP,Tape;",
+	"T[2],Rewind tape;",
 `endif
 	"O[1],Disk writes,Protected,Enabled;",
 	"-;",
@@ -348,7 +349,8 @@ wire [7:0] tape_mode, tape_sensor;
 wire tape_loaded, tape_rejected;
 generate if (CASSETTE_PROFILE) begin : tape_slot
 	// One OSD info message per mount outcome (CONF_STR I entries 1/2).
-	reg old_loaded = 0, old_rejected = 0;
+	reg old_loaded = 0, old_rejected = 0, old_rewind = 0;
+	always @(posedge clk_sys) old_rewind <= status[2];
 	always @(posedge clk_sys) begin
 		old_loaded <= tape_loaded;
 		old_rejected <= tape_rejected;
@@ -360,7 +362,7 @@ generate if (CASSETTE_PROFILE) begin : tape_slot
 	assign sd_buff_din[2] = 8'hff;
 	x1_tap_sd_stream #(.MIN_HZ(4000), .MAX_HZ(192000)) tap_stream (
 		.clk(clk_sys), .reset(!turbo_video_locked),
-		.img_mounted(img_mounted[2]), .img_size(img_size),
+		.img_mounted(img_mounted[2]), .rewind(status[2] && !old_rewind), .img_size(img_size),
 		.sd_lba(sd_lba[2]), .sd_rd(sd_rd[2]), .sd_ack(sd_ack[2]),
 		.sd_buff_addr(sd_buff_addr[8:0]), .sd_buff_dout(sd_buff_dout), .sd_buff_wr(sd_buff_wr),
 		.tape_mount(tape_mount), .tape_present(tape_present), .tape_empty(tape_empty),

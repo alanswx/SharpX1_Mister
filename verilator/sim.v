@@ -74,7 +74,7 @@ module top #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636364,
     wire tape_sample_valid, tape_sample_level, tape_sample_last, tape_sample_ready;
     x1_tap_sd_stream #(.MIN_HZ(4000), .MAX_HZ(192000)) tap_stream (
         .clk(clk_sys), .reset(1'b0),
-        .img_mounted(tape_img_mounted), .img_size(tape_img_size),
+        .img_mounted(tape_img_mounted), .rewind(1'b0), .img_size(tape_img_size),
         .sd_lba(tape_sd_lba), .sd_rd(tape_sd_rd), .sd_ack(tape_sd_ack),
         .sd_buff_addr(tape_sd_buff_addr), .sd_buff_dout(tape_sd_buff_dout), .sd_buff_wr(tape_sd_buff_wr),
         .tape_mount(tape_mount), .tape_present(tape_present), .tape_empty(tape_empty),

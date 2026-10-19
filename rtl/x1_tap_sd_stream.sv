@@ -27,6 +27,7 @@ module x1_tap_sd_stream #(
     input  logic        reset,
     // hps_io image interface for this slot (all synchronous to clk)
     input  logic        img_mounted,
+    input  logic        rewind,      // remount the current image at sample 0
     input  logic [63:0] img_size,
     output logic [31:0] sd_lba,
     output logic        sd_rd,
@@ -135,18 +136,20 @@ module x1_tap_sd_stream #(
                 end
             end
 
-            if (img_mounted) begin
+            if (img_mounted || (rewind && size != 0)) begin
                 // Eject the previous tape immediately; any in-flight transfer
                 // completes into an invalid slot.
                 tape_mount <= 1; tape_present <= 0; tape_empty <= 0;
                 rejected <= 0;
                 slot_ok <= 0; byte_ok <= 0; rd_wait <= 0; cur_bit <= 0;
                 if (fetching) fetch_abort <= 1;
-                size <= img_size > {32'd0, MAX_BYTES} ? MAX_BYTES : img_size[31:0];
-                state <= img_size == 0 ? IDLE : HEADER;
-                if (img_size > {32'd0, MAX_BYTES}) begin
-                    state <= IDLE; rejected <= 1;
-                end
+                if (img_mounted) begin
+                    size <= img_size > {32'd0, MAX_BYTES} ? MAX_BYTES : img_size[31:0];
+                    state <= img_size == 0 ? IDLE : HEADER;
+                    if (img_size > {32'd0, MAX_BYTES}) begin
+                        state <= IDLE; rejected <= 1;
+                    end
+                end else state <= HEADER;
             end else case (state)
                 IDLE: ;
                 HEADER: if (!fetching) begin
