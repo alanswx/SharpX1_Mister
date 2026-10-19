@@ -215,3 +215,31 @@ runner now set `SUB_CAPS_OFF=1` (`sub_rom` word `0B0` `70F7`→`70FF`).
 With it, the runner plays from 46 s (RMS 0 until 45 s, then about
 3,500–4,800); MAME plays from 56 s. Simulation defaults keep CAPS on, so the
 qualified typed-text oracles stay unchanged.
+
+### Board build with the CAPS/FDC fixes (October 19, 2026)
+
+Source `427bf0b` (FM + FM CTC + cassette + force-interrupt fix + CAPS off),
+revision `sharpx1_turbo_z_font_single`:
+
+- **Seed 1** (job `HXdRXznJ`): still routing after 6.5 h, with 199
+  interconnect resources overused. Killed.
+- **Seed 3** (`RKi77JsQ`): "Can't fit design in device" (routing).
+- **Seed 2** (`5QDAGGyH`, `QUARTUS_SEED=2`): succeeded in about 41 minutes.
+  RBF `97926317b8b3b65891fa31f818cc5d5887b6a9a303fcc391bf1a9be55ad33198`.
+  31,452/41,910 ALMs (75%), 545/553 RAM blocks (99%). All 32
+  global-failure-inventory reports (8 corners) have 0 failing paths.
+
+This revision is near its routing limit. Expect to try more than one seed
+after changes, and record the seed used (the build manifest carries
+`seed_override`).
+
+On MiSTer 192 (`_Computer/X1FMC_20261019`, controller
+`cassette-controller-joyoff-capsoff.bin` `861fbbcb…`):
+
+- **Valis:** reaches its title (it was a black screen before the fix).
+- **Dione:** shows the disk-swap prompt, and Return advances to
+  "continue? (Y/N)". The audio itself is unheard because 192 uses `dvi_mode=1`.
+- **Galaga:** boots, and Space reaches the level select.
+- **Zero Fighter tape (K01):** loads to its attract screen.
+
+Screens and timing CSVs are in the ignored `output_files/HW_X1FMC_20261019/`.
