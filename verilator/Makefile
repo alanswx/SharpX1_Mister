@@ -129,13 +129,15 @@ test-fdc-address-width:
 	python3 tests/test_fdc_address_width.py --default-regressions --edsk-capacity
 test-fdc-default-state:
 	python3 tests/test_fdc_default_state.py --baseline 3c34dd0
+# Baseline 739ccfd: the explicit true dual-port video/PCG RAM (7cfc26f) renamed
+# the machine's RAM read registers; default vendor FDC state is unchanged since.
 test-machine-fdc-default-state:
-	python3 tests/test_machine_fdc_default_state.py --baseline c744767 --vendor-sha $(FDC_TIMING_VENDOR_SHA)
+	python3 tests/test_machine_fdc_default_state.py --baseline 739ccfd --vendor-sha $(FDC_TIMING_VENDOR_SHA)
 .PHONY: test-machine-fdc-default-state
 test-fdc-capacity-class:
 	python3 tests/test_fdc_capacity_class.py --vendor-sha $(FDC_TIMING_VENDOR_SHA)
 .PHONY: test-fdc-capacity-class
-FDC_TIMING_VENDOR_SHA := e5b3f4f79b493c9957fb7d46a12d516973b62aea0a6573af6226ab7b782470a9
+FDC_TIMING_VENDOR_SHA := 129150a2e65e7e6124a5dc30f7c434290f80f79143186e0f1799b1bef0c4dafd
 test-fdc-strict-timing:
 	python3 tests/test_fdc_strict_timing.py --vendor-sha $(FDC_TIMING_VENDOR_SHA)
 test-fdc-strict-legacy:
@@ -1033,7 +1035,7 @@ turbo-x3-single-fm: $(X3_FM_DIR)/Vtop
 $(X3_FM_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc $(X3_FM_TIMING) --assert --trace-fst --exe --build -j 4 --Mdir $(X3_FM_DIR) --top-module top \
 		$(TURBO_DSW_FLAGS) -GTURBO=1 -GTURBO_VIDEO_MASTER=1 -GSINGLE_CLOCK=1 -GMASTER_HZ=42954540 -GRAW_2D_MEDIA=1 \
-		-GTURBO_FM_CPU=1 -GTURBO_FM_CTC=1 -GSUB_CAPS_OFF=1 $(X3_FM_DMA_RTL) +define+X1_RAW_2D_MEDIA \
+		-GTURBO_FM_CPU=1 -GTURBO_FM_CTC=1 -GSUB_CAPS_OFF=1 -GFDC_DEFER_COMMAND=1 $(X3_FM_DMA_RTL) +define+X1_RAW_2D_MEDIA \
 		-CFLAGS "-std=c++20 -DX1_SINGLE_CLOCK -DX1_SINGLE_MASTER_HZ=42954540 -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_RAW_2D_MEDIA -DX1_TURBO_FM_CPU $(X3_FM_DMA_CPP)" \
 		-MAKEFLAGS "OPT_FAST=-O3 -B" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 turbo-x3-single-fm-fast:
@@ -2465,6 +2467,19 @@ test-disk-control: $(HEADLESS_DIR)/disk/Vdisk_control_tb $(HEADLESS_DIR)/index/V
 	./$(HEADLESS_DIR)/disk/Vdisk_control_tb
 	./$(HEADLESS_DIR)/index/Vfdc_index_tb
 
+# DEFER_BLOCKED_COMMAND: a command written during a slow (HPS-latency) mount
+# scan reports BUSY and completes after it; the default drops it (control).
+test-fdc-defer: $(HEADLESS_DIR)/fdc-defer-1/Vfdc_defer_tb $(HEADLESS_DIR)/fdc-defer-0/Vfdc_defer_tb
+	./$(HEADLESS_DIR)/fdc-defer-1/Vfdc_defer_tb
+	@ulimit -c 0; if ./$(HEADLESS_DIR)/fdc-defer-0/Vfdc_defer_tb >$(HEADLESS_DIR)/fdc-defer-0/negative.log 2>&1; then \
+		echo 'ERROR: default FDC unexpectedly accepted a command during the scan'; exit 1; fi; \
+	grep -q 'BUSY did not rise (dropped)' $(HEADLESS_DIR)/fdc-defer-0/negative.log || \
+		{ echo 'ERROR: wrong default-FDC failure'; exit 1; }; \
+	echo 'PASS default FDC (DEFER_BLOCKED_COMMAND=0) drops the command, as before'
+$(HEADLESS_DIR)/fdc-defer-%/Vfdc_defer_tb: tests/fdc_defer_tb.sv ../rtl/vendor/wd1793.sv ../rtl/vendor/x1_fdc_index_ram.v
+	$(V) --binary --timing --assert --top-module fdc_defer_tb -GDEFER=$* --Mdir $(@D) \
+		-j 4 ../rtl/vendor/wd1793.sv ../rtl/vendor/x1_fdc_index_ram.v tests/fdc_defer_tb.sv -Wno-fatal
+.PHONY: test-fdc-defer
 test-fdc-abort: $(HEADLESS_DIR)/abort/Vfdc_abort_tb
 	./$(HEADLESS_DIR)/abort/Vfdc_abort_tb
 

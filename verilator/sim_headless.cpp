@@ -126,6 +126,9 @@ int main(int argc, char **argv) {
         const char *save_path = nullptr, *restore_path = nullptr;
         bool disk_raw2d = false, disk_b_raw2d = false;
         bool progress = false, io_only = false, interactive = false, joystick_keys = false;
+        // Optional host latency before each disk SD ACK (MiSTer HPS is not
+        // instantaneous). Default 0 keeps the existing immediate service.
+        unsigned long sd_latency_us = 0;
         FrameCapture frame;
         AudioCapture audio;
 #ifdef X1_TURBO_FM_CPU
@@ -185,13 +188,14 @@ int main(int argc, char **argv) {
                 fetch_window_requested = true; fetch_end_ms = number(argv[++i]);
             }
             else if (!std::strcmp(argv[i], "--progress")) progress = true;
+            else if (!std::strcmp(argv[i], "--sd-latency-us") && i + 1 < argc) sd_latency_us = std::stoul(argv[++i]);
             else if (!std::strcmp(argv[i], "--io-only")) io_only = true;
             else if (!std::strcmp(argv[i], "--interactive")) interactive = true;
             else if (!std::strcmp(argv[i], "--joystick-keys")) joystick_keys = true;
             else if (!std::strcmp(argv[i], "--save-state") && i + 1 < argc) save_path = argv[++i];
             else if (!std::strcmp(argv[i], "--restore-state") && i + 1 < argc) restore_path = argv[++i];
             else if (argv[i][0] != '-') cycles = number(argv[i]);
-            else throw std::runtime_error("usage: Vtop [cycles] [--cycles N] [--reset-cycles N] [--reset-at MS (repeatable) --reset-for-us US] [--video-hz N] [--trace output.fst] [--rom IMAGE] [--ram IMAGE --load-address A --entry A] [--disk IMAGE --disk-output NEW_COPY] [--disk-b IMAGE --disk-b-output NEW_COPY] [--disk-raw2d] [--disk-b-raw2d] [--tape TAP --tape-controller IMAGE] [--keys SCRIPT] [--frame IMAGE.ppm] [--audio OUTPUT.wav] [--dump PREFIX] [--video-dump PREFIX [--fetch-start-ms N --fetch-end-ms N]] [--peek A] [--bus-trace CSV --io-only --bus-events --bus-start-ms N --bus-end-ms N] [--progress] [--interactive [--joystick-keys]] [--save-state FILE] [--restore-state FILE] [--joya BYTE --joyb BYTE]");
+            else throw std::runtime_error("usage: Vtop [cycles] [--cycles N] [--reset-cycles N] [--reset-at MS (repeatable) --reset-for-us US] [--video-hz N] [--trace output.fst] [--rom IMAGE] [--ram IMAGE --load-address A --entry A] [--disk IMAGE --disk-output NEW_COPY] [--disk-b IMAGE --disk-b-output NEW_COPY] [--disk-raw2d] [--disk-b-raw2d] [--tape TAP --tape-controller IMAGE] [--keys SCRIPT] [--frame IMAGE.ppm] [--audio OUTPUT.wav] [--dump PREFIX] [--video-dump PREFIX [--fetch-start-ms N --fetch-end-ms N]] [--peek A] [--bus-trace CSV --io-only --bus-events --bus-start-ms N --bus-end-ms N] [--progress] [--sd-latency-us N] [--interactive [--joystick-keys]] [--save-state FILE] [--restore-state FILE] [--joya BYTE --joyb BYTE]");
         }
 #ifdef X1_RTC_EXPERIMENT
         // Fail before opening any snapshot or producing a state file. The
@@ -632,6 +636,8 @@ int main(int argc, char **argv) {
         uint64_t hash = 14695981039346656037ULL;
         bool old_hs = top.HSync, old_vs = top.VSync;
         unsigned disk_byte = 0, disk_cooldown = 0;
+        uint64_t sd_latency_edges = 0;
+        bool sd_latency_armed = false;
         uint64_t disk_offset = 0, disk_requests = 0, disk_writes = 0;
         unsigned request_drive = 0;
         bool disk_active = false, disk_writing = false;
@@ -697,7 +703,12 @@ int main(int argc, char **argv) {
                             top.sd_buff_wr = 1;
                         }
                     } else if (disk_cooldown) --disk_cooldown;
+                    else if (sd_latency_us && (top.sd_rd || top.sd_wr) && !sd_latency_armed) {
+                        sd_latency_armed = true;
+                        sd_latency_edges = uint64_t(sd_latency_us) * sys_hz / 1000000;
+                    } else if (sd_latency_armed && sd_latency_edges) --sd_latency_edges;
                     else if (top.sd_rd) {
+                        sd_latency_armed = false;
                         request_drive = top.sd_drive;
                         const auto &medium = request_drive ? disk_b : disk;
                         if (medium.empty()) throw std::runtime_error("read request for empty drive");
@@ -711,6 +722,7 @@ int main(int argc, char **argv) {
                         top.sd_buff_addr = 0;
                         top.sd_buff_dout = disk_offset < medium.size() ? medium[disk_offset] : 0;
                     } else if (top.sd_wr) {
+                        sd_latency_armed = false;
                         request_drive = top.sd_drive;
                         const auto &medium = request_drive ? disk_b : disk;
                         if (!disk_outputs[request_drive]) throw std::runtime_error("unexpected write to read-only disk");

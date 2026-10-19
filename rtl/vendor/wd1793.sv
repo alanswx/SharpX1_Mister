@@ -29,7 +29,8 @@
 // rejects selected FM access rather than silently reading an MFM sector.
 module wd1793 #(parameter RWMODE=0, EDSK=1, HEADLOAD_STATUS=0, INDEX_CYCLES=35001,
                D88_ONLY=0, PHYSICAL_DRIVES=1, ADDRESS_BITS=20, MAX_SECTORS=1992,
-               D88_CAPACITY_CHECK=0, STRICT_D88_TIMING=0, RAW_2D=0)
+               D88_CAPACITY_CHECK=0, STRICT_D88_TIMING=0, RAW_2D=0,
+               DEFER_BLOCKED_COMMAND=0)
 (
 	input        clk_sys,     // sys clock
 	input        ce,          // ce at CPU clock rate
@@ -144,7 +145,7 @@ assign capacity_matches=!D88_CAPACITY_CHECK || (hd_selected ?
 
 assign dout      = STRICT_D88_TIMING ? timing_bus_value : q;
 assign drq       = s_drq;
-assign busy      = s_busy;
+assign busy      = s_busy | (DEFER_BLOCKED_COMMAND && defer_valid);
 assign intrq     = s_intrq;
 // An accepted host transfer owns its LBA until ACK falls, even if controller
 // registers reset or software writes a new track/sector during an abort.
@@ -165,6 +166,7 @@ reg [5:0] raw_cylinder = 0;
 reg [3:0] raw_sector = 0;
 reg [ADDRESS_BITS:0] d88_end = 0;
 reg mount_pending = 0;
+wire defer_valid; // DEFER_BLOCKED_COMMAND latch; see below (no state when off)
 wire media_ready = ready && (!D88_ONLY || d88_valid) &&
                    ((ADDRESS_BITS == 20 && MAX_SECTORS == 1992) || !d88_bad);
 wire transport_active = sd_busy || sd_ack || (|ack);
@@ -416,9 +418,9 @@ reg   [7:0] wdreg_data;
 // An empty drive is not a seek failure, and software that probes drives before
 // deciding what it can load reads the difference.
 wire  [7:0] wdreg_status = cmd_mode == 0 ?
-	{~media_ready, s_readonly & s_wpe, (HEADLOAD_STATUS != 0) && s_headloaded, s_seekerr, s_crcerr, !disk_track, s_index, s_busy}:
+	{~media_ready, s_readonly & s_wpe, (HEADLOAD_STATUS != 0) && s_headloaded, s_seekerr, s_crcerr, !disk_track, s_index, s_busy | (DEFER_BLOCKED_COMMAND && defer_valid)}:
 	{~media_ready, s_readonly & s_wpe, s_wrfault, s_seekerr, s_crcerr,
-     s_lostdata | (STRICT_D88_TIMING && state == STATE_TIMING_WAIT && timing_lost), s_drq, s_busy};
+     s_lostdata | (STRICT_D88_TIMING && state == STATE_TIMING_WAIT && timing_lost), s_drq, s_busy | (DEFER_BLOCKED_COMMAND && defer_valid)};
 
 reg   [7:0] read_addr[6];
 reg   [7:0] q;
@@ -440,6 +442,47 @@ wire head_connected = PHYSICAL_DRIVES == 1 || drive_connected;
 wire [7:0] disk_track = head_connected ? head_track[head_select] : 8'd0;
 reg  [10:0]	data_length;	 // this many bytes to transfer during read/write ops
 io_state_t  state = STATE_IDLE;
+
+// DEFER_BLOCKED_COMMAND (default off; X1 boards): a non-Force-Interrupt command
+// written while the controller is idle but its SD transport, a D88 (re)scan or
+// a drive-switch remount is in progress used to be dropped -- BUSY never rose
+// and software polling for it hung (Sorcerian, after selecting drive B on
+// MiSTer, where the HPS makes each rescan last about a second). A real WD179x
+// accepts it. The latched command reports BUSY at once and is replayed into
+// the ordinary acceptance path when the transport is free. Commands written
+// while another command executes are still ignored, as on the chip.
+wire [7:0] defer_cmd;
+wire      defer_fire;
+wire [7:0] command_din = defer_fire ? defer_cmd : din;
+generate if (DEFER_BLOCKED_COMMAND && !STRICT_D88_TIMING) begin : deferred_command
+	reg       valid = 0;
+	reg [7:0] command = 0;
+	reg       old_wr = 0;
+	wire blocked = (D88_ONLY && (img_mounted || mount_pending)) || scan_active ||
+	               (state == STATE_IDLE && !transport_idle);
+	wire ready = !(D88_ONLY && (img_mounted || mount_pending)) && !scan_active &&
+	             state == STATE_IDLE && transport_idle;
+	assign defer_fire = valid && ce && ready && !wre;
+	assign defer_valid = valid;
+	assign defer_cmd = command;
+	always @(posedge clk_sys) begin
+		if (ce) old_wr <= wre;
+		if (reset) valid <= 0;
+		else if (ce && !old_wr && wre && addr == A_COMMAND) begin
+			// A Force Interrupt is always accepted directly and cancels a
+			// deferred command; others defer only when blocked by transport.
+			if (din[7:4] == 4'hD) valid <= 0;
+			else if (blocked && (state == STATE_IDLE || (D88_ONLY && (img_mounted || mount_pending)))) begin
+				valid <= 1;
+				command <= din;
+			end
+		end else if (defer_fire) valid <= 0;
+	end
+end else begin : no_deferred_command
+	assign defer_fire = 1'b0;
+	assign defer_valid = 1'b0;
+	assign defer_cmd = 8'd0;
+end endgenerate
 `ifdef DEBUG_FDC_SCAN
 // One line per change of the SECTOR register, whoever caused it. A bus trace
 // cannot show this: if the controller alters the register internally the CPU
@@ -1276,19 +1319,19 @@ always @(posedge clk_sys) begin
 		endcase
 
 		/* Register write operations */
-		if (STRICT_D88_TIMING ? timing_write_accept : (!old_wr & wre)) begin
-			case (addr)
+		if (STRICT_D88_TIMING ? timing_write_accept : ((!old_wr & wre) || defer_fire)) begin
+			case (defer_fire ? A_COMMAND : addr)
 				A_COMMAND:
 					begin
 `ifdef DEBUG_FDC_SCAN
-						$display("WDCMD %02x accepted=%0d", din, ((state == STATE_IDLE) | (din[7:4] == 'hD)));
+						$display("WDCMD %02x accepted=%0d", command_din, ((state == STATE_IDLE) | (command_din[7:4] == 'hD)));
 `endif
 						s_intrq <= 0;
-						if(((state == STATE_IDLE) && transport_idle) | (din[7:4] == 'hD)) begin
-							force_command <= (din[7:4] == 4'hD);
-							force_mask <= (din[7:4] == 4'hD) ? din[3:0] : 4'd0;
-							cmd_mode <= din[7];
-							s_wpe    <= ~din[7];
+						if(((state == STATE_IDLE) && transport_idle) | (command_din[7:4] == 'hD)) begin
+							force_command <= (command_din[7:4] == 4'hD);
+							force_mask <= (command_din[7:4] == 4'hD) ? command_din[3:0] : 4'd0;
+							cmd_mode <= command_din[7];
+							s_wpe    <= ~command_din[7];
 
 							// Accepting a command CLEARS the error bits. The WD179x
 							// resets status on a new command, and 77AVEMU cannot even
@@ -1310,11 +1353,11 @@ always @(posedge clk_sys) begin
 							// point every command passes through.
 							{s_seekerr, s_crcerr} <= 0;
 							pending_read_crc <= 0;
-							case (din[7:4])
+							case (command_din[7:4])
 							'h0: 	// RESTORE
 								begin
 									// head load as specified, index, track0
-									s_headloaded <= din[3];
+									s_headloaded <= command_din[3];
 									wdreg_track <= 0;
 									if(head_connected) head_track[head_select] <= 0;
 
@@ -1338,7 +1381,7 @@ always @(posedge clk_sys) begin
 									// reads $fd19 back saw the old track. RESTORE and STEP
 									// here already maintain it; SEEK was the odd one out.
 									wdreg_track <= wdreg_data;
-									s_headloaded <= din[3];
+									s_headloaded <= command_din[3];
 
 									// get busy
 									s_drq_busy <= 2'b01;
@@ -1352,15 +1395,15 @@ always @(posedge clk_sys) begin
 							'h7:	// STEP-OUT & UPDATE
 								begin
 									// if direction is specified, store it for the next time
-									if (din[6] == 1) step_direction <= din[5]; // 0: forward/in
+									if (command_din[6] == 1) step_direction <= command_din[5]; // 0: forward/in
 
 									// perform step
 									if(head_connected) head_track[head_select] <= next_track;
 
 									// update TRACK register too if asked to
-									if (din[4]) wdreg_track <= next_track;
+									if (command_din[4]) wdreg_track <= next_track;
 
-									s_headloaded <= din[3];
+									s_headloaded <= command_din[3];
 
 									// some programs like it when FDC gets busy for a while
 									s_drq_busy <= 2'b01;
@@ -1378,29 +1421,29 @@ always @(posedge clk_sys) begin
 									// 0: a0 normal/deleted data mark.
 									// C/S compare ID H bit 0; they do not select the
 									// physical drive head, supplied separately by side.
-									compare_id_side <= din[1];
-									requested_id_side <= din[3];
-									metadata_deleted <= din[0];
+									compare_id_side <= command_din[1];
+									requested_id_side <= command_din[3];
+									metadata_deleted <= command_din[0];
 
 									s_drq_busy <= 2'b01;
 									{s_wrfault,s_seekerr,s_crcerr,s_lostdata} <= 0;
 
-									{write,buff_rd} <= din[5] ? 2'b10 : 2'b01;
-									if(RWMODE) buff_wr <= din[5];
+									{write,buff_rd} <= command_din[5] ? 2'b10 : 2'b01;
+									if(RWMODE) buff_wr <= command_din[5];
 
-									if(din[6]) wdreg_sector <= 1;
+									if(command_din[6]) wdreg_sector <= 1;
 
-									format      <= din[6];
-									multisector <= din[4];
+									format      <= command_din[6];
+									multisector <= command_din[4];
 									rw_type     <= 1;
 									write_data  <= 0;
 									read_data   <= 0;
 									edsk_start  <= 0;
 									edsk_addr   <= 0;
 									state       <= STATE_SEARCH;
-									s_wpe       <= din[5];
+									s_wpe       <= command_din[5];
 
-									if(s_readonly & din[5]) begin
+									if(s_readonly & command_din[5]) begin
 										s_wrfault <= 1;
 										state <= STATE_WAIT;
 									end
@@ -1446,12 +1489,12 @@ always @(posedge clk_sys) begin
 										// Only I3 interrupts immediately. I0/I1 wait for
 										// READY transitions; I2 waits for an index edge.
 										// D0 has no armed source and remains silent.
-										if(din[3]) state <= STATE_ENDCOMMAND;
+										if(command_din[3]) state <= STATE_ENDCOMMAND;
 									end
 								end
 							'hF:  // WRITE TRACK
 								begin
-									s_wpe <= din[5];
+									s_wpe <= command_din[5];
 									{s_wrfault,s_seekerr,s_crcerr,s_lostdata} <= 0;
 									// Strict sector containers cannot encode a raw track
 									// stream. Report unsupported/write-fault, not a
