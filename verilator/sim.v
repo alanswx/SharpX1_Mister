@@ -19,6 +19,21 @@ module top #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636364,
     // Only raw-media profiles add these pins; v17 savable tops stay unchanged.
     input disk_raw, disk_raw_b,
 `endif
+`ifdef X1_CASSETTE
+    // Non-savable tape profile: the board's SD TAP streamer on its own
+    // hps_io-style block channel, feeding the machine's cassette deck.
+    input tape_img_mounted,
+    input [63:0] tape_img_size,
+    output [31:0] tape_sd_lba,
+    output tape_sd_rd,
+    input tape_sd_ack,
+    input [8:0] tape_sd_buff_addr,
+    input [7:0] tape_sd_buff_dout,
+    input tape_sd_buff_wr,
+    output tape_loaded, tape_rejected, tape_underflow,
+    output [7:0] tape_mode, tape_sensor,
+    output [17:0] tape_sample_hz,
+`endif
     output sd_drive,
     output [7:0] debug_disk_control,
     output debug_disk_motor, debug_disk_ready,
@@ -53,7 +68,24 @@ module top #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636364,
     output reg [63:0] dma_grants = 0, dma_reads = 0, dma_writes = 0,
     cpu_fdc_data_reads = 0, cpu_fdc_data_writes = 0
 );
-    sharpx1 #(.RAW_2D_MEDIA(RAW_2D_MEDIA), .SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ), .TURBO(TURBO), .TURBO_VIDEO_MASTER(TURBO_VIDEO_MASTER), .TURBO_DMA(TURBO_DMA), .TURBO_DMA_IRQ(TURBO_DMA_IRQ), .TURBO_KANJI(TURBO_KANJI), .TURBO_KANJI_RENDER(TURBO_KANJI_RENDER), .TURBO_DSW(TURBO_DSW), .TURBO_DMA_RESTART_IRQ(TURBO_DMA_RESTART_IRQ), .TURBO_Z_PALETTE_CPU(TURBO_Z_PALETTE_CPU), .TURBO_Z_VIDEO(TURBO_Z_VIDEO), .TURBO_Z_MULTIMODE(TURBO_Z_MULTIMODE), .TURBO_Z_INTERNAL8(TURBO_Z_INTERNAL8), .TURBO_Z_TEXT_CPU(TURBO_Z_TEXT_CPU), .TURBO_FM_CPU(TURBO_FM_CPU), .RTC_ENABLE(RTC_ENABLE), .TURBO_DMA_KANJI_EXPERIMENT(TURBO_DMA_KANJI_EXPERIMENT), .D88_ADDRESS_BITS(D88_ADDRESS_BITS), .TURBO_HD_SELECT(TURBO_HD_SELECT), .TURBO_HD_MEDIA(TURBO_HD_MEDIA), .TURBO_FDC_TIMING(TURBO_FDC_TIMING), .FDC_CLOCK_HZ(FDC_CLOCK_HZ)) machine (
+`ifdef X1_CASSETTE
+    localparam CASSETTE = 1;
+    wire tape_mount, tape_present, tape_empty;
+    wire tape_sample_valid, tape_sample_level, tape_sample_last, tape_sample_ready;
+    x1_tap_sd_stream #(.MIN_HZ(4000), .MAX_HZ(192000)) tap_stream (
+        .clk(clk_sys), .reset(1'b0),
+        .img_mounted(tape_img_mounted), .img_size(tape_img_size),
+        .sd_lba(tape_sd_lba), .sd_rd(tape_sd_rd), .sd_ack(tape_sd_ack),
+        .sd_buff_addr(tape_sd_buff_addr), .sd_buff_dout(tape_sd_buff_dout), .sd_buff_wr(tape_sd_buff_wr),
+        .tape_mount(tape_mount), .tape_present(tape_present), .tape_empty(tape_empty),
+        .sample_valid(tape_sample_valid), .sample_level(tape_sample_level),
+        .sample_last(tape_sample_last), .sample_ready(tape_sample_ready), .sample_hz(tape_sample_hz),
+        .loaded(tape_loaded), .rejected(tape_rejected)
+    );
+`else
+    localparam CASSETTE = 0;
+`endif
+    sharpx1 #(.CASSETTE_ENABLE(CASSETTE), .CASSETTE_RUNTIME_RATE(CASSETTE), .RAW_2D_MEDIA(RAW_2D_MEDIA), .SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ), .TURBO(TURBO), .TURBO_VIDEO_MASTER(TURBO_VIDEO_MASTER), .TURBO_DMA(TURBO_DMA), .TURBO_DMA_IRQ(TURBO_DMA_IRQ), .TURBO_KANJI(TURBO_KANJI), .TURBO_KANJI_RENDER(TURBO_KANJI_RENDER), .TURBO_DSW(TURBO_DSW), .TURBO_DMA_RESTART_IRQ(TURBO_DMA_RESTART_IRQ), .TURBO_Z_PALETTE_CPU(TURBO_Z_PALETTE_CPU), .TURBO_Z_VIDEO(TURBO_Z_VIDEO), .TURBO_Z_MULTIMODE(TURBO_Z_MULTIMODE), .TURBO_Z_INTERNAL8(TURBO_Z_INTERNAL8), .TURBO_Z_TEXT_CPU(TURBO_Z_TEXT_CPU), .TURBO_FM_CPU(TURBO_FM_CPU), .RTC_ENABLE(RTC_ENABLE), .TURBO_DMA_KANJI_EXPERIMENT(TURBO_DMA_KANJI_EXPERIMENT), .D88_ADDRESS_BITS(D88_ADDRESS_BITS), .TURBO_HD_SELECT(TURBO_HD_SELECT), .TURBO_HD_MEDIA(TURBO_HD_MEDIA), .TURBO_FDC_TIMING(TURBO_FDC_TIMING), .FDC_CLOCK_HZ(FDC_CLOCK_HZ)) machine (
         .clk_sys(clk_sys), .clk_28636(clk_28636), .reset(reset),
         .pal(1'b0), .scandouble(1'b0),
         .ioctl_download(ioctl_download), .ioctl_index(ioctl_index),
@@ -63,9 +95,17 @@ module top #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636364,
         .DDRAM_DOUT(64'd0), .DDRAM_DOUT_READY(1'b0), .DDRAM_RD(),
         .DDRAM_DIN(), .DDRAM_BE(), .DDRAM_WE(),
         .ps2_clk_in(ps2_clk_in), .ps2_data_in(ps2_data_in), .joya_n(joya_n), .joyb_n(joyb_n),
+`ifdef X1_CASSETTE
+        .tape_mount(tape_mount), .tape_present(tape_present), .tape_empty(tape_empty),
+        .tape_sample_valid(tape_sample_valid), .tape_sample_level(tape_sample_level),
+        .tape_sample_last(tape_sample_last), .tape_sample_hz(tape_sample_hz),
+        .tape_sample_ready(tape_sample_ready), .tape_underflow(tape_underflow),
+        .tape_mode(tape_mode), .tape_sensor(tape_sensor),
+`else
         .tape_mount(1'b0), .tape_present(1'b0), .tape_empty(1'b0),
-        .tape_sample_valid(1'b0), .tape_sample_level(1'b0), .tape_sample_last(1'b0),
+        .tape_sample_valid(1'b0), .tape_sample_level(1'b0), .tape_sample_last(1'b0), .tape_sample_hz(18'd0),
         .tape_sample_ready(), .tape_underflow(), .tape_mode(), .tape_sensor(),
+`endif
         .sio_external_rx_clock(1'b0),.sio_external_tx_clock(1'b0),
         .sio_rxd(2'b11),.sio_cts_n(2'b11),.sio_dcd_n(2'b11),
         .sio_txd(),.sio_rts_n(),.sio_dtr_n(),

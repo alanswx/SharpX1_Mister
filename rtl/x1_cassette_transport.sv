@@ -8,13 +8,19 @@
 `timescale 1ns/1ps
 module x1_cassette_transport #(
     parameter int unsigned SYS_HZ = 32000000,
-    parameter int unsigned SAMPLE_HZ = 8000
+    parameter int unsigned SAMPLE_HZ = 8000,
+    // Opt-in: pace samples at sample_hz (held constant while mounted, 1..SYS_HZ,
+    // validated by the producer) instead of the SAMPLE_HZ parameter.
+    parameter bit RUNTIME_RATE = 0
 ) (
     input logic clk_sys, reset,
     input logic mount, present, empty,
     input logic cmd_valid,
     input logic [7:0] cmd,
     input logic sample_valid, sample_level, sample_last,
+    /* verilator lint_off UNUSEDSIGNAL */
+    input logic [17:0] sample_hz, // ignored unless RUNTIME_RATE
+    /* verilator lint_on UNUSEDSIGNAL */
     output logic sample_ready,
     output logic waveform,
     output logic [7:0] applied_mode,
@@ -27,7 +33,8 @@ module x1_cassette_transport #(
     logic mounted, ended, have_sample;
     logic held_level, held_last;
     logic [PHASE_W-1:0] phase;
-    wire [PHASE_W:0] sum = {1'b0, phase} + (PHASE_W+1)'(SAMPLE_HZ);
+    wire [PHASE_W:0] fixed_sum = {1'b0, phase} + (PHASE_W+1)'(SAMPLE_HZ);
+    wire [PHASE_W:0] sum = RUNTIME_RATE ? {1'b0, phase} + (PHASE_W+1)'(sample_hz) : fixed_sum;
     wire due;
     generate
         if (SYS_HZ == 0) begin : zero_rate_placeholder

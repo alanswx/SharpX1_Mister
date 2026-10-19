@@ -221,7 +221,7 @@ localparam CONF_STR = {
 	"S0,D882D ,Drive A;",
 	"S1,D882D ,Drive B;",
 `ifdef X1_CASSETTE
-	// 8 kHz TAP waveform images; each mount starts rewound. The deck
+	// 4-192 kHz TAP waveform images; each mount starts rewound. The deck
 	// controller extension loads as boot1.rom (index 0x40) or index 6.
 	"F6,BIN,Load tape controller;",
 	"S2,TAP,Tape;",
@@ -343,6 +343,7 @@ hps_io #(.CONF_STR(CONF_STR), .PS2DIV(1600), .VDNUM(VDNUM), .VIDEO_CDC(TURBO_VID
 wire tape_mount, tape_present, tape_empty;
 wire tape_sample_valid, tape_sample_level, tape_sample_last, tape_sample_ready;
 wire tape_underflow;
+wire [17:0] tape_sample_hz;
 wire [7:0] tape_mode, tape_sensor;
 wire tape_loaded, tape_rejected;
 generate if (CASSETTE_PROFILE) begin : tape_slot
@@ -357,20 +358,21 @@ generate if (CASSETTE_PROFILE) begin : tape_slot
 	end
 	assign sd_wr[2] = 1'b0;
 	assign sd_buff_din[2] = 8'hff;
-	x1_tap_sd_stream tap_stream (
+	x1_tap_sd_stream #(.MIN_HZ(4000), .MAX_HZ(192000)) tap_stream (
 		.clk(clk_sys), .reset(!turbo_video_locked),
 		.img_mounted(img_mounted[2]), .img_size(img_size),
 		.sd_lba(sd_lba[2]), .sd_rd(sd_rd[2]), .sd_ack(sd_ack[2]),
 		.sd_buff_addr(sd_buff_addr[8:0]), .sd_buff_dout(sd_buff_dout), .sd_buff_wr(sd_buff_wr),
 		.tape_mount(tape_mount), .tape_present(tape_present), .tape_empty(tape_empty),
 		.sample_valid(tape_sample_valid), .sample_level(tape_sample_level),
-		.sample_last(tape_sample_last), .sample_ready(tape_sample_ready),
+		.sample_last(tape_sample_last), .sample_ready(tape_sample_ready), .sample_hz(tape_sample_hz),
 		.loaded(tape_loaded), .rejected(tape_rejected)
 	);
 end else begin : no_tape_slot
 	assign {tape_loaded, tape_rejected} = 2'b00;
 	assign {tape_mount, tape_present, tape_empty} = 3'b000;
 	assign {tape_sample_valid, tape_sample_level, tape_sample_last} = 3'b000;
+	assign tape_sample_hz = 18'd8000;
 end endgenerate
 
 ///////////////////////   CLOCKS   ///////////////////////////////
@@ -463,7 +465,7 @@ localparam TURBO_Z_EXTERNAL_FONT_PROFILE = 0;
 // Main loads boot1.rom as index 0x40 at core start; MGL may use index 6.
 wire cassette_controller_index = CASSETTE_PROFILE && (ioctl_index == 16'd6 || ioctl_index == 16'h0040);
 
-sharpx1 #(.RAW_2D_MEDIA(1), .CASSETTE_ENABLE(CASSETTE_PROFILE), .SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ), .TURBO(TURBO_FOUNDATION), .TURBO_VIDEO_MASTER(TURBO_VIDEO_MASTER),
+sharpx1 #(.RAW_2D_MEDIA(1), .CASSETTE_ENABLE(CASSETTE_PROFILE), .CASSETTE_RUNTIME_RATE(CASSETTE_PROFILE), .SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ), .TURBO(TURBO_FOUNDATION), .TURBO_VIDEO_MASTER(TURBO_VIDEO_MASTER),
 	.TURBO_DMA(TURBO_DMA_PROFILE), .TURBO_DMA_IRQ(TURBO_DMA_PROFILE), .TURBO_DMA_RESTART_IRQ(TURBO_DMA_PROFILE), .TURBO_FM_CPU(TURBO_FM_PROFILE),
 	.TURBO_Z_PALETTE_CPU(TURBO_Z_VIDEO_PROFILE), .TURBO_Z_VIDEO(TURBO_Z_VIDEO_PROFILE),
 	.TURBO_Z_MULTIMODE(TURBO_Z_VIDEO_PROFILE), .TURBO_Z_INTERNAL8(TURBO_Z_VIDEO_PROFILE),
@@ -498,7 +500,7 @@ sharpx1 #(.RAW_2D_MEDIA(1), .CASSETTE_ENABLE(CASSETTE_PROFILE), .SINGLE_CLOCK(SI
 	.joya_n(joya_n), .joyb_n(joyb_n),
 	// Only the X1_CASSETTE revision connects the deck and its controller.
 	.tape_mount(tape_mount), .tape_present(tape_present), .tape_empty(tape_empty),
-	.tape_sample_valid(tape_sample_valid), .tape_sample_level(tape_sample_level), .tape_sample_last(tape_sample_last),
+	.tape_sample_valid(tape_sample_valid), .tape_sample_level(tape_sample_level), .tape_sample_last(tape_sample_last), .tape_sample_hz(tape_sample_hz),
 	.tape_sample_ready(tape_sample_ready), .tape_underflow(tape_underflow), .tape_mode(tape_mode), .tape_sensor(tape_sensor),
 	.disk_ready(media_present[0]), .img_mounted(img_mounted[0]),
 	.disk_wp(!status[1] || media_readonly[0]), .img_size(media_size[0]),

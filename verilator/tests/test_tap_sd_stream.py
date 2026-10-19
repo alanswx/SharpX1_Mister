@@ -40,28 +40,33 @@ def old_tap(nbytes, rate=8000):
     return struct.pack('<I', rate) + bytes(random.getrandbits(8) for _ in range(nbytes))
 
 
-def expected_samples(image):
+def expected_samples(image, rates=(8000, 8000)):
     """Independent decode: (bits list) or None when the image must be rejected."""
     if len(image) >= 4 and image[:4] == b'TAPE':
         if len(image) < 40:
             return None
         wp, fmt = image[26], image[27]
         rate, bits, _ = struct.unpack('<III', image[28:40])
-        if wp & ~0x10 or fmt != 1 or rate != 8000 or (bits + 7) // 8 != len(image) - 40:
+        if wp & ~0x10 or fmt != 1 or not rates[0] <= rate <= rates[1] or (bits + 7) // 8 != len(image) - 40:
             return None
         data, count = image[40:], bits
     else:
-        if len(image) < 4 or struct.unpack('<I', image[:4])[0] != 8000:
+        if len(image) < 4 or not rates[0] <= struct.unpack('<I', image[:4])[0] <= rates[1]:
             return None
         data, count = image[4:], (len(image) - 4) * 8
     return [(data[i // 8] >> (7 - i % 8)) & 1 for i in range(count)]
 
 
-def build(tag, sys_hz, latency, source=None):
+def tap_rate(image):
+    return struct.unpack('<I', image[28:32] if image[:4] == b'TAPE' else image[:4])[0]
+
+
+def build(tag, sys_hz, latency, source=None, runtime=None):
     obj = folder / ('obj-' + tag)
     cmd = ['verilator', '--binary', '--timing', '--top-module', 'tap_sd_stream_tb',
            '-Wall', '-Wno-DECLFILENAME', '-Wno-UNUSEDSIGNAL', '-Wno-WIDTHEXPAND', '-Wno-WIDTHTRUNC', '-Wno-PROCASSINIT',
-           '-GSYS_HZ=' + str(sys_hz), '-GLATENCY=' + str(latency), '--Mdir', str(obj),
+           '-GSYS_HZ=' + str(sys_hz), '-GLATENCY=' + str(latency), '--Mdir', str(obj)] + \
+          (['-GRUNTIME=1', '-GMIN_HZ=%d' % runtime[0], '-GMAX_HZ=%d' % runtime[1]] if runtime else []) + [
            str(source or folder / FILES[0]), str(folder / FILES[1]), str(folder / FILES[2])]
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
     (folder / (tag + '.build.log')).write_text(result.stdout + result.stderr)
@@ -82,8 +87,8 @@ def run(exe, tag, image, mode='play', remount=0):
     return rows
 
 
-def check_play(rows, image, sys_hz, remount=0):
-    want = expected_samples(image)
+def check_play(rows, image, sys_hz, remount=0, rates=(8000, 8000)):
+    want = expected_samples(image, rates)
     assert want is not None
     mounts = [r for r in rows if r[0] == 'M']
     accepts = [(int(r[1]), int(r[3]), int(r[4])) for r in rows if r[0] == 'A']
@@ -103,9 +108,13 @@ def check_play(rows, image, sys_hz, remount=0):
     assert len(levels) == len(want), (len(levels), len(want))
     assert levels == want, 'sample levels differ at %d' % next(i for i, (a, b) in enumerate(zip(levels, want)) if a != b)
     assert [a[2] for a in accepts] == [0] * (len(want) - 1) + [1], 'last flag'
-    period = sys_hz // 8000
+    rate = tap_rate(image)
+    load = [r for r in rows if r[0] == 'L'][-1]
+    assert int(load[4]) == rate, ('reported rate', load)
     gaps = {accepts[i + 1][0] - accepts[i][0] for i in range(len(accepts) - 1)}
-    assert gaps <= {period}, ('cadence', sorted(gaps)[:5])
+    assert gaps <= {sys_hz // rate, -(-sys_hz // rate)}, ('cadence', sorted(gaps)[:5])
+    span = accepts[-1][0] - accepts[0][0]
+    assert abs(span * rate - (len(accepts) - 1) * sys_hz) <= sys_hz, ('drift', span)
     assert sensor == 2 and mode == 1, end
     return len(levels)
 
@@ -166,6 +175,24 @@ n = check_play(run(real, 'sys32m', image), image, 32000000)
 checks.append(('sys32m', n))
 print('PASS sys32m', n, flush=True)
 
+# Runtime-rate build (board profile): any rate in 4000..192000 Hz.
+RATES = (4000, 192000)
+MULTI_SYS = 1000000
+multi = build('runtime', MULTI_SYS, 200, runtime=RATES)
+for tag, image in [('rt-8000', new_tap(3000)), ('rt-22050', new_tap(9000, rate=22050)),
+                   ('rt-44100', new_tap(20000, rate=44100)), ('rt-old48000', old_tap(3000, rate=48000)),
+                   ('rt-176400', new_tap(70000, rate=176400)), ('rt-4000', old_tap(300, rate=4000))]:
+    n = check_play(run(multi, tag, image), image, MULTI_SYS, rates=RATES)
+    checks.append((tag, n))
+    print('PASS', tag, n, flush=True)
+for tag, image in [('rt-rej-3999', new_tap(800, rate=3999)), ('rt-rej-192001', new_tap(800, rate=192001)),
+                   ('rt-rej-zero', old_tap(100, rate=0))]:
+    assert expected_samples(image, RATES) is None
+    rows = run(multi, tag, image)
+    assert [r for r in rows if r[0] == 'L'][0][3] == '1' and not [r for r in rows if r[0] == 'A'], tag
+    checks.append((tag, 0))
+    print('PASS', tag, flush=True)
+
 # Matched mutant: LSB-first bit order must be caught by the level oracle.
 source = (folder / FILES[0]).read_text()
 old = "byte_reg[3'd7 - cur_bit[2:0]]"
@@ -183,6 +210,30 @@ except AssertionError as error:
     checks.append(('mutant-lsb-first', 'rejected'))
 else:
     sys.exit('FAIL bit-order mutant was accepted')
+
+# Matched mutant: a transport that ignores the runtime rate must fail cadence.
+tsource = (folder / FILES[1]).read_text()
+told = "RUNTIME_RATE ? {1'b0, phase} + (PHASE_W+1)'(sample_hz) : fixed_sum"
+assert tsource.count(told) == 1
+tmutant = folder / 'rate-mutant' / 'x1_cassette_transport.sv'
+tmutant.parent.mkdir()
+tmutant.write_text(tsource.replace(told, 'fixed_sum'))
+obj = folder / 'obj-rate-mutant'
+cmd = ['verilator', '--binary', '--timing', '--top-module', 'tap_sd_stream_tb', '-Wall', '-Wno-DECLFILENAME',
+       '-Wno-UNUSEDSIGNAL', '-Wno-UNUSEDPARAM', '-Wno-WIDTHEXPAND', '-Wno-WIDTHTRUNC', '-Wno-PROCASSINIT',
+       '-GSYS_HZ=%d' % MULTI_SYS, '-GLATENCY=200', '-GRUNTIME=1', '-GMIN_HZ=%d' % RATES[0],
+       '-GMAX_HZ=%d' % RATES[1], '--Mdir', str(obj), str(folder / FILES[0]), str(tmutant), str(folder / FILES[2])]
+result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+assert result.returncode == 0, result.stdout + result.stderr
+image = new_tap(4000, rate=44100)
+try:
+    check_play(run(obj / 'Vtap_sd_stream_tb', 'rate-mutant', image), image, MULTI_SYS, rates=RATES)
+except AssertionError as error:
+    assert 'cadence' in str(error) or 'drift' in str(error), error
+    print('PASS rate mutant rejected:', str(error)[:60], flush=True)
+    checks.append(('mutant-fixed-rate', 'rejected'))
+else:
+    sys.exit('FAIL fixed-rate mutant was accepted')
 
 (folder / 'summary.json').write_text(json.dumps(checks, indent=2) + '\n')
 print('PASS tap sd stream:', len(checks), 'checks', flush=True)

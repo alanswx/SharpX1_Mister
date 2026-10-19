@@ -7,17 +7,22 @@
 // the simulator TAP parser (x1_tap_image.h).
 //
 // Accepted images (anything else mounts as "no tape"):
-//   old header: u32 rate == 8000, payload at byte 4, every byte is samples;
+//   old header: u32 rate, payload at byte 4, every byte is samples;
 //   new header: "TAPE", write-protect flags only bit 4, format flags == 1
-//   (constant-rate sampling), u32 rate == 8000, u32 bit count with the payload
+//   (constant-rate sampling), u32 rate, u32 bit count with the payload
 //   at byte 40 exactly ceil(bits/8) long.
+// The rate must lie in MIN_HZ..MAX_HZ and is reported on sample_hz for a
+// transport built with RUNTIME_RATE (MAME plays only 8000 Hz; CSP any rate).
 // The stored tape position is ignored: every mount starts rewound at sample 0.
 // Mounting presents an eject first, then a STOP-state mount once the first
 // sample is held, so the transport never sees PLAY without prebuffered data.
 // Two 512-byte sector slots keep the current and next sector resident; at
 // 8 kHz one sector is 0.512 s of tape.
 `timescale 1ns/1ps
-module x1_tap_sd_stream (
+module x1_tap_sd_stream #(
+    parameter int unsigned MIN_HZ = 8000,
+    parameter int unsigned MAX_HZ = 8000
+) (
     input  logic        clk,
     input  logic        reset,
     // hps_io image interface for this slot (all synchronous to clk)
@@ -37,11 +42,11 @@ module x1_tap_sd_stream (
     output logic        sample_level,
     output logic        sample_last,
     input  logic        sample_ready,
+    output logic [17:0] sample_hz,
     // status
     output logic        loaded,
     output logic        rejected
 );
-    localparam logic [31:0] RATE = 32'd8000;
     localparam logic [31:0] MAX_BYTES = 32'h1000_0000;
 
     typedef enum logic [2:0] {IDLE, HEADER, PARSE, PRIME, RUN} state_t;
@@ -83,9 +88,12 @@ module x1_tap_sd_stream (
     wire [31:0] new_rate = le32(hdr[28], hdr[29], hdr[30], hdr[31]);
     wire [31:0] new_bits = le32(hdr[32], hdr[33], hdr[34], hdr[35]);
     wire [31:0] new_bytes = {3'd0, new_bits[31:3]} + {31'd0, |new_bits[2:0]};
+    function automatic logic rate_ok(input logic [31:0] hz);
+        return hz >= MIN_HZ && hz <= MAX_HZ;
+    endfunction
     wire new_ok = size >= 32'd40 && (hdr[26] & 8'hEF) == 0 && hdr[27] == 8'd1 &&
-        new_rate == RATE && new_bytes == size - 32'd40;
-    wire old_ok = !new_header && size >= 32'd4 && old_rate == RATE;
+        rate_ok(new_rate) && new_bytes == size - 32'd40;
+    wire old_ok = !new_header && size >= 32'd4 && rate_ok(old_rate);
 
     assign sample_valid = state == RUN && byte_ok && bits_left;
     assign sample_level = byte_reg[3'd7 - cur_bit[2:0]];
@@ -106,7 +114,7 @@ module x1_tap_sd_stream (
             ack_seen <= 0;
             slot_ok <= 0;
             byte_ok <= 0; rd_wait <= 0;
-            cur_bit <= 0; total_bits <= 0; data_off <= 0; size <= 0;
+            cur_bit <= 0; total_bits <= 0; data_off <= 0; size <= 0; sample_hz <= 18'd8000;
             tape_present <= 0; tape_empty <= 0; rejected <= 0;
         end else begin
             // Shared SD transfer bookkeeping: drop the request once acknowledged,
@@ -151,6 +159,7 @@ module x1_tap_sd_stream (
                     fetch_header <= 0;
                     if (new_header ? new_ok : old_ok) begin
                         data_off <= new_header ? 32'd40 : 32'd4;
+                        sample_hz <= 18'(new_header ? new_rate : old_rate);
                         total_bits <= new_header ? new_bits : (size - 32'd4) << 3;
                         cur_bit <= 0;
                         state <= PRIME;

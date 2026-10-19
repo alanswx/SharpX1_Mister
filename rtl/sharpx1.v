@@ -1,7 +1,7 @@
 // Sharp X1 base-machine integration. Shared by MiSTer and simulation.
 // See docs/BASE_X1_CONTRACT.md for address-map sources and limitations.
 module sharpx1 #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0, TURBO_DSW = 241, TURBO_DMA_RESTART_IRQ = 0, TURBO_Z_PALETTE_CPU = 0, TURBO_Z_VIDEO = 0, TURBO_Z_MULTIMODE = 0, TURBO_Z_INTERNAL8 = 0, TURBO_Z_TEXT_CPU = 0, TURBO_SIO = 0, TURBO_FM_CPU = 0, RTC_ENABLE = 0, TURBO_Z_EFFECT_CPU = 0, TURBO_DMA_KANJI_EXPERIMENT = 0, D88_ADDRESS_BITS = 20, TURBO_HD_SELECT = 0, TURBO_HD_MEDIA = 0,
-    TURBO_FDC_TIMING = 0, FDC_CLOCK_HZ = 1000000, CASSETTE_ENABLE = 0,
+    TURBO_FDC_TIMING = 0, FDC_CLOCK_HZ = 1000000, CASSETTE_ENABLE = 0, CASSETTE_RUNTIME_RATE = 0,
     TURBO_Z_KANJI = 0, TURBO_Z_EXTERNAL_FONT = 0) (
     input clk_sys, clk_28636, reset,
     input pal, scandouble,
@@ -32,6 +32,7 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636
     // SYS-synchronous experimental read-only waveform stream; not decoded bytes.
     input tape_mount, tape_present, tape_empty,
     input tape_sample_valid, tape_sample_level, tape_sample_last,
+    input [17:0] tape_sample_hz, // used only with CASSETTE_RUNTIME_RATE
     output tape_sample_ready, tape_underflow,
     output [7:0] tape_mode, tape_sensor,
     input disk_ready, img_mounted, disk_wp,
@@ -169,10 +170,14 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636
             $error("DMA/Kanji qualification requires Turbo, DMA, Kanji and X3 video");
         if (TURBO_KANJI_RENDER && !TURBO_KANJI)
             $error("TURBO_KANJI_RENDER requires the explicit physical Kanji ROM profile");
-        if (TURBO_Z_EXTERNAL_FONT && (!TURBO_Z_KANJI || TURBO_Z_VIDEO || RTC_ENABLE || TURBO_SIO || TURBO_FM_CPU || CASSETTE_ENABLE))
+        // Cassette is admitted: its controller uses index 6 and the read-only
+        // deck has no bus/DMA ownership; other combinations stay unqualified.
+        if (TURBO_Z_EXTERNAL_FONT && (!TURBO_Z_KANJI || TURBO_Z_VIDEO || RTC_ENABLE || TURBO_SIO || TURBO_FM_CPU))
             $error("external font profile requires Z Kanji; combined experimental devices remain unqualified");
         if (TURBO_Z_KANJI && !(TURBO && TURBO_VIDEO_MASTER && TURBO_KANJI && TURBO_KANJI_RENDER && !TURBO_DMA))
             $error("Z Kanji simulation profile requires Turbo/X3/Kanji/render and excludes DMA");
+        if (CASSETTE_RUNTIME_RATE && !CASSETTE_ENABLE)
+            $error("CASSETTE_RUNTIME_RATE requires CASSETTE_ENABLE");
         if (TURBO && (TURBO_DSW < 0 || TURBO_DSW > 255))
             $error("TURBO_DSW must be an explicit raw eight-bit switch configuration");
     end
@@ -701,12 +706,12 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636
         // Executed firmware commits low then high. Held MR16 GPIO stores must
         // produce one deck command, never one command per SYS or controller CE.
         wire command_valid = !core_reset && cassette_command[8] && !commit_previous;
-        x1_cassette_transport #(.SYS_HZ(SINGLE_CLOCK ? MASTER_HZ : 32000000)) transport (
+        x1_cassette_transport #(.SYS_HZ(SINGLE_CLOCK ? MASTER_HZ : 32000000), .RUNTIME_RATE(CASSETTE_RUNTIME_RATE)) transport (
             .clk_sys(clk_sys), .reset(core_reset),
             .mount(tape_mount), .present(tape_present), .empty(tape_empty),
             .cmd_valid(command_valid), .cmd(cassette_command[7:0]),
             .sample_valid(tape_sample_valid), .sample_level(tape_sample_level),
-            .sample_last(tape_sample_last), .sample_ready(tape_sample_ready),
+            .sample_last(tape_sample_last), .sample_hz(tape_sample_hz), .sample_ready(tape_sample_ready),
             .waveform(cassette_waveform), .applied_mode(tape_mode),
             .sensor(tape_sensor), .underflow(tape_underflow)
         );

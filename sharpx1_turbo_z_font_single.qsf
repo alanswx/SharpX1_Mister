@@ -11,3 +11,6 @@ set_global_assignment -name NUM_PARALLEL_PROCESSORS 2
 # The two-clock font SDCs are not used: their 31.25-ns payload bound would
 # loosen a now same-clock path, and no raw reset-pin cut is selected.
 set_global_assignment -name SDC_FILE scripts/constraints/x3_single_clock_groups.sdc
+# Read-only cassette deck: S2 TAP (4-192 kHz) streamed from SD; controller via
+# F6 or boot1.rom. Without a controller the ordinary embedded MR16 ROM runs.
+set_global_assignment -name VERILOG_MACRO "X1_CASSETTE=1"

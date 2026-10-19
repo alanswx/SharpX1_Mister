@@ -312,10 +312,15 @@ end else if (CASSETTE_ENABLE) begin : experimental_cassette
   reg [7:0] cassette_program_h[0:4095];
   reg [7:0] cpu_program_l, cpu_program_h, firmware_read_l, firmware_read_h;
   reg firmware_odd;
+  // Until a controller image is uploaded, low-bank reads come from the
+  // ordinary embedded sub_rom, so a missing upload behaves like the
+  // ordinary profile (no deck control) instead of running an empty program.
+  reg controller_loaded = 1'b0;
   wire program_upload = I_reset && I_fcs && I_wr;
   always @(posedge I_clk) begin
     selected_ram <= wram_cs;
     firmware_odd <= I_fa[0];
+    if (program_upload) controller_loaded <= 1'b1;
   end
   always @(posedge I_clk) begin
     if (program_upload && !I_fa[0]) cassette_program_l[I_fa[12:1]] <= I_D;
@@ -327,7 +332,8 @@ end else if (CASSETTE_ENABLE) begin : experimental_cassette
     firmware_read_h <= cassette_program_h[I_fa[12:1]];
   end
   always @(posedge I_clk) cpu_program_h <= cassette_program_h[rom_word];
-  assign rtc_rdata = msel ? {cpu_program_h, cpu_program_l} : selected_ram ? wram_data : 16'hffff;
+  assign rtc_rdata = msel ? (controller_loaded ? {cpu_program_h, cpu_program_l} : pgm_data) :
+    selected_ram ? wram_data : 16'hffff;
   assign rtc_firmware_data = firmware_odd ? firmware_read_h : firmware_read_l;
   assign rtc_t1 = 1'b0;
 end else begin : ordinary_rtc_disabled

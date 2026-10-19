@@ -41,7 +41,7 @@ module native_ipl_startup_tb;
         .sio_external_rx_clock(1'b0),.sio_external_tx_clock(1'b0),.sio_rxd(2'b11),
         .sio_cts_n(2'b11),.sio_dcd_n(2'b11),.sio_txd(),.sio_rts_n(),.sio_dtr_n(),
         .tape_mount(1'b0),.tape_present(1'b0),.tape_empty(1'b0),
-        .tape_sample_valid(1'b0),.tape_sample_level(1'b0),.tape_sample_last(1'b0),
+        .tape_sample_valid(1'b0),.tape_sample_level(1'b0),.tape_sample_last(1'b0), .tape_sample_hz(18'd0),
         .tape_sample_ready(),.tape_underflow(),.tape_mode(),.tape_sensor(),
         .disk_ready(1'b0),.img_mounted(1'b0),.disk_wp(1'b1),.img_size(24'd0),
         .disk_ready_b(1'b0),.img_mounted_b(1'b0),.disk_wp_b(1'b1),.img_size_b(24'd0),.disk_raw(1'b0),.disk_raw_b(1'b0),

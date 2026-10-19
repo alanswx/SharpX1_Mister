@@ -105,6 +105,7 @@ int main(int argc, char **argv) {
         const char *trace_path = nullptr;
         const char *rom_path = nullptr, *ram_path = nullptr, *font16_path = nullptr, *kanji_path = nullptr;
         const char *rtc_controller_path = nullptr;
+        const char *tape_path = nullptr, *tape_controller_path = nullptr;
         uint64_t load_address = 0x8000, entry = 0x8000, peek_address = 0xf000;
         const char *bus_path = nullptr;
         uint64_t bus_start_ms = 0, bus_end_ms = 0;
@@ -170,6 +171,8 @@ int main(int argc, char **argv) {
             else if (!std::strcmp(argv[i], "--disk-b-output") && i + 1 < argc) disk_b_output = argv[++i];
             else if (!std::strcmp(argv[i], "--disk-raw2d")) disk_raw2d = true;
             else if (!std::strcmp(argv[i], "--disk-b-raw2d")) disk_b_raw2d = true;
+            else if (!std::strcmp(argv[i], "--tape") && i + 1 < argc) tape_path = argv[++i];
+            else if (!std::strcmp(argv[i], "--tape-controller") && i + 1 < argc) tape_controller_path = argv[++i];
             else if (!std::strcmp(argv[i], "--keys") && i + 1 < argc) keys_path = argv[++i];
             else if (!std::strcmp(argv[i], "--frame") && i + 1 < argc) frame.path = argv[++i];
             else if (!std::strcmp(argv[i], "--audio") && i + 1 < argc) audio.path = argv[++i];
@@ -188,7 +191,7 @@ int main(int argc, char **argv) {
             else if (!std::strcmp(argv[i], "--save-state") && i + 1 < argc) save_path = argv[++i];
             else if (!std::strcmp(argv[i], "--restore-state") && i + 1 < argc) restore_path = argv[++i];
             else if (argv[i][0] != '-') cycles = number(argv[i]);
-            else throw std::runtime_error("usage: Vtop [cycles] [--cycles N] [--reset-cycles N] [--reset-at MS (repeatable) --reset-for-us US] [--video-hz N] [--trace output.fst] [--rom IMAGE] [--ram IMAGE --load-address A --entry A] [--disk IMAGE --disk-output NEW_COPY] [--disk-b IMAGE --disk-b-output NEW_COPY] [--disk-raw2d] [--disk-b-raw2d] [--keys SCRIPT] [--frame IMAGE.ppm] [--audio OUTPUT.wav] [--dump PREFIX] [--video-dump PREFIX [--fetch-start-ms N --fetch-end-ms N]] [--peek A] [--bus-trace CSV --io-only --bus-events --bus-start-ms N --bus-end-ms N] [--progress] [--interactive [--joystick-keys]] [--save-state FILE] [--restore-state FILE] [--joya BYTE --joyb BYTE]");
+            else throw std::runtime_error("usage: Vtop [cycles] [--cycles N] [--reset-cycles N] [--reset-at MS (repeatable) --reset-for-us US] [--video-hz N] [--trace output.fst] [--rom IMAGE] [--ram IMAGE --load-address A --entry A] [--disk IMAGE --disk-output NEW_COPY] [--disk-b IMAGE --disk-b-output NEW_COPY] [--disk-raw2d] [--disk-b-raw2d] [--tape TAP --tape-controller IMAGE] [--keys SCRIPT] [--frame IMAGE.ppm] [--audio OUTPUT.wav] [--dump PREFIX] [--video-dump PREFIX [--fetch-start-ms N --fetch-end-ms N]] [--peek A] [--bus-trace CSV --io-only --bus-events --bus-start-ms N --bus-end-ms N] [--progress] [--interactive [--joystick-keys]] [--save-state FILE] [--restore-state FILE] [--joya BYTE --joyb BYTE]");
         }
 #ifdef X1_RTC_EXPERIMENT
         // Fail before opening any snapshot or producing a state file. The
@@ -260,6 +263,20 @@ int main(int argc, char **argv) {
             enqueue(6, 0, bytes, 8192);
 #endif
         }
+        // Tape profile: board SD streamer on a separate block channel. The
+        // controller (index 6) is optional; without it the ordinary ROM runs.
+        std::vector<uint8_t> tape;
+#ifdef X1_CASSETTE
+        if (save_path || restore_path) throw std::runtime_error("the tape profile is not savable");
+        if (tape_path) tape = image(tape_path);
+        if (tape_controller_path) {
+            auto bytes = image(tape_controller_path);
+            if (bytes.size() != 8192) throw std::runtime_error("tape controller must contain exactly 8192 packed bytes");
+            enqueue(6, 0, bytes, 8192);
+        }
+#else
+        if (tape_path || tape_controller_path) throw std::runtime_error("--tape requires the X1_CASSETTE runner profile");
+#endif
         if (kanji_path) {
 #ifdef X1_TURBO_KANJI
             auto bytes = image(kanji_path);
@@ -433,6 +450,14 @@ int main(int argc, char **argv) {
         top.sd_buff_addr = 0;
         top.sd_buff_dout = 0;
         top.sd_buff_wr = 0;
+#ifdef X1_CASSETTE
+        top.tape_img_mounted = !tape.empty();
+        top.tape_img_size = tape.size();
+        top.tape_sd_ack = 0;
+        top.tape_sd_buff_addr = 0;
+        top.tape_sd_buff_dout = 0;
+        top.tape_sd_buff_wr = 0;
+#endif
         top.debug_addr = peek_address;
         size_t download_pos = 0;
         bool download_accepted = false;
@@ -610,6 +635,9 @@ int main(int argc, char **argv) {
         uint64_t disk_offset = 0, disk_requests = 0, disk_writes = 0;
         unsigned request_drive = 0;
         bool disk_active = false, disk_writing = false;
+        unsigned tape_byte = 0, tape_cooldown = 0;
+        uint64_t tape_offset = 0, tape_requests = 0;
+        bool tape_active = false;
         uint16_t key_packet = 0;
         unsigned key_bit = 0;
         uint64_t ps2_bytes_sent = 0;
@@ -696,6 +724,35 @@ int main(int argc, char **argv) {
                         top.sd_buff_addr = 0;
                     }
                     if (disk_active && disk_writing) top.sd_buff_addr = disk_byte;
+#ifdef X1_CASSETTE
+                    // hps_io-style tape block reads: ACK, 512 written bytes, ACK low.
+                    if (sys_edge >= 10) top.tape_img_mounted = 0;
+                    top.tape_sd_buff_wr = 0;
+                    if (tape_active) {
+                        if (++tape_byte == 512) {
+                            tape_active = false;
+                            top.tape_sd_ack = 0;
+                            tape_cooldown = 8;
+                        } else {
+                            top.tape_sd_buff_addr = tape_byte;
+                            top.tape_sd_buff_dout = tape_offset + tape_byte < tape.size() ? tape[tape_offset + tape_byte] : 0;
+                            top.tape_sd_buff_wr = 1;
+                        }
+                    } else if (tape_cooldown) --tape_cooldown;
+                    else if (top.tape_sd_rd) {
+                        if (tape.empty()) throw std::runtime_error("tape read request without media");
+                        tape_offset = uint64_t(top.tape_sd_lba) * 512;
+                        tape_byte = 0;
+                        tape_active = true;
+                        ++tape_requests;
+                        top.tape_sd_ack = 1;
+                        top.tape_sd_buff_wr = 1;
+                        top.tape_sd_buff_addr = 0;
+                        top.tape_sd_buff_dout = tape_offset < tape.size() ? tape[tape_offset] : 0;
+                    }
+#else
+                    (void)tape_byte; (void)tape_cooldown; (void)tape_offset; (void)tape_active;
+#endif
                 }
                 ++sys_edge;
             }
@@ -1127,6 +1184,17 @@ int main(int argc, char **argv) {
 #ifdef X1_FDC_TIMING_EXPERIMENT
         crtc_observation += ",\"fdc_timing_experiment\":true,\"fdc_clock_hz\":"
             + std::to_string(X1_FDC_CLOCK_HZ);
+#endif
+#ifdef X1_CASSETTE
+        crtc_observation += ",\"cassette\":true,\"tape_requests\":" + std::to_string(tape_requests)
+            + ",\"tape_loaded\":" + (top.tape_loaded ? "true" : "false")
+            + ",\"tape_rejected\":" + (top.tape_rejected ? "true" : "false")
+            + ",\"tape_sample_hz\":" + std::to_string(top.tape_sample_hz)
+            + ",\"tape_mode\":" + std::to_string(top.tape_mode)
+            + ",\"tape_sensor\":" + std::to_string(top.tape_sensor)
+            + ",\"tape_underflow\":" + (top.tape_underflow ? "true" : "false");
+#else
+        (void)tape_requests;
 #endif
         if (fetch_window_requested)
             crtc_observation += ",\"fetch_start_ms\":" + std::to_string(fetch_start_ms)

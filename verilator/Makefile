@@ -989,6 +989,28 @@ $(X3_SINGLE_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h
 		-MAKEFLAGS "OPT_FAST=-O3 -B" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 turbo-x3-single-fast:
 	$(MAKE) turbo-x3-single X3_SINGLE_DIR=obj_dir_v12_x3_single_fast X3_SINGLE_TIMING=--no-timing
+# Non-savable tape profiles: the board SD TAP streamer feeds the cassette deck.
+X3_CASSETTE_DIR ?= obj_dir_x3_single_cassette
+X3_CASSETTE_TIMING ?= --timing
+turbo-x3-single-cassette: $(X3_CASSETTE_DIR)/Vtop
+$(X3_CASSETTE_DIR)/Vtop: $(V_SRC) ../rtl/x1_tap_sd_stream.sv sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
+	$(V) -cc $(X3_CASSETTE_TIMING) --assert --trace-fst --exe --build -j 4 --Mdir $(X3_CASSETTE_DIR) --top-module top \
+		$(TURBO_DSW_FLAGS) -GTURBO=1 -GTURBO_VIDEO_MASTER=1 -GSINGLE_CLOCK=1 -GMASTER_HZ=42954540 -GRAW_2D_MEDIA=1 +define+X1_RAW_2D_MEDIA +define+X1_CASSETTE \
+		-CFLAGS "-std=c++20 -DX1_SINGLE_CLOCK -DX1_SINGLE_MASTER_HZ=42954540 -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_RAW_2D_MEDIA -DX1_CASSETTE" \
+		-MAKEFLAGS "OPT_FAST=-O3 -B" $(V_SRC) ../rtl/x1_tap_sd_stream.sv sim_headless.cpp -Wno-fatal -o Vtop
+turbo-x3-single-cassette-fast:
+	$(MAKE) turbo-x3-single-cassette X3_CASSETTE_DIR=obj_dir_x3_single_cassette_fast X3_CASSETTE_TIMING=--no-timing
+BASE_CASSETTE_DIR ?= obj_dir_base_cassette
+BASE_CASSETTE_TIMING ?= --timing
+base-cassette: $(BASE_CASSETTE_DIR)/Vtop
+$(BASE_CASSETTE_DIR)/Vtop: $(V_SRC) ../rtl/x1_tap_sd_stream.sv sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
+	$(V) -cc $(BASE_CASSETTE_TIMING) --assert --trace-fst --exe --build -j 4 --Mdir $(BASE_CASSETTE_DIR) --top-module top \
+		-GRAW_2D_MEDIA=1 +define+X1_RAW_2D_MEDIA +define+X1_CASSETTE \
+		-CFLAGS "-std=c++20 -DX1_RAW_2D_MEDIA -DX1_CASSETTE" \
+		-MAKEFLAGS "OPT_FAST=-O3 -B" $(V_SRC) ../rtl/x1_tap_sd_stream.sv sim_headless.cpp -Wno-fatal -o Vtop
+base-cassette-fast:
+	$(MAKE) base-cassette BASE_CASSETTE_DIR=obj_dir_base_cassette_fast BASE_CASSETTE_TIMING=--no-timing
+.PHONY: turbo-x3-single-cassette turbo-x3-single-cassette-fast base-cassette base-cassette-fast
 test-x3-single: turbo-x3-single test-sub-timer test-clock-enables
 	python3 tests/test_single_clock.py ./$(X3_SINGLE_DIR)/Vtop --hz 42954540
 	python3 tests/test_keyboard_poll.py ./$(X3_SINGLE_DIR)/Vtop
@@ -2899,8 +2921,8 @@ lint-wrapper-turbo-z-font:
 		../sharpx1.sv ../sys/hps_io.sv tests/board_pll_lint.v ../rtl/x1_joystick_map.v $(MACHINE_SRC) -Wno-fatal
 .PHONY: lint-wrapper-turbo-z-font
 lint-wrapper-turbo-z-font-single:
-	$(V) --lint-only --timing --top-module emu -DX1_SINGLE_CLOCK -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_TURBO_Z_EXTERNAL_FONT -DX1_SCALER_LOCAL_RESET_RELEASE -Itests \
-		../sharpx1.sv ../sys/hps_io.sv tests/board_pll_lint.v ../rtl/x1_joystick_map.v $(MACHINE_SRC) -Wno-fatal
+	$(V) --lint-only --timing --top-module emu -DX1_SINGLE_CLOCK -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_TURBO_Z_EXTERNAL_FONT -DX1_SCALER_LOCAL_RESET_RELEASE -DX1_CASSETTE -Itests \
+		../sharpx1.sv ../sys/hps_io.sv tests/board_pll_lint.v ../rtl/x1_joystick_map.v ../rtl/x1_tap_sd_stream.sv $(MACHINE_SRC) -Wno-fatal
 .PHONY: lint-wrapper-turbo-z-font-single
 lint-wrapper-turbo-z-video-single:
 	$(V) --lint-only --timing --top-module emu -DX1_SINGLE_CLOCK -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_TURBO_Z_VIDEO_EXPERIMENT -Itests \

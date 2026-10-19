@@ -6,6 +6,9 @@
 module tap_sd_stream_tb;
     parameter int SYS_HZ = 64000;
     parameter int LATENCY = 200;
+    parameter bit RUNTIME = 0;
+    parameter int MIN_HZ = 8000;
+    parameter int MAX_HZ = 8000;
 
     logic clk = 0;
     always #5 clk = !clk;
@@ -26,24 +29,25 @@ module tap_sd_stream_tb;
     wire tape_mount, tape_present, tape_empty;
     wire sample_valid, sample_level, sample_last, sample_ready;
     wire loaded, rejected;
+    wire [17:0] sample_hz;
     logic cmd_valid = 0;
     logic [7:0] cmd = 0;
     wire waveform, underflow;
     wire [7:0] applied_mode, sensor;
 
-    x1_tap_sd_stream dut(.clk(clk), .reset(reset),
+    x1_tap_sd_stream #(.MIN_HZ(MIN_HZ), .MAX_HZ(MAX_HZ)) dut(.clk(clk), .reset(reset),
         .img_mounted(img_mounted), .img_size(img_size),
         .sd_lba(sd_lba), .sd_rd(sd_rd), .sd_ack(sd_ack),
         .sd_buff_addr(sd_buff_addr), .sd_buff_dout(sd_buff_dout), .sd_buff_wr(sd_buff_wr),
         .tape_mount(tape_mount), .tape_present(tape_present), .tape_empty(tape_empty),
         .sample_valid(sample_valid), .sample_level(sample_level), .sample_last(sample_last),
-        .sample_ready(sample_ready), .loaded(loaded), .rejected(rejected));
+        .sample_ready(sample_ready), .sample_hz(sample_hz), .loaded(loaded), .rejected(rejected));
 
-    x1_cassette_transport #(.SYS_HZ(SYS_HZ)) transport(.clk_sys(clk), .reset(1'b0),
+    x1_cassette_transport #(.SYS_HZ(SYS_HZ), .RUNTIME_RATE(RUNTIME)) transport(.clk_sys(clk), .reset(1'b0),
         .mount(tape_mount), .present(tape_present), .empty(tape_empty),
         .cmd_valid(cmd_valid), .cmd(cmd),
         .sample_valid(sample_valid), .sample_level(sample_level),
-        .sample_last(sample_last), .sample_ready(sample_ready),
+        .sample_last(sample_last), .sample_hz(sample_hz), .sample_ready(sample_ready),
         .waveform(waveform), .applied_mode(applied_mode),
         .sensor(sensor), .underflow(underflow));
 
@@ -126,7 +130,7 @@ module tap_sd_stream_tb;
         repeat (4) @(negedge clk);
         mount_image();
         wait_ready();
-        $fdisplay(fd, "L %0d %0d %0d", cycle, loaded, rejected);
+        $fdisplay(fd, "L %0d %0d %0d %0d", cycle, loaded, rejected, sample_hz);
         if (rejected) begin
             // A rejected image must leave the transport ejected and inert.
             command(8'd2);
@@ -142,7 +146,7 @@ module tap_sd_stream_tb;
             while (accepted < remount_after) @(negedge clk);
             mount_image();
             wait_ready();
-            $fdisplay(fd, "L %0d %0d %0d", cycle, loaded, rejected);
+            $fdisplay(fd, "L %0d %0d %0d %0d", cycle, loaded, rejected, sample_hz);
             repeat (100) @(negedge clk);
             command(8'd2);
         end
