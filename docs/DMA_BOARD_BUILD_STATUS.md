@@ -1,8 +1,62 @@
 # DMA single-clock FPGA qualification revision
 
-## October 19, 2026: FDC command deferral; Sorcerian boots
+## October 20, 2026: sub-CPU RAM in block RAM; Sorcerian FM/DMA fix
 
-**Sorcerian reaches its story text and title with music on MiSTer 192; the
+**Three seeds build with 0 failing paths in all 32 timing reports. ALMs fall
+from 75% to 51%. Sorcerian reaches its title and menu on every 192 boot.**
+
+Two changes:
+
+- `22de4d7`: an owned DMA I/O read no longer takes the CPU's retained FM/SIO
+  reply. This caused Sorcerian's intermittent hang after its story text; see
+  `FM_MACHINE_STATUS.md`. The `11c7f30` section below saw one good run only.
+- The sub-CPU's 2-KiB work RAM (`x1_sub` `sub_w_ram`, 1024×16) was a
+  two-writer `dpram`. Quartus could not infer its read-during-write behavior
+  (map Info 276009), so it built the RAM from 8,287 ALMs and 16,408 registers.
+  This was true since the original bring-up, in every revision. Their wide
+  read muxes congested routing (peak 77%), which is why several seeds would
+  not fit. It is now an `x1_tdp_ram` with `SAME_CLOCK=1`: both ports on one
+  clock, cross-port collisions return old data as the Verilator model and the
+  old `dpram` did, and `clock1` is left unconnected (altsyncram error 272006).
+
+| Build | Seed | RBF SHA-256 | ALMs | Registers | M10K | Peak routing | Timing |
+|---|---|---|---|---|---|---|---|
+| `HimGqNVP` (`22de4d7`, before) | 10 | `65fb88ac…` | 31,547 | 43,048 | 431 | — | 0 failing |
+| `cTKSNWJS` (`22de4d7`, before) | 6 | — | — | — | — | 77% | No fit (routing) |
+| `F6KdzVl6` (sub RAM) | 10 | `8e115ecc5a81262246b981cd740b04aab47d60704ea998e7e8613a26ac2ea059` | 21,472 | 26,704 | 433 | 31% | 0 failing in 32 reports |
+| `MF5YcQ2b` (sub RAM) | 2 | `4fcb6c3136b2d40dbc83ebb44c872dbdce92f5b3d2cb0fc8060619f97cc69e83` | 21,517 | 26,669 | 433 | 27% | 0 failing in 32 reports |
+| `ABafMARn` (sub RAM) | 6 | `f71aedc9da41a6238d1ff53e45efc18ce07838770ddae324d1216ffe394e26b7` | 21,246 | 26,532 | 433 | 30% | 0 failing in 32 reports |
+
+Each build took about 11 minutes, down from about 25. The next largest logic
+consumer is `x1_z_kanji_cache` (~7,150 ALMs): its per-cell `visible` and
+`active_bank` bits are 2,048-bit register vectors.
+
+Simulation: `make -C verilator test`, `test-machine-cassette`, `test-sub-rtc`,
+`test-ctc` (real MR16 keyboard IRQ ACK at three clocks), `test-rtc-keyboard`,
+`test-machine-dma-irq-keyboard`, `test-machine-fm`, `test-x3-fm-dma-irq` and
+`lint-wrapper-turbo-z-font-single` all pass.
+
+Hardware, MiSTer 192:
+
+- `22de4d7` seed 10 (`_Computer/X1TAIL_20261019`): three Sorcerian boots all
+  show the story at 25 and 45 s, the title at 58 and 75 s, and the menu at
+  95 s, with audio RMS 2,225–2,819. The other titles match the `11c7f30`
+  table below, with the same audio RMS within 5% (DM05/DM07/DM08/Galaga were
+  silent at the capture point in both rounds).
+- Sub-RAM seed 10 (`_Computer/X1SUBRAM_20261020`, `x3subram.rbf`, same MGLs):
+  two Sorcerian boots reach the story, title and menu at 95 s. Every other
+  title shows the same screen as above, K01 reaches Zero Fighter's attract
+  screen at 150 s, and the Dione prompt accepts Return (keyboard through the
+  new sub RAM). **Audio was not recorded:** the capture now returns 0 s of
+  audio for the earlier X1TAIL build too, with `dvi_mode=0` unchanged, so
+  this is open on the capture/HDMI side, not attributed to the change.
+
+These are bounded screen observations, not gameplay acceptance.
+
+## October 19, 2026: FDC command deferral; Sorcerian boots once
+
+**Sorcerian reached its story text and title with music in this run, but
+it later hung intermittently after the story (fixed by `22de4d7`, above); the
 other titles do not regress. Seed-6 timing: 8 failing setup paths in the
 framework HDMI domain (see below).**
 
@@ -43,7 +97,7 @@ K01 to 150 s), not gameplay acceptance.
 ## October 19, 2026: DMA on the X3 font board (`sharpx1_turbo_z_font_single`)
 
 **Build PASS, eight-corner timing PASS (0 failing paths), bounded hardware
-PASS for 9 of 10 titles; Sorcerian open (fixed by `11c7f30`, above).**
+PASS for 9 of 10 titles; Sorcerian open (fixed by `11c7f30` and `22de4d7`, above).**
 
 Source `4fcb116` adds `X1_TURBO_DMA_FONT` to the X3 external-font revision:
 the Z80 DMA with completion/restart IRQ and the DMA/Kanji shared-bus profile.

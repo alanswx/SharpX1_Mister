@@ -443,16 +443,16 @@ dpram1k16 sub_w_ram(
   .AWE(wram_wr),     .BWE(mem_we)
 );
 */
-dpram #(16, 10) sub_w_ram  // 1024 words (2 KiB), shared host/sub-CPU
-(
-	.clock      (I_clk         ),
+// 1024 words (2 KiB), shared host/sub-CPU. Explicit TDP: the inferred
+// two-writer dpram was built from ~8k ALMs of registers by Quartus.
+x1_tdp_ram #(.AW(10),.DW(16),.SAME_CLOCK(1)) sub_w_ram (
+	.clock_a    (I_clk         ),
 	.address_a  (h_wram_a      ),
-	.ram_cs     (h_wram_cs     ),
 	.wren_a     (h_wram_cs && wram_wr),
 	.data_a     (h_wram_wd     ),
 	.q_a        (h_wram_rd     ),
 
-	.ram_cs_b   (wram_cs       ),
+	.clock_b    (I_clk         ),
 	.wren_b     (wram_cs && mem_we),
 	.address_b  (mem_addr[9:0] ),
 	.data_b     (wdata         ),

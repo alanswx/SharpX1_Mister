@@ -341,6 +341,8 @@ default and in strict-timing mode, and the ordinary simulator default state is
 unchanged. `test-fdc-defer` runs a 4000-clock-latency mount: the deferred
 RESTORE shows BUSY within 4 clocks and completes on track 0 after the scan.
 Its `DEFER=0` build must fail as "dropped". With the fix, the runner reaches the
-story text at 2 ms latency, and Sorcerian reaches its title on MiSTer 192 (see
+story text at 2 ms latency. On MiSTer 192 Sorcerian then hung intermittently
+after the story; that was a separate DMA/FM read-tail bug (`22de4d7`, see
+`FM_MACHINE_STATUS.md`), and it now reaches its title and menu (see
 `DMA_BOARD_BUILD_STATUS.md`). This does not model native drive-select or
 head-load timing.

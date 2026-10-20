@@ -19,7 +19,10 @@ Only exact `0700/0701` unambiguous CPU I/O cycles are selected, excluding
 DAM/reset/ACK/active memory and actual DMA ownership. Functional adapter WAIT
 joins the existing machine WAIT. Status is live during selected read and
 retained through its trailing I/O phase; reset/next memory read clears that
-tail. Writes still capture once and dispatch one immutable pending operation.
+tail, and so does DMA ownership (`22de4d7`). The tail is masked while the DMA
+owns the bus: otherwise an owned DMA I/O read that starts straight after a
+CPU status read took the held status, which lost one FDC byte per Sorcerian
+sector. `machine_fm_tb` exercises that order with an I/O-source DMA. Writes still capture once and dispatch one immutable pending operation.
 CPU software polls genuine busy; the adapter does not pretend busy writes
 are accepted. The existing drained `core_reset` resets FM, not raw BUSRQ or
 an early reset that abandons an owned DMA pair.

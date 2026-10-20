@@ -242,7 +242,7 @@ first destination from later starting-buffer writes; all current profiles need v
 signed stereo/mono machine outputs; the default unsigned PSG port is unchanged.
 It does not establish native IRQ/analog/hardware sound. `docs/FM_MACHINE_STATUS.md` records
 actual generated-IPL status/WAIT/PPI DAM/real DMA/reset checks. Preserve the
-retained read response and use drained `core_reset`; never invent CPU IRQ or
+retained read response (masked during DMA ownership) and use drained `core_reset`; never invent CPU IRQ or
 CT-to-CTC wiring from an unresolved schematic route. Existing unsigned PSG
 audio remains the default; enabled FM uses the provisional signed digital mix.
 `TURBO_SIO=1` is an opt-in shared-machine functional CZ-851 profile, currently
@@ -264,8 +264,9 @@ restart IRQ; chain FM CTC > DMA > main CTC > keyboard). Use
 `turbo-x3-single-fm-dma(-fast)`, `test-x3-fm-dma-irq` and
 `docs/DMA_BOARD_BUILD_STATUS.md`. Video/PCG/controller RAM are explicit true
 dual-port `x1_tdp_ram` blocks (VERILATOR model); inferred read+R/W RAM had
-been duplicated. The revision is near its routing limit: try more than one
-`QUARTUS_SEED`.
+been duplicated. The sub-CPU work RAM uses it with `SAME_CLOCK=1`: as a
+two-writer `dpram` Quartus built it from ~8k ALMs of registers. Before more
+seeds, check the map report for uninferred RAM (Info 276007/276009).
 `sharpx1_cassette` (base two-clock) and `sharpx1_turbo_z_font_single` have
 cassette: S2 TAP streamed by board-only `rtl/x1_tap_sd_stream.sv` (4-192 kHz
 via the transport's default-off RUNTIME_RATE, rewound on mount), controller

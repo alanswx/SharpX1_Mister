@@ -159,4 +159,7 @@ restart IRQ (`X1_TURBO_DMA_FONT`). Video/PCG/controller RAM are explicit true
 dual-port blocks. Build `wKLdfk5S` (commit `4fcb116`, seed 2), RBF
 `ec195e63…`: 431/553 M10K, 75% ALMs, 0 failing paths in all 32 reports.
 Hardware titles and audio are in `docs/DMA_BOARD_BUILD_STATUS.md`.
-Sorcerian boots after the FDC command-deferral fix (`11c7f30`).
+Sorcerian boots after the FDC command-deferral fix (`11c7f30`) and the DMA/FM
+read-tail fix (`22de4d7`). The sub-CPU work RAM, inferred as ~8k ALMs of
+registers, is now an `x1_tdp_ram` (`SAME_CLOCK=1`): 51% ALMs, peak routing
+~30%, and seeds 2, 6 and 10 all close timing.
