@@ -60,14 +60,21 @@ these; several were never exercised there either.
 - [x] Raw X1 2D images (one entry per drive, chosen by extension).
 - [x] Cassette/TAP loading (streamed TAP, rewind, status).
 - [x] Joystick button definition page (CONF_STR `J`: Trigger A/B).
-- [ ] Runtime X1 / X1 Turbo model selection. Implemented (OSD `Model`, see
-  [MODEL_SELECT_STATUS.md](MODEL_SELECT_STATUS.md)); hardware sweep in X1 mode
-  open. Turbo Z is not yet a runtime model.
-- [ ] Turbo boot-switch (DIP) selection from the OSD: 2D/2DD/2HD/8-inch/SASI.
-  Today a fixed `F1` (2D) parameter.
+- [x] Runtime X1 / X1 Turbo model selection (OSD `Model`, separate X1 IPL
+  slot; [MODEL_SELECT_STATUS.md](MODEL_SELECT_STATUS.md)). X1 mode boots
+  Galaga, Tetris, Mappy and the Zero Fighter tape on 192. Turbo Z is not yet
+  a runtime model: Z video still excludes DMA and the external Kanji font.
+- [x] Turbo boot-switch selection from the OSD (`Boot device`: 2D/2DD/2HD/
+  SASI -> DIP F1/F3/F5/FF). 8-inch types are not offered; 2HD and SASI media
+  do not exist yet, so those settings only change what the IPL looks for.
 - [ ] DSK disk images (format to identify; likely a plain sector dump).
 - [ ] 2DD/2HD and 8-inch media on the board (wide D88 + density/rate).
-- [ ] Explicit eject entries for drives A/B and the tape.
+- [x] Eject: not needed as separate entries. MiSTer's own unmount (Enter on
+  the drive, then Backspace in the file browser) sends a size-0 mount, which
+  the core treats as removal. On 192 (October 20, release core seed 10),
+  unmounting Drive A under Galaga and resetting gives the Turbo IPL's
+  "Make your device ready" prompt. Their separate entries exist because they
+  mount D88/2D/DSK through different entries per drive.
 - [ ] Boot without SD-loaded ROMs: needs a redistributable IPL (theirs
   embeds the original ROMs, which we cannot ship).
 - [ ] NTSC/PAL video standard option (low priority; native X1 is NTSC).

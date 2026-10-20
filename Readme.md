@@ -32,7 +32,7 @@ X1 mode turns the Turbo-only hardware off and boots a separate X1 IPL (OSD
 boot switch (2D/2DD/2HD/SASI). All ROMs load from SD; none are embedded.
 
 The base two-clock `sharpx1` revision remains as a baseline, and
-`sharpx1_turbo_z_video_single` is the Turbo Z video experiment. Eleven
+`sharpx1_turbo_z_video_single` is the Turbo Z video experiment. Ten
 bring-up revisions were retired; see [revisions](docs/REVISIONS.md),
 [model select](docs/MODEL_SELECT_STATUS.md) and
 [DMA board status](docs/DMA_BOARD_BUILD_STATUS.md).
