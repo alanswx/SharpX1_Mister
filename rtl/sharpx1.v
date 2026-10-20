@@ -2,11 +2,14 @@
 // See docs/BASE_X1_CONTRACT.md for address-map sources and limitations.
 module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0, TURBO_DSW = 241, TURBO_DMA_RESTART_IRQ = 0, TURBO_Z_PALETTE_CPU = 0, TURBO_Z_VIDEO = 0, TURBO_Z_MULTIMODE = 0, TURBO_Z_INTERNAL8 = 0, TURBO_Z_TEXT_CPU = 0, TURBO_SIO = 0, TURBO_FM_CPU = 0, RTC_ENABLE = 0, TURBO_Z_EFFECT_CPU = 0, TURBO_DMA_KANJI_EXPERIMENT = 0, D88_ADDRESS_BITS = 20, TURBO_HD_SELECT = 0, TURBO_HD_MEDIA = 0,
     TURBO_FDC_TIMING = 0, FDC_CLOCK_HZ = 1000000, CASSETTE_ENABLE = 0, CASSETTE_RUNTIME_RATE = 0, TURBO_FM_CTC = 0, SUB_CAPS_OFF = 0,
-    TURBO_Z_KANJI = 0, TURBO_Z_EXTERNAL_FONT = 0, TURBO_DSW_RUNTIME = 0) (
+    TURBO_Z_KANJI = 0, TURBO_Z_EXTERNAL_FONT = 0, TURBO_DSW_RUNTIME = 0, TURBO_Z_RUNTIME = 0) (
     input clk_sys, clk_28636, reset,
     input pal, scandouble,
     // TURBO builds only: X1 mode (1) or Turbo (0), sampled during reset.
     input model_x1,
+    // TURBO_Z_RUNTIME builds only: Turbo Z registers decode (1), sampled during
+    // reset; ignored in X1 mode. Without TURBO_Z_RUNTIME they follow the profile.
+    input model_z,
     // Raw Turbo DIP (1FF0) when TURBO_DSW_RUNTIME, else the TURBO_DSW parameter.
     input [7:0] turbo_dsw,
     input ioctl_download,
@@ -152,6 +155,17 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
         wire unused_model_x1 = model_x1;
         assign turbo_on = 1'b0;
     end endgenerate
+    // Turbo Z mode: the Z palette/mode/text/priority registers decode, so Z
+    // video can be enabled by software. Otherwise mode stays 0 (digital video).
+    wire z_on;
+    generate if (TURBO_Z_RUNTIME) begin : runtime_z
+        reg z_mode = 1'b0;
+        always @(posedge clk_sys) if (core_reset) z_mode <= model_z && !model_x1;
+        assign z_on = z_mode;
+    end else begin : fixed_z
+        wire unused_model_z = model_z;
+        assign z_on = turbo_on;
+    end endgenerate
 
     wire [15:0] a;
     wire [7:0] di, data_out;
@@ -180,8 +194,11 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
     wire dma_ack, dma_iei, dma_reti;
     wire [7:0] dma_vector;
     initial begin
-        if(TURBO_Z_PALETTE_CPU && (!TURBO || TURBO_DMA))
-            $error("CPU-only Z palette experiment requires TURBO and excludes unqualified DMA ownership");
+        // DMA is admitted: Z registers decode only CPU cycles (z_io_read/write).
+        if(TURBO_Z_PALETTE_CPU && !TURBO)
+            $error("Z palette experiment requires TURBO");
+        if(TURBO_Z_RUNTIME && !TURBO_Z_PALETTE_CPU)
+            $error("Runtime Turbo Z model requires the Z palette profile");
         // One clock may drive X3 only as the exact nominal X3 master; the
         // 28.6-MHz compensated single clock remains excluded from X3/Z.
         if(SINGLE_CLOCK && TURBO_VIDEO_MASTER && MASTER_HZ != 42954540)
@@ -206,9 +223,9 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
             $error("DMA/Kanji qualification requires Turbo, DMA, Kanji and X3 video");
         if (TURBO_KANJI_RENDER && !TURBO_KANJI)
             $error("TURBO_KANJI_RENDER requires the explicit physical Kanji ROM profile");
-        // Cassette and FM (CPU bus + FM-board CTC) are admitted: neither owns
-        // the bus or DMA; other combinations stay unqualified.
-        if (TURBO_Z_EXTERNAL_FONT && (!TURBO_Z_KANJI || TURBO_Z_VIDEO || RTC_ENABLE || TURBO_SIO))
+        // Cassette, FM (CPU bus + FM-board CTC) and Z video are admitted: none
+        // owns the bus or DMA; other combinations stay unqualified.
+        if (TURBO_Z_EXTERNAL_FONT && (!TURBO_Z_KANJI || RTC_ENABLE || TURBO_SIO))
             $error("external font profile requires Z Kanji; combined experimental devices remain unqualified");
         // DMA is admitted only with the explicit DMA/Kanji shared-bus profile.
         if (TURBO_Z_KANJI && !(TURBO && TURBO_VIDEO_MASTER && TURBO_KANJI && TURBO_KANJI_RENDER &&
@@ -299,6 +316,10 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
         // Explicit palette experiments; subordinate options add video/internal
         // and text CPU storage. No native Z signature or general decode claim.
         reg [7:0] mode=0, control=0;
+        // CPU-only decode: DMA cycles never reach the Z registers (provisional;
+        // native Z DMA-to-palette behaviour is unknown), and only in Z mode.
+        wire z_io_read=io_read && !dam && z_on && !dma_owner;
+        wire z_io_write=io_write && !dam && z_on && !dma_owner;
         wire [7:0] priority_control;
         if(TURBO_Z_EFFECT_CPU) begin : effect_cpu
             wire [7:0] live_data,held_data;
@@ -307,7 +328,7 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
             wire [7:0] position_control,mosaic_control,chroma_control,scroll_control;
             x1_z_effect_registers registers(
                 .clk(clk_sys),.reset(core_reset),.enabled(mode[7]),
-                .io_read(io_read && !dam),.io_write(io_write && !dam),
+                .io_read(z_io_read),.io_write(z_io_write),
                 .clear_read(!mreq || !m1 || (io_cycle && !(z_effect_selected && io_read))),
                 .address(a),.data(data_out),.selected(z_effect_selected),.read_data(live_data),
                 .read_hold(read_hold),.held_data(held_data),.held_address(held_address),
@@ -315,7 +336,7 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
                 .chroma_control(chroma_control),.scroll_control(scroll_control));
             // The response is eligible only for its captured address until
             // memory, ACK or another I/O cycle. Never override unmapped data.
-            assign z_effect_tail=read_hold && !core_reset && mode[7] && mreq && iorq && m1 && a==held_address;
+            assign z_effect_tail=read_hold && !core_reset && !dma_owner && mode[7] && mreq && iorq && m1 && a==held_address;
             assign z_effect_data=z_effect_tail ? held_data : live_data;
         end else begin : no_effect_cpu
             assign z_effect_selected=0;assign z_effect_tail=0;assign z_effect_data=8'hff;
@@ -326,23 +347,23 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
             x1_z_text_palette palette(
                 .cpu_clk(clk_sys),.video_clk(clk_28636),.reset(core_reset),.video_reset(video_reset),
                 .enabled(mode==8'h80 || mode==8'h90),
-                .io_read(io_read && !dam),.io_write(io_write && !dam),
+                .io_read(z_io_read),.io_write(z_io_write),
                 .clear_read(!mreq || !m1 || (io_cycle && !(z_text_selected && io_read))),
                 .address(a),.data(data_out),.selected(z_text_selected),.read_data(live_data),
                 .read_hold(read_hold),.held_data(held_data),
                 .video_index(z_cg_color),.video_bits(z_text_video_bits),.video_valid(z_text_video_valid));
-            assign z_text_tail=read_hold && !core_reset && mreq && iorq && m1 &&
+            assign z_text_tail=read_hold && !core_reset && !dma_owner && mreq && iorq && m1 &&
                                a[15:3]==13'h3f7 && a[2:0]!=0;
             assign z_text_data=z_text_tail ? held_data : live_data;
             wire [7:0] priority_live,priority_held;
             wire priority_read_hold;
             x1_z_priority_register priority_register(
                 .clk(clk_sys),.reset(core_reset),.enabled(mode==8'h80 || mode==8'h90),
-                .io_read(io_read && !dam),.io_write(io_write && !dam),
+                .io_read(z_io_read),.io_write(z_io_write),
                 .clear_read(!mreq || !m1 || (io_cycle && !(z_priority_selected && io_read))),
                 .address(a),.data(data_out),.selected(z_priority_selected),.read_data(priority_live),
                 .read_hold(priority_read_hold),.held_data(priority_held),.control(priority_control));
-            assign z_priority_tail=priority_read_hold && !core_reset && mreq && iorq && m1 && a==16'h1fc0;
+            assign z_priority_tail=priority_read_hold && !core_reset && !dma_owner && mreq && iorq && m1 && a==16'h1fc0;
             assign z_priority_data=z_priority_tail ? priority_held : priority_live;
         end else begin : no_text_cpu
             assign z_text_video_bits=0;assign z_text_video_valid=0;
@@ -394,7 +415,7 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
             assign z_graphics_mode=0;assign z_graphics_screen=0;
         end
         reg control_write_old=0;
-        wire control_write=io_write && !dam && (a==16'h1fb0 || a==16'h1fc5);
+        wire control_write=z_io_write && (a==16'h1fb0 || a==16'h1fc5);
         always @(posedge clk_sys or posedge core_reset)
             if(core_reset) begin mode<=0;control<=0;control_write_old<=0;end
             else begin
@@ -426,7 +447,7 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
             else if(read_valid) tail_pending<=1;
         // TV80 can sample a completed WAIT-stretched IN after IORQ/RD rise.
         // Retain only that palette tail; a memory/ACK/other I/O start clears it.
-        assign z_palette_read_tail=tail_pending && read_hold && !core_reset
+        assign z_palette_read_tail=tail_pending && read_hold && !core_reset && !dma_owner
             && mreq && iorq && m1 && a[15:8]>=8'h10 && a[15:8]<=8'h12;
         wire palette_permit, palette_display_allowed;
         assign z_display_allowed=palette_display_allowed;
@@ -443,7 +464,7 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
         x1_z_palette_access access(
             .clk(clk_sys),.reset(core_reset),.external_enabled(enabled),
             .read_mode(control[3]),.permit(palette_permit),
-            .io_read(io_read && !dam),.io_write(io_write && !dam),
+            .io_read(z_io_read),.io_write(z_io_write),
             .address(a),.data(data_out),.selected(z_palette_selected),
             .wait_n(z_palette_wait_n),.read_valid(read_valid),.read_nibble(read_nibble),
             .read_hold(read_hold),.read_hold_nibble(held_nibble),

@@ -949,7 +949,7 @@ test-machine-z-multimode: turbo-z-multimode
 	  done
 .PHONY: test-machine-z-multimode
 # The same Z CPU/pixel matrices on the single-clock X3 master used by
-# sharpx1_turbo_z_video_single. Isolated directories; two-clock runs unchanged.
+# the retired sharpx1_turbo_z_video_single. Isolated directories; two-clock runs unchanged.
 test-machine-z-single:
 	$(MAKE) turbo-z-video Z_SINGLE=1 Z_MULTIMODE=1 Z_VIDEO_DIR=obj_dir_v13_z_multimode_single
 	$(MAKE) turbo-z-video Z_SINGLE=1 Z_MULTIMODE=1 Z_INTERNAL8=1 Z_VIDEO_DIR=obj_dir_v13_z_internal8_single
@@ -1031,12 +1031,17 @@ X3_FM_TIMING ?= --timing
 X3_FM_DMA ?= 0
 X3_FM_DMA_RTL = $(if $(filter 1,$(X3_FM_DMA)),-GTURBO_DMA=1 -GTURBO_DMA_IRQ=1 -GTURBO_DMA_RESTART_IRQ=1,)
 X3_FM_DMA_CPP = $(if $(filter 1,$(X3_FM_DMA)),-DX1_TURBO_DMA -DX1_TURBO_DMA_IRQ -DX1_TURBO_DMA_RESTART_IRQ,)
+# X3_FM_Z=1 adds the release core's Turbo Z video set behind the runtime
+# Turbo Z model (--model-z); use the turbo-x3-release targets.
+X3_FM_Z ?= 0
+X3_FM_Z_RTL = $(if $(filter 1,$(X3_FM_Z)),-GTURBO_Z_PALETTE_CPU=1 -GTURBO_Z_VIDEO=1 -GTURBO_Z_MULTIMODE=1 -GTURBO_Z_INTERNAL8=1 -GTURBO_Z_TEXT_CPU=1 -GTURBO_Z_RUNTIME=1 +define+X1_Z_MODEL_SELECT,)
+X3_FM_Z_CPP = $(if $(filter 1,$(X3_FM_Z)),-DX1_Z_PALETTE_CPU -DX1_Z_VIDEO -DX1_Z_MULTIMODE -DX1_Z_INTERNAL8 -DX1_Z_TEXT_CPU -DX1_Z_MODEL_SELECT,)
 turbo-x3-single-fm: $(X3_FM_DIR)/Vtop
 $(X3_FM_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc $(X3_FM_TIMING) --assert --trace-fst --exe --build -j 4 --Mdir $(X3_FM_DIR) --top-module top \
 		$(TURBO_DSW_FLAGS) -GTURBO=1 -GTURBO_VIDEO_MASTER=1 -GSINGLE_CLOCK=1 -GMASTER_HZ=42954540 -GRAW_2D_MEDIA=1 \
-		-GTURBO_FM_CPU=1 -GTURBO_FM_CTC=1 -GSUB_CAPS_OFF=1 -GFDC_DEFER_COMMAND=1 $(X3_FM_DMA_RTL) +define+X1_RAW_2D_MEDIA +define+X1_MODEL_SELECT \
-		-CFLAGS "-std=c++20 -DX1_SINGLE_CLOCK -DX1_SINGLE_MASTER_HZ=42954540 -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_RAW_2D_MEDIA -DX1_MODEL_SELECT -DX1_TURBO_FM_CPU $(X3_FM_DMA_CPP)" \
+		-GTURBO_FM_CPU=1 -GTURBO_FM_CTC=1 -GSUB_CAPS_OFF=1 -GFDC_DEFER_COMMAND=1 $(X3_FM_DMA_RTL) $(X3_FM_Z_RTL) +define+X1_RAW_2D_MEDIA +define+X1_MODEL_SELECT \
+		-CFLAGS "-std=c++20 -DX1_SINGLE_CLOCK -DX1_SINGLE_MASTER_HZ=42954540 -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_RAW_2D_MEDIA -DX1_MODEL_SELECT -DX1_TURBO_FM_CPU $(X3_FM_DMA_CPP) $(X3_FM_Z_CPP)" \
 		-MAKEFLAGS "OPT_FAST=-O3 -B" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 turbo-x3-single-fm-fast:
 	$(MAKE) turbo-x3-single-fm X3_FM_DIR=obj_dir_x3_single_fm_fast X3_FM_TIMING=--no-timing
@@ -1045,6 +1050,39 @@ turbo-x3-single-fm-dma:
 turbo-x3-single-fm-dma-fast:
 	$(MAKE) turbo-x3-single-fm X3_FM_DIR=obj_dir_x3_single_fm_dma_fast X3_FM_TIMING=--no-timing X3_FM_DMA=1
 .PHONY: turbo-x3-single-fm turbo-x3-single-fm-fast turbo-x3-single-fm-dma turbo-x3-single-fm-dma-fast
+# Release-core parity: FM + FM CTC + DMA + Turbo Z video, runtime X1/Z model.
+turbo-x3-release:
+	$(MAKE) turbo-x3-single-fm X3_FM_DIR=obj_dir_x3_release X3_FM_DMA=1 X3_FM_Z=1
+turbo-x3-release-fast:
+	$(MAKE) turbo-x3-single-fm X3_FM_DIR=obj_dir_x3_release_fast X3_FM_TIMING=--no-timing X3_FM_DMA=1 X3_FM_Z=1
+.PHONY: turbo-x3-release turbo-x3-release-fast
+# Z registers decode CPU cycles only, in the Turbo Z model (real DMA to 1FC0-F).
+test-z-dma-isolation: turbo-x3-release-fast
+	python3 tests/test_z_dma_isolation.py ./obj_dir_x3_release_fast/Vtop
+# The Z CPU/pixel matrices on the release-parity runner with --model-z, plus
+# an X1 Turbo (no --model-z) control that must not show Z output.
+test-machine-z-release: turbo-x3-release
+	@set -e; root=$$(mktemp -d obj_dir_x3_release/z-matrix-XXXXXX); \
+	  cp tests/test_machine_z_video.py tests/z80_fixture.py obj_dir_x3_release/Vtop $$root/; \
+	  cp ../rtl/legacy/x1_cg8.v $$root/cg8_reference.v; \
+	  t="python3 $$root/test_machine_z_video.py --single-x3 $$root/Vtop"; \
+	  for p in identity custom; do for r in cold warm; do \
+	    pa=; [ $$p != custom ] || pa=--custom; ra=; [ $$r != warm ] || ra=--warm; \
+	    $$t --model-z --mode full $$pa $$ra --output $$root/full-$$p-$$r; \
+	    for m in wide64 tall64; do $$t --model-z --mode $$m $$pa $$ra --output $$root/$$m-$$p-$$r; done; \
+	    for sc in 0 1; do $$t --model-z --mode dual64 --screen $$sc $$pa $$ra --output $$root/dual64-$$sc-$$p-$$r; done; \
+	    $$t --model-z --mode internal8 $$pa $$ra --output $$root/i8-$$p-$$r; \
+	  done; done; \
+	  for pr in 0x10 0x18 0x11 0x19 0x12 0x1a; do for r in cold warm; do ra=; [ $$r != warm ] || ra=--warm; \
+	    $$t --model-z --mode paired64 --priority $$pr --screen 1 --custom --text $$ra --output $$root/pt-$$pr-$$r; \
+	  done; done; \
+	  for m in full dual64; do for pr in 0x00 0x01 0xea 0xeb; do \
+	    $$t --model-z --mode $$m --priority $$pr --screen 1 --custom --text --output $$root/st-$$m-$$pr; \
+	  done; done; \
+	  $$t --model-z --mode paired64 --priority 0x1a --screen 1 --custom --text --reverse --warm --output $$root/reverse; \
+	  $$t --mode full --custom --expect-z-off --output $$root/neg-full-off; \
+	  echo "PASS: Z matrices on the release-parity runner ($$root)"
+.PHONY: test-z-dma-isolation test-machine-z-release
 # Runtime X1/Turbo model select (board O[3]). Real-Z80 port checks in both
 # modes, per-model IPL slots, and MODEL_DISK booting in both. The Turbo IPL
 # is a private native dump: pass MODEL_TURBO_IPL; nothing is embedded.
@@ -2971,13 +3009,9 @@ clean:
 .PHONY: test-game-reset test-game-reset-single
 
 lint-wrapper-turbo-z-font-single:
-	$(V) --lint-only --timing --top-module emu -DX1_SINGLE_CLOCK -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_TURBO_Z_EXTERNAL_FONT -DX1_SCALER_LOCAL_RESET_RELEASE -DX1_CASSETTE -DX1_TURBO_FM_CPU -DX1_TURBO_DMA_FONT -Itests \
+	$(V) --lint-only --timing --top-module emu -DX1_SINGLE_CLOCK -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_TURBO_Z_EXTERNAL_FONT -DX1_SCALER_LOCAL_RESET_RELEASE -DX1_CASSETTE -DX1_TURBO_FM_CPU -DX1_TURBO_DMA_FONT -DX1_TURBO_Z_VIDEO_EXPERIMENT -Itests \
 		../sharpx1.sv ../sys/hps_io.sv tests/board_pll_lint.v ../rtl/x1_joystick_map.v ../rtl/x1_tap_sd_stream.sv $(MACHINE_SRC) -Wno-fatal
 .PHONY: lint-wrapper-turbo-z-font-single
-lint-wrapper-turbo-z-video-single:
-	$(V) --lint-only --timing --top-module emu -DX1_SINGLE_CLOCK -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_TURBO_Z_VIDEO_EXPERIMENT -Itests \
-		../sharpx1.sv ../sys/hps_io.sv tests/board_pll_lint.v ../rtl/x1_joystick_map.v $(MACHINE_SRC) -Wno-fatal
-.PHONY: lint-wrapper-turbo-z-video-single
 
 test-machine-z-external-font:
 	ulimit -c 0; python3 -B tests/test_z_external_font_machine.py

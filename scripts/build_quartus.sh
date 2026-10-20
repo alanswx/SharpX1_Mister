@@ -9,7 +9,7 @@ INSTALL_ROOT="${QUARTUS_CACHE_DIR:-$BUILDER_ROOT/build/quartus}/intelFPGA_lite"
 IMAGE=docker.io/library/quartus17-runtime:apple-amd64
 REVISION="${QUARTUS_REVISION:-sharpx1}"
 case "$REVISION" in
-  sharpx1|sharpx1_turbo_z_font_single|sharpx1_turbo_z_video_single) ;;
+  sharpx1|sharpx1_turbo_z_font_single) ;;
   *) echo 'Unsupported QUARTUS_REVISION' >&2; exit 2 ;;
 esac
 [[ -f "$ROOT/$REVISION.qsf" ]] || { echo "Missing $REVISION.qsf" >&2; exit 2; }

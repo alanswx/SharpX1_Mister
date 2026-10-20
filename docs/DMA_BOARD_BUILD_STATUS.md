@@ -1,5 +1,14 @@
 # DMA single-clock FPGA qualification revision
 
+## October 20, 2026: Turbo Z merged (X1 Turbo Z model)
+
+The release core now carries the Turbo Z video set behind a third OSD model,
+X1 Turbo Z; Z registers decode only there and only for CPU (not DMA)
+cycles. Seed 10 (`quartus-linux-ckCYfUI1`, RBF `b8cf96ef…`) and seed 3 both
+have 0 failing paths in all 32 inventory reports; 21,905 ALMs (52%), 443/553
+M10K. Simulation, generated-pixel hardware checks and the title sweep are in
+[MODEL_SELECT_STATUS.md](MODEL_SELECT_STATUS.md#turbo-z-mode).
+
 ## October 20, 2026: merged release core (model select, boot device)
 
 This revision is now the single release core (`REVISIONS.md`). It adds the

@@ -25,15 +25,18 @@ the remaining physical and unimplemented-feature gates.
 
 One release core: Quartus revision **`sharpx1_turbo_z_font_single`**.
 It is an X1 Turbo on one X3 master clock, with an OSD **Model** switch
-(X1 Turbo / X1), Z80 DMA, the YM2151 FM board and its CTC, the physical
+(X1 Turbo / X1 / X1 Turbo Z), Z80 DMA, the YM2151 FM board and its CTC, the physical
 Kanji font, cassette TAP streaming, and D88 / raw 2D disks on two drives.
 X1 mode turns the Turbo-only hardware off and boots a separate X1 IPL (OSD
-`Load X1 IPL`, or `boot2.rom`). The OSD **Boot device** sets the Turbo
+`Load X1 IPL`, or `boot2.rom`). X1 Turbo Z adds the Turbo Z palette,
+4096/64-colour and two-screen modes and text/priority registers
+(provisional, from documentation; no native Z software has been tested).
+The OSD **Boot device** sets the Turbo
 boot switch (2D/2DD/2HD/SASI). All ROMs load from SD; none are embedded.
 
-The base two-clock `sharpx1` revision remains as a baseline, and
-`sharpx1_turbo_z_video_single` is the Turbo Z video experiment. Ten
-bring-up revisions were retired; see [revisions](docs/REVISIONS.md),
+The base two-clock `sharpx1` revision remains as a baseline. Eleven
+bring-up revisions were retired, including the Turbo Z video experiment
+(merged into the release core); see [revisions](docs/REVISIONS.md),
 [model select](docs/MODEL_SELECT_STATUS.md) and
 [DMA board status](docs/DMA_BOARD_BUILD_STATUS.md).
 

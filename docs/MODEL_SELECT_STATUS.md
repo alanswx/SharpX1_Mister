@@ -1,8 +1,10 @@
-# Runtime X1 / X1 Turbo model
+# Runtime X1 / X1 Turbo / X1 Turbo Z model
 
 October 20, 2026. The release core (`sharpx1_turbo_z_font_single`) is one
-TURBO build with an OSD **Model** option (`O[3]`: X1 Turbo / X1). The machine
-samples `model_x1` during reset; changing the option resets the machine.
+TURBO build with an OSD **Model** option (`O[7:6]`: X1 Turbo / X1 /
+X1 Turbo Z; it was `O[3]`, X1 Turbo / X1, before the Turbo Z merge). The
+machine samples `model_x1` and `model_z` during reset; changing the option
+resets the machine. See [Turbo Z mode](#turbo-z-mode) below.
 
 ## What X1 mode changes
 
@@ -75,3 +77,89 @@ X1 IPL may not be in its slot yet. Without an X1 IPL, X1 mode runs the main
 (Turbo) IPL's first 4 KiB, which shows nothing; X1 mode needs the X1 IPL.
 
 Audio is not verified: the capture currently returns no audio for any build.
+
+## Turbo Z mode
+
+October 20, 2026. The release core now also builds the Turbo Z video set
+(`X1_TURBO_Z_VIDEO_EXPERIMENT`: palette, multi-mode, internal eight-colour,
+text palette and priority), formerly only in the retired
+`sharpx1_turbo_z_video_single`. `TURBO_Z_RUNTIME` samples `model_z` in reset:
+
+- **X1 Turbo Z**: the Z registers (1FB0 mode, 1FC5 control, 1FC0 priority,
+  1FB9–1FBF text palette, 10xx–12xx palette data) decode, so software can
+  enable 4096/64-colour and two-screen video.
+- **X1 Turbo** (default) and **X1**: they do not decode; the Z mode register
+  stays 0 and video is the ordinary digital path.
+
+The previous build-time exclusions are lifted:
+
+- **DMA.** The Z registers decode CPU cycles only (`z_io_read/write` exclude
+  `dma_owner`), and their retained read replies are masked during DMA
+  ownership, as for FM and SIO. A DMA transfer to or from those ports
+  neither changes a Z register nor reads one. This is a provisional policy:
+  native Z DMA-to-palette behaviour is not documented.
+- **External Kanji font.** Nothing in the two paths conflicted (both use the
+  CRTC character-start strobe as an input); the guard was an unqualified
+  combination and is removed.
+
+The Z behaviour itself is still the documented provisional implementation
+(see `TURBO_Z_VIDEO_STATUS.md` and related); capture, mosaic, chroma and
+scroll effects are not built, and no native Z software has been run.
+
+### Simulation
+
+`turbo-x3-release(-fast)` is the release-parity runner: X3 single master,
+FM + FM CTC, DMA with completion/restart IRQ, the Z set, runtime X1 and Z
+models (`--model-x1`, `--model-z`).
+
+- `test-machine-z-release`: the 45 existing Z CPU/pixel cases (full,
+  wide64, tall64, dual64 both screens, internal8, each identity/custom and
+  cold/warm; paired64 with text at six priorities cold/warm; single-screen
+  text at four priorities; reverse attributes) pass exactly with `--model-z`.
+  The same full-colour program without `--model-z` differs in all 64,000
+  pixels (digital video).
+- `test-z-dma-isolation` (new): a real Z80 writes 1FC0 and reads it back;
+  the real DMA then writes 16 bytes to 1FC0–1FCF and reads 1FC0 to memory.
+  1FC0 keeps the CPU value and the DMA reads FF; without `--model-z` the CPU
+  does not reach 1FC0. Removing the DMA exclusion from the write decode, or
+  from the read decode and the retained reply, fails the test.
+- The DMA IRQ fixtures (`test-x3-fm-dma-irq` set) pass in both X1 Turbo and
+  Turbo Z mode; `test_model_select.py` passes on the new runner;
+  `make test` and the CPU-only Z palette/text/priority profiles pass.
+
+### Build
+
+Seeds 10 and 3 (`quartus-linux-ckCYfUI1`, `-GSsaPB4m`): 0 failing paths in
+all 32 inventory reports for both. Seed 10: 21,905 ALMs (52%), 443/553
+M10K (was 21,397 / 437); RBF
+`b8cf96ef9cef4e2c4760438b69c21850adcbbae42213a80dc161fbdfcb83c9c2`.
+Seed 3: 21,787 ALMs, RBF `c10aa683…`. Only the 8-entry internal palette is
+left as registers (Info 276004, inappropriate RAM size).
+
+### Hardware (MiSTer 192, `_Computer/X1Z_20261020`, `x3z.rbf` = seed 10)
+
+The simulator's Z pixel programs, wrapped in an IPL that copies them to 8000
+(`Zfull_custom.mgl`, `Zpaired_text.mgl`; the MGLs also load the ANK16 and
+Kanji fonts, without which the release core's screen stays black), were
+captured through the KVM and compared with the simulator's expected frames
+(320x200 sampled from the 1448x1080 capture; mean worst-channel error):
+
+| Program | Model | vs expected | vs control |
+|---|---|---|---|
+| Full colour, custom palette | X1 Turbo | — | digital image; 31.1 vs the simulator's digital frame (capture noise floor) |
+| Full colour, custom palette | X1 Turbo Z | 30.0 | 142.6 vs identity palette |
+| Paired 64-colour + text, priority 1A | X1 Turbo Z | 26.2 | 113.0 vs priority 10 |
+
+A first attempt reused RAM from the X1 Turbo run, so the program took its
+warm-reset path (no palette programming) and matched the identity palette
+instead (31.7); the IPL now clears the marker on every reset.
+
+Title sweep on the same RBF (same MGL media as the October 20 merge sweep;
+screenshot 40 s after load, or after the OSD model change at 15 s; tape at
+150 s):
+
+| Model | Result |
+|---|---|
+| X1 Turbo | All 12 disk titles and the K01 tape as in the previous merge build; DM05 (black at 40 s) and FM03 (Kanji prompt) match that build's screenshots exactly |
+| X1 Turbo Z | All 12 disk titles and the tape boot (Ys II, Xanadu II, Sorcerian, Tetris, Gall Force menu, Mappy, Valis, Galaga, Zero Fighter...), with ordinary digital colours. These titles do not use the Z registers; this checks that DMA disk loading and Kanji/FM coexist with Z decode on |
+| X1 | OSD shows `Model: X1`; Galaga boots through the X1 IPL, the K01 tape runs, DM01 does not boot (Turbo title), as before |

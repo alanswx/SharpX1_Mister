@@ -316,6 +316,10 @@ def main():
     parser.add_argument("--timeout", type=float, default=900)
     parser.add_argument("--single-x3", action="store_true",
                         help="require the single-clock X3 master (SYS = VID = 42,954,540 Hz)")
+    parser.add_argument("--model-z", action="store_true",
+                        help="runtime-model runner: select the Turbo Z model (--model-z)")
+    parser.add_argument("--expect-z-off", action="store_true",
+                        help="runtime-model runner left in X1 Turbo: Z output must NOT appear")
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=False)
     executable = args.executable.resolve()
@@ -335,6 +339,8 @@ def main():
     reset_ms = 4500 if args.custom else 3500
     command = [str(executable), "--ram", str(code.resolve()), "--cycles", str(duration_ms * 32000),
                "--frame", str(frame.resolve())]
+    if args.model_z:
+        command.append("--model-z")
     if args.warm:
         bus = args.output / "warm-io.csv"
         command += ["--reset-at", str(reset_ms), "--reset-for-us", "10",
@@ -353,6 +359,7 @@ def main():
     report = json.loads(result.stdout.splitlines()[-1])
     print(json.dumps(report), flush=True)
     assert report["z_video_experiment"] and report["z_palette_cpu_experiment"], report
+    assert report.get("model_z", False) == args.model_z, report
     if args.mode != "full":
         assert report["z_multimode_experiment"], report
     if args.mode == "paired64" or args.text:
@@ -405,6 +412,10 @@ def main():
     (args.output / "expected.ppm").write_bytes(f"P6\n{width} {height}\n255\n".encode() + expected)
     mismatches = [(i // 3 % width, i // (width * 3), tuple(actual[i:i+3]), tuple(expected[i:i+3]))
                   for i in range(0, len(expected), 3) if actual[i:i+3] != expected[i:i+3]]
+    if args.expect_z_off:
+        assert len(mismatches) > 1000, len(mismatches)
+        print(f"PASS: Z registers off without the Turbo Z model ({len(mismatches)} pixels differ from Z output)")
+        return
     assert actual == expected, (len(mismatches), mismatches[:20])
     if args.text:
         alternative = ((args.priority & ~3) | (0 if args.priority & 3 else 2)) if args.mode == "paired64" else args.priority ^ 1

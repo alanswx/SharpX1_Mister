@@ -10,7 +10,7 @@ main() {
   }
   revision="${QUARTUS_REVISION:-sharpx1}"
   case "$revision" in
-    sharpx1|sharpx1_turbo_z_font_single|sharpx1_turbo_z_video_single) ;;
+    sharpx1|sharpx1_turbo_z_font_single) ;;
     *) echo 'Unsupported revision' >&2; return 2 ;;
   esac
   quartus_bin="${QUARTUS_BIN:-/home/alans/intelFPGA_lite/17.0/quartus/bin}"

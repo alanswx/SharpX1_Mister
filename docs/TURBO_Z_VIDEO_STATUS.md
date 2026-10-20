@@ -1,5 +1,9 @@
 # Connected 4096-color video experiment
 
+October 20, 2026: this experiment is now in the release core behind the
+OSD model X1 Turbo Z, with DMA and the external Kanji font; see
+[MODEL_SELECT_STATUS.md](MODEL_SELECT_STATUS.md#turbo-z-mode).
+
 ## Pin-order correction after `533961a`
 
 Printed 156 table 4-22 reverses CPU-address bit order within each nibble

@@ -62,8 +62,11 @@ these; several were never exercised there either.
 - [x] Joystick button definition page (CONF_STR `J`: Trigger A/B).
 - [x] Runtime X1 / X1 Turbo model selection (OSD `Model`, separate X1 IPL
   slot; [MODEL_SELECT_STATUS.md](MODEL_SELECT_STATUS.md)). X1 mode boots
-  Galaga, Tetris, Mappy and the Zero Fighter tape on 192. Turbo Z is not yet
-  a runtime model: Z video still excludes DMA and the external Kanji font.
+  Galaga, Tetris, Mappy and the Zero Fighter tape on 192.
+- [x] X1 Turbo Z as a third runtime model (October 20): the Z video set is
+  in the release core; Z registers decode only in that model and only for
+  CPU cycles (not DMA). Generated Z full-colour and paired-text frames match
+  the simulator on 192. No native Z software has been run (none available).
 - [x] Turbo boot-switch selection from the OSD (`Boot device`: 2D/2DD/2HD/
   SASI -> DIP F1/F3/F5/FF). 8-inch types are not offered; 2HD and SASI media
   do not exist yet, so those settings only change what the IPL looks for.
@@ -91,8 +94,8 @@ the user has MiSTer.
 - [ ] Close source-bound FPGA timing/CDC: the single-clock X3 font revision
   now has zero failing paths at all eight corners (October 18). Remaining:
   I/O port constraints (3 inputs, 44 outputs), physical reset/MTBF gates,
-  a decision on retiring the two-clock X3 revisions, and moving the Z video
-  revision to the single master. Do not hide paths with broad cuts.
+  and physical reset/MTBF gates. The two-clock X3 revisions are retired and
+  Z video is in the single-master release core. Do not hide paths with broad cuts.
 - [ ] Convert and qualify native Kanji/fonts against documented physical
   storage and model contracts; expand the cache/text path beyond its bounded
   simple/normal-cell modes. Synthetic fonts are not native-font acceptance.

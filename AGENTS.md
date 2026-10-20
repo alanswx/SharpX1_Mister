@@ -1,8 +1,8 @@
 # Working on Sharp X1 for MiSTer
 
-The release core is the `sharpx1_turbo_z_font_single` revision; `sharpx1` (base
-two-clock X1) and `sharpx1_turbo_z_video_single` (Z video experiment) are the
-only other revisions. Do not re-add retired revisions; see `docs/REVISIONS.md`.
+The release core is the `sharpx1_turbo_z_font_single` revision (including
+Turbo Z video as a runtime model); `sharpx1` (base two-clock X1) is the only
+other revision. Do not re-add retired revisions; see `docs/REVISIONS.md`.
 Use `make -C verilator lint-wrapper-turbo-z-font-single` for its interface check,
 not hardware acceptance. Record build/timing/hardware gates in
 `docs/DMA_BOARD_BUILD_STATUS.md`.
@@ -158,7 +158,7 @@ to the shared machine manifest; do not also add it to wrapper source lists.
 
 `turbo-z-internal8` separately opts into 640x400 with an independent eight-entry
 palette and captured shifter store tag. See `docs/TURBO_Z_INTERNAL8_STATUS.md`.
-It is non-savable and not enabled by any board revision. Warm reset retains
+It is non-savable; the release core enables it in the X1 Turbo Z model. Warm reset retains
 both palette memories; do not collapse internal entries onto external storage.
 `test-z-internal-palette` exhausts aliases/nibbles at nine profiles;
 `test-machine-z-internal8` freezes runner/oracle/emitter for four CPU/pixel cases.
@@ -168,7 +168,7 @@ Neither establishes native ASIC WAIT, text palette or priority behavior.
 `docs/TURBO_Z_TEXT_PALETTE_STATUS.md`. It does not connect analog text RGB or
 priority. Do not infer text intensity significance from the external graphics
 palette pin map, or advertise the provisional inactive/upper-bit read policy
-as measured ASIC behavior. Existing board revisions leave it disabled.
+as measured ASIC behavior. The release core enables it in the X1 Turbo Z model.
 Combined with video/multi-mode, it now also enables provisional paired analog
 text composition; see `docs/TURBO_Z_TEXT_COMPOSITION_STATUS.md`. Raw glyph
 codes, not palette RGB, determine presence. Intensity is explicitly 0/5/A/F,
@@ -269,7 +269,11 @@ dual-port `x1_tdp_ram` blocks (VERILATOR model); inferred read+R/W RAM had
 been duplicated. The sub-CPU work RAM uses it with `SAME_CLOCK=1`: as a
 two-writer `dpram` Quartus built it from ~8k ALMs of registers. Before more
 seeds, check the map report for uninferred RAM (Info 276007/276009).
-Runtime model (`model_x1`, OSD `Model`, sampled in reset; changing it resets):
+Runtime model (`model_x1`/`model_z`, OSD `Model` O[7:6], sampled in reset;
+changing it resets). The release core also carries the Z video set
+(`X1_TURBO_Z_VIDEO_EXPERIMENT`, `TURBO_Z_RUNTIME`): Z registers decode only
+in the X1 Turbo Z model, so X1 Turbo keeps digital video. Use
+`turbo-x3-release(-fast)`, `test-machine-z-release` and `test-z-dma-isolation`.
 X1 mode gates Turbo-only I/O (DMA, CTC, DIP, SCRN/BLACK, Kanji plane/display,
 CG read tail) but keeps the FM board and the interrupt chain. Index 3 (F3 /
 boot2.rom) is a separate 4-KiB X1 IPL; without it X1 mode reads the main IPL's
@@ -351,8 +355,9 @@ completion states. See `docs/DMA_RESTART_MACHINE_STATUS.md` for actual handler/
 FDC tests and the still-open Ready/mixed/native/board gates. Build separate
 directories for `DMA_RESTART=0/1`; no existing RBF enables this profile.
 `TURBO_Z_PALETTE_CPU=1` / `turbo-z-palette-cpu` is a separate CPU-only,
-non-savable experiment, not a Z machine or analog renderer. It rejects DMA
-combinations, disables palette display reads and qualifies only the explicit
+non-savable experiment, not a Z machine or analog renderer. With DMA, the Z
+registers decode CPU cycles only (`z_io_read/write`, tails masked during DMA
+ownership; `test-z-dma-isolation`). It disables palette display reads and qualifies only the explicit
 low-scan/40-column external palette sequence. Upper read bits and native ASIC
 reset controls remain provisional. Use `test-machine-z-palette-cpu` and
 `test-machine-z-palette-disabled`; see `docs/TURBO_Z_PALETTE_CPU_STATUS.md`.
@@ -363,8 +368,8 @@ native ASIC BUSRQ/WAIT timing. Any future display consumer must honor
 The completed palette read tail is only eligible until memory/ACK/other I/O;
 do not broaden it into a general unmapped-data override.
 `TURBO_Z_VIDEO=1` / `turbo-z-video` is a separate non-savable full-color
-prototype requiring the palette CPU experiment and X3 timing. Ordinary board
-and simulator defaults stay unchanged. Preserve per-byte shifts, phase-zero
+prototype requiring the palette CPU experiment and X3 timing. The release
+core enables it behind the X1 Turbo Z model; simulator defaults stay unchanged. Preserve per-byte shifts, phase-zero
 fetch/phase-14 load and one-edge palette/selection/blank alignment; honor the
 palette owner's display permission and response validity. See
 `docs/TURBO_Z_VIDEO_STATUS.md`: standalone shifter tests are not native pixels,

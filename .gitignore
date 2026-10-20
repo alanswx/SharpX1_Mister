@@ -90,3 +90,6 @@ references/local/
 verilator/obj_dir_x3_single_cassette*/
 verilator/obj_dir_base_cassette*/
 verilator/obj_dir_x3_single_fm*/
+verilator/obj_dir_x3_release/
+verilator/obj_dir_x3_release_fast/
+verilator/obj_dir_x3_release_mut/

@@ -4,14 +4,13 @@ October 20, 2026: the bring-up revisions were merged into one release core.
 
 | Revision | Role |
 |---|---|
-| `sharpx1_turbo_z_font_single` | **Release core.** X1 Turbo on one X3 master clock, with a runtime X1 / X1 Turbo model (OSD `Model`), DMA, FM board + CTC, physical Kanji font, cassette, D88 and raw 2D. See [DMA board status](DMA_BOARD_BUILD_STATUS.md) and [model select](MODEL_SELECT_STATUS.md). |
+| `sharpx1_turbo_z_font_single` | **Release core.** X1 Turbo on one X3 master clock, with a runtime X1 / X1 Turbo / X1 Turbo Z model (OSD `Model`), DMA, FM board + CTC, Turbo Z video, physical Kanji font, cassette, D88 and raw 2D. See [DMA board status](DMA_BOARD_BUILD_STATUS.md) and [model select](MODEL_SELECT_STATUS.md). |
 | `sharpx1` | Base X1, original two-clock design. Kept as the main-project baseline and a fallback until X1 mode in the release core has the same hardware coverage. |
-| `sharpx1_turbo_z_video_single` | Turbo Z full-color video experiment. Not merged: its palette-owner CPU experiment excludes DMA and is not qualified with it. |
 
 ## Retired
 
-These were removed in the merge commit. Their last versions are in the parent
-commit `fd9405f` and earlier; restore one with
+These were removed in the merge commits. Their last versions are in
+`fd9405f` (or `2111ebd` for `sharpx1_turbo_z_video_single`); restore one with
 `git show fd9405f:<name>.qsf > <name>.qsf` if a historical result must be
 reproduced. Dated documents that cite them remain as records.
 
@@ -25,7 +24,8 @@ reproduced. Dated documents that cite them remain as records.
 | `sharpx1_turbo_fm` | FM board alone | Release core |
 | `sharpx1_turbo_dma_single` | DMA/IRQ qualification | Release core |
 | `sharpx1_turbo_z_font` (+ `.sdc`, `_reset.sdc`) | Two-clock font board (failed timing) | Release core |
-| `sharpx1_turbo_z_video` (+ `.sdc`) | Two-clock Z video | `sharpx1_turbo_z_video_single` |
+| `sharpx1_turbo_z_video` (+ `.sdc`) | Two-clock Z video | Release core, X1 Turbo Z model |
+| `sharpx1_turbo_z_video_single` | Single-clock Turbo Z video (removed October 20, after `2111ebd`) | Release core, X1 Turbo Z model |
 | `sharpx1_turbo_z_handoff` | HDMI clock-handoff experiment on two-clock Z | — (audit scripts kept; tests use synthetic reports) |
 
 Their `lint-wrapper-*` targets went with them; the wrapper still contains

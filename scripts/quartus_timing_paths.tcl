@@ -8,7 +8,7 @@ set analysis [lindex $quartus(args) 1]
 if {$analysis ni {{} fast-hold}} {
     error "optional analysis must be fast-hold (Fast 1100 mV / -40 C)"
 }
-if {$revision ni {sharpx1 sharpx1_turbo_z_font_single sharpx1_turbo_z_video_single}} {
+if {$revision ni {sharpx1 sharpx1_turbo_z_font_single}} {
     error "expected a checked-in Sharp X1 project revision"
 }
 project_open sharpx1 -revision $revision
