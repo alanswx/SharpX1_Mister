@@ -19,6 +19,10 @@ module top #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636364,
     // Only raw-media profiles add these pins; v17 savable tops stay unchanged.
     input disk_raw, disk_raw_b,
 `endif
+`ifdef X1_MODEL_SELECT
+    // Runtime X1 mode of a Turbo build (sampled during reset).
+    input model_x1,
+`endif
 `ifdef X1_CASSETTE
     // Non-savable tape profile: the board's SD TAP streamer on its own
     // hps_io-style block channel, feeding the machine's cassette deck.
@@ -88,6 +92,12 @@ module top #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636364,
     sharpx1 #(.CASSETTE_ENABLE(CASSETTE), .CASSETTE_RUNTIME_RATE(CASSETTE), .RAW_2D_MEDIA(RAW_2D_MEDIA), .SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ), .TURBO(TURBO), .TURBO_VIDEO_MASTER(TURBO_VIDEO_MASTER), .TURBO_DMA(TURBO_DMA), .TURBO_DMA_IRQ(TURBO_DMA_IRQ), .TURBO_KANJI(TURBO_KANJI), .TURBO_KANJI_RENDER(TURBO_KANJI_RENDER), .TURBO_DSW(TURBO_DSW), .TURBO_DMA_RESTART_IRQ(TURBO_DMA_RESTART_IRQ), .TURBO_Z_PALETTE_CPU(TURBO_Z_PALETTE_CPU), .TURBO_Z_VIDEO(TURBO_Z_VIDEO), .TURBO_Z_MULTIMODE(TURBO_Z_MULTIMODE), .TURBO_Z_INTERNAL8(TURBO_Z_INTERNAL8), .TURBO_Z_TEXT_CPU(TURBO_Z_TEXT_CPU), .TURBO_FM_CPU(TURBO_FM_CPU), .TURBO_FM_CTC(TURBO_FM_CTC), .SUB_CAPS_OFF(SUB_CAPS_OFF), .FDC_DEFER_COMMAND(FDC_DEFER_COMMAND), .RTC_ENABLE(RTC_ENABLE), .TURBO_DMA_KANJI_EXPERIMENT(TURBO_DMA_KANJI_EXPERIMENT), .D88_ADDRESS_BITS(D88_ADDRESS_BITS), .TURBO_HD_SELECT(TURBO_HD_SELECT), .TURBO_HD_MEDIA(TURBO_HD_MEDIA), .TURBO_FDC_TIMING(TURBO_FDC_TIMING), .FDC_CLOCK_HZ(FDC_CLOCK_HZ)) machine (
         .clk_sys(clk_sys), .clk_28636(clk_28636), .reset(reset),
         .pal(1'b0), .scandouble(1'b0),
+`ifdef X1_MODEL_SELECT
+        .model_x1(model_x1),
+`else
+        .model_x1(1'b0),
+`endif
+        .turbo_dsw(8'd0),
         .ioctl_download(ioctl_download), .ioctl_index(ioctl_index),
         .ioctl_wr(ioctl_wr), .ioctl_addr(ioctl_addr), .ioctl_dout(ioctl_dout),
         .ioctl_wait(ioctl_wait),

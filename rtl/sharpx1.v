@@ -2,9 +2,13 @@
 // See docs/BASE_X1_CONTRACT.md for address-map sources and limitations.
 module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0, TURBO_DSW = 241, TURBO_DMA_RESTART_IRQ = 0, TURBO_Z_PALETTE_CPU = 0, TURBO_Z_VIDEO = 0, TURBO_Z_MULTIMODE = 0, TURBO_Z_INTERNAL8 = 0, TURBO_Z_TEXT_CPU = 0, TURBO_SIO = 0, TURBO_FM_CPU = 0, RTC_ENABLE = 0, TURBO_Z_EFFECT_CPU = 0, TURBO_DMA_KANJI_EXPERIMENT = 0, D88_ADDRESS_BITS = 20, TURBO_HD_SELECT = 0, TURBO_HD_MEDIA = 0,
     TURBO_FDC_TIMING = 0, FDC_CLOCK_HZ = 1000000, CASSETTE_ENABLE = 0, CASSETTE_RUNTIME_RATE = 0, TURBO_FM_CTC = 0, SUB_CAPS_OFF = 0,
-    TURBO_Z_KANJI = 0, TURBO_Z_EXTERNAL_FONT = 0) (
+    TURBO_Z_KANJI = 0, TURBO_Z_EXTERNAL_FONT = 0, TURBO_DSW_RUNTIME = 0) (
     input clk_sys, clk_28636, reset,
     input pal, scandouble,
+    // TURBO builds only: X1 mode (1) or Turbo (0), sampled during reset.
+    input model_x1,
+    // Raw Turbo DIP (1FF0) when TURBO_DSW_RUNTIME, else the TURBO_DSW parameter.
+    input [7:0] turbo_dsw,
     input ioctl_download,
     input [7:0] ioctl_index,
     input ioctl_wr,
@@ -136,6 +140,19 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
         assign fdc_chip_ce = 1'b0;
     end endgenerate
 
+    // Runtime model. X1 mode turns a TURBO build's Turbo-only I/O (DMA, CTC,
+    // DIP switches, SCRN/BLACK, Kanji plane, CG read tail) and Kanji display
+    // off; FM board and the interrupt chain stay. Changes apply on reset.
+    wire turbo_on;
+    generate if (TURBO) begin : runtime_model
+        reg turbo_mode = 1'b1;
+        always @(posedge clk_sys) if (core_reset) turbo_mode <= !model_x1;
+        assign turbo_on = turbo_mode;
+    end else begin : fixed_model
+        wire unused_model_x1 = model_x1;
+        assign turbo_on = 1'b0;
+    end endgenerate
+
     wire [15:0] a;
     wire [7:0] di, data_out;
     wire [15:0] cpu_a, dma_a;
@@ -204,7 +221,7 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
         if (TURBO && (TURBO_DSW < 0 || TURBO_DSW > 255))
             $error("TURBO_DSW must be an explicit raw eight-bit switch configuration");
     end
-    wire dma_cs = TURBO && TURBO_DMA && !dma_owner && io_cycle && !dam && a[15:4] == 12'h1f8;
+    wire dma_cs = turbo_on && TURBO_DMA && !dma_owner && io_cycle && !dam && a[15:4] == 12'h1f8;
     generate if (TURBO && TURBO_DMA) begin : turbo_dma
         x1_dma #(.COMPLETION_IRQ(TURBO_DMA_IRQ), .RESTART_IRQ(TURBO_DMA_RESTART_IRQ)) engine (
             .iei(dma_iei),.acknowledge(dma_ack),.reti(dma_reti),
@@ -535,7 +552,8 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
     wire dsw_selected;
     wire [7:0] dsw_data;
     x1_turbo_dsw #(.ENABLED(TURBO)) dip_switches (
-        .io_read(io_read), .dam(dam), .address(a), .switches(TURBO_DSW[7:0]),
+        .io_read(io_read && turbo_on), .dam(dam), .address(a),
+        .switches(TURBO_DSW_RUNTIME ? turbo_dsw : TURBO_DSW[7:0]),
         .selected(dsw_selected), .data(dsw_data)
     );
     wire sub_cs = io_cycle && !dam && a[15:8] == 8'h19;
@@ -545,7 +563,7 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
 
     // CTC is opt-in with the experimental Turbo profile. Bus writes are
     // edge-qualified, not repeated on every master edge of a Z80 strobe.
-    wire ctc_cs = TURBO && io_cycle && !dam && a[15:4] == 12'h1fa && !a[2];
+    wire ctc_cs = turbo_on && io_cycle && !dam && a[15:4] == 12'h1fa && !a[2];
     reg ctc_write_old, ctc_trigger_2m;
     always @(posedge clk_sys or posedge core_reset)
         if (core_reset) begin ctc_write_old <= 0; ctc_trigger_2m <= 0; end
@@ -730,7 +748,7 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
     reg [6:0] turbo_black;
     always @(posedge clk_sys or posedge core_reset)
         if (core_reset) begin turbo_scrn <= 0; turbo_black <= 0; end
-        else if (TURBO && io_write && !dam) begin
+        else if (turbo_on && io_write && !dam) begin
             if (a[15:4] == 12'h1fd) turbo_scrn <= data_out;
             if (a == 16'h1fe0) turbo_black <= data_out[6:0];
         end
@@ -739,12 +757,15 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
     (* async_reg = "true" *) reg [7:0] turbo_scrn_meta, turbo_scrn_video;
     (* async_reg = "true" *) reg [6:0] turbo_black_meta, turbo_black_video;
     (* async_reg = "true" *) reg width_meta, width_video;
+    (* async_reg = "true" *) reg turbo_on_meta, turbo_on_video;
     always @(posedge clk_28636 or posedge video_reset)
         if (video_reset) begin
             turbo_scrn_meta <= 0; turbo_scrn_video <= 0;
             turbo_black_meta <= 0; turbo_black_video <= 0;
             width_meta <= 0; width_video <= 0;
+            turbo_on_meta <= 0; turbo_on_video <= 0;
         end else begin
+            turbo_on_meta <= turbo_on; turbo_on_video <= turbo_on_meta;
             turbo_scrn_meta <= turbo_scrn; turbo_scrn_video <= turbo_scrn_meta;
             turbo_black_meta <= turbo_black; turbo_black_video <= turbo_black_meta;
             width_meta <= mode_c[6]; width_video <= width_meta;
@@ -762,7 +783,26 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
                     && ioctl_addr < (TURBO ? 25'd32768 : 25'd4096);
     wire ram_load = core_reset && ioctl_download && ioctl_wr && !ioctl_wait && ioctl_index == 2
                     && ioctl_addr < 25'd65536;
-    wire [7:0] ipl_data, ram_data;
+    wire [7:0] ipl_data, ram_data, x1_ipl_data;
+    // TURBO builds: index 3 holds a separate 4-KiB X1 IPL for X1 mode. When
+    // none was loaded, X1 mode reads the first 4 KiB of the index-0 IPL.
+    wire x1_ipl_loaded;
+    generate if (TURBO) begin : x1_ipl_slot
+        wire x1_ipl_load = ioctl_download && ioctl_wr && !ioctl_wait && ioctl_index == 3
+                           && ioctl_addr < 25'd4096;
+        reg loaded = 1'b0;
+        always @(posedge clk_sys) if (x1_ipl_load) loaded <= 1'b1;
+        assign x1_ipl_loaded = loaded;
+        dpram #(8,12) X1_IPL (
+            .clock(clk_sys), .ram_cs(1'b1), .address_a(ioctl_addr[11:0]),
+            .wren_a(x1_ipl_load), .data_a(ioctl_dout), .q_a(),
+            .ram_cs_b(1'b1), .address_b(a[11:0]), .wren_b(1'b0),
+            .data_b(8'd0), .q_b(x1_ipl_data)
+        );
+    end else begin : no_x1_ipl_slot
+        assign x1_ipl_loaded = 1'b0;
+        assign x1_ipl_data = 8'hff;
+    end endgenerate
     dpram #(8,IPL_AW) IPL (
         .clock(clk_sys), .ram_cs(1'b1), .address_a(ioctl_addr[IPL_AW-1:0]),
         .wren_a(ipl_load), .data_a(ioctl_dout), .q_a(),
@@ -850,7 +890,8 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
     // Base IPL occupies a 32 KiB read aperture, with only 4 KiB populated.
     // Writes always reach underlying RAM, including when IPL reads are enabled.
     wire rom_selected = ipl_enabled && !a[15];
-    assign di = mem_read ? (rom_selected ? (TURBO || a < 16'h1000 ? ipl_data : 8'hff)
+    assign di = mem_read ? (rom_selected ? (turbo_on ? ipl_data : a >= 16'h1000 ? 8'hff
+                                          : x1_ipl_loaded ? x1_ipl_data : ipl_data)
                                          : ram_data)
               : !m1 && !iorq ? (TURBO ? irq_vector : sub_data)
               : (sio_selected && io_read) || sio_read_tail ? sio_data
@@ -869,7 +910,7 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
               : io_read && !dam && a[15:8] == 8'h1b ? psg_data
               : (cg_access && io_read) || cg_read_tail ? cg_cpu_data
               : io_read && !dam && a[15:12] == 4'h2 ? attr_cpu
-              : io_read && !dam && TURBO && a[15:11] == 5'b00111 ? kan_cpu
+              : io_read && !dam && turbo_on && a[15:11] == 5'b00111 ? kan_cpu
               : io_read && !dam && a[15:12] == 4'h3 ? text_cpu
               : io_read && a[15:14] == 2'b01 ? grb_cpu
               : io_read && a[15:14] == 2'b10 ? grr_cpu
@@ -1000,7 +1041,7 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
     // with RD/IORQ already high on its second data-sampling edge. Retain only
     // the completed high-speed read on that inactive-bus CG-address tail.
     // Never override memory, interrupt ACK or another active I/O transaction.
-    wire cg_read_tail = TURBO && cg_read_hold && !core_reset && mreq && iorq && m1
+    wire cg_read_tail = turbo_on && cg_read_hold && !core_reset && mreq && iorq && m1
                         && a[15:10] == 6'b000101;
     wire [10:0] cg_selected_addr;
     wire [11:0] cg_selected_font_addr, cg_font_cpu_addr;
@@ -1015,8 +1056,8 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
     wire [7:0] kanji_display_data;
     wire [17:0] z_kanji_display_addr;
     wire z_kanji_display_select, z_kanji_display_valid, z_kanji_display_miss, z_kanji_display_unsupported;
-    wire text_write = io_write && !dam && a[15:12] == 4'h3 && (!TURBO || !a[11]);
-    wire kan_write = TURBO && io_write && !dam && a[15:11] == 5'b00111;
+    wire text_write = io_write && !dam && a[15:12] == 4'h3 && (!turbo_on || !a[11]);
+    wire kan_write = turbo_on && io_write && !dam && a[15:11] == 5'b00111;
     wire attr_write = io_write && !dam && a[15:12] == 4'h2;
     wire cg_access = io_cycle && !dam && a[15:10] == 6'b000101;
     wire [10:0] font_ram_address;
@@ -1230,7 +1271,7 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
         .O_TXT_WE(), .O_ATT_WE(), .O_KAN_WE(),
         .I_TXT_D(TURBO_Z_EXTERNAL_FONT ? font_text : text_vid),
         .I_ATT_D(TURBO_Z_EXTERNAL_FONT ? font_attr : attr_vid),
-        .I_KAN_D(TURBO_Z_EXTERNAL_FONT ? font_kan : (TURBO ? kan_vid : 8'd0)),
+        .I_KAN_D(!turbo_on_video ? 8'd0 : TURBO_Z_EXTERNAL_FONT ? font_kan : kan_vid),
         .O_GRB_WE(), .O_GRR_WE(), .O_GRG_WE(),
         .I_GRB_D(grb_vid), .I_GRR_D(grr_vid), .I_GRG_D(grg_vid),
         .O_CGA(cgaddr), .O_ANK16_ADDR(ank16_addr), .I_CG_D(cg_data),

@@ -1,5 +1,9 @@
 # Cassette bring-up status
 
+October 20, 2026: the base `sharpx1_cassette` revision was retired. Tape is
+in the release core (`sharpx1_turbo_z_font_single`) in both X1 and X1 Turbo
+models; see `REVISIONS.md`.
+
 ## Board revision `sharpx1_cassette` (October 18)
 
 Base X1 (two-clock: SYS 32 MHz, VID 28.571428 MHz) with the existing

@@ -1,6 +1,0 @@
-# Base X1 with the read-only cassette deck: S2 mounts an 8 kHz TAP image,
-# streamed from SD into the machine's x1_cassette_transport. The deck controller
-# extension is not embedded: load it as boot1.rom (index 0x40) or index 6.
-# Default sharpx1 revision is unchanged.
-source sharpx1.qsf
-set_global_assignment -name VERILOG_MACRO "X1_CASSETTE=1"

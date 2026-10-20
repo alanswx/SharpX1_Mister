@@ -21,6 +21,22 @@ The [DMA-build feature matrix](docs/HARDWARE_DMA_FEATURE_MATRIX_STATUS.md)
 adds exact base-video pixels before/after retained-asset warm reset and tracks
 the remaining physical and unimplemented-feature gates.
 
+## Which core to use (October 20, 2026)
+
+One release core: Quartus revision **`sharpx1_turbo_z_font_single`**.
+It is an X1 Turbo on one X3 master clock, with an OSD **Model** switch
+(X1 Turbo / X1), Z80 DMA, the YM2151 FM board and its CTC, the physical
+Kanji font, cassette TAP streaming, and D88 / raw 2D disks on two drives.
+X1 mode turns the Turbo-only hardware off and boots a separate X1 IPL (OSD
+`Load X1 IPL`, or `boot2.rom`). The OSD **Boot device** sets the Turbo
+boot switch (2D/2DD/2HD/SASI). All ROMs load from SD; none are embedded.
+
+The base two-clock `sharpx1` revision remains as a baseline, and
+`sharpx1_turbo_z_video_single` is the Turbo Z video experiment. Eleven
+bring-up revisions were retired; see [revisions](docs/REVISIONS.md),
+[model select](docs/MODEL_SELECT_STATUS.md) and
+[DMA board status](docs/DMA_BOARD_BUILD_STATUS.md).
+
 ## Current status
 
 October 16 local reset timing: [the external-font reset gate](docs/EXTERNAL_FONT_RESET_TIMING_STATUS.md)
@@ -1302,11 +1318,12 @@ repair before it is usable.
 ## FPGA project
 
 The target is MiSTer's DE10-Nano Cyclone V. The main project records Quartus
-17.0/17.0.2; `sharpx1_Q13.qpf` is a historical Quartus 13.1 project.
-With the appropriate Quartus tools installed, the main compile invocation is:
+17.0/17.0.2 (the historical Quartus 13.1 project was retired). With the
+appropriate Quartus tools installed:
 
 ```sh
-quartus_sh --flow compile sharpx1
+quartus_sh --flow compile sharpx1 -c sharpx1_turbo_z_font_single   # release core
+quartus_sh --flow compile sharpx1                                  # base baseline
 ```
 
 The installed Apple-container build is available through

@@ -1,5 +1,28 @@
 # DMA single-clock FPGA qualification revision
 
+## October 20, 2026: merged release core (model select, boot device)
+
+This revision is now the single release core (`REVISIONS.md`). It adds the
+runtime X1 / X1 Turbo model, a separate X1 IPL slot and the OSD boot-device
+DIP (`MODEL_SELECT_STATUS.md`).
+
+| Build | Seed | RBF SHA-256 | ALMs | M10K | Timing (32 reports) |
+|---|---|---|---|---|---|
+| `97p2xIJ1` | 10 | `281c6730dc1084af2d387daa6122c347ca9f3b1e55dae6c8a160c012bb964265` | 21,397 | 437 | 0 failing |
+| `4fBKgwzB` | 2 | `c03a757c…` | 21,289 | 437 | 1 failing (HDMI OSD→scaler setup, −0.074 ns, −40 °C) |
+| `pTJ67DNo` | 6 | `9c4585ed…` | 21,480 | 437 | 9 failing (DDR f2sdram→font hold, worst −0.137 ns; one HDMI hold) |
+
+The model-select build without the DIP option (`gBqaBgqX`/`BHJsjSyB`/
+`XE8qBhKY`, seeds 10/2/6) had 0 failing paths in all three. Builds took
+about 23 minutes.
+
+Hardware, MiSTer 192, seed 10 (`_Computer/X1MERGE_20261020`), Turbo mode:
+Sorcerian story (25 s), title (58 s) and menu (95 s); Zeliard, Xanadu II,
+Tetris, Gall Force, Relics, Mappy, Silver Ghost, Valis, Ys II, Dione (FM
+prompt after Return), Galaga and K01 (150 s) all show the same screens as
+the earlier rounds. The OSD shows `Model` and `Boot device`. X1-mode results
+are in `MODEL_SELECT_STATUS.md`. Audio is unverified (capture returns none).
+
 ## October 20, 2026: sub-CPU RAM in block RAM; Sorcerian FM/DMA fix
 
 **Three seeds build with 0 failing paths in all 32 timing reports. ALMs fall

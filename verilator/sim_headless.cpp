@@ -104,6 +104,9 @@ int main(int argc, char **argv) {
         uint64_t joy_events_applied = 0;
         const char *trace_path = nullptr;
         const char *rom_path = nullptr, *ram_path = nullptr, *font16_path = nullptr, *kanji_path = nullptr;
+        // Runtime model select (X1_MODEL_SELECT): X1 mode and its own IPL slot (index 3).
+        const char *x1_ipl_path = nullptr;
+        bool model_x1 = false;
         const char *rtc_controller_path = nullptr;
         const char *tape_path = nullptr, *tape_controller_path = nullptr;
         uint64_t load_address = 0x8000, entry = 0x8000, peek_address = 0xf000;
@@ -160,6 +163,8 @@ int main(int argc, char **argv) {
             else if (!std::strcmp(argv[i], "--joy-at"))
                 throw std::runtime_error("joy-at requires three arguments: MS A|B BYTE");
             else if (!std::strcmp(argv[i], "--rom") && i + 1 < argc) rom_path = argv[++i];
+            else if (!std::strcmp(argv[i], "--x1-ipl") && i + 1 < argc) x1_ipl_path = argv[++i];
+            else if (!std::strcmp(argv[i], "--model-x1")) model_x1 = true;
             else if (!std::strcmp(argv[i], "--ram") && i + 1 < argc) ram_path = argv[++i];
             else if (!std::strcmp(argv[i], "--load-address") && i + 1 < argc) load_address = number(argv[++i]);
             else if (!std::strcmp(argv[i], "--entry") && i + 1 < argc) entry = number(argv[++i]);
@@ -320,6 +325,11 @@ int main(int argc, char **argv) {
             enqueue(0, 0, {0xc3,0xf0,0xff}, 4096);
             enqueue(2, 0xfff0, boot, 65536);
         }
+#ifdef X1_MODEL_SELECT
+        if (x1_ipl_path) enqueue(3, 0, image(x1_ipl_path), 4096);
+#else
+        if (x1_ipl_path || model_x1) throw std::runtime_error("--x1-ipl/--model-x1 require an X1_MODEL_SELECT runner");
+#endif
         if (!downloads.empty())
             reset_cycles = std::max(reset_cycles,
                 ((static_cast<uint64_t>(downloads.size()) + 64) * 32000000 + sys_hz - 1) / sys_hz);
@@ -446,6 +456,9 @@ int main(int argc, char **argv) {
         top.img_mounted_b = !disk_b.empty();
         top.disk_wp_b = disk_b_output ? 0 : 1;
         top.img_size_b = disk_b.size();
+#ifdef X1_MODEL_SELECT
+        top.model_x1 = model_x1;
+#endif
 #ifdef X1_RAW_2D_MEDIA
         top.disk_raw = disk_raw2d;
         top.disk_raw_b = disk_b_raw2d;
@@ -1212,7 +1225,7 @@ int main(int argc, char **argv) {
             crtc_observation += ",\"fetch_start_ms\":" + std::to_string(fetch_start_ms)
                 + ",\"fetch_end_ms\":" + std::to_string(fetch_end_ms)
                 + ",\"fetch_window_policy\":\"whole_completed_m1_half_open\"";
-        std::printf("{\"machine\":\"sharpx1\",\"turbo_foundation\":%s,\"turbo_video_master\":%s,\"turbo_dma\":%s,\"turbo_dma_irq\":%s,\"turbo_kanji\":%s,\"turbo_fm_cpu\":%s,\"z_palette_cpu_experiment\":%s,\"z_video_experiment\":%s,\"z_multimode_experiment\":%s,\"z_internal8_experiment\":%s,\"z_text_cpu_experiment\":%s,\"intra_assignment_delays\":%s,\"sys_hz\":%llu,\"video_hz\":%llu,"
+        std::printf("{\"machine\":\"sharpx1\",\"model_x1\":%s,\"turbo_foundation\":%s,\"turbo_video_master\":%s,\"turbo_dma\":%s,\"turbo_dma_irq\":%s,\"turbo_kanji\":%s,\"turbo_fm_cpu\":%s,\"z_palette_cpu_experiment\":%s,\"z_video_experiment\":%s,\"z_multimode_experiment\":%s,\"z_internal8_experiment\":%s,\"z_text_cpu_experiment\":%s,\"intra_assignment_delays\":%s,\"sys_hz\":%llu,\"video_hz\":%llu,"
                     "\"time_ps\":%llu,\"sys_edges\":%llu,\"video_edges\":%llu,"
                     "\"reset_edges\":%llu,\"cpu_enables\":%llu,\"delayed_sys_edges\":%llu,"
                     "\"hs_edges\":%llu,\"vs_edges\":%llu,\"hs_period_ps\":%llu,\"vs_period_ps\":%llu,\"video_hash\":\"%016llx\","
@@ -1220,7 +1233,7 @@ int main(int argc, char **argv) {
                     "\"ps2_bytes_sent\":%llu,\"joystick_events_applied\":%llu,\"joystick_events_pending\":%llu,\"joya_n\":%u,\"joyb_n\":%u,\"disk_requests\":%llu,\"disk_writes\":%llu,\"frames\":%llu,\"frame_width\":%u,\"frame_height\":%u,\"frame_hash\":\"%016llx\","
                     "\"sub_pc\":%u,\"sub_address\":%u,\"sub_control\":%u,\"sub_running\":%s,\"sub_tx_busy\":%s,\"sub_rx_empty\":%s,"
                     "\"dma_grants\":%llu,\"dma_reads\":%llu,\"dma_writes\":%llu,\"cpu_fdc_data_reads\":%llu,\"cpu_fdc_data_writes\":%llu%s}\n",
-                    turbo_foundation, turbo_video_master, turbo_dma, turbo_dma_irq, turbo_kanji, turbo_fm_cpu, z_palette_cpu, z_video, z_multimode, z_internal8, z_text_cpu, VM_TIMING ? "true" : "false",
+                    model_x1 ? "true" : "false", turbo_foundation, turbo_video_master, turbo_dma, turbo_dma_irq, turbo_kanji, turbo_fm_cpu, z_palette_cpu, z_video, z_multimode, z_internal8, z_text_cpu, VM_TIMING ? "true" : "false",
                     (unsigned long long)sys_hz,
                     (unsigned long long)video_hz, (unsigned long long)context.time(), (unsigned long long)top.sys_edges,
                     (unsigned long long)top.video_edges, (unsigned long long)top.reset_edges,

@@ -1,6 +1,6 @@
 # Supplemental development reports; does not change assignments or constraints.
 # Run inside an already-built isolated source tree:
-# quartus_sta -t /path/to/quartus_timing_paths.tcl sharpx1_turbo_single
+# quartus_sta -t /path/to/quartus_timing_paths.tcl sharpx1_turbo_z_font_single
 package require ::quartus::project
 package require ::quartus::sta
 set revision [lindex $quartus(args) 0]
@@ -8,7 +8,7 @@ set analysis [lindex $quartus(args) 1]
 if {$analysis ni {{} fast-hold}} {
     error "optional analysis must be fast-hold (Fast 1100 mV / -40 C)"
 }
-if {$revision ni {sharpx1 sharpx1_single sharpx1_turbo_single sharpx1_turbo_video sharpx1_turbo_dma_single sharpx1_turbo_fm sharpx1_turbo_z_video}} {
+if {$revision ni {sharpx1 sharpx1_turbo_z_font_single sharpx1_turbo_z_video_single}} {
     error "expected a checked-in Sharp X1 project revision"
 }
 project_open sharpx1 -revision $revision
@@ -27,23 +27,6 @@ report_timing -hold -npaths 20 -detail full_path -file output_files/${revision}_
 report_timing -recovery -npaths 20 -detail full_path -file output_files/${revision}_sidecar_recovery.rpt
 report_timing -setup -to [get_registers {*cg_bus*}] -npaths 20 -detail full_path -file output_files/${revision}_sidecar_pcg.rpt
 report_timing -setup -to [get_registers {*sub_cpu*|cpu*}] -npaths 20 -detail full_path -file output_files/${revision}_sidecar_mr16.rpt
-# Independent X3 clocks are not covered by the inherited framework's PLL
-# name pattern. Keep same-clock paths visible separately from crossings;
-# these are reports only, never clock-group/false-path exceptions.
-if {$revision in {sharpx1_turbo_video sharpx1_turbo_z_video}} {
-    foreach {label pattern} {
-        video {*|turbo_video_pll|*|divclk}
-        system {*|pll|pll_inst|altera_pll_i|*|divclk}
-        hdmi {pll_hdmi|pll_hdmi_inst|altera_pll_i|*|divclk}
-    } {
-        set clocks [get_clocks $pattern]
-        if {[get_collection_size $clocks] != 1} {
-            error "expected exactly one $label clock for $revision"
-        }
-        report_timing -setup -from_clock $clocks -to_clock $clocks -npaths 20 -detail full_path -file output_files/${revision}_sidecar_${label}_same_setup.rpt
-        report_timing -recovery -from_clock $clocks -to_clock $clocks -npaths 20 -detail full_path -file output_files/${revision}_sidecar_${label}_same_recovery.rpt
-    }
-}
 }
 delete_timing_netlist
 project_close

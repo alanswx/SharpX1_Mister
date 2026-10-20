@@ -51,6 +51,30 @@ All eight digital colors and erasing retain the adjacent shared-byte pixel;
 nine cold repeats and four rejecting controls pass. These new cases remain
 reference-only. No RTL, Quartus or MiSTer change; the user still has MiSTer.
 
+## Features from the SharpX1 v260601 comparison (October 20)
+
+From the black-box survey of the closed-source core in
+[OTHER_X1_CORE_COMPARISON.md](OTHER_X1_CORE_COMPARISON.md). Their OSD offers
+these; several were never exercised there either.
+
+- [x] Raw X1 2D images (one entry per drive, chosen by extension).
+- [x] Cassette/TAP loading (streamed TAP, rewind, status).
+- [x] Joystick button definition page (CONF_STR `J`: Trigger A/B).
+- [ ] Runtime X1 / X1 Turbo model selection. Implemented (OSD `Model`, see
+  [MODEL_SELECT_STATUS.md](MODEL_SELECT_STATUS.md)); hardware sweep in X1 mode
+  open. Turbo Z is not yet a runtime model.
+- [ ] Turbo boot-switch (DIP) selection from the OSD: 2D/2DD/2HD/8-inch/SASI.
+  Today a fixed `F1` (2D) parameter.
+- [ ] DSK disk images (format to identify; likely a plain sector dump).
+- [ ] 2DD/2HD and 8-inch media on the board (wide D88 + density/rate).
+- [ ] Explicit eject entries for drives A/B and the tape.
+- [ ] Boot without SD-loaded ROMs: needs a redistributable IPL (theirs
+  embeds the original ROMs, which we cannot ship).
+- [ ] NTSC/PAL video standard option (low priority; native X1 is NTSC).
+- [ ] SASI hard disk (optional scope).
+- [ ] Debug-bus OSD option (low priority; the simulator has bus tracing).
+- Not planned: "demo tint" (no native counterpart).
+
 ## Remaining local priorities (October 16)
 
 These are broader acceptance gates; the dated bounded passes below remain

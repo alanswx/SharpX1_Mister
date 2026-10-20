@@ -1,9 +1,11 @@
 # Working on Sharp X1 for MiSTer
 
-`sharpx1_turbo_dma_single` is a separate DMA/IRQ/restart FPGA qualification
-revision; other board revisions stay disabled. Use
-`make -C verilator lint-wrapper-turbo-dma` for its interface check, not hardware
-acceptance. Record build/timing/hardware gates in `docs/DMA_BOARD_BUILD_STATUS.md`.
+The release core is the `sharpx1_turbo_z_font_single` revision; `sharpx1` (base
+two-clock X1) and `sharpx1_turbo_z_video_single` (Z video experiment) are the
+only other revisions. Do not re-add retired revisions; see `docs/REVISIONS.md`.
+Use `make -C verilator lint-wrapper-turbo-z-font-single` for its interface check,
+not hardware acceptance. Record build/timing/hardware gates in
+`docs/DMA_BOARD_BUILD_STATUS.md`.
 
 ## Scope and working tree
 
@@ -141,9 +143,9 @@ change the default model. The separate opt-in single-clock X3 master
 (`turbo-x3-single`, `sharpx1_turbo_z_font_single`) instead gives MR16 a
 32-MHz-average rate enable; see `docs/X3_SINGLE_CLOCK_STATUS.md`. Index 4 / `--font16` accepts character-major 4096-byte ANK;
 do not embed private font bytes. See `docs/TURBO_VIDEO_CLOCK_STATUS.md` for
-exact checks and missing Kanji/text/high-speed PCG behavior. The FPGA revision
-`sharpx1_turbo_video` requests its own PLL; record the fitted frequency,
-source-bound timing and hardware results separately from nominal simulation.
+exact checks and missing Kanji/text/high-speed PCG behavior. The X3 board
+revisions request their own PLL (`rtl/x1_turbo_video_pll.sv`); record the fitted
+frequency, source-bound timing and hardware results separately from simulation.
 `turbo-z-multimode` is a separate, delay-aware, non-savable experiment;
 ordinary board/runner defaults do not enable it. See
 `docs/TURBO_Z_MULTIMODE_STATUS.md`: reduced effective-pair expansion is
@@ -267,12 +269,18 @@ dual-port `x1_tdp_ram` blocks (VERILATOR model); inferred read+R/W RAM had
 been duplicated. The sub-CPU work RAM uses it with `SAME_CLOCK=1`: as a
 two-writer `dpram` Quartus built it from ~8k ALMs of registers. Before more
 seeds, check the map report for uninferred RAM (Info 276007/276009).
-`sharpx1_cassette` (base two-clock) and `sharpx1_turbo_z_font_single` have
+Runtime model (`model_x1`, OSD `Model`, sampled in reset; changing it resets):
+X1 mode gates Turbo-only I/O (DMA, CTC, DIP, SCRN/BLACK, Kanji plane/display,
+CG read tail) but keeps the FM board and the interrupt chain. Index 3 (F3 /
+boot2.rom) is a separate 4-KiB X1 IPL; without it X1 mode reads the main IPL's
+first 4 KiB. `turbo_dsw` with `TURBO_DSW_RUNTIME` is the OSD boot device.
+Use `test-model-select` and `docs/MODEL_SELECT_STATUS.md`.
+`sharpx1_turbo_z_font_single` has
 cassette: S2 TAP streamed by board-only `rtl/x1_tap_sd_stream.sv` (4-192 kHz
 via the transport's default-off RUNTIME_RATE, rewound on mount), controller
 via F6/index 6 or boot1.rom (index 0x40); before an upload the ordinary ROM
 runs. Do not embed the controller; MGL `f` items need a matching CONF_STR `F`
-entry. Use `test-tap-sd-stream`, `lint-wrapper-cassette`, the non-savable
+entry. Use `test-tap-sd-stream`, the non-savable
 `turbo-x3-single-cassette`/`base-cassette` runners (`--tape`) and
 `docs/CASSETTE_STATUS.md`.
 Simulator disk writes require `--disk-output NEW_COPY`; private originals and
@@ -420,7 +428,7 @@ quartus_sh --flow compile sharpx1
 ```
 
 Report unavailable tools and unverified synthesis or hardware behavior clearly.
-The historical Q13 project is not evidence of current build compatibility.
+The Q13 project was retired; it was never evidence of build compatibility.
 
 ## Generated files and cleanup
 

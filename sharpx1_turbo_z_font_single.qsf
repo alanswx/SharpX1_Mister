@@ -1,8 +1,12 @@
-# Single-clock X3 external-font board qualification profile. SYS and VID are
-# one X3 PLL master (fitted 42,954,545.45 Hz); Z80/PSG/FDC use fractional
-# enables and MR16 a 32-MHz-average rate enable. No native Z identity or
-# timing acceptance. The two-clock sharpx1_turbo_z_font revision is unchanged.
-source sharpx1_turbo_video.qsf
+# Release core. X1 Turbo machine on one X3 PLL master (fitted
+# 42,954,545.45 Hz) with enables; Z80/PSG/FDC use fractional enables and
+# MR16 a 32-MHz-average rate enable. Runtime X1 / X1 Turbo model (O[3]),
+# DMA, FM board + CTC, physical Kanji font, cassette, D88 and raw 2D.
+# No native Z identity or ASIC timing acceptance.
+source sharpx1.qsf
+set_global_assignment -name VERILOG_MACRO "X1_TURBO_FOUNDATION=1"
+set_global_assignment -name VERILOG_MACRO "X1_TURBO_VIDEO_MASTER=1"
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_turbo_video_pll.sv
 set_global_assignment -name VERILOG_MACRO "X1_SINGLE_CLOCK=1"
 set_global_assignment -name VERILOG_MACRO "X1_TURBO_Z_EXTERNAL_FONT=1"
 set_global_assignment -name VERILOG_MACRO "X1_SCALER_LOCAL_RESET_RELEASE=1"

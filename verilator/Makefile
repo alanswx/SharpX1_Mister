@@ -1035,8 +1035,8 @@ turbo-x3-single-fm: $(X3_FM_DIR)/Vtop
 $(X3_FM_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc $(X3_FM_TIMING) --assert --trace-fst --exe --build -j 4 --Mdir $(X3_FM_DIR) --top-module top \
 		$(TURBO_DSW_FLAGS) -GTURBO=1 -GTURBO_VIDEO_MASTER=1 -GSINGLE_CLOCK=1 -GMASTER_HZ=42954540 -GRAW_2D_MEDIA=1 \
-		-GTURBO_FM_CPU=1 -GTURBO_FM_CTC=1 -GSUB_CAPS_OFF=1 -GFDC_DEFER_COMMAND=1 $(X3_FM_DMA_RTL) +define+X1_RAW_2D_MEDIA \
-		-CFLAGS "-std=c++20 -DX1_SINGLE_CLOCK -DX1_SINGLE_MASTER_HZ=42954540 -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_RAW_2D_MEDIA -DX1_TURBO_FM_CPU $(X3_FM_DMA_CPP)" \
+		-GTURBO_FM_CPU=1 -GTURBO_FM_CTC=1 -GSUB_CAPS_OFF=1 -GFDC_DEFER_COMMAND=1 $(X3_FM_DMA_RTL) +define+X1_RAW_2D_MEDIA +define+X1_MODEL_SELECT \
+		-CFLAGS "-std=c++20 -DX1_SINGLE_CLOCK -DX1_SINGLE_MASTER_HZ=42954540 -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_RAW_2D_MEDIA -DX1_MODEL_SELECT -DX1_TURBO_FM_CPU $(X3_FM_DMA_CPP)" \
 		-MAKEFLAGS "OPT_FAST=-O3 -B" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 turbo-x3-single-fm-fast:
 	$(MAKE) turbo-x3-single-fm X3_FM_DIR=obj_dir_x3_single_fm_fast X3_FM_TIMING=--no-timing
@@ -1045,6 +1045,14 @@ turbo-x3-single-fm-dma:
 turbo-x3-single-fm-dma-fast:
 	$(MAKE) turbo-x3-single-fm X3_FM_DIR=obj_dir_x3_single_fm_dma_fast X3_FM_TIMING=--no-timing X3_FM_DMA=1
 .PHONY: turbo-x3-single-fm turbo-x3-single-fm-fast turbo-x3-single-fm-dma turbo-x3-single-fm-dma-fast
+# Runtime X1/Turbo model select (board O[3]). Real-Z80 port checks in both
+# modes, per-model IPL slots, and MODEL_DISK booting in both. The Turbo IPL
+# is a private native dump: pass MODEL_TURBO_IPL; nothing is embedded.
+MODEL_TURBO_IPL ?= ../output_files/X3_SINGLE_FONT_20261018/stage/media/native-turbo.rom
+MODEL_DISK ?= $(wildcard $(GAME_DISK))
+test-model-select: turbo-x3-single-fm-dma-fast
+	python3 tests/test_model_select.py ./obj_dir_x3_single_fm_dma_fast/Vtop ../bios/ipl_x1.hex $(MODEL_TURBO_IPL) $(MODEL_DISK)
+.PHONY: test-model-select
 # Existing real-CPU DMA IRQ fixtures on the board-parity X3 FM/FM-CTC/DMA
 # runner (CAPS released, chain FM CTC > DMA > CTC > keyboard, FM CTC idle).
 test-x3-fm-dma-irq: turbo-x3-single-fm-dma-fast
@@ -2948,41 +2956,10 @@ lint-wrapper:
 	$(V) --lint-only --timing --top-module emu -Itests ../sharpx1.sv ../sys/hps_io.sv \
 		tests/board_pll_lint.v ../rtl/x1_joystick_map.v $(MACHINE_SRC) -Wno-fatal
 
-lint-wrapper-cassette:
-	$(V) --lint-only --timing --top-module emu -DX1_CASSETTE -Itests ../sharpx1.sv ../sys/hps_io.sv \
-		tests/board_pll_lint.v ../rtl/x1_joystick_map.v ../rtl/x1_tap_sd_stream.sv $(MACHINE_SRC) -Wno-fatal
-
-.PHONY: lint-wrapper-cassette
-
 # Board TAP SD streamer with the real transport; synthetic images only.
 test-tap-sd-stream:
 	ulimit -c 0; python3 -B tests/test_tap_sd_stream.py
 .PHONY: test-tap-sd-stream
-
-lint-wrapper-turbo-video:
-	$(V) --lint-only --timing --top-module emu -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -Itests \
-		../sharpx1.sv ../sys/hps_io.sv tests/board_pll_lint.v ../rtl/x1_joystick_map.v \
-		$(MACHINE_SRC) -Wno-fatal
-
-.PHONY: lint-wrapper-turbo-video
-
-lint-wrapper-turbo-z-video:
-	$(V) --lint-only --timing --top-module emu -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_TURBO_Z_VIDEO_EXPERIMENT -Itests \
-		../sharpx1.sv ../sys/hps_io.sv tests/board_pll_lint.v ../rtl/x1_joystick_map.v $(MACHINE_SRC) -Wno-fatal
-.PHONY: lint-wrapper-turbo-z-video
-
-lint-wrapper-turbo-fm:
-	$(V) --lint-only --timing --top-module emu -DX1_TURBO_FOUNDATION -DX1_TURBO_FM_CPU -Itests \
-		../sharpx1.sv ../sys/hps_io.sv tests/board_pll_lint.v ../rtl/x1_joystick_map.v $(MACHINE_SRC) -Wno-fatal
-	$(V) --lint-only --timing --top-module emu -DX1_SINGLE_CLOCK -DX1_TURBO_FOUNDATION -DX1_TURBO_FM_CPU -Itests \
-		../sharpx1.sv ../sys/hps_io.sv tests/board_pll_lint.v ../rtl/x1_joystick_map.v $(MACHINE_SRC) -Wno-fatal
-.PHONY: lint-wrapper-turbo-fm
-
-lint-wrapper-turbo-dma:
-	$(V) --lint-only --timing --top-module emu -DX1_TURBO_FOUNDATION -DX1_SINGLE_CLOCK -DX1_TURBO_DMA_RESTART -Itests \
-		../sharpx1.sv ../sys/hps_io.sv tests/board_pll_lint.v ../rtl/x1_joystick_map.v \
-		$(MACHINE_SRC) -Wno-fatal
-.PHONY: lint-wrapper-turbo-dma
 
 clean:
 	# obj_dir is a tracked legacy GUI build artifact; preserve it.
@@ -2993,11 +2970,6 @@ clean:
 .PHONY: test-sub-timer
 .PHONY: test-game-reset test-game-reset-single
 
-# Interface check only, not Quartus/hardware acceptance.
-lint-wrapper-turbo-z-font:
-	$(V) --lint-only --timing --top-module emu -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_TURBO_Z_EXTERNAL_FONT -Itests \
-		../sharpx1.sv ../sys/hps_io.sv tests/board_pll_lint.v ../rtl/x1_joystick_map.v $(MACHINE_SRC) -Wno-fatal
-.PHONY: lint-wrapper-turbo-z-font
 lint-wrapper-turbo-z-font-single:
 	$(V) --lint-only --timing --top-module emu -DX1_SINGLE_CLOCK -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_TURBO_Z_EXTERNAL_FONT -DX1_SCALER_LOCAL_RESET_RELEASE -DX1_CASSETTE -DX1_TURBO_FM_CPU -DX1_TURBO_DMA_FONT -Itests \
 		../sharpx1.sv ../sys/hps_io.sv tests/board_pll_lint.v ../rtl/x1_joystick_map.v ../rtl/x1_tap_sd_stream.sv $(MACHINE_SRC) -Wno-fatal

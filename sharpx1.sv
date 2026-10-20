@@ -211,6 +211,12 @@ localparam CONF_STR = {
 	"O[122:121],Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
 	"F0,ROM,Load IPL;",
 `ifdef X1_TURBO_FOUNDATION
+	// Runtime model; changing it resets the machine. X1 mode boots the
+	// index-3 X1 IPL (F3 or boot2.rom) when loaded, else the main IPL's 4 KiB.
+	"O[3],Model,X1 Turbo,X1;",
+	// Turbo DIP 1FF0 boot device (MAME F1/F3/F5/FF; bit 0 interlace off).
+	"O[5:4],Boot device,2D,2DD,2HD,SASI;",
+	"F3,ROM,Load X1 IPL;",
 	"F4,X1,Load 16-row ANK;",
 `endif
 `ifdef X1_TURBO_Z_EXTERNAL_FONT
@@ -409,7 +415,15 @@ pll pll
 	.outclk_1(legacy_video_pll)  // Checked-in PLL: 28.571428 MHz; unchanged old profiles.
 );
 
-wire reset = RESET | status[0] | buttons[1] | ioctl_download | !turbo_video_locked;
+// A model change resets the machine, which samples the model during reset.
+reg model_seen = 0;
+reg [7:0] model_reset = 0;
+always @(posedge clk_sys) begin
+	model_seen <= status[3];
+	if (model_seen != status[3]) model_reset <= 8'hff;
+	else if (model_reset != 0) model_reset <= model_reset - 8'd1;
+end
+wire reset = RESET | status[0] | buttons[1] | ioctl_download | !turbo_video_locked | (model_reset != 0);
 
 //////////////////////////////////////////////////////////////////
 
@@ -473,9 +487,13 @@ localparam TURBO_Z_EXTERNAL_FONT_PROFILE = 0;
 
 // Main loads boot1.rom as index 0x40 at core start; MGL may use index 6.
 wire cassette_controller_index = CASSETTE_PROFILE && (ioctl_index == 16'd6 || ioctl_index == 16'h0040);
+// Boot device -> raw DIP: SW bits 3:1 = 000 2D, 001 2DD, 010 2HD, 111 SASI.
+wire [7:0] boot_dsw = {4'hf, status[5:4] == 2'd3 ? 3'b111 : {1'b0, status[5:4]}, 1'b1};
+// Main loads boot2.rom as index 0x80: the X1 IPL slot (index 3).
+wire x1_ipl_index = TURBO_FOUNDATION && (ioctl_index == 16'd3 || ioctl_index == 16'h0080);
 
 // Boards start with CAPS LOCK released, like MAME and real keyboards.
-sharpx1 #(.RAW_2D_MEDIA(1), .FDC_DEFER_COMMAND(1), .SUB_CAPS_OFF(1), .CASSETTE_ENABLE(CASSETTE_PROFILE), .CASSETTE_RUNTIME_RATE(CASSETTE_PROFILE), .SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ), .TURBO(TURBO_FOUNDATION), .TURBO_VIDEO_MASTER(TURBO_VIDEO_MASTER),
+sharpx1 #(.TURBO_DSW_RUNTIME(1), .RAW_2D_MEDIA(1), .FDC_DEFER_COMMAND(1), .SUB_CAPS_OFF(1), .CASSETTE_ENABLE(CASSETTE_PROFILE), .CASSETTE_RUNTIME_RATE(CASSETTE_PROFILE), .SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ), .TURBO(TURBO_FOUNDATION), .TURBO_VIDEO_MASTER(TURBO_VIDEO_MASTER),
 	.TURBO_DMA(TURBO_DMA_PROFILE), .TURBO_DMA_IRQ(TURBO_DMA_PROFILE), .TURBO_DMA_RESTART_IRQ(TURBO_DMA_PROFILE), .TURBO_FM_CPU(TURBO_FM_PROFILE), .TURBO_FM_CTC(TURBO_FM_PROFILE),
 	.TURBO_DMA_KANJI_EXPERIMENT(TURBO_DMA_PROFILE && TURBO_Z_EXTERNAL_FONT_PROFILE),
 	.TURBO_Z_PALETTE_CPU(TURBO_Z_VIDEO_PROFILE), .TURBO_Z_VIDEO(TURBO_Z_VIDEO_PROFILE),
@@ -490,12 +508,14 @@ sharpx1 #(.RAW_2D_MEDIA(1), .FDC_DEFER_COMMAND(1), .SUB_CAPS_OFF(1), .CASSETTE_E
 
 	.pal(1'b0),
 	.scandouble(forced_scandoubler),
+	.model_x1(TURBO_FOUNDATION && status[3]),
+	.turbo_dsw(boot_dsw),
 	.ce_pix(ce_pix),
 
 	.ioctl_download(ioctl_download),
-	.ioctl_index(cassette_controller_index ? 8'd6 : ioctl_index[7:0]),
+	.ioctl_index(cassette_controller_index ? 8'd6 : x1_ipl_index ? 8'd3 : ioctl_index[7:0]),
 	.ioctl_wr(ioctl_wr && ((ioctl_index == 0 && ioctl_addr < (TURBO_FOUNDATION ? 27'd32768 : 27'd4096)) || (TURBO_FOUNDATION && ioctl_index == 4) || (TURBO_Z_EXTERNAL_FONT_PROFILE && ioctl_index == 5) ||
-		(cassette_controller_index && ioctl_addr < 27'd8192))),
+		(cassette_controller_index && ioctl_addr < 27'd8192) || (x1_ipl_index && ioctl_addr < 27'd4096))),
 	.ioctl_addr((ioctl_index == 4 && ioctl_addr >= 27'd4096) ||
         (TURBO_Z_EXTERNAL_FONT_PROFILE && ioctl_index == 5 && ioctl_addr >= 27'd262144)
         ? 25'h1ffffff : ioctl_addr[24:0]),
