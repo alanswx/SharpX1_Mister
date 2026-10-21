@@ -4,7 +4,8 @@
 A generated real-Z80 ROM selects Z mode (1FB0=80), writes the 1FC0 priority
 register and reads it back, then makes the real DMA write 16 bytes to
 1FC0-1FCF (including the 1FC5 palette control) and read 1FC0 back to memory.
-The provisional policy is that Z registers decode CPU cycles only: the DMA
+1FB0 must read back (games detect the Z this way). The provisional policy
+is that Z registers decode CPU cycles only: the DMA
 write must not change 1FC0 and the DMA read must see FF, not the register or
 the CPU's retained read reply. Without the Turbo Z model, the CPU itself must
 not reach the register (the program stops at its first check).
@@ -39,6 +40,7 @@ def build():
     f.p.word(0x01, 0x1A02)
     f.p.emit(0xED, 0x78)  # clear reset/PPI-induced DAM
     f.out(0x1FB0, 0x80)
+    f.check(0x1FB0, 0x80)  # Z presence check (Kohakuiro); X1 Turbo reads FF
     f.out(0x1FC0, 0x5A)
     f.check(0x1FC0, 0x5A)  # CPU path reaches the register (Z mode only)
     for i in range(16):
@@ -69,7 +71,7 @@ def main():
         assert r["model_z"] and r["turbo_dma"] and r["z_video_experiment"], r
         assert r["halted"] and r["peek"].startswith(b"DMA!".hex()), ("Z mode", r["peek"])
         assert r["dma_grants"] == 2 and r["dma_reads"] == 32 and r["dma_writes"] == 32, r
-        print("PASS Z mode: CPU reaches 1FC0; DMA write ignored, DMA read FF (2 real grants)")
+        print("PASS Z mode: 1FB0 reads back, CPU reaches 1FC0; DMA write ignored, DMA read FF (2 real grants)")
         r = run(runner, rom)
         assert not r["model_z"] and r["halted"] and r["peek"].startswith("ee"), ("X1 Turbo", r["peek"])
         print("PASS X1 Turbo mode: CPU does not reach 1FC0")

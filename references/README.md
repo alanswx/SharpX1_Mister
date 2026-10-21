@@ -124,3 +124,35 @@ local MAME 0.283 binary headless (`x1` with the MAME `x1.zip` set; `x1turbo`
 with the matching local `ipl.x1t` and placeholder turbo font/Kanji files). It
 reproduced the Othello IPL reload loop while HuBASIC and Alien Egg controls
 booted; see `docs/COMPATIBILITY_SWEEP_20261018.md`.
+
+## October 20 CSP-audit reference retrieval
+
+For the verification of [the CSP X1 audit](../docs/CSP_X1_AUDIT.md), retrieved
+2026-10-20 into ignored `references/local/docs_20261020/` (checked with
+`git check-ignore`). Nothing was executed; PDFs were only hashed, page-counted
+with `pdfinfo` and rendered with `pdftoppm`. Which pages were actually read is
+recorded in the verified audit report, not implied by retrieval. No scan is
+committed or licensed for redistribution.
+
+| Local file | Pages | SHA-256 | Source |
+|---|---:|---|---|
+| `01 X1-Techknow Table of Contents.pdf` | 5 | `569cc146d319f191f192288e864909c0a3d90dfebd0679bcde8e88d0d99a9931` | [Sharp-X1-Fun X1-Techknow](https://github.com/UnsatisfactoryResult/Sharp-X1-Fun/tree/main/Documents/X1-Techknow) (raw.githubusercontent.com, main) |
+| `06 X1-Techknow Part 2 Chapter 1 System Overview.pdf` | 8 | `d0f996aa8c4b850891e02026f30d6598076966113194f2d03c08fecd14a53ef2` | same archive |
+| `07 X1-Techknow Part 2 Chapter 2 Memory Configuration.pdf` | 8 | `b7dff54ff55327516080f66cadb7d8d700c145af5395f438994d4db56972ba42` | same archive |
+| `08 X1-Techknow Part 2 Chapter 3 HuBASIC Structure.pdf` | 12 | `31c87bd3f08ac5cc372687cab52b116f15a27ded1dd846964f8c46512792cd63` | same archive |
+| `14 X1-Techknow Part 2 Chapter 9 Various Interfaces.pdf` | 10 | `b1ce3f264987cc9f7d5e8eac78f84f271fbad06d24d12c8ee6985850b2fc915e` | same archive |
+| `17 X1-Techknow Index.pdf` | 6 | `fe5fd6d2baa9b9b101a0c2c4a3e3dac0ab377796c989bdbee8077aed407161ff` | same archive |
+| `CZ-856C_InstructionManual.pdf` | 80 | `dae0a988dde7ebbc970a9b40a6201a679211ffadf31231233625ac1c85207e56` | [eaw.app](https://eaw.app/Downloads/Manuals/Sharp/CZ-856C_InstructionManual.pdf) |
+| `HLN014_HD46505R_CRT_Controller_Users_Manual.pdf` | 66 | `b665740ee59c71d51c01514ba882a0c11f0c3611f2baf66dbb1087586803f0ff` | [Bitsavers mirror](https://ftpmirror.your.org/pub/misc/bitsavers/components/hitachi/_dataSheets/HLN014_HD46505R_CRT_Controller_Users_Manual.pdf) |
+| `Motorola_6845.pdf` | 23 | `84ae68617c23e3b3057dce86f4a04a5be5d890d108bce8e9bb928bfdd2759dcf` | [Bitsavers mirror](https://ftpmirror.your.org/pub/misc/bitsavers/components/motorola/_dataSheets/6845.pdf) |
+| `x1center_sdx1_0_IO_map.html` | web page | `68a4a796ff39b0db39d10515ed92486d99524d15a021157739226c47512fa625` | [x1center.org "試験に出ないX1" chapter 0 I/O map, Ver.2018.7.18](http://x1center.org/sdx1/sdx1_0.html) (HTTPS failed with a TLS error; fetched over HTTP, 320,952 bytes, saved as data, not rendered with scripts) |
+
+The x1center page is Mr. Sato's schematic-referenced I/O map (its header says signal
+names follow the circuit diagrams and that undecoded-address details are incomplete).
+CSP's wait tables also credit Mr. Sato, so it is not independent of CSP on those points.
+The Techknow file sizes match the GitHub contents listing. Together with the
+chapters already in `references/manuals/` and `references/local/research_20261018/techknow/`,
+the local set now holds every file in that archive except Part 1 chapters 1-4
+(graphics theory, graphics creation, stereographics, FM music). Web searches
+for a Turbo Z ASIC register manual, an Oh!X/Oh!MZ register article and a
+CZ-8KR (0E80) port description found nothing retrievable; none is claimed.

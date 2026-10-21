@@ -290,6 +290,8 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
     wire [7:0] z_text_data;
     wire z_priority_selected,z_priority_tail;
     wire [7:0] z_priority_data;
+    wire z_mode_selected,z_mode_tail;
+    wire [7:0] z_mode_data;
     wire z_effect_selected,z_effect_tail;
     wire [7:0] z_effect_data;
     wire sio_wait_n;
@@ -416,6 +418,19 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
         end
         reg control_write_old=0;
         wire control_write=z_io_write && (a==16'h1fb0 || a==16'h1fc5);
+        // 1FB0 reads back in the Turbo Z model (Common Source/MAME return the
+        // stored byte). Kohakuiro writes 80h and reads it back to detect a Z;
+        // FF there makes it fall back to 8-colour digital graphics. Held reply
+        // as for 1FC0: TV80 can sample a completed IN after IORQ/RD rise.
+        reg mode_read_done=0;
+        reg [7:0] mode_response=0;
+        assign z_mode_selected=z_io_read && a==16'h1fb0;
+        always @(posedge clk_sys or posedge core_reset)
+            if(core_reset) begin mode_read_done<=0;mode_response<=0;end
+            else if(!mreq || !m1 || (io_cycle && !(z_mode_selected && io_read))) mode_read_done<=0;
+            else if(z_mode_selected) begin mode_read_done<=1;mode_response<=mode;end
+        assign z_mode_tail=mode_read_done && !core_reset && !dma_owner && mreq && iorq && m1 && a==16'h1fb0;
+        assign z_mode_data=z_mode_tail ? mode_response : mode;
         always @(posedge clk_sys or posedge core_reset)
             if(core_reset) begin mode<=0;control<=0;control_write_old<=0;end
             else begin
@@ -425,7 +440,11 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
                     else control<=data_out;
                 end
             end
-        wire internal_cpu=TURBO_Z_INTERNAL8 && turbo_scrn[0] && !turbo_scrn[1] && !mode_c[6];
+        // CPU ownership ignores the double-raster bit: Kohakuiro programs
+        // the eight entries with SCRN 03h, then displays with 61h/71h.
+        // Common Source likewise selects the 8-entry mapping from 400-line
+        // timing and 80 columns only (display.cpp get_zpal_num).
+        wire internal_cpu=TURBO_Z_INTERNAL8 && turbo_scrn[0] && !mode_c[6];
         wire enabled=mode==8'h80 && (control==8'h80 || control==8'h88)
                      && ((!turbo_scrn[0] && mode_c[6]) || internal_cpu);
         // Freeze store ownership at transaction acquisition, not on the
@@ -560,6 +579,7 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
         assign z_priority_selected=0;assign z_priority_tail=0;assign z_priority_data=8'hff;
         assign z_effect_selected=0;assign z_effect_tail=0;assign z_effect_data=8'hff;
         assign z_palette_selected=0;
+        assign z_mode_selected=0;assign z_mode_tail=0;assign z_mode_data=8'hff;
         assign z_palette_wait_n=1;
         assign z_palette_data=8'hff;
         assign z_palette_read_tail=0;
@@ -925,6 +945,7 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
               : dsw_selected ? dsw_data
               : (z_text_selected && io_read) || z_text_tail ? z_text_data
               : (z_priority_selected && io_read) || z_priority_tail ? z_priority_data
+              : z_mode_selected || z_mode_tail ? z_mode_data
               : (z_effect_selected && io_read) || z_effect_tail ? z_effect_data
               : (z_palette_selected && io_read) || z_palette_read_tail ? z_palette_data
               : io_read && !dam && a[15:2] == 14'h03fe ? fdc_data

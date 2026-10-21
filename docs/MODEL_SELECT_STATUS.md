@@ -104,7 +104,8 @@ The previous build-time exclusions are lifted:
 
 The Z behaviour itself is still the documented provisional implementation
 (see `TURBO_Z_VIDEO_STATUS.md` and related); capture, mosaic, chroma and
-scroll effects are not built, and no native Z software has been run.
+scroll effects are not built. The first native Z title, Kohakuiro no Yuigon,
+runs in simulation and on hardware (see below).
 
 ### Simulation
 
@@ -163,3 +164,49 @@ screenshot 40 s after load, or after the OSD model change at 15 s; tape at
 | X1 Turbo | All 12 disk titles and the K01 tape as in the previous merge build; DM05 (black at 40 s) and FM03 (Kanji prompt) match that build's screenshots exactly |
 | X1 Turbo Z | All 12 disk titles and the tape boot (Ys II, Xanadu II, Sorcerian, Tetris, Gall Force menu, Mappy, Valis, Galaga, Zero Fighter...), with ordinary digital colours. These titles do not use the Z registers; this checks that DMA disk loading and Kanji/FM coexist with Z decode on |
 | X1 | OSD shows `Model: X1`; Galaga boots through the X1 IPL, the K01 tape runs, DM01 does not boot (Turbo title), as before |
+
+### Native Z software: Kohakuiro no Yuigon (October 20)
+
+Riverhill Soft, 1988; four 2D D88 disks from the Neo Kobe X1 set (Disk 1
+sha256 `05360cb6…`), in ignored `references/local/turboz_20261020/kohaku/`.
+MAME marks it unsupported; Common Source's x1turboZ (the existing macOS
+headless build, `CSPMac_20261015T225930Z`, Neo Kobe CZ-880C ROMs) runs it and
+is the reference. CSP's I/O trace shows the game's Z use:
+
+- 1FB0=80h then an **IN 1FB0** as a Z presence check; 1FC0=01; 1FC5=80h/00h
+  around palette writes.
+- Display in 1FD0 61h/71h with 80 columns and a 400-line CRTC: the 640x400
+  eight-colour mode, whose eight entries are programmed from the 4096-colour
+  space (indices with only bits 11/7/3 significant).
+- The palette is written while 1FD0 is 03h (high scan plus bit 1), before it
+  switches to 61h for display.
+
+Two changes were needed (`rtl/sharpx1.v`):
+
+1. **1FB0 reads back** in the Turbo Z model, with the same held reply as
+   1FC0. It read FF before, so the game decided it was not on a Z, wrote
+   1FB0=00 and drew with the eight digital colours. X1 Turbo still reads FF.
+   CSP and MAME both return the stored byte.
+2. **Internal-palette CPU writes ignore 1FD0 bit 1**: high scan plus 80
+   columns is enough, as in CSP (`get_zpal_num` uses only 400-line timing
+   and width). Before, the game's writes under SCRN 03h were dropped.
+
+`test-z-dma-isolation` now also checks the 1FB0 readback (and still requires
+the X1 Turbo model to fail at its first check).
+
+Simulation, `turbo-x3-release-fast --model-z`, IPL/ANK16 from the Neo Kobe
+Z set, disks 1 and 2, 17 s: 255,952 of 256,000 pixels equal CSP's frame 1200
+(the clock scene, including its sepia palette entries such as BB5522h); the
+other 48 are 111111h vs black. Before the fix the same frame had only the
+eight digital colours (238,103 equal, every coloured pixel wrong).
+
+Build: seeds 10 and 3 (`quartus-linux-KNrWGGCg`, `-yMt1voNx`), no negative
+slack in any of the 33 timing summaries. Seed 10: 21,693 ALMs (52%); RBF
+`566ff045988b74d6447042017296cf55aefbd96c56e092cba2135eaec639c164`.
+
+Hardware (MiSTer 192, `_Computer/X1KOH_20261020/x3z.rbf`, `KOH.mgl` with
+disk copies under `games/SharpX1/HWTest/X1KOH_20261020/`), Model set to
+X1 Turbo Z through the OSD: the intro runs in full colour like CSP (the
+clock with its Kanji caption, the mansion, the doorway, and the title
+screen at about 70 s). The same RBF still boots Galaga, DM01 and FM01 in
+both X1 Turbo and X1 Turbo Z. Gameplay past the title has not been tried.

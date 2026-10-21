@@ -25,7 +25,9 @@ cold full-intensity colors, and printed 161 identifies QHA0/QHB0/QHC0 as
 internal graphics inputs. Physical PA0/4/8 correspond to logical CPU index
 bits 3/7/11 after table 4-22's permutation. Other index bits are ignored.
 
-CPU setup is explicitly `AEN=80h`, high scan, 80 columns, no double-raster,
+CPU setup is explicitly `AEN=80h`, high scan, 80 columns (1FD0 bit 1, double
+raster, is ignored for CPU ownership since October 20: Kohakuiro programs
+the entries under SCRN 03h; see `MODEL_SELECT_STATUS.md`),
 and `APEN/APRD=80h/88h` normal write/selector/read sequences. Store ownership
 is captured at transaction acquisition. Existing blank-window ownership and
 one-edge RAM responses are reused; upper read bits remain provisional. CPU

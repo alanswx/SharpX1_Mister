@@ -66,7 +66,10 @@ these; several were never exercised there either.
 - [x] X1 Turbo Z as a third runtime model (October 20): the Z video set is
   in the release core; Z registers decode only in that model and only for
   CPU cycles (not DMA). Generated Z full-colour and paired-text frames match
-  the simulator on 192. No native Z software has been run (none available).
+  the simulator on 192. Native: Kohakuiro no Yuigon's full-colour intro
+  matches Common Source in simulation and runs on 192 after adding 1FB0
+  readback (its Z check); see MODEL_SELECT_STATUS.md. Turbo-Z BASIC
+  (CZ-8FB03) and Graphic Tool are 2HD and wait for 2HD media.
 - [x] Turbo boot-switch selection from the OSD (`Boot device`: 2D/2DD/2HD/
   SASI -> DIP F1/F3/F5/FF). 8-inch types are not offered; 2HD and SASI media
   do not exist yet, so those settings only change what the IPL looks for.
@@ -84,6 +87,34 @@ these; several were never exercised there either.
 - [ ] SASI hard disk (optional scope).
 - [ ] Debug-bus OSD option (low priority; the simulator has bus tracing).
 - Not planned: "demo tint" (no native counterpart).
+
+## Common Source audit follow-ups (October 20)
+
+From [CSP_X1_AUDIT.md](CSP_X1_AUDIT.md), a source comparison with Common
+Source's X1/Turbo/Z, re-ranked against a second source in
+[CSP_X1_AUDIT_VERIFIED.md](CSP_X1_AUDIT_VERIFIED.md) ("A" = confirmed missing). Items
+already listed elsewhere here (2HD, FDC track commands, SIO/mouse, RTC, I/O
+wait states) are not repeated.
+
+- [ ] Kanji ROM ports 0E80-0E82 (reads now FF). Techknow lists them as the
+  X1's external CZ-8KR board; Turbo Kanji uses 14xx, which we have.
+- [ ] Release core holds reset until a Kanji font is loaded, in every model;
+  run with blank Kanji instead.
+- [ ] Kanji display only in high scan / 25 rows / 16 rasters / level 1.
+- [ ] Z palette CPU writes in 640x200/64 and 64x2 (1FB0=90h) modes; the
+  index mapping in reduced modes is itself unresolved (audit C).
+- [ ] Z analog video falls back to digital for 1FE0!=0, 1FD0 bit 2/7.
+- [ ] Remaining Z register readback (1FC1-1FC5, 1FD0, 1FE0); 1FB0 is done.
+- [ ] Sub-CPU game-key command E3 (returns zeros).
+- [ ] Turbo bank memory at 0B00 (real boards 2 x 32 KiB; CZ-8FB03 uses it).
+- [ ] DMA refuses WR1/WR2 timing bytes and some interrupt/search setups
+  (CSP and MAME both honour the timing bytes).
+- [ ] Z model has a CTC at 0704-0707; Techknow App. A says the Z has only an
+  FM-detect latch there (x1center agrees).
+- [ ] Power-on digital palette is AA/CC/F0 (Techknow p156); we clear it to 00.
+- [ ] `sharpx1.sv` DIP bit 0 comment says interlace; Techknow p283 says it is
+  the HIGH/STANDARD monitor switch.
+- [ ] X1 mode M1 wait while the IPL is mapped.
 
 ## Remaining local priorities (October 16)
 
