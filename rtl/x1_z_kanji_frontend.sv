@@ -13,7 +13,10 @@
 // Backend write responses mean command acceptance, NOT physical persistence.
 `timescale 1ns/1ps
 module x1_z_kanji_frontend #(
-    parameter logic [28:0] BASE_WORD_ADDRESS=29'h06000000
+    parameter logic [28:0] BASE_WORD_ADDRESS=29'h06000000,
+    // Answer reads with blank 00 glyph bytes while no font has been
+    // committed, without a backend command (CSP/MAME run with blank Kanji).
+    parameter bit BLANK_WHEN_UNLOADED=0
 ) (
     input wire clk, cold_reset, consumer_cancel,
     input wire cpu_read,
@@ -126,6 +129,9 @@ module x1_z_kanji_frontend #(
                 end else if(cpu_read && cpu_armed && loaded && !upload_active && !cancel_cpu) begin
                     cpu_armed<=0; owner_write<=0; discard<=0;
                     address_latched<=cpu_address; data_latched<=0; state<=SEND;
+                end else if(BLANK_WHEN_UNLOADED && cpu_read && cpu_armed && !loaded &&
+                            !upload_active && !cancel_cpu) begin
+                    cpu_armed<=0; cpu_result<=0; state<=CPU_HELD;
                 end
                 if(upload_active && !ioctl_download) begin
                     upload_active<=0;

@@ -1073,6 +1073,9 @@ test-machine-z-release: turbo-x3-release
 	    for sc in 0 1; do $$t --model-z --mode dual64 --screen $$sc $$pa $$ra --output $$root/dual64-$$sc-$$p-$$r; done; \
 	    $$t --model-z --mode internal8 $$pa $$ra --output $$root/i8-$$p-$$r; \
 	  done; done; \
+	  for m in wide64 tall64; do for r in cold warm; do ra=; [ $$r != warm ] || ra=--warm; \
+	    $$t --model-z --mode $$m --custom --reduced-cpu $$ra --output $$root/$$m-reduced-cpu-$$r; \
+	  done; done; \
 	  for pr in 0x10 0x18 0x11 0x19 0x12 0x1a; do for r in cold warm; do ra=; [ $$r != warm ] || ra=--warm; \
 	    $$t --model-z --mode paired64 --priority $$pr --screen 1 --custom --text $$ra --output $$root/pt-$$pr-$$r; \
 	  done; done; \

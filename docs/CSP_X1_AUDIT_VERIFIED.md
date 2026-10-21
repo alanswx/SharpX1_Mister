@@ -11,6 +11,10 @@ nothing was built or run, and the CSP binary was not executed. Four parallel
 sub-reviews did the per-item checks; their page and line citations are carried over
 here. Doc pages are the printed page numbers unless "PDF" is stated.
 
+Follow-up, October 21: A2 is done (the core runs with blank Kanji when no
+font is loaded) and A4 is done for 640x200/64 and 320x400/64; 64x2 (90h)
+writes are still refused. See `MODEL_SELECT_STATUS.md`.
+
 Ranks:
 - **A**: missing in ours, confirmed by a document or a second implementation.
 - **A?**: likely missing, but only CSP (or a non-independent source) supports it.

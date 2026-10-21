@@ -32,7 +32,7 @@ module z_font_completion_tb;
     string font_path,ipl_path,output_path;
     sharpx1 #(.TURBO(1),.TURBO_VIDEO_MASTER(1),.TURBO_KANJI(1),
         .TURBO_KANJI_RENDER(1),.TURBO_Z_KANJI(1),.TURBO_Z_EXTERNAL_FONT(1)) dut (
-        .clk_sys(clk),.clk_28636(vclk),.reset(reset),.pal(1'b0),.scandouble(1'b0),
+        .clk_sys(clk),.clk_28636(vclk),.reset(reset),.model_x1(1'b0),.model_z(1'b0),.turbo_dsw(8'd0),.pal(1'b0),.scandouble(1'b0),
         .ioctl_download(download),.ioctl_index(index),.ioctl_wr(wr),
         .ioctl_addr(address),.ioctl_dout(data),.ioctl_wait(upload_wait),
         .DDRAM_CLK(), .DDRAM_BUSY(ddr_busy), .DDRAM_BURSTCNT(ddr_burst),

@@ -210,3 +210,32 @@ X1 Turbo Z through the OSD: the intro runs in full colour like CSP (the
 clock with its Kanji caption, the mansion, the doorway, and the title
 screen at about 70 s). The same RBF still boots Galaga, DM01 and FM01 in
 both X1 Turbo and X1 Turbo Z. Gameplay past the title has not been tried.
+
+### No-font boot and reduced-mode palette writes (October 21)
+
+From the verified CSP audit (A2, A4):
+
+- The release core no longer holds reset until a Kanji font is uploaded. The
+  font service answers blank glyphs without a font (CPU Kanji reads still
+  return FF); a rejected upload still holds reset
+  ([font service](TURBO_Z_FONT_SERVICE_STATUS.md#no-font-boot-october-21)).
+- Z palette CPU writes are accepted in 640x200/64 and 320x400/64, stored at
+  the replicated entry the display reads
+  ([multimode](TURBO_Z_MULTIMODE_STATUS.md)); 64x2 (90h) is still refused.
+
+Build: seed 10 RBF `aa3c2332…` (see
+[DMA_BOARD_BUILD_STATUS.md](DMA_BOARD_BUILD_STATUS.md)). Hardware, MiSTer 192,
+`_Computer/X1KZ_20261021/` with the same IPL/ANK16/disk copies as October 20;
+`*NF.mgl` omit the index-5 font. The OSD Model is stored per MGL `setname`,
+so it was set and checked on screen for each run.
+
+- X1 Turbo, no font: Galaga reaches its title and attract mode at 45 s.
+  Before this change the core stayed in reset.
+- X1 Turbo Z, no font: Kohakuiro runs in full colour (mansion at 40 s, title
+  at 75 s). Its captions are drawn by the game, not the Kanji ROM.
+- X1 Turbo Z, with font: Kohakuiro the same (mansion, title).
+- X1 Turbo, with font: DM01, FM01 and Galaga boot to their titles. Kohakuiro
+  in X1 Turbo draws its eight-colour fallback, as expected.
+
+No native software using the reduced 64-colour modes has been run; that path
+is covered only by the simulation cases.

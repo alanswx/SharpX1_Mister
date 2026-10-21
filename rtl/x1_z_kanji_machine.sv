@@ -54,7 +54,9 @@ module x1_z_kanji_machine (
     reg [31:0] journal[0:2047];
     reg [31:0] journal_read;
     initial for(integer i=0;i<2048;i++) journal[i]=0;
-    wire pause_request=reset_request || ioctl_download || !loaded;
+    // No font yet: run, and the frontend answers blank glyphs (CSP and MAME
+    // show blank Kanji). A rejected upload still holds the machine.
+    wire pause_request=reset_request || ioctl_download || load_error;
     wire running=state==RUN && !pause_request;
     wire writer_idle, writer_wait;
     // Stop CPU enables immediately; retain its strobes until an owned write
@@ -124,7 +126,7 @@ module x1_z_kanji_machine (
     );
     x1_z_kanji_arbiter arbiter (
         .clk(clk_sys), .cpu_enabled(running),
-        .cache_enabled(loaded && state!=ARBITER && state!=PAUSED), .cpu_cancel(!running),
+        .cache_enabled(!load_error && state!=ARBITER && state!=PAUSED), .cpu_cancel(!running),
         .cpu_read(pcg_read), .cpu_address(pcg_address), .cpu_wait(), .cpu_valid(pcg_valid),
         .cpu_data(pcg_data), .cpu_response_ack(pcg_ack),
         .cache_read(cache_read), .cache_address(cache_address), .cache_valid(cache_valid),
@@ -135,7 +137,7 @@ module x1_z_kanji_machine (
     wire frontend_wait, upload_active;
     // 0x30000000..0x3003ffff: private experimental core backing region.
     // Framework scaler starts at 0x20000000; framebuffer feature is disabled.
-    x1_z_kanji_frontend frontend (
+    x1_z_kanji_frontend #(.BLANK_WHEN_UNLOADED(1)) frontend (
         .clk(clk_sys), .cold_reset(1'b0), .consumer_cancel(state==ARBITER && arbiter_idle),
         .cpu_read(font_read), .cpu_address(font_address), .cpu_wait(),
         .cpu_valid(font_valid), .cpu_data(font_data), .cpu_response_ack(font_ack),
@@ -170,7 +172,7 @@ module x1_z_kanji_machine (
             DRAIN: if(writer_idle) state<=INVALIDATE;
             INVALIDATE: if(invalidate_done) state<=ARBITER;
             ARBITER: if(arbiter_idle) state<=PAUSED;
-            PAUSED: if(!reset_request && !ioctl_download && !upload_active && loaded) begin
+            PAUSED: if(!reset_request && !ioctl_download && !upload_active && !load_error) begin
                 rebuild_cell<=0;state<=REBUILD_LOAD;
             end
             REBUILD_LOAD: state<=pause_request ? DRAIN : REBUILD_OFFER;

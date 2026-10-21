@@ -42,7 +42,7 @@ def font8_bytes():
         r"11'h([0-9A-Fa-f]+):cg8_rom = 8'b([01]{8})", source.read_text())}
 
 
-def fixture(custom=False, mode="full", screen=0, priority=0x10, text=False, reverse=False):
+def fixture(custom=False, mode="full", screen=0, priority=0x10, text=False, reverse=False, reduced_cpu=False):
     p = Program(0x8000)
     p.emit(0xF3)
     p.word(0x31, 0xFFFF)
@@ -101,7 +101,26 @@ def fixture(custom=False, mode="full", screen=0, priority=0x10, text=False, reve
                         p.label(label)
                         p.emit(0xED, 0x79, 0x03, 0x15)
                         p.jump(0xC2, label)
-    if custom and mode != "internal8":
+    if reduced_cpu:
+        # Program from inside the reduced mode (Common Source masks the CPU
+        # index to CCCh): only the top two bits of each nibble select the
+        # entry; the low two bits vary and must be ignored. Everything else
+        # stays cold identity, so a refused or unreplicated write shows.
+        if mode == "wide64":
+            out(0x1A02, 0)
+        out(0x1FD0, 1 if mode == "tall64" else 0)
+        out(0x1FB0, 0x80)
+        out(0x1FC5, 0x80)
+        rep = lambda v: v << 2 | v
+        for g in range(4):
+            for r in range(4):
+                for b in range(4):
+                    junk = (g + 2 * r + 3 * b) & 3
+                    G, R, B = rep(g), rep(r), rep(b)
+                    low = (g << 6 | (junk ^ 1) << 4 | r << 2 | junk)
+                    for base, value in ((0x1000, G ^ R ^ B ^ 3), (0x1100, G ^ B ^ 9), (0x1200, R ^ B ^ 5)):
+                        out(base | low, (b << 6 | ((junk + 1) & 3) << 4) | value)
+    elif custom and mode != "internal8":
         out(0x1FD0, 0)
         out(0x1FB0, 0x80)
         out(0x1FC5, 0x80)
@@ -308,6 +327,8 @@ def main():
     parser.add_argument("--output", type=pathlib.Path, required=True)
     parser.add_argument("--warm", action="store_true")
     parser.add_argument("--custom", action="store_true")
+    parser.add_argument("--reduced-cpu", action="store_true",
+                        help="program the custom palette from inside wide64/tall64")
     parser.add_argument("--mode", choices=("full", "dual64", "paired64", "wide64", "tall64", "internal8"), default="full")
     parser.add_argument("--priority", type=lambda value: int(value, 0), default=0x10)
     parser.add_argument("--text", action="store_true")
@@ -331,7 +352,8 @@ def main():
     assert not args.reverse or args.text
     assert 0 <= args.priority <= 255
     assert not (args.text and args.mode == "dual64" and args.priority & 0x10), "single-screen fixture requires simultaneous-display disabled"
-    code.write_bytes(fixture(args.custom, args.mode, args.screen, args.priority, args.text, args.reverse))
+    assert not args.reduced_cpu or (args.custom and args.mode in ("wide64", "tall64") and not args.text)
+    code.write_bytes(fixture(args.custom, args.mode, args.screen, args.priority, args.text, args.reverse, args.reduced_cpu))
     frame = args.output / "actual.ppm"
     # Full palette programming adds actual CPU/ownership cycles. Leave enough
     # time to finish cold initialization BEFORE a retained warm reset.

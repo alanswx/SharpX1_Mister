@@ -34,7 +34,7 @@ module z_external_font_machine_tb #(parameter bit CORRUPT_READ=0, parameter bit 
     sharpx1 #(.SINGLE_CLOCK(SINGLE_X3),.MASTER_HZ(SINGLE_X3 ? 42954540 : 28636364),
         .TURBO(1),.TURBO_VIDEO_MASTER(1),.TURBO_KANJI(1),
         .TURBO_KANJI_RENDER(1),.TURBO_Z_KANJI(1),.TURBO_Z_EXTERNAL_FONT(1)) dut (
-        .clk_sys(clk),.clk_28636(vclk),.reset(reset),.pal(1'b0),.scandouble(1'b0),
+        .clk_sys(clk),.clk_28636(vclk),.reset(reset),.model_x1(1'b0),.model_z(1'b0),.turbo_dsw(8'd0),.pal(1'b0),.scandouble(1'b0),
         .ioctl_download(download),.ioctl_index(index),.ioctl_wr(wr),
         .ioctl_addr(address),.ioctl_dout(data),.ioctl_wait(upload_wait),
         .DDRAM_CLK(), .DDRAM_BUSY(ddr_busy), .DDRAM_BURSTCNT(ddr_burst),
@@ -159,10 +159,13 @@ module z_external_font_machine_tb #(parameter bit CORRUPT_READ=0, parameter bit 
         assert(trace_fd!=0) else $fatal(1,"Z_EXTERNAL_TRACE_OPEN");
         $fdisplay(trace_fd,"cycle,event,address,select,data");
         repeat(32) tick();
-        // Missing font is a deliberate held-reset boot policy, not random DDR.
-        @(negedge clk);reset=0;repeat(256) tick();
-        assert(dut.core_reset && !dut.cpu_ce && ddr_reads==0 && ddr_writes==0)
-            else $fatal(1,"Z_EXTERNAL_MISSING_FONT");
+        // Missing font runs with blank glyphs answered without DDR (CSP/MAME
+        // blank Kanji); the empty IPL executes NOPs only.
+        @(negedge clk);reset=0;
+        for(integer i=0;i<65536 && dut.core_reset;i++) tick();
+        repeat(256) tick();
+        assert(!dut.core_reset && !dut.kanji_loaded && !dut.kanji_load_error &&
+            ddr_reads==0 && ddr_writes==0) else $fatal(1,"Z_EXTERNAL_MISSING_FONT");
         @(negedge clk);reset=1;
         for(integer a=0;a<32768;a++) put_byte(0,a,ipl[a]);
         finish_upload();

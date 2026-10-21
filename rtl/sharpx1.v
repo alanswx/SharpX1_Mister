@@ -445,16 +445,23 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
         // Common Source likewise selects the 8-entry mapping from 400-line
         // timing and 80 columns only (display.cpp get_zpal_num).
         wire internal_cpu=TURBO_Z_INTERNAL8 && turbo_scrn[0] && !mode_c[6];
+        // 640x200/64 and 320x400/64 keep two bits per component (Techknow
+        // p161 uses the external palette in every mode but 640x400). Common
+        // Source masks the CPU index to CCCh there; store at the replicated
+        // entry ({0,5,A,F} per nibble) that the reduced display reads.
+        wire reduced_cpu=TURBO_Z_MULTIMODE && (turbo_scrn[0] ? mode_c[6] : !mode_c[6]);
         wire enabled=mode==8'h80 && (control==8'h80 || control==8'h88)
-                     && ((!turbo_scrn[0] && mode_c[6]) || internal_cpu);
+                     && ((!turbo_scrn[0] && mode_c[6]) || internal_cpu || reduced_cpu);
         // Freeze store ownership at transaction acquisition, not on the
         // later RAM edge. Data/selector remain frozen by the bus adapter.
-        reg selected_old=0, internal_owned=0;
+        reg selected_old=0, internal_owned=0, reduced_owned=0;
         always @(posedge clk_sys or posedge core_reset)
-            if(core_reset) begin selected_old<=0;internal_owned<=0;end
+            if(core_reset) begin selected_old<=0;internal_owned<=0;reduced_owned<=0;end
             else begin
                 selected_old<=z_palette_selected;
-                if(z_palette_selected && !selected_old) internal_owned<=internal_cpu;
+                if(z_palette_selected && !selected_old) begin
+                    internal_owned<=internal_cpu;reduced_owned<=reduced_cpu;
+                end
             end
         wire ram_access,ram_write,ram_valid,read_valid;
         wire read_hold;
@@ -551,7 +558,9 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
         assign z_palette_rgb12=internal_display_valid ? internal_rgb : external_rgb;
         x1_z_palette_ram store(
             .cpu_clk(clk_sys),.video_clk(clk_28636),.cpu_reset(core_reset),.video_reset(video_reset),
-            .cpu_access(ram_access && !internal_owned),.cpu_write(ram_write),.cpu_address(ram_address),
+            .cpu_access(ram_access && !internal_owned),.cpu_write(ram_write),
+            .cpu_address(reduced_owned ? {ram_address[11:10],ram_address[11:10],ram_address[7:6],
+                ram_address[7:6],ram_address[3:2],ram_address[3:2]} : ram_address),
             .cpu_component(ram_component),.cpu_nibble(ram_nibble),
             .cpu_data(external_data),.cpu_valid(external_valid),
             .display_read(display_read && !z_graphics_internal),

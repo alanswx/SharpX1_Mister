@@ -33,6 +33,19 @@ the font is ready. An idle indication alone does not prevent a pending request
 being admitted next edge; first disable both clients at the correct lifecycle
 boundary.
 
+## No-font boot (October 21)
+
+The machine coordinator (`x1_z_kanji_machine.sv`) no longer pauses while no
+font has been committed. It pauses for reset, any host download, or a
+rejected upload (`load_error`). With `BLANK_WHEN_UNLOADED=1` (machine only;
+the standalone default stays 0) the frontend answers unloaded reads with 00
+directly, with no backend command, so text/ANK/PCG display and
+blank Kanji work without a font, as in Common Source and MAME. CPU 14xx Kanji
+reads still terminate with FF through `x1_pcg_access` (`kanji_available`).
+A later font upload still pauses, invalidates and rebuilds from the journal.
+`test-machine-z-external-font` now requires the CPU to leave reset without a
+font, with zero DDR reads/writes, before its original upload sequence.
+
 ## Pause, reset and upload contract
 
 The coordinator holds consumers and disables new CPU/cache-update admission

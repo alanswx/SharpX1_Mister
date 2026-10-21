@@ -98,11 +98,17 @@ wait states) are not repeated.
 
 - [ ] Kanji ROM ports 0E80-0E82 (reads now FF). Techknow lists them as the
   X1's external CZ-8KR board; Turbo Kanji uses 14xx, which we have.
-- [ ] Release core holds reset until a Kanji font is loaded, in every model;
-  run with blank Kanji instead.
+- [x] Release core held reset until a Kanji font was loaded, in every model.
+  October 21: with no font it now runs and the font service answers blank
+  (00) glyphs without DDR reads; CPU Kanji reads still return FF. A rejected
+  upload still holds reset ([font service](TURBO_Z_FONT_SERVICE_STATUS.md)).
 - [ ] Kanji display only in high scan / 25 rows / 16 rasters / level 1.
-- [ ] Z palette CPU writes in 640x200/64 and 64x2 (1FB0=90h) modes; the
-  index mapping in reduced modes is itself unresolved (audit C).
+- [x] Z palette CPU writes in 640x200/64 and 320x400/64 (October 21; CCCh
+  mask replicated to the entries the display reads, see
+  [multimode](TURBO_Z_MULTIMODE_STATUS.md)).
+- [ ] Z palette CPU writes in 64x2 (1FB0=90h). CSP keeps a second 64-entry
+  set selected by 1FC0 bit 4 (index >> 2); our display shares one set, so
+  writes stay refused there until the display side is reconciled.
 - [ ] Z analog video falls back to digital for 1FE0!=0, 1FD0 bit 2/7.
 - [ ] Remaining Z register readback (1FC1-1FC5, 1FD0, 1FE0); 1FB0 is done.
 - [ ] Sub-CPU game-key command E3 (returns zeros).

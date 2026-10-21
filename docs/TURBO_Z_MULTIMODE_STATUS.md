@@ -26,7 +26,16 @@ python3 tests/test_machine_z_video.py ./obj_dir_v13_z_multimode/Vtop \
 
 Unsupported controls fall back to digital video; this is not a general native
 ASIC register decoder. Expansion/underline/blackclip remain excluded.
-Palette programming currently uses the qualified full/40-column CPU sequence
+October 21: CPU palette reads/writes are also accepted while 640x200/64
+(80 columns, low scan) or 320x400/64 (40 columns, SCRN bit 0) is selected.
+Common Source masks the CPU index to `CCCh` in those modes; here only the top
+two bits of each logical nibble select the entry, which is stored and read at
+the replicated index (`{b3,b2,b3,b2}`, i.e. 0/5/A/F) that the reduced display
+reads. `--reduced-cpu` programs the custom palette from inside the mode with
+varying low bits; wide64/tall64 cold and retained-reset cases pass in
+`test-machine-z-release`; refusing the writes or dropping the replication
+fails them. C64 (`90h`) writes remain refused (second set unresolved).
+Earlier text: palette programming used the qualified full/40-column CPU sequence
 before switching display modes. **Reduced-mode CPU bank/read/write behavior
 is not implemented or qualified** by that procedure.
 

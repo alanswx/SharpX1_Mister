@@ -1,5 +1,14 @@
 # DMA single-clock FPGA qualification revision
 
+## October 21, 2026: no-font boot and reduced-mode Z palette writes
+
+Seeds 10 and 3 (`quartus-linux-JHSjBPZL`, `-aRtnwstg`), about 25 minutes,
+no negative slack in any of the 33 timing summaries. Seed 10: 21,703 ALMs
+(52%), RBF `aa3c2332749372b99832d5ad2dba6f65b6a059b7834cb495fe6d1759242dfba9`;
+seed 3: 21,727 ALMs, RBF `b888f127…`. Hardware results are in
+[MODEL_SELECT_STATUS.md](MODEL_SELECT_STATUS.md#no-font-boot-and-reduced-mode-palette-writes-october-21).
+The seed-10 RBF is checked in as `releases/SharpX1_20261021.rbf`.
+
 ## October 20, 2026: Turbo Z merged (X1 Turbo Z model)
 
 The release core now carries the Turbo Z video set behind a third OSD model,

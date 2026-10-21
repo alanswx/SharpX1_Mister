@@ -149,8 +149,9 @@ frequency, source-bound timing and hardware results separately from simulation.
 `turbo-z-multimode` is a separate, delay-aware, non-savable experiment;
 ordinary board/runner defaults do not enable it. See
 `docs/TURBO_Z_MULTIMODE_STATUS.md`: reduced effective-pair expansion is
-provisional, not reconciled native ASIC behavior. CPU palette programming
-in its fixtures uses full/40-column mode before switching. Do not claim
+provisional, not reconciled native ASIC behavior. CPU palette writes in
+640x200/64 and 320x400/64 store at the replicated (CCCh-masked) entry the
+display reads (`--reduced-cpu`); C64 (90h) writes stay refused. Do not claim
 reduced CPU bank controls or simultaneous two-screen composition from a
 selected-screen pixel pass. `test-machine-z-multimode` freezes the executable,
 oracle and emitter for its sixteen cases. `x1_cdc_snapshot.sv` now belongs
