@@ -219,8 +219,11 @@ localparam CONF_STR = {
 `else
 	"O[7:6],Model,X1 Turbo,X1;",
 `endif
-	// Turbo DIP 1FF0 boot device (MAME F1/F3/F5/FF; bit 0 interlace off).
+	// Turbo DIP 1FF0 boot device (MAME F1/F3/F5/FF). Bit 0 is the monitor
+	// type (CSP `monitor_type`): 0 = high-resolution 24 kHz, read by the IPL
+	// and Turbo BASIC at start, so changing it needs a reset.
 	"O[5:4],Boot device,2D,2DD,2HD,SASI;",
+	"O[8],Monitor,Standard,High-res;",
 	"F3,ROM,Load X1 IPL;",
 	"F4,X1,Load 16-row ANK;",
 `endif
@@ -492,10 +495,13 @@ localparam TURBO_Z_EXTERNAL_FONT_PROFILE = 0;
 
 // Main loads boot1.rom as index 0x40 at core start; MGL may use index 6.
 wire cassette_controller_index = CASSETTE_PROFILE && (ioctl_index == 16'd6 || ioctl_index == 16'h0040);
-// Boot device -> raw DIP: SW bits 3:1 = 000 2D, 001 2DD, 010 2HD, 111 SASI.
-wire [7:0] boot_dsw = {4'hf, status[5:4] == 2'd3 ? 3'b111 : {1'b0, status[5:4]}, 1'b1};
+// Boot device -> raw DIP: SW bits 3:1 = 000 2D, 001 2DD, 010 2HD, 111 SASI;
+// bit 0 = 1 standard, 0 high-resolution monitor.
+wire [7:0] boot_dsw = {4'hf, status[5:4] == 2'd3 ? 3'b111 : {1'b0, status[5:4]}, ~status[8]};
 // Main loads boot2.rom as index 0x80: the X1 IPL slot (index 3).
 wire x1_ipl_index = TURBO_FOUNDATION && (ioctl_index == 16'd3 || ioctl_index == 16'h0080);
+// Main loads boot3.rom as index 0xC0: the physical Kanji font slot (index 5).
+wire kanji_font_index = TURBO_Z_EXTERNAL_FONT_PROFILE && (ioctl_index == 16'd5 || ioctl_index == 16'h00c0);
 
 // Boards start with CAPS LOCK released, like MAME and real keyboards.
 sharpx1 #(.TURBO_DSW_RUNTIME(1), .TURBO_Z_RUNTIME(TURBO_Z_VIDEO_PROFILE), .RAW_2D_MEDIA(1), .FDC_DEFER_COMMAND(1), .SUB_CAPS_OFF(1), .SUB_JOY_OFF(1), .CASSETTE_ENABLE(CASSETTE_PROFILE), .CASSETTE_RUNTIME_RATE(CASSETTE_PROFILE), .SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ), .TURBO(TURBO_FOUNDATION), .TURBO_VIDEO_MASTER(TURBO_VIDEO_MASTER),
@@ -519,11 +525,11 @@ sharpx1 #(.TURBO_DSW_RUNTIME(1), .TURBO_Z_RUNTIME(TURBO_Z_VIDEO_PROFILE), .RAW_2
 	.ce_pix(ce_pix),
 
 	.ioctl_download(ioctl_download),
-	.ioctl_index(cassette_controller_index ? 8'd6 : x1_ipl_index ? 8'd3 : ioctl_index[7:0]),
-	.ioctl_wr(ioctl_wr && ((ioctl_index == 0 && ioctl_addr < (TURBO_FOUNDATION ? 27'd32768 : 27'd4096)) || (TURBO_FOUNDATION && ioctl_index == 4) || (TURBO_Z_EXTERNAL_FONT_PROFILE && ioctl_index == 5) ||
+	.ioctl_index(cassette_controller_index ? 8'd6 : x1_ipl_index ? 8'd3 : kanji_font_index ? 8'd5 : ioctl_index[7:0]),
+	.ioctl_wr(ioctl_wr && ((ioctl_index == 0 && ioctl_addr < (TURBO_FOUNDATION ? 27'd32768 : 27'd4096)) || (TURBO_FOUNDATION && ioctl_index == 4) || kanji_font_index ||
 		(cassette_controller_index && ioctl_addr < 27'd8192) || (x1_ipl_index && ioctl_addr < 27'd4096))),
 	.ioctl_addr((ioctl_index == 4 && ioctl_addr >= 27'd4096) ||
-        (TURBO_Z_EXTERNAL_FONT_PROFILE && ioctl_index == 5 && ioctl_addr >= 27'd262144)
+        (kanji_font_index && ioctl_addr >= 27'd262144)
         ? 25'h1ffffff : ioctl_addr[24:0]),
 	.ioctl_dout(ioctl_data),
 	.ioctl_wait(machine_ioctl_wait),
