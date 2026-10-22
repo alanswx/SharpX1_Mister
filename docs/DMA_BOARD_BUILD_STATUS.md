@@ -8,7 +8,15 @@ the inherited MR16 firmware's PS/2 joystick emulation was on at start.
 Seeds 10 and 3 (`quartus-linux-VzLz7geZ`, `-c7Q1fxDn`), 0 negative slack in
 33 summaries each. Seed 10: 22,072 ALMs, RBF
 `322cc621bb1598852d13750d88fcdfabfa9ad1d69f662e8cb64dbe00697db291`; seed 3:
-21,811 ALMs, RBF `b7fc3987…`. Not yet run on hardware.
+21,811 ALMs, RBF `b7fc3987…`; seed 10 is `releases/SharpX1_20261021b.rbf`.
+
+MiSTer 192 (`_Computer/X1JOY_20261021`, X1 Turbo model, native Turbo IPL +
+ANK16, no Kanji font): HuBASIC CZ-8FB01 boots to `Ok` and typed
+`aczxaczx` echoes. The rebuilt joystick-off/CAPS-off cassette controller
+(`861fbbcb…`) loads the K01 tape (Zero Fighter) to its attract screen.
+With the controller and no disk/tape, the IPL shows its F/R/C/T menu;
+mounting K01 from the OSD then loads it. The keypad was not tested (the
+KVM cannot send keypad keys). Screenshots in the session's `hw_joy/`.
 
 ## October 21, 2026: no-font boot and reduced-mode Z palette writes
 
