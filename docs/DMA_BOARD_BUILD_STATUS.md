@@ -1,5 +1,32 @@
 # DMA single-clock FPGA qualification revision
 
+## October 22, 2026: OSD monitor type and boot3.rom Kanji font
+
+`93a72ce`: OSD `Monitor` (Standard / High-res) drives Turbo DIP 1FF0 bit 0,
+previously fixed at 1 (standard); `boot3.rom` (Main index 0xC0) now loads
+the physical Kanji font (index 5). Seeds 4 and 11 (`quartus-linux-UXtUG0BH`,
+`-bJeF5IDL`), no negative slack in any of the 33 timing summaries each.
+Seed 11: 21,993 ALMs (52%), worst slack 0.249 ns, RBF
+`3102cf335c859b8b2aeda2fd3da98c8acd6791141bfe71d73eba2f844d158abd`
+(`releases/SharpX1_20261022.rbf`); seed 4: 21,871 ALMs, RBF `1965aa0b…`.
+
+Simulation (release runner, `TURBO_DSW=240` in a separate directory):
+Hi-School Adventure No. 1 (hi-res) boots Turbo BASIC CZ-8FB02 in 640x400.
+
+MiSTer 126 (`_Computer/X1MON_20261022`, setname home
+`games/X1MON_20261022` with the Turbo IPL, cassette controller, X1 IPL and
+the Kanji font as boot.rom/boot1-3.rom; X1 Turbo model; no MGL Kanji item):
+
+| Title | Settings | Result |
+| --- | --- | --- |
+| Hi-School Adventure No. 1 (hi-res, two .2d) | Standard or High-res, disk writes Protected | Loader stops after `TITLE PL` with "エラーーーガハッセイチャッタノ..ドウスル?" (the tester's "Japanese question") |
+| Same | High-res, disk writes Enabled | Title, then 1/2/3 menu in Kanji; option 3 reaches the first room with Kanji text and the verb bar ✓ |
+| Gaiflame (two .d88) | Standard, Kanji font from boot3.rom | Kanji story scroll, then the "最後の決戦がはじまる" art after Space ✓ (without the font the story is solid white bars, reproduced in simulation) |
+| Yellow Cab (8 kHz TAP) | Tape mounted, then reset, no disk | "IPL is loading Yellow_Cab", instructions screen at 260 s ✓ |
+
+The game writes to its disk at start; the OSD writes setting is the
+deciding factor. OSD changes are lost when an MGL is reloaded unless saved.
+
 ## October 21, 2026: PS/2 joystick emulation off at start
 
 `08c17a4` (`SUB_JOY_OFF`): A tester found A and C dead in X1 Turbo BASIC;

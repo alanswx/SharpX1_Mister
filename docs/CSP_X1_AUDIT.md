@@ -214,6 +214,7 @@ Each bucket is ordered by likely user impact.
   - `x1.cpp:1035-1040`: DIP bit 0 is monitor type, selectable by the user.
 - **Ours:** only a full reset. DIP bit 0 is fixed at 1 (standard monitor), with only the boot device selectable (`sharpx1.sv:218-223`).
 - **Affected:** booting into 24 kHz mode (Turbo BASIC high-res start), and software that hooks NMI.
+- **Status (October 22, 2026):** the monitor DIP is now the OSD `Monitor` option (`93a72ce`); NMI reset is still open.
 
 ### A21. Timer commands D0-DF share a single buffer in our firmware
 
