@@ -9,6 +9,8 @@ from z80_fixture import Program
 parser = argparse.ArgumentParser()
 parser.add_argument("executable", type=pathlib.Path)
 parser.add_argument("--timeout", type=float, default=180)
+parser.add_argument("--release", action="store_true",
+                    help="runner built with SUB_CAPS_OFF=1 and SUB_JOY_OFF=1")
 args = parser.parse_args()
 exe = str(args.executable.resolve())
 
@@ -43,7 +45,18 @@ def fixture(expected):
 
 with tempfile.TemporaryDirectory(prefix="x1-keyboard-poll-") as temp:
     folder = pathlib.Path(temp)
-    cases = (
+    # Release boards start with CAPS released and the firmware's PS/2
+    # joystick emulation off; with it on, A/Z/X/C never reach the CPU.
+    release_cases = (
+        ("F", "25 2b\n", 0x66),
+        ("A", "25 1c\n", 0x61),
+        ("C", "25 21\n", 0x63),
+        ("Z", "25 1a\n", 0x7A),
+        ("X", "25 22\n", 0x78),
+        ("Space", "25 29\n", 0x20),
+        ("Enter", "25 5a\n", 0x0D),
+    )
+    cases = release_cases if args.release else (
         ("F", "25 2b\n", 0x46),
         ("Space", "25 29\n", 0x20),
         ("Enter", "25 5a\n", 0x0D),
@@ -60,8 +73,11 @@ with tempfile.TemporaryDirectory(prefix="x1-keyboard-poll-") as temp:
         prefix = folder / name
         result = subprocess.run([exe, "--cycles", "4000000", "--rom", str(rom),
                                  "--keys", str(keys), "--dump", str(prefix)],
-                                capture_output=True, text=True, timeout=args.timeout, check=True)
+                                capture_output=True, text=True, timeout=args.timeout)
+        if result.returncode:
+            raise SystemExit(f"{name}: runner exit {result.returncode}\n{result.stderr[-2000:]}")
         report = json.loads(result.stdout.splitlines()[-1])
         print(json.dumps({"key": name, "halted": report["halted"], "reply": report["peek"][:4]}), flush=True)
         assert report["halted"] and report["peek"][2:4] == f"{ascii_code:02x}", (name, report)
-print("PASS: F/Space/Enter and cold/steady Caps/Shift while CPU continuously polls E4/E6")
+print("PASS: " + ("release F/A/C/Z/X/Space/Enter" if args.release else
+                  "F/Space/Enter and cold/steady Caps/Shift") + " while CPU continuously polls E4/E6")

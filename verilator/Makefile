@@ -1040,7 +1040,7 @@ turbo-x3-single-fm: $(X3_FM_DIR)/Vtop
 $(X3_FM_DIR)/Vtop: $(V_SRC) sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc $(X3_FM_TIMING) --assert --trace-fst --exe --build -j 4 --Mdir $(X3_FM_DIR) --top-module top \
 		$(TURBO_DSW_FLAGS) -GTURBO=1 -GTURBO_VIDEO_MASTER=1 -GSINGLE_CLOCK=1 -GMASTER_HZ=42954540 -GRAW_2D_MEDIA=1 \
-		-GTURBO_FM_CPU=1 -GTURBO_FM_CTC=1 -GSUB_CAPS_OFF=1 -GFDC_DEFER_COMMAND=1 $(X3_FM_DMA_RTL) $(X3_FM_Z_RTL) +define+X1_RAW_2D_MEDIA +define+X1_MODEL_SELECT \
+		-GTURBO_FM_CPU=1 -GTURBO_FM_CTC=1 -GSUB_CAPS_OFF=1 -GSUB_JOY_OFF=1 -GFDC_DEFER_COMMAND=1 $(X3_FM_DMA_RTL) $(X3_FM_Z_RTL) +define+X1_RAW_2D_MEDIA +define+X1_MODEL_SELECT \
 		-CFLAGS "-std=c++20 -DX1_SINGLE_CLOCK -DX1_SINGLE_MASTER_HZ=42954540 -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_RAW_2D_MEDIA -DX1_MODEL_SELECT -DX1_TURBO_FM_CPU $(X3_FM_DMA_CPP) $(X3_FM_Z_CPP)" \
 		-MAKEFLAGS "OPT_FAST=-O3 -B" $(V_SRC) sim_headless.cpp -Wno-fatal -o Vtop
 turbo-x3-single-fm-fast:
@@ -1056,6 +1056,11 @@ turbo-x3-release:
 turbo-x3-release-fast:
 	$(MAKE) turbo-x3-single-fm X3_FM_DIR=obj_dir_x3_release_fast X3_FM_TIMING=--no-timing X3_FM_DMA=1 X3_FM_Z=1
 .PHONY: turbo-x3-release turbo-x3-release-fast
+# Real PS/2 A/C/Z/X reach the CPU: the board starts with the MR16 firmware's
+# PS/2 joystick emulation off (SUB_JOY_OFF) and CAPS released.
+test-release-keyboard: turbo-x3-release-fast
+	python3 tests/test_keyboard_poll.py ./obj_dir_x3_release_fast/Vtop --release
+.PHONY: test-release-keyboard
 # Z registers decode CPU cycles only, in the Turbo Z model (real DMA to 1FC0-F).
 test-z-dma-isolation: turbo-x3-release-fast
 	python3 tests/test_z_dma_isolation.py ./obj_dir_x3_release_fast/Vtop

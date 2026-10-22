@@ -1,7 +1,7 @@
 //
 // 16Bit x 4K synched ROM
 //
-module sub_rom #(parameter PS2_RECEIVE_ONLY = 0, CAPS_OFF = 0)(
+module sub_rom #(parameter PS2_RECEIVE_ONLY = 0, CAPS_OFF = 0, JOY_OFF = 0)(
   CLK,
   A,
   DO
@@ -2080,8 +2080,13 @@ begin
   // "mov r0,#0ffffh ^ SFT_CAPS" -> "#0ffffh", word $0B0 70F7 -> 70FF), as on
   // MAME and real keyboards. With CAPS on, the E6 game-key status byte reads
   // F7 (a modifier held) and games such as Dione never start their music.
+  // JOY_OFF: start with PS/2 joystick emulation off ("mov r0,#JOY_EN |
+  // IND_REQ:8" -> "#IND_REQ:8", word $0BC 7003 -> 7002). MiSTer joysticks
+  // already drive the PSG ports; the emulation eats A/Z/X/C and the keypad,
+  // and F12, its toggle, opens the MiSTer OSD.
   DO <= (PS2_RECEIVE_ONLY && A == 11'h22e) ? 16'h2ffb :
-        (CAPS_OFF && A == 11'h0b0) ? 16'h70ff : rom(A);
+        (CAPS_OFF && A == 11'h0b0) ? 16'h70ff :
+        (JOY_OFF && A == 11'h0bc) ? 16'h7002 : rom(A);
 end
 
 endmodule

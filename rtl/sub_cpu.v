@@ -79,7 +79,7 @@
 ****************************************************************************/
 // Preserve the inherited bidirectional profile by default. The shared MiSTer
 // machine explicitly selects receive-only because O_PS2CT/DT are disconnected.
-module x1_sub #(parameter CLOCK_HZ = 32000000, PS2_RECEIVE_ONLY = 0, CAPS_OFF = 0, IRQ_ACK_ONCE = 0, RTC_ENABLE = 0, CASSETTE_ENABLE = 0)(
+module x1_sub #(parameter CLOCK_HZ = 32000000, PS2_RECEIVE_ONLY = 0, CAPS_OFF = 0, JOY_OFF = 0, IRQ_ACK_ONCE = 0, RTC_ENABLE = 0, CASSETTE_ENABLE = 0)(
   I_reset,
   I_rtc_power_reset,
   I_cassette_mode, I_cassette_sensor, O_cassette_command,
@@ -370,7 +370,7 @@ mr16_x1 #(.CLOCK_HZ(CLOCK_HZ), .RETAIN_RESPONSE(RTC_ENABLE || CASSETTE_ENABLE)) 
 wire [10:0] mem_addr = sub_addr[11:1];
 
 `ifdef SUB_ROM
-sub_rom #(.PS2_RECEIVE_ONLY(PS2_RECEIVE_ONLY), .CAPS_OFF(CAPS_OFF)) sub_rom(
+sub_rom #(.PS2_RECEIVE_ONLY(PS2_RECEIVE_ONLY), .CAPS_OFF(CAPS_OFF), .JOY_OFF(JOY_OFF)) sub_rom(
   .CLK(I_clk),.A(mem_addr),.DO(pgm_data));
 `else
 ////////////////////////////////////////////
