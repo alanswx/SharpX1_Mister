@@ -1,5 +1,15 @@
 # DMA single-clock FPGA qualification revision
 
+## October 21, 2026: PS/2 joystick emulation off at start
+
+`08c17a4` (`SUB_JOY_OFF`): A tester found A and C dead in X1 Turbo BASIC;
+the inherited MR16 firmware's PS/2 joystick emulation was on at start.
+`test-release-keyboard` passes (A fails on the previous runner).
+Seeds 10 and 3 (`quartus-linux-VzLz7geZ`, `-c7Q1fxDn`), 0 negative slack in
+33 summaries each. Seed 10: 22,072 ALMs, RBF
+`322cc621bb1598852d13750d88fcdfabfa9ad1d69f662e8cb64dbe00697db291`; seed 3:
+21,811 ALMs, RBF `b7fc3987…`. Not yet run on hardware.
+
 ## October 21, 2026: no-font boot and reduced-mode Z palette writes
 
 Seeds 10 and 3 (`quartus-linux-JHSjBPZL`, `-aRtnwstg`), about 25 minutes,
