@@ -26,7 +26,12 @@ models; see `REVISIONS.md`.
   fill follow the stream cursor; the total is the TAP length divided by its
   rate. One packed word crosses to the video clock by a toggle handshake.
   `test-tape-overlay` checks the times, the fill, the handoff and pixels.
-- Not hardware-tested yet.
+- MiSTer 126 (`592196b`, `releases/SharpX1_20261023.rbf`): Zero Fighter
+  shows the overlay (`TAPE > 0:19/ 0:41 x4` at 15 s) and its title by 45 s;
+  Yellow Cab's instructions at 85 s (260 s at real speed). See
+  `DMA_BOARD_BUILD_STATUS.md`.
+- A drive mounted by an earlier MGL stays mounted (`SC`), and the IPL boots
+  a disk before the tape: clear Drive A first for a tape-only MGL.
 
 ## Board revision `sharpx1_cassette` (October 18)
 

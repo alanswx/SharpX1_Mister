@@ -38,8 +38,9 @@ The OSD follows the computer-core layout standard: media and ROM loads on the
 top page, then **Machine** (Model, Fast tape, Rewind tape), **Video** (Monitor,
 Aspect ratio, Tape overlay) and **Advanced** (Boot device, Disk writes).
 Settings apply at **Apply and reset**; "Changes pending" shows until then.
-**Monitor** is the Turbo DIP monitor switch (High-res 24 kHz by default, as an
-X1 Turbo with a high-resolution monitor). **Fast tape** runs the CPU and the
+**Monitor** is the Turbo DIP monitor switch (Standard by default; set
+High-res for 24 kHz-only disks such as Hi-School Adventure hi-res: X1
+software leaves the IPL's 24 kHz scan bit set and displays half its lines). **Fast tape** runs the CPU and the
 tape four times faster while the deck plays; **Tape overlay** shows the tape
 time and progress. See [cassette status](docs/CASSETTE_STATUS.md).
 

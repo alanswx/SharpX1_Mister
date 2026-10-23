@@ -1,5 +1,60 @@
 # DMA single-clock FPGA qualification revision
 
+## October 23, 2026: fast tape, tape overlay, OSD layout, Z80 R register
+
+`555cccc` added fast tape, the tape overlay and the computer-core OSD
+layout (Machine/Video/Advanced, settings latched at Apply and reset);
+`dd02266` fixed its hide flags and made Monitor default to Standard again;
+`592196b` made the TV80 R register count fetches. Builds at `592196b`:
+seeds 10 and 11 (`quartus-linux-xZ3dluy2`, `-YMHkn6LR`), no negative slack
+in the 33 timing summaries of either. Seed 10: 22,444 ALMs (54%), worst
+slack 0.154 ns, RBF
+`941fde5261868359de407fc27b10c025188badd9b2de8357fb7bf2d45f6e465a`
+(`releases/SharpX1_20261023.rbf`); seed 11: 22,449 ALMs, 0.194 ns, RBF
+`0aa71d44…`.
+
+MiSTer 126, setnames `X1OSD_20261023` (`555cccc` seed 11, `9d445777…`),
+`X1OSD2_20261023` (`dd02266` seed 11, `60bb4ad4…`), `X1R_20261023`
+(`592196b` seed 10) and `X1MON_20261022` (the previous release), each with
+the Turbo IPL, tape controller, X1 IPL and Kanji font as boot.rom/boot1-3.rom:
+
+| Title | Core / settings | Result |
+| --- | --- | --- |
+| Zero Fighter (TAP) | `555cccc`, fast tape | Overlay `TAPE > 0:19/ 0:41 x4` with its bar at 15 s; title by 45 s ✓ (`592196b`: same) |
+| Yellow Cab (8 kHz TAP) | `555cccc`, Turbo Z + High-res default | Loads, but every other raster is missing ✗ |
+| Same | `dd02266`, Turbo Z + Standard | Instructions screen at 85 s (260 s at real speed) ✓ |
+| Thunder Force (D88) | `555cccc`, High-res | Title garbled (half the rasters) ✗ |
+| Same | Previous release, X1 Turbo + Standard | Title fine; stops on the high-score screen for minutes, keys ignored ✗ |
+| Same | `592196b`, Turbo Z + Standard | Demo plays (scene 2, score 2400), then the high-score screen with its random starfield, cycling ✓ |
+| Space Harrier (S-OS) | Previous release | Caps Lock, `L SPACE HARRIER`, `J DB80`: SEGA title, Space starts stage 1 ✓ |
+| Yoshie's Cookie (S-OS) | Previous release, X1 Turbo and X1 | After HIT KEY: empty panels; it waits for a joystick trigger (the KVM cannot press one) |
+| Hi-School Adventure (hi-res) | `dd02266`, Monitor High-res + Disk writes Enabled via Apply and reset | AS-SOFT title ✓ (Standard: loader text garbled, as expected for the hi-res disk) |
+| Gaiflame (two .d88) | `592196b`, Turbo Z | Kanji story, then the "最後の決戦がはじまる" art ✓ |
+
+OSD on hardware: the top page has media and ROM loads, then Machine,
+Video, Advanced and Apply and reset. Changing Model shows "Changes
+pending" with no reset; setting it back clears it. In `555cccc` the
+Monitor and Boot device rows never showed: Main strips `H`/`h` before the
+page prefix, so `P2H1O[8]` is not an option (fixed as `H1P2O[8]`;
+`test-osd-config` rejects the old order). With X1 selected both rows hide.
+
+High-res is no longer the default: X1 software reprograms the CRTC for
+15 kHz but leaves the IPL's 1FD0 high-scan bit set (Yellow Cab, Thunder
+Force). MAME's DIP default is also standard.
+
+Thunder Force (125 s release simulation, then the bus trace): no I/O; the
+random-number routine at 9EE2 (`LD A,R`, XOR/RRC/ADD) stores 0000 to FD8D
+every time, and the caller at A51B retries random positions forever. TV80
+kept R only under `TV80_REFRESH`, which no profile defines.
+`test-cpu-refresh` reads 00 on the previous core.
+
+Yoshie's Cookie (95 s simulation, same screen as hardware): the loop at
+B478 reads PSG registers 14 and 15 (both joystick ports) and repeats while
+`AND 60h` is 60h, so it waits for trigger A or B on either stick.
+
+A `SC` drive keeps its image across core loads (`config/<setname>.s0`),
+so after a disk MGL a tape-only MGL boots the remembered disk instead.
+
 ## October 22, 2026: OSD monitor type and boot3.rom Kanji font
 
 `93a72ce`: OSD `Monitor` (Standard / High-res) drives Turbo DIP 1FF0 bit 0,
