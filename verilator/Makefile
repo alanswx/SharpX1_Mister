@@ -2461,7 +2461,7 @@ $(HEADLESS_DIR)/z-effect-machine-%/Vz_effect_machine_tb: tests/z_effect_machine_
 	  -GEFFECT_ENABLED=$* -j 4 tests/z_effect_machine_tb.sv $(MACHINE_SRC) -Wno-fatal
 .PHONY: test-machine-z-effects
 
-test: headless test-rgb12 test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner test-d88-crc test-d88-metadata test-cpu-busreq test-special-probe-observations test-runner-build-isolation test-opcode-window
+test: headless test-rgb12 test-sub-timer test-fdc-abort test-fdc-sd-abort test-d88-scanner test-d88-crc test-d88-metadata test-cpu-busreq test-cpu-refresh test-special-probe-observations test-runner-build-isolation test-opcode-window
 	python3 tests/test_joystick_schedule.py ./$(HEADLESS_EXE)
 	python3 tests/test_key_script.py ./$(HEADLESS_EXE) $(VIDEO_TEST_FLAGS)
 	python3 tests/test_video_modes.py ./$(HEADLESS_EXE) $(VIDEO_TEST_FLAGS)
@@ -2583,6 +2583,15 @@ $(HEADLESS_DIR)/cpu-busreq/Vcpu_busreq_tb: tests/cpu_busreq_tb.sv ../rtl/cpu.v $
 		-j 4 ../rtl/cpu.v ../rtl/tv80/tv80e.v ../rtl/tv80/tv80_core.v \
 		../rtl/tv80/tv80_mcode.v ../rtl/tv80/tv80_alu.v ../rtl/tv80/tv80_reg.v tests/cpu_busreq_tb.sv -Wno-fatal
 
+test-cpu-refresh: $(HEADLESS_DIR)/cpu-refresh/Vcpu_refresh_tb
+	./$(HEADLESS_DIR)/cpu-refresh/Vcpu_refresh_tb
+
+$(HEADLESS_DIR)/cpu-refresh/Vcpu_refresh_tb: tests/cpu_refresh_tb.sv ../rtl/cpu.v $(wildcard ../rtl/tv80/*.v)
+	$(V) --binary --timing --assert --top-module cpu_refresh_tb --Mdir $(HEADLESS_DIR)/cpu-refresh \
+		-j 4 ../rtl/cpu.v ../rtl/tv80/tv80e.v ../rtl/tv80/tv80_core.v \
+		../rtl/tv80/tv80_mcode.v ../rtl/tv80/tv80_alu.v ../rtl/tv80/tv80_reg.v tests/cpu_refresh_tb.sv -Wno-fatal
+
+.PHONY: test-cpu-refresh
 .PHONY: test-cpu-busreq
 
 test-dma: $(HEADLESS_DIR)/dma/Vdma_tb

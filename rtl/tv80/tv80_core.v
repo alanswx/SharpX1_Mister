@@ -98,9 +98,7 @@ module tv80_core (/*AUTOARG*/
   reg [7:0]     ACC, F;
   reg [7:0]     Ap, Fp;
   reg [7:0]     I;
-`ifdef TV80_REFRESH
   reg [7:0]     R;
-`endif
   reg [15:0]    SP, PC;
   reg [7:0]     RegDIH;
   reg [7:0]     RegDIL;
@@ -393,9 +391,7 @@ module tv80_core (/*AUTOARG*/
           Ap <= #1 8'hFF;
           Fp <= #1 8'hFF;
           I <= #1 0;
-          `ifdef TV80_REFRESH
           R <= #1 0;
-          `endif
           SP <= #1 16'hFFFF;
           Alternate <= #1 1'b0;
 
@@ -447,14 +443,17 @@ module tv80_core (/*AUTOARG*/
                   // mcycle == 1 && tstate == 1, 2, || 3
                   if (tstate[2] && wait_n == 1'b1 ) 
                     begin
-                      `ifdef TV80_REFRESH
+                      // R counts opcode fetches even without the refresh
+                      // address on the bus: games seed random numbers
+                      // with LD A,R (Thunder Force loops forever on 0).
                       if (Mode < 2 ) 
                         begin
+                          `ifdef TV80_REFRESH
                           A[7:0] <= #1 R;
                           A[15:8] <= #1 I;
+                          `endif
                           R[6:0] <= #1 R[6:0] + 1;
                         end
-                      `endif
                       if (Jump == 1'b0 && Call == 1'b0 && NMICycle == 1'b0 && IntCycle == 1'b0 && ~ (Halt_FF == 1'b1 || Halt == 1'b1) ) 
                         begin
                           PC <= #1 PC16;
@@ -756,14 +755,10 @@ module tv80_core (/*AUTOARG*/
                         
                         2'b01 :
                           begin
-                            `ifdef TV80_REFRESH
                             ACC <= #1 R;
-                            `else
-                            ACC <= #1 0;
-                            `endif
                             F[Flag_P] <= #1 IntE_FF2;
-			    F[Flag_Z] <= (I == 0);
-			    F[Flag_S] <= I[7];
+			    F[Flag_Z] <= (R == 0);
+			    F[Flag_S] <= R[7];
 			    F[Flag_H] <= 0;
 			    F[Flag_N] <= 0; 
                           end
@@ -771,12 +766,8 @@ module tv80_core (/*AUTOARG*/
                         2'b10 :
                           I <= #1 ACC;
 
-                        `ifdef TV80_REFRESH                        
                         default :
                           R <= #1 ACC;
-                        `else
-                        default : ;
-                        `endif                        
                       endcase
                     end
                 end // if (tstate == 3 )
