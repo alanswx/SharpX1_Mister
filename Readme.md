@@ -21,18 +21,27 @@ The [DMA-build feature matrix](docs/HARDWARE_DMA_FEATURE_MATRIX_STATUS.md)
 adds exact base-video pixels before/after retained-asset warm reset and tracks
 the remaining physical and unimplemented-feature gates.
 
-## Which core to use (October 20, 2026)
+## Which core to use (October 23, 2026)
 
 One release core: Quartus revision **`sharpx1_turbo_z_font_single`**.
 It is an X1 Turbo on one X3 master clock, with an OSD **Model** switch
-(X1 Turbo / X1 / X1 Turbo Z), Z80 DMA, the YM2151 FM board and its CTC, the physical
+(X1 Turbo Z, the default / X1 / X1 Turbo), Z80 DMA, the YM2151 FM board and its CTC, the physical
 Kanji font, cassette TAP streaming, and D88 / raw 2D disks on two drives.
 X1 mode turns the Turbo-only hardware off and boots a separate X1 IPL (OSD
 `Load X1 IPL`, or `boot2.rom`). X1 Turbo Z adds the Turbo Z palette,
 4096/64-colour and two-screen modes and text/priority registers
-(provisional, from documentation; no native Z software has been tested).
-The OSD **Boot device** sets the Turbo
-boot switch (2D/2DD/2HD/SASI). All ROMs load from SD; none are embedded.
+(provisional; Kohakuiro no Yuigon runs). Turbo software runs unchanged in it.
+All ROMs load from SD; none are embedded (`boot.rom` IPL, `boot1.rom` tape
+controller, `boot2.rom` X1 IPL, `boot3.rom` Kanji font).
+
+The OSD follows the computer-core layout standard: media and ROM loads on the
+top page, then **Machine** (Model, Fast tape, Rewind tape), **Video** (Monitor,
+Aspect ratio, Tape overlay) and **Advanced** (Boot device, Disk writes).
+Settings apply at **Apply and reset**; "Changes pending" shows until then.
+**Monitor** is the Turbo DIP monitor switch (High-res 24 kHz by default, as an
+X1 Turbo with a high-resolution monitor). **Fast tape** runs the CPU and the
+tape four times faster while the deck plays; **Tape overlay** shows the tape
+time and progress. See [cassette status](docs/CASSETTE_STATUS.md).
 
 The base two-clock `sharpx1` revision remains as a baseline. Eleven
 bring-up revisions were retired, including the Turbo Z video experiment

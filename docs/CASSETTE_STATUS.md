@@ -4,6 +4,30 @@ October 20, 2026: the base `sharpx1_cassette` revision was retired. Tape is
 in the release core (`sharpx1_turbo_z_font_single`) in both X1 and X1 Turbo
 models; see `REVISIONS.md`.
 
+## Fast tape and tape overlay (October 23)
+
+- **Fast tape** (OSD Machine page, default on; `fast_tape` machine input):
+  while the deck is in PLAY, `x1_clock_enables` steps the CPU enable at
+  16 MHz instead of 4 MHz and the transport paces samples at four times the
+  TAP rate. The Z80 loaders time PB1 pulses with instruction loops, so they
+  see the same pulse widths. Everything on the CPU enable (DMA, CTC, SIO,
+  FDC) speeds up with it; the PSG, FM and the sub-CPU do not. Only in the
+  single-clock 42.95 MHz build (enables stay two or three SYS edges apart,
+  `test-clock-enables`) and only for tapes up to 48 kHz (the two-sector SD
+  stream must keep up).
+- Simulation, `turbo-x3-single-cassette-fast-tape`, native Turbo IPL and the
+  joystick-off controller: Zero Fighter is fully read by 25 s and at its
+  title at 40 s (real speed: still loading at 55 s, demo at 70 s); Yellow Cab
+  (240 s at 8 kHz) shows its instructions by 80 s (real speed: 260 s on
+  MiSTer 126). No underflow; the loader stops the deck in both.
+- **Tape overlay** (OSD Video page, default on; board-only
+  `rtl/x1_tape_overlay.sv`): while the deck plays, the bottom-left corner
+  shows `TAPE > m:ss/m:ss x4` and a 64-step progress bar. Elapsed time and
+  fill follow the stream cursor; the total is the TAP length divided by its
+  rate. One packed word crosses to the video clock by a toggle handshake.
+  `test-tape-overlay` checks the times, the fill, the handoff and pixels.
+- Not hardware-tested yet.
+
 ## Board revision `sharpx1_cassette` (October 18)
 
 Base X1 (two-clock: SYS 32 MHz, VID 28.571428 MHz) with the existing
