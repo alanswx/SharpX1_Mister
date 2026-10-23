@@ -260,10 +260,12 @@ localparam CONF_STR = {
 `ifdef X1_TURBO_FOUNDATION
 	// Turbo DIP 1FF0 bit 0 is the monitor type (CSP `monitor_type`): 0 =
 	// high-resolution 24 kHz, read by the IPL and Turbo BASIC at start.
-	// High-res is the default: 15 kHz software programs its own CRTC. The
-	// X1 model has no DIP switches, so the row is hidden there.
-	"P2H1O[8],Monitor,High-res,Standard;",
-	"P2h1-;",
+	// Standard is the default (as MAME): X1 software reprograms the CRTC for
+	// 15 kHz but leaves the IPL's 24 kHz scan bit (1FD0) set, which breaks
+	// its display. The X1 model has no DIP switches, so the row is hidden
+	// there. Main parses H/h before the page prefix.
+	"H1P2O[8],Monitor,Standard,High-res;",
+	"h1P2-;",
 `endif
 	"P2O[122:121],Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
 `ifdef X1_CASSETTE
@@ -272,16 +274,17 @@ localparam CONF_STR = {
 
 `ifdef X1_TURBO_FOUNDATION
 	// Turbo DIP 1FF0 boot device (MAME F1/F3/F5/FF).
-	"P5H1O[5:4],Boot device,2D,2DD,2HD,SASI;",
-	"P5h1-;",
+	"H1P5O[5:4],Boot device,2D,2DD,2HD,SASI;",
+	"h1P5-;",
 `endif
 	"P5O[1],Disk writes,Protected,Enabled;",
 
 `ifdef X1_CASSETTE
 	"I,Tape ready (rewound),Tape format not supported;",
 `endif
-	// v1: Model and Monitor value lists reordered (October 23, 2026).
-	"v,1;",
+	// v1: Model and Monitor value lists reordered (October 23, 2026);
+	// v2: Monitor back to Standard first.
+	"v,2;",
 	"V,v",`BUILD_DATE,
 	// x1_joystick_map routes MiSTer bits 4/5 to the X1 PSG trigger A/B pins.
 	";J,Trigger A,Trigger B;",
@@ -544,8 +547,8 @@ localparam TURBO_Z_EXTERNAL_FONT_PROFILE = 0;
 // Main loads boot1.rom as index 0x40 at core start; MGL may use index 6.
 wire cassette_controller_index = CASSETTE_PROFILE && (ioctl_index == 16'd6 || ioctl_index == 16'h0040);
 // Boot device -> raw DIP: SW bits 3:1 = 000 2D, 001 2DD, 010 2HD, 111 SASI;
-// bit 0 = 1 standard, 0 high-resolution monitor (OSD default).
-wire [7:0] boot_dsw = {4'hf, cfg[5:4] == 2'd3 ? 3'b111 : {1'b0, cfg[5:4]}, cfg[8]};
+// bit 0 = 1 standard (OSD default), 0 high-resolution monitor.
+wire [7:0] boot_dsw = {4'hf, cfg[5:4] == 2'd3 ? 3'b111 : {1'b0, cfg[5:4]}, !cfg[8]};
 // Main loads boot2.rom as index 0x80: the X1 IPL slot (index 3).
 wire x1_ipl_index = TURBO_FOUNDATION && (ioctl_index == 16'd3 || ioctl_index == 16'h0080);
 // Main loads boot3.rom as index 0xC0: the physical Kanji font slot (index 5).
