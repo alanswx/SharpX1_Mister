@@ -51,6 +51,8 @@ kept R only under `TV80_REFRESH`, which no profile defines.
 Yoshie's Cookie (95 s simulation, same screen as hardware): the loop at
 B478 reads PSG registers 14 and 15 (both joystick ports) and repeats while
 `AND 60h` is 60h, so it waits for trigger A or B on either stick.
+A second 90 s run with `--joy-at 70000 A 0xDF` / `70300 A 0xFF` (trigger A
+pressed for 0.3 s) shows both cookie boards ("2P SLAVE") at 90 s.
 
 A `SC` drive keeps its image across core loads (`config/<setname>.s0`),
 so after a disk MGL a tape-only MGL boots the remembered disk instead.
