@@ -19,7 +19,7 @@ module x1_cassette_transport #(
     input logic [7:0] cmd,
     input logic sample_valid, sample_level, sample_last,
     /* verilator lint_off UNUSEDSIGNAL */
-    input logic [17:0] sample_hz, // ignored unless RUNTIME_RATE
+    input logic [19:0] sample_hz, // ignored unless RUNTIME_RATE
     /* verilator lint_on UNUSEDSIGNAL */
     output logic sample_ready,
     output logic waveform,

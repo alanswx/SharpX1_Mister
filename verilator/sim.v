@@ -1,7 +1,7 @@
 `timescale 1ps/1ps
 // Instantiate the same machine as the MiSTer wrapper.
 module top #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0, TURBO_DSW = 241, TURBO_DMA_RESTART_IRQ = 0, TURBO_Z_PALETTE_CPU = 0, TURBO_Z_VIDEO = 0, TURBO_Z_MULTIMODE = 0, TURBO_Z_INTERNAL8 = 0, TURBO_Z_TEXT_CPU = 0, TURBO_FM_CPU = 0, RTC_ENABLE = 0, TURBO_DMA_KANJI_EXPERIMENT = 0, D88_ADDRESS_BITS = 20, TURBO_HD_SELECT = 0, TURBO_HD_MEDIA = 0,
-    TURBO_FDC_TIMING = 0, FDC_CLOCK_HZ = 1000000, TURBO_FM_CTC = 0, SUB_CAPS_OFF = 0, SUB_JOY_OFF = 0, FDC_DEFER_COMMAND = 0, TURBO_Z_RUNTIME = 0) (
+    TURBO_FDC_TIMING = 0, FDC_CLOCK_HZ = 1000000, TURBO_FM_CTC = 0, SUB_CAPS_OFF = 0, SUB_JOY_OFF = 0, FDC_DEFER_COMMAND = 0, TURBO_Z_RUNTIME = 0, FAST_TAPE = 0) (
     input clk_sys, clk_28636, reset,
     input ioctl_download,
     input [7:0] ioctl_index,
@@ -117,12 +117,12 @@ module top #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636364,
 `ifdef X1_CASSETTE
         .tape_mount(tape_mount), .tape_present(tape_present), .tape_empty(tape_empty),
         .tape_sample_valid(tape_sample_valid), .tape_sample_level(tape_sample_level),
-        .tape_sample_last(tape_sample_last), .tape_sample_hz(tape_sample_hz),
+        .tape_sample_last(tape_sample_last), .tape_sample_hz(tape_sample_hz), .fast_tape(FAST_TAPE != 0),
         .tape_sample_ready(tape_sample_ready), .tape_underflow(tape_underflow),
         .tape_mode(tape_mode), .tape_sensor(tape_sensor),
 `else
         .tape_mount(1'b0), .tape_present(1'b0), .tape_empty(1'b0),
-        .tape_sample_valid(1'b0), .tape_sample_level(1'b0), .tape_sample_last(1'b0), .tape_sample_hz(18'd0),
+        .tape_sample_valid(1'b0), .tape_sample_level(1'b0), .tape_sample_last(1'b0), .tape_sample_hz(18'd0), .fast_tape(1'b0),
         .tape_sample_ready(), .tape_underflow(), .tape_mode(), .tape_sensor(),
 `endif
         .sio_external_rx_clock(1'b0),.sio_external_tx_clock(1'b0),

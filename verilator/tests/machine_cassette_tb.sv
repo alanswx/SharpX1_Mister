@@ -39,7 +39,7 @@ module machine_cassette_tb #(parameter bit CASSETTE_ENABLED=1, RTC_ENABLED=0);
         .ioctl_addr(upload_address),.ioctl_dout(upload_data),.ioctl_wait(upload_wait),
         .ps2_clk_in(ps2_clock),.ps2_data_in(ps2_data),.joya_n(8'hff),.joyb_n(8'hff),
         .tape_mount(mount),.tape_present(present),.tape_empty(empty),
-        .tape_sample_valid(sample_valid),.tape_sample_level(sample_level),.tape_sample_last(sample_last),.tape_sample_hz(18'd0),
+        .tape_sample_valid(sample_valid),.tape_sample_level(sample_level),.tape_sample_last(sample_last),.fast_tape(1'b0), .tape_sample_hz(18'd0),
         .tape_sample_ready(ready),.tape_underflow(underflow),.tape_mode(mode),.tape_sensor(sensor),
         .sio_external_rx_clock(1'b0),.sio_external_tx_clock(1'b0),.sio_rxd(2'b11),
         .sio_cts_n(2'b11),.sio_dcd_n(2'b11),.sio_txd(),.sio_rts_n(),.sio_dtr_n(),

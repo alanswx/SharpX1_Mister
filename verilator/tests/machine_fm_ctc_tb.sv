@@ -24,7 +24,7 @@ module machine_fm_ctc_tb #(parameter FM_CTC=1, SINGLE_CLOCK=0, MASTER_HZ=3200000
         .ioctl_wr(upload_wr),.ioctl_addr(upload_address),.ioctl_dout(upload_data),.ioctl_wait(upload_wait),
         .ps2_clk_in(1'b1),.ps2_data_in(1'b1),.joya_n(8'hff),.joyb_n(8'hff),
         .tape_mount(1'b0),.tape_present(1'b0),.tape_empty(1'b0),
-        .tape_sample_valid(1'b0),.tape_sample_level(1'b0),.tape_sample_last(1'b0),.tape_sample_hz(18'd0),
+        .tape_sample_valid(1'b0),.tape_sample_level(1'b0),.tape_sample_last(1'b0),.fast_tape(1'b0), .tape_sample_hz(18'd0),
         .tape_sample_ready(),.tape_underflow(),.tape_mode(),.tape_sensor(),
         .sio_external_rx_clock(1'b0),.sio_external_tx_clock(1'b0),.sio_rxd(2'b11),
         .sio_cts_n(2'b11),.sio_dcd_n(2'b11),.sio_txd(),.sio_rts_n(),.sio_dtr_n(),

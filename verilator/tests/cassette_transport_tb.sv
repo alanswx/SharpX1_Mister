@@ -18,7 +18,7 @@ module cassette_transport_tb;
     x1_cassette_transport #(.SYS_HZ(SYS_HZ), .SAMPLE_HZ(SAMPLE_HZ)) dut(
         .clk_sys(clk), .reset(reset), .mount(mount), .present(present), .empty(empty),
         .cmd_valid(cmd_valid), .cmd(cmd), .sample_valid(valid),
-        .sample_level(level), .sample_last(last), .sample_hz(18'd0), .sample_ready(ready),
+        .sample_level(level), .sample_last(last), .sample_hz(20'd0), .sample_ready(ready),
         .waveform(wave), .applied_mode(mode), .sensor(sensor), .underflow(underflow));
     task automatic tick;
         @(posedge clk); #1; @(negedge clk);

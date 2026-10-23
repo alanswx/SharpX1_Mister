@@ -40,6 +40,9 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
     input tape_mount, tape_present, tape_empty,
     input tape_sample_valid, tape_sample_level, tape_sample_last,
     input [17:0] tape_sample_hz, // used only with CASSETTE_RUNTIME_RATE
+    // Fast tape: while the deck plays, the CPU enable and the tape samples
+    // both run four times faster, so loader timing loops see the same pulses.
+    input fast_tape,
     output tape_sample_ready, tape_underflow,
     output [7:0] tape_mode, tape_sensor,
     input disk_ready, img_mounted, disk_wp,
@@ -123,8 +126,13 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
         if (core_reset) ce <= 0;
         else ce <= ce + 1'b1;
     wire fractional_cpu, fractional_psg;
+    // Single-clock 42.95-MHz runtime-rate decks only (16 MHz keeps CPU enables
+    // two SYS edges apart); tapes above 48 kHz keep real speed (four times
+    // their rate would outrun the two-sector SD stream).
+    wire tape_fast = SINGLE_CLOCK && MASTER_HZ >= 40000000 && CASSETTE_ENABLE && CASSETTE_RUNTIME_RATE && fast_tape &&
+                     tape_mode == 8'd2 && tape_sample_hz <= 18'd48000;
     x1_clock_enables #(.MASTER_HZ(MASTER_HZ)) clock_enables (
-        .clk(clk_sys), .reset(core_reset), .cpu_ce(fractional_cpu), .psg_ce(fractional_psg)
+        .clk(clk_sys), .reset(core_reset), .fast(tape_fast), .cpu_ce(fractional_cpu), .psg_ce(fractional_psg)
     );
     wire pe4M4 = SINGLE_CLOCK ? fractional_cpu : ce[2:0] == 3'b100;
     wire psg_ce = SINGLE_CLOCK ? fractional_psg : ce[3:0] == 4'b1000;
@@ -889,7 +897,7 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
             .mount(tape_mount), .present(tape_present), .empty(tape_empty),
             .cmd_valid(command_valid), .cmd(cassette_command[7:0]),
             .sample_valid(tape_sample_valid), .sample_level(tape_sample_level),
-            .sample_last(tape_sample_last), .sample_hz(tape_sample_hz), .sample_ready(tape_sample_ready),
+            .sample_last(tape_sample_last), .sample_hz(tape_fast ? {tape_sample_hz, 2'b00} : {2'b00, tape_sample_hz}), .sample_ready(tape_sample_ready),
             .waveform(cassette_waveform), .applied_mode(tape_mode),
             .sensor(tape_sensor), .underflow(tape_underflow)
         );

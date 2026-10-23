@@ -47,7 +47,7 @@ module tap_sd_stream_tb;
         .mount(tape_mount), .present(tape_present), .empty(tape_empty),
         .cmd_valid(cmd_valid), .cmd(cmd),
         .sample_valid(sample_valid), .sample_level(sample_level),
-        .sample_last(sample_last), .sample_hz(sample_hz), .sample_ready(sample_ready),
+        .sample_last(sample_last), .sample_hz({2'b00, sample_hz}), .sample_ready(sample_ready),
         .waveform(waveform), .applied_mode(applied_mode),
         .sensor(sensor), .underflow(underflow));
 

@@ -213,17 +213,19 @@ localparam CONF_STR = {
 `ifdef X1_TURBO_FOUNDATION
 	// Runtime model; changing it resets the machine. X1 mode boots the
 	// index-3 X1 IPL (F3 or boot2.rom) when loaded, else the main IPL's 4 KiB.
-	// X1 Turbo Z additionally decodes the Z palette/mode registers.
+	// X1 Turbo Z additionally decodes the Z palette/mode registers; it is the
+	// default (value 0) because Turbo software runs unchanged on it.
 `ifdef X1_TURBO_Z_VIDEO_EXPERIMENT
-	"O[7:6],Model,X1 Turbo,X1,X1 Turbo Z;",
+	"O[7:6],Model,X1 Turbo Z,X1,X1 Turbo;",
 `else
 	"O[7:6],Model,X1 Turbo,X1;",
 `endif
 	// Turbo DIP 1FF0 boot device (MAME F1/F3/F5/FF). Bit 0 is the monitor
 	// type (CSP `monitor_type`): 0 = high-resolution 24 kHz, read by the IPL
-	// and Turbo BASIC at start, so changing it needs a reset.
+	// and Turbo BASIC at start, so changing it needs a reset. High-res is the
+	// default: 15 kHz software programs its own CRTC and runs either way.
 	"O[5:4],Boot device,2D,2DD,2HD,SASI;",
-	"O[8],Monitor,Standard,High-res;",
+	"O[8],Monitor,High-res,Standard;",
 	"F3,ROM,Load X1 IPL;",
 	"F4,X1,Load 16-row ANK;",
 `endif
@@ -240,6 +242,8 @@ localparam CONF_STR = {
 	"F6,BIN,Load tape controller;",
 	"S2,TAP,Tape;",
 	"T[2],Rewind tape;",
+	// While the deck plays, the CPU and the tape run four times faster.
+	"O[9],Fast tape,On,Off;",
 `endif
 	"O[1],Disk writes,Protected,Enabled;",
 	"-;",
@@ -496,8 +500,8 @@ localparam TURBO_Z_EXTERNAL_FONT_PROFILE = 0;
 // Main loads boot1.rom as index 0x40 at core start; MGL may use index 6.
 wire cassette_controller_index = CASSETTE_PROFILE && (ioctl_index == 16'd6 || ioctl_index == 16'h0040);
 // Boot device -> raw DIP: SW bits 3:1 = 000 2D, 001 2DD, 010 2HD, 111 SASI;
-// bit 0 = 1 standard, 0 high-resolution monitor.
-wire [7:0] boot_dsw = {4'hf, status[5:4] == 2'd3 ? 3'b111 : {1'b0, status[5:4]}, ~status[8]};
+// bit 0 = 1 standard, 0 high-resolution monitor (OSD default).
+wire [7:0] boot_dsw = {4'hf, status[5:4] == 2'd3 ? 3'b111 : {1'b0, status[5:4]}, status[8]};
 // Main loads boot2.rom as index 0x80: the X1 IPL slot (index 3).
 wire x1_ipl_index = TURBO_FOUNDATION && (ioctl_index == 16'd3 || ioctl_index == 16'h0080);
 // Main loads boot3.rom as index 0xC0: the physical Kanji font slot (index 5).
@@ -520,7 +524,7 @@ sharpx1 #(.TURBO_DSW_RUNTIME(1), .TURBO_Z_RUNTIME(TURBO_Z_VIDEO_PROFILE), .RAW_2
 	.pal(1'b0),
 	.scandouble(forced_scandoubler),
 	.model_x1(TURBO_FOUNDATION && status[7:6] == 2'd1),
-	.model_z(TURBO_Z_VIDEO_PROFILE && status[7:6] == 2'd2),
+	.model_z(TURBO_Z_VIDEO_PROFILE && status[7:6] == 2'd0),
 	.turbo_dsw(boot_dsw),
 	.ce_pix(ce_pix),
 
@@ -543,7 +547,7 @@ sharpx1 #(.TURBO_DSW_RUNTIME(1), .TURBO_Z_RUNTIME(TURBO_Z_VIDEO_PROFILE), .RAW_2
 	.joya_n(joya_n), .joyb_n(joyb_n),
 	// Only the X1_CASSETTE revision connects the deck and its controller.
 	.tape_mount(tape_mount), .tape_present(tape_present), .tape_empty(tape_empty),
-	.tape_sample_valid(tape_sample_valid), .tape_sample_level(tape_sample_level), .tape_sample_last(tape_sample_last), .tape_sample_hz(tape_sample_hz),
+	.tape_sample_valid(tape_sample_valid), .tape_sample_level(tape_sample_level), .tape_sample_last(tape_sample_last), .tape_sample_hz(tape_sample_hz), .fast_tape(!status[9]),
 	.tape_sample_ready(tape_sample_ready), .tape_underflow(tape_underflow), .tape_mode(tape_mode), .tape_sensor(tape_sensor),
 	.disk_ready(media_present[0]), .img_mounted(img_mounted[0]),
 	.disk_wp(!status[1] || media_readonly[0]), .img_size(media_size[0]),

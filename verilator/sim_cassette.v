@@ -31,7 +31,7 @@ module cassette_top (
         .joya_n(8'hff), .joyb_n(8'hff),
         .tape_mount(tape_mount), .tape_present(tape_present), .tape_empty(tape_empty),
         .tape_sample_valid(tape_sample_valid), .tape_sample_level(tape_sample_level),
-        .tape_sample_last(tape_sample_last), .tape_sample_hz(18'd0), .tape_sample_ready(tape_sample_ready),
+        .tape_sample_last(tape_sample_last), .fast_tape(1'b0), .tape_sample_hz(18'd0), .tape_sample_ready(tape_sample_ready),
         .tape_underflow(tape_underflow), .tape_mode(tape_mode), .tape_sensor(tape_sensor),
         .sio_external_rx_clock(1'b0), .sio_external_tx_clock(1'b0),
         .sio_rxd(2'b11), .sio_cts_n(2'b11), .sio_dcd_n(2'b11),
