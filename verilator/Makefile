@@ -3022,8 +3022,14 @@ clean:
 
 lint-wrapper-turbo-z-font-single:
 	$(V) --lint-only --timing --top-module emu -DX1_SINGLE_CLOCK -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_TURBO_Z_EXTERNAL_FONT -DX1_SCALER_LOCAL_RESET_RELEASE -DX1_CASSETTE -DX1_TURBO_FM_CPU -DX1_TURBO_DMA_FONT -DX1_TURBO_Z_VIDEO_EXPERIMENT -Itests \
-		../sharpx1.sv ../sys/hps_io.sv tests/board_pll_lint.v ../rtl/x1_joystick_map.v ../rtl/x1_tap_sd_stream.sv $(MACHINE_SRC) -Wno-fatal
+		../sharpx1.sv ../sys/hps_io.sv tests/board_pll_lint.v ../rtl/x1_joystick_map.v ../rtl/x1_tap_sd_stream.sv ../rtl/x1_tape_overlay.sv $(MACHINE_SRC) -Wno-fatal
 .PHONY: lint-wrapper-turbo-z-font-single
+# Board tape status overlay: m:ss/fill from the TAP cursor and its pixels.
+test-tape-overlay:
+	$(V) --binary --timing --top-module tape_overlay_tb -Wall -Wno-DECLFILENAME -Wno-UNUSEDSIGNAL \
+		--Mdir obj_dir_tape_overlay ../rtl/x1_tape_overlay.sv tests/tape_overlay_tb.sv -Wno-fatal
+	./obj_dir_tape_overlay/Vtape_overlay_tb
+.PHONY: test-tape-overlay
 
 test-machine-z-external-font:
 	ulimit -c 0; python3 -B tests/test_z_external_font_machine.py

@@ -41,7 +41,8 @@ module tap_sd_stream_tb;
         .sd_buff_addr(sd_buff_addr), .sd_buff_dout(sd_buff_dout), .sd_buff_wr(sd_buff_wr),
         .tape_mount(tape_mount), .tape_present(tape_present), .tape_empty(tape_empty),
         .sample_valid(sample_valid), .sample_level(sample_level), .sample_last(sample_last),
-        .sample_ready(sample_ready), .sample_hz(sample_hz), .loaded(loaded), .rejected(rejected));
+        .sample_ready(sample_ready), .sample_hz(sample_hz), .loaded(loaded), .rejected(rejected),
+        .position(), .length());
 
     x1_cassette_transport #(.SYS_HZ(SYS_HZ), .RUNTIME_RATE(RUNTIME)) transport(.clk_sys(clk), .reset(1'b0),
         .mount(tape_mount), .present(tape_present), .empty(tape_empty),

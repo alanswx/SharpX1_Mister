@@ -88,7 +88,7 @@ module top #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636364,
         .tape_mount(tape_mount), .tape_present(tape_present), .tape_empty(tape_empty),
         .sample_valid(tape_sample_valid), .sample_level(tape_sample_level),
         .sample_last(tape_sample_last), .sample_ready(tape_sample_ready), .sample_hz(tape_sample_hz),
-        .loaded(tape_loaded), .rejected(tape_rejected)
+        .loaded(tape_loaded), .rejected(tape_rejected), .position(), .length()
     );
 `else
     localparam CASSETTE = 0;

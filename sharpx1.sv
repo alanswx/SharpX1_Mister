@@ -197,7 +197,7 @@ assign BUTTONS = 0;
 
 //////////////////////////////////////////////////////////////////
 
-wire [1:0] ar = status[122:121];
+wire [1:0] ar = cfg[122:121];
 
 assign VIDEO_ARX = (!ar) ? 13'd4 : ({11'd0, ar} - 13'd1);
 assign VIDEO_ARY = (!ar) ? 13'd3 : 13'd0;
@@ -205,53 +205,83 @@ assign VIDEO_ARY = (!ar) ? 13'd3 : 13'd0;
 `include "build_id.v" 
 // Keep any J/j joystick entries LAST in CONF_STR (after V); earlier entries
 // can break MiSTer's OSD parsing. Checked by test-osd-config.
+// Layout follows the computer-core OSD standard: media first (MGL f/s items
+// must name top-page rows), then Machine/Video/Advanced pages; settings take
+// effect at the next reset (cfg), "Changes pending" shows until then.
 localparam CONF_STR = {
 	"SharpX1;;",
 	"-;",
-	"O[122:121],Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
-	"F0,ROM,Load IPL;",
-`ifdef X1_TURBO_FOUNDATION
-	// Runtime model; changing it resets the machine. X1 mode boots the
-	// index-3 X1 IPL (F3 or boot2.rom) when loaded, else the main IPL's 4 KiB.
-	// X1 Turbo Z additionally decodes the Z palette/mode registers; it is the
-	// default (value 0) because Turbo software runs unchanged on it.
-`ifdef X1_TURBO_Z_VIDEO_EXPERIMENT
-	"O[7:6],Model,X1 Turbo Z,X1,X1 Turbo;",
-`else
-	"O[7:6],Model,X1 Turbo,X1;",
+	// One entry per drive. Main reports the extension's list position in
+	// ioctl_index[7:6] before each mount: 0 = D88 container, 1 = raw X1 2D.
+	"SC0,D882D ,Pri. Drive A;",
+	"SC1,D882D ,Drive B;",
+`ifdef X1_CASSETTE
+	// 4-192 kHz TAP waveform images; each mount starts rewound.
+	"SC2,TAP,Tape;",
 `endif
-	// Turbo DIP 1FF0 boot device (MAME F1/F3/F5/FF). Bit 0 is the monitor
-	// type (CSP `monitor_type`): 0 = high-resolution 24 kHz, read by the IPL
-	// and Turbo BASIC at start, so changing it needs a reset. High-res is the
-	// default: 15 kHz software programs its own CRTC and runs either way.
-	"O[5:4],Boot device,2D,2DD,2HD,SASI;",
-	"O[8],Monitor,High-res,Standard;",
+`ifdef X1_TURBO_FOUNDATION
+	// X1 mode boots the index-3 X1 IPL (F3 or boot2.rom) when loaded, else
+	// the main IPL's 4 KiB.
 	"F3,ROM,Load X1 IPL;",
 	"F4,X1,Load 16-row ANK;",
 `endif
 `ifdef X1_TURBO_Z_EXTERNAL_FONT
-    "F5,ROM,Load physical Kanji font;",
+	"F5,ROM,Load Kanji font;",
 `endif
-	// One entry per drive. Main reports the extension's list position in
-	// ioctl_index[7:6] before each mount: 0 = D88 container, 1 = raw X1 2D.
-	"S0,D882D ,Drive A;",
-	"S1,D882D ,Drive B;",
 `ifdef X1_CASSETTE
-	// 4-192 kHz TAP waveform images; each mount starts rewound. The deck
-	// controller extension loads as boot1.rom (index 0x40) or index 6.
-	"F6,BIN,Load tape controller;",
-	"S2,TAP,Tape;",
-	"T[2],Rewind tape;",
-	// While the deck plays, the CPU and the tape run four times faster.
-	"O[9],Fast tape,On,Off;",
+	// The deck controller also loads as boot1.rom (index 0x40).
+	"F6,BIN,Load tape ctrl.;",
 `endif
-	"O[1],Disk writes,Protected,Enabled;",
+	"F0,ROM,Load ROM;",
 	"-;",
-	"T[0],Reset;",
-	"R[0],Reset and close OSD;",
+	"P1,Machine;",
+	"P2,Video;",
+	"P5,Advanced;",
+	"-;",
+	"h0-,Changes pending;",
+	"R[0],Apply and reset;",
+
+`ifdef X1_TURBO_FOUNDATION
+	// X1 Turbo Z additionally decodes the Z palette/mode registers; it is the
+	// default (value 0) because Turbo software runs unchanged on it.
+`ifdef X1_TURBO_Z_VIDEO_EXPERIMENT
+	"P1O[7:6],Model,X1 Turbo Z,X1,X1 Turbo;",
+`else
+	"P1O[7:6],Model,X1 Turbo,X1;",
+`endif
+`endif
+`ifdef X1_CASSETTE
+	// While the deck plays, the CPU and the tape run four times faster.
+	"P1O[9],Fast tape,On,Off;",
+	"P1-;",
+	"P1T[2],Rewind tape;",
+`endif
+
+`ifdef X1_TURBO_FOUNDATION
+	// Turbo DIP 1FF0 bit 0 is the monitor type (CSP `monitor_type`): 0 =
+	// high-resolution 24 kHz, read by the IPL and Turbo BASIC at start.
+	// High-res is the default: 15 kHz software programs its own CRTC. The
+	// X1 model has no DIP switches, so the row is hidden there.
+	"P2H1O[8],Monitor,High-res,Standard;",
+	"P2h1-;",
+`endif
+	"P2O[122:121],Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
+`ifdef X1_CASSETTE
+	"P2O[10],Tape overlay,On,Off;",
+`endif
+
+`ifdef X1_TURBO_FOUNDATION
+	// Turbo DIP 1FF0 boot device (MAME F1/F3/F5/FF).
+	"P5H1O[5:4],Boot device,2D,2DD,2HD,SASI;",
+	"P5h1-;",
+`endif
+	"P5O[1],Disk writes,Protected,Enabled;",
+
 `ifdef X1_CASSETTE
 	"I,Tape ready (rewound),Tape format not supported;",
 `endif
+	// v1: Model and Monitor value lists reordered (October 23, 2026).
+	"v,1;",
 	"V,v",`BUILD_DATE,
 	// x1_joystick_map routes MiSTer bits 4/5 to the X1 PSG trigger A/B pins.
 	";J,Trigger A,Trigger B;",
@@ -261,6 +291,9 @@ localparam CONF_STR = {
 wire forced_scandoubler;
 wire   [1:0] buttons;
 wire [127:0] status;
+// OSD settings latched at reset; see the CONF_STR note.
+reg  [127:0] cfg = 128'd0;
+wire osd_pending, osd_no_dip;
 wire  [10:0] ps2_key;
 
 wire        ioctl_download;
@@ -339,7 +372,7 @@ hps_io #(.CONF_STR(CONF_STR), .PS2DIV(1600), .VDNUM(VDNUM), .VIDEO_CDC(TURBO_VID
 
 	.buttons(buttons),
 	.status(status),
-	.status_menumask(16'd0), .status_in(128'd0), .status_set(1'b0),
+	.status_menumask({14'd0, osd_no_dip, osd_pending}), .status_in(128'd0), .status_set(1'b0),
 	.info_req(tape_info_req), .info(tape_info), .video_rotated(1'b0), .new_vmode(1'b0),
 	.joystick_0(joy0), .joystick_1(joy1),
 	.joystick_0_rumble(16'd0), .joystick_1_rumble(16'd0),
@@ -365,6 +398,9 @@ wire tape_underflow;
 wire [17:0] tape_sample_hz;
 wire [7:0] tape_mode, tape_sensor;
 wire tape_loaded, tape_rejected;
+wire [31:0] tape_position, tape_length;
+wire [41:0] tape_status_word;
+wire tape_status_req, tape_status_ack;
 generate if (CASSETTE_PROFILE) begin : tape_slot
 	// One OSD info message per mount outcome (CONF_STR I entries 1/2).
 	reg old_loaded = 0, old_rejected = 0, old_rewind = 0;
@@ -386,9 +422,17 @@ generate if (CASSETTE_PROFILE) begin : tape_slot
 		.tape_mount(tape_mount), .tape_present(tape_present), .tape_empty(tape_empty),
 		.sample_valid(tape_sample_valid), .sample_level(tape_sample_level),
 		.sample_last(tape_sample_last), .sample_ready(tape_sample_ready), .sample_hz(tape_sample_hz),
-		.loaded(tape_loaded), .rejected(tape_rejected)
+		.loaded(tape_loaded), .rejected(tape_rejected), .position(tape_position), .length(tape_length)
+	);
+	x1_tape_status tape_status (
+		.clk(clk_sys), .loaded(tape_loaded), .playing(tape_mode == 8'd2),
+		.fast(!cfg[9] && tape_mode == 8'd2 && tape_sample_hz <= 18'd48000),
+		.position(tape_position), .length(tape_length), .hz(tape_sample_hz),
+		.status(tape_status_word), .req(tape_status_req), .ack(tape_status_ack)
 	);
 end else begin : no_tape_slot
+	assign tape_status_word = 0;
+	assign tape_status_req = 0;
 	assign {tape_loaded, tape_rejected} = 2'b00;
 	assign {tape_mount, tape_present, tape_empty} = 3'b000;
 	assign {tape_sample_valid, tape_sample_level, tape_sample_last} = 3'b000;
@@ -427,15 +471,15 @@ pll pll
 	.outclk_1(legacy_video_pll)  // Checked-in PLL: 28.571428 MHz; unchanged old profiles.
 );
 
-// A model change resets the machine, which samples the model during reset.
-reg [1:0] model_seen = 0;
-reg [7:0] model_reset = 0;
-always @(posedge clk_sys) begin
-	model_seen <= status[7:6];
-	if (model_seen != status[7:6]) model_reset <= 8'hff;
-	else if (model_reset != 0) model_reset <= model_reset - 8'd1;
-end
-wire reset = RESET | status[0] | buttons[1] | ioctl_download | !turbo_video_locked | (model_reset != 0);
+wire reset = RESET | status[0] | buttons[1] | ioctl_download | !turbo_video_locked;
+// The settings the machine runs with, taken from the OSD at every reset
+// (Apply and reset, the board's reset, a download, a core reload).
+always @(posedge clk_sys) if (reset) cfg <= status;
+// "Changes pending": a setting differs from the running one (not reset or
+// the Rewind tape button).
+assign osd_pending = {status[1], status[10:4], status[122:121]} != {cfg[1], cfg[10:4], cfg[122:121]};
+// Monitor and Boot device rows do not apply to the X1 model (no DIP switches).
+assign osd_no_dip = TURBO_FOUNDATION && status[7:6] == 2'd1;
 
 //////////////////////////////////////////////////////////////////
 
@@ -501,7 +545,7 @@ localparam TURBO_Z_EXTERNAL_FONT_PROFILE = 0;
 wire cassette_controller_index = CASSETTE_PROFILE && (ioctl_index == 16'd6 || ioctl_index == 16'h0040);
 // Boot device -> raw DIP: SW bits 3:1 = 000 2D, 001 2DD, 010 2HD, 111 SASI;
 // bit 0 = 1 standard, 0 high-resolution monitor (OSD default).
-wire [7:0] boot_dsw = {4'hf, status[5:4] == 2'd3 ? 3'b111 : {1'b0, status[5:4]}, status[8]};
+wire [7:0] boot_dsw = {4'hf, cfg[5:4] == 2'd3 ? 3'b111 : {1'b0, cfg[5:4]}, cfg[8]};
 // Main loads boot2.rom as index 0x80: the X1 IPL slot (index 3).
 wire x1_ipl_index = TURBO_FOUNDATION && (ioctl_index == 16'd3 || ioctl_index == 16'h0080);
 // Main loads boot3.rom as index 0xC0: the physical Kanji font slot (index 5).
@@ -523,8 +567,8 @@ sharpx1 #(.TURBO_DSW_RUNTIME(1), .TURBO_Z_RUNTIME(TURBO_Z_VIDEO_PROFILE), .RAW_2
 
 	.pal(1'b0),
 	.scandouble(forced_scandoubler),
-	.model_x1(TURBO_FOUNDATION && status[7:6] == 2'd1),
-	.model_z(TURBO_Z_VIDEO_PROFILE && status[7:6] == 2'd0),
+	.model_x1(TURBO_FOUNDATION && cfg[7:6] == 2'd1),
+	.model_z(TURBO_Z_VIDEO_PROFILE && cfg[7:6] == 2'd0),
 	.turbo_dsw(boot_dsw),
 	.ce_pix(ce_pix),
 
@@ -547,13 +591,13 @@ sharpx1 #(.TURBO_DSW_RUNTIME(1), .TURBO_Z_RUNTIME(TURBO_Z_VIDEO_PROFILE), .RAW_2
 	.joya_n(joya_n), .joyb_n(joyb_n),
 	// Only the X1_CASSETTE revision connects the deck and its controller.
 	.tape_mount(tape_mount), .tape_present(tape_present), .tape_empty(tape_empty),
-	.tape_sample_valid(tape_sample_valid), .tape_sample_level(tape_sample_level), .tape_sample_last(tape_sample_last), .tape_sample_hz(tape_sample_hz), .fast_tape(!status[9]),
+	.tape_sample_valid(tape_sample_valid), .tape_sample_level(tape_sample_level), .tape_sample_last(tape_sample_last), .tape_sample_hz(tape_sample_hz), .fast_tape(!cfg[9]),
 	.tape_sample_ready(tape_sample_ready), .tape_underflow(tape_underflow), .tape_mode(tape_mode), .tape_sensor(tape_sensor),
 	.disk_ready(media_present[0]), .img_mounted(img_mounted[0]),
-	.disk_wp(!status[1] || media_readonly[0]), .img_size(media_size[0]),
+	.disk_wp(!cfg[1] || media_readonly[0]), .img_size(media_size[0]),
 	.disk_raw(media_raw[0]), .disk_raw_b(media_raw[1]),
 	.disk_ready_b(media_present[1]), .img_mounted_b(img_mounted[1]),
-	.disk_wp_b(!status[1] || media_readonly[1]), .img_size_b(media_size[1]),
+	.disk_wp_b(!cfg[1] || media_readonly[1]), .img_size_b(media_size[1]),
 	.sd_drive(fdc_sd_drive), .sd_lba(fdc_sd_lba), .sd_rd(fdc_sd_rd), .sd_wr(fdc_sd_wr), .sd_ack(fdc_sd_drive ? sd_ack[1] : sd_ack[0]),
 	.sd_buff_addr(sd_buff_addr[8:0]), .sd_buff_dout(sd_buff_dout),
 	.sd_buff_din(fdc_sd_din), .sd_buff_wr(sd_buff_wr),
@@ -573,9 +617,22 @@ assign CE_PIXEL = ce_pix;
 assign VGA_DE = ~(HBlank | VBlank);
 assign VGA_HS = HSync;
 assign VGA_VS = VSync;
-assign VGA_R  = {2{machine_rgb12[11:8]}};
-assign VGA_G  = {2{machine_rgb12[7:4]}};
-assign VGA_B  = {2{machine_rgb12[3:0]}};
+// Optional tape status line while the deck plays (Video page).
+wire [11:0] overlay_rgb12;
+generate if (CASSETTE_PROFILE) begin : tape_status_overlay
+	x1_tape_overlay tape_overlay (
+		.clk(clk_28636), .ce_pix(ce_pix), .hblank(HBlank), .vblank(VBlank),
+		.enable(!cfg[10]),
+		.status(tape_status_word), .req(tape_status_req), .ack(tape_status_ack),
+		.rgb_in(machine_rgb12), .rgb_out(overlay_rgb12)
+	);
+end else begin : no_tape_overlay
+	assign overlay_rgb12 = machine_rgb12;
+	assign tape_status_ack = 0;
+end endgenerate
+assign VGA_R  = {2{overlay_rgb12[11:8]}};
+assign VGA_G  = {2{overlay_rgb12[7:4]}};
+assign VGA_B  = {2{overlay_rgb12[3:0]}};
 
 assign LED_USER = ioctl_download | (|sd_rd) | (|sd_wr);
 

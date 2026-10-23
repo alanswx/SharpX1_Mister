@@ -46,7 +46,9 @@ module x1_tap_sd_stream #(
     output logic [17:0] sample_hz,
     // status
     output logic        loaded,
-    output logic        rejected
+    output logic        rejected,
+    output logic [31:0] position,    // samples consumed (tape status overlay)
+    output logic [31:0] length       // samples on the tape
 );
     localparam logic [31:0] MAX_BYTES = 32'h1000_0000;
 
@@ -100,6 +102,8 @@ module x1_tap_sd_stream #(
     assign sample_level = byte_reg[3'd7 - cur_bit[2:0]];
     assign sample_last = cur_bit + 32'd1 == total_bits;
     assign loaded = state == RUN;
+    assign position = cur_bit;
+    assign length = total_bits;
 
     always_ff @(posedge clk) begin
         if (sd_ack && sd_buff_wr) buffer[{fetch_slot, sd_buff_addr}] <= sd_buff_dout;
