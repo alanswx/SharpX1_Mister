@@ -250,7 +250,12 @@ module tape_quickload_tb;
             build(r == 0 ? 8000 : 44100, 8'h01, 0, 16'hff80);
             mount();
             check_pass("over the stub");
-            $display("PASS: quick start at %0d Hz: waiting check, header/program served, deck after the program, rearm, reset request, disarm, BASIC, bad-count and over-stub fallback", hz);
+            // H: a program over the IPL stack that wraps past FFFF (as 3D
+            // Bomberman's FFDE + F8): the tape plays normally.
+            build(r == 0 ? 8000 : 44100, 8'h01, 0, 16'hfff0);
+            mount();
+            check_pass("over the stack");
+            $display("PASS: quick start at %0d Hz: waiting check, header/program served, deck after the program, rearm, reset request, disarm, BASIC, bad-count, over-stub and over-stack fallback", hz);
         end
         // Quick start off: the tape goes to the deck as before.
         enable = 0;

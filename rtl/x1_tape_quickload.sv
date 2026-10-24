@@ -25,6 +25,8 @@
 //          load address, then FFFE = 0083, SP = 0 and JP 0083: the IPL's own
 //          tape-boot ending (trampoline, exec from FF16). FF90-FFEF is unused
 //          by the X1 and Turbo IPLs; their boot paths 0083-00BE are the same.
+//          10 of the MAME list's 124 machine-code tapes load above FFA0 and
+//          are not quick-started (all have more data after the first block).
 // 175 us decodes every bootable machine-code TAP of the MAME 0.289 list (124
 // of 163; the rest are BASIC or data tapes) at 8-48 kHz.
 //
@@ -32,7 +34,7 @@
 //   1. Check: decode the header and the program and compare both counts. The
 //      deck does not see the tape meanwhile, and a CPU read of the port waits.
 //   2. Pass: no machine-code program (BASIC, data, no sync within 30 s of
-//      tape, bad count, loads over the stub): the tape is presented normally
+//      tape, bad count, ends above FFA0): the tape is presented normally
 //      and the port reads FF.
 //   3. Boot: rewind, decode again and hand each program byte to the CPU as the
 //      IPL reads it. If the IPL had not read the port during the check (a
@@ -107,9 +109,12 @@ module x1_tape_quickload (
     wire [23:0] program_addr = 24'h120 + 24'(served);
 
     localparam int STUB_LEN = 46;
-    // A program over the stub (FFA0-FFCD) would overwrite it: play normally.
+    // Programs must end at or below FFA0. Above it are the stub and the IPL's
+    // stack; programs that load there (3D Bomberman, FFDE-00D5) overwrite the
+    // stack of the IPL's tape routine to start themselves, which the ROM
+    // routine's different stack does not reproduce: play those normally.
     wire [16:0] load_end = 17'({hdr[21], hdr[20]}) + 17'({hdr[19], hdr[18]});
-    wire over_stub = {hdr[21], hdr[20]} < 16'hffa0 + 16'(STUB_LEN) && load_end > 17'h0ffa0;
+    wire over_stub = load_end > 17'h0ffa0;
     function automatic logic [7:0] stub(input logic [5:0] i);
         case (i)
             0: stub = 8'h01;  1: stub = 8'h00;  2: stub = 8'h1d;  // ld bc,1D00

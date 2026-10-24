@@ -23,8 +23,8 @@ OSD Machine page, **Tape speed** (`O[12:11]`, replaces Fast tape `O[9]`):
   own tape format from the SD stream (bit = level 175 us after a rising edge;
   N zeros and N ones of sync, N = 40 header / 20 program; bytes MSB first,
   each followed by one edge; a 16-bit count of 1 bits). After a mount or
-  rewind it checks the header (attribute 01, non-zero size, not loading over
-  FFA0-FFCD) and both counts while the deck does not see the tape and port
+  rewind it checks the header (attribute 01, non-zero size, ending at or
+  below FFA0) and both counts while the deck does not see the tape and port
   reads wait; then it rewinds and decodes again for the boot. The IPL boots
   a 46-byte stub from the ROM (header at 000000 with the tape's name, load
   and exec FFA0): it switches the IPL ROM back on, copies the tape header
@@ -36,8 +36,13 @@ OSD Machine page, **Tape speed** (`O[12:11]`, replaces Fast tape `O[9]`):
   IPLs share 0083-00BE and leave FF90-FFEF unused. The tape is handed to the
   deck in STOP just after the program, as the IPL's tape routine stops the
   deck after a program (0x057A); a loader starts it again. A tape that fails
-  the check (BASIC, data tape, no sync within 30 s, bad count, over the stub)
-  is presented normally and the port reads FF. If the IPL had not read the port during the
+  the check (BASIC, data tape, no sync within 30 s, bad count, ending above
+  FFA0) is presented normally and the port reads FF. Above FFA0 are the stub
+  and the IPL stack: 3D Bomberman's first program (FFDE + F8, wrapping to
+  00D5) overwrites the stack of the IPL's tape routine so that its RET
+  starts the game; the ROM routine's stack differs and it ended in the IPL's
+  TV timer on MiSTer 126 (sweep, October 24). 10 of the 124 machine-code
+  MAME tapes end above FFA0; all have more data after the first block. If the IPL had not read the port during the
   check, the module requests a machine reset (a tape mounted at the IPL menu
   or in BASIC). A user reset boots the tape again; a later drive A mount or
   an eject disarms it.
@@ -49,9 +54,10 @@ OSD Machine page, **Tape speed** (`O[12:11]`, replaces Fast tape `O[9]`):
   simulated SD slot, tapes built in the IPL format at 8 and 44.1 kHz. Checks
   the waiting presence read, the stub header and bytes, tape header and
   program bytes, the deck mount position after the program, rearm, the
-  reset request, disarm, and the BASIC, bad-count, over-stub and disabled
-  fallbacks. Three mutants are rejected (program byte released at the start
-  of the CPU read; no rewind before the boot pass; no over-stub check).
+  reset request, disarm, and the BASIC, bad-count, over-stub, over-stack
+  (wrapping past FFFF) and disabled fallbacks. Four mutants are rejected
+  (program byte released at the start of the CPU read; no rewind before the
+  boot pass; no over-stub check; the stub-only range check).
 - Machine simulation (`turbo-x3-single-cassette-quick`, 42.95 MHz single
   clock, native Turbo IPL `212895703175-ipl.x1t`, controller `boot1.rom`,
   tester-package TAPs, 8 kHz), run time from power-on:
