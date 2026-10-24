@@ -1,5 +1,25 @@
 # DMA single-clock FPGA qualification revision
 
+## October 24, 2026: tape speed 5x and quick start
+
+`fef6013` (5x, ROM port, quick start) built at seeds 1/2 (22,405/22,896
+ALMs, worst slack 0.201/0.242 ns) but was superseded before hardware: its
+quick start crashed Zero Fighter in simulation. `bd6f331` (boot stub) at
+seeds 1 and 2 (`quartus-linux-ulBM1ZVG`, `-NTVe3T3c`): 22,655 / 22,590
+ALMs (54%), worst slack 0.240 / 0.248 ns, no negative slack in either; seed
+1 RBF `dcf6ac527f9e9c2716bd25c9bb64ee53906f5f3b6bdbd17fa2fed6ca0f7a8786`.
+
+MiSTer 126, setname `X1Q_20261024` (seed 1; media copied from
+`X1R_20261023`, plus Pock-Kun), fresh settings (Tape speed 5x + quick
+start), MGL tape mount then reset; times from the MGL load:
+
+| Title | Result |
+| --- | --- |
+| Yellow Cab (8 kHz TAP, one 52 KB block) | Title by 26 s, instructions by 40 s ✓ (`592196b` 4x: instructions at 85 s) |
+| Zero Fighter (128-byte loader, then its own loader) | "IPL is loading ZERO" and overlay `0:31/ 0:41 x5` at 18 s: the stub-booted loader reads the rest at 5x; title and attract by 42 s ✓ |
+| Pock-Kun (BASIC) | "File mode error" and the IPL menu, as without quick start ✓ |
+| Yellow Cab mounted with OSD Tape at that IPL menu | Core resets itself, title 30 s after the mount ✓ |
+
 ## October 23, 2026: fast tape, tape overlay, OSD layout, Z80 R register
 
 `555cccc` added fast tape, the tape overlay and the computer-core OSD
