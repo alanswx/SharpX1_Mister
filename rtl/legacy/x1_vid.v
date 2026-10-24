@@ -525,17 +525,15 @@ generate if(TURBO_SUPPORT && Z_KANJI_RENDER) begin : z_kanji_display
   reg eligible_latched, miss=0;
   reg glyph_blank=1;
   // Mirror accepted video-domain CRTC writes. The CRTC register file itself
-  // retains warm reset, so these fields/validity do too. Only the documented
-  // 25-line, 16-raster configuration is admitted by this initial Z profile.
+  // retains warm reset, so these fields/validity do too. 16-raster layouts
+  // are admitted (documented 25-line high scan, and 15 kHz 16-raster rows).
   reg [4:0] crtc_index, maximum_raster;
-  reg [6:0] displayed_rows;
-  reg raster_valid=0, rows_valid=0;
+  reg raster_valid=0;
   always @(posedge I_VCLK) begin
     if(I_CRTC_BUS_WRITE) begin
       if(!I_CRTC_BUS_RS) crtc_index<=I_CRTC_BUS_DATA[4:0];
       else begin
         if(crtc_index==5'd9) begin maximum_raster<=I_CRTC_BUS_DATA[4:0];raster_valid<=1;end
-        if(crtc_index==5'd6) begin displayed_rows<=I_CRTC_BUS_DATA[6:0];rows_valid<=1;end
       end
     end
   end
@@ -549,9 +547,12 @@ generate if(TURBO_SUPPORT && Z_KANJI_RENDER) begin : z_kanji_display
         kan_latched<=I_KAN_D;
         attr_latched<=I_ATT_D;
         row_latched<=crtc_ra[3:0];
-        eligible_latched<=I_TURBO_HIGH_SCAN && !text_y2 && !underline_mode &&
-                          !I_ATT_D[7] && !I_ATT_D[6] && raster_valid && rows_valid &&
-                          maximum_raster==5'd15 && displayed_rows==7'd25;
+        // 16-raster cells carry the whole 16x16 glyph in either scan:
+        // Koei Turbo titles (Aoki Ookami, Sangokushi) use 15 kHz 80x12
+        // (R6=12, R9=15) for full-width letters/digits, as MAME draws.
+        eligible_latched<=!text_y2 && !underline_mode &&
+                          !I_ATT_D[7] && !I_ATT_D[6] && raster_valid &&
+                          maximum_raster==5'd15;
       end
       if(video_step & ~QP & QA & ~QD & ~QC & ~QB) begin
         // Align invalidity to glyph LOAD, not the earlier request. Apply its
