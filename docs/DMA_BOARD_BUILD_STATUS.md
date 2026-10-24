@@ -1,5 +1,33 @@
 # DMA single-clock FPGA qualification revision
 
+## October 24, 2026 (later): tester fixes
+
+`9253317` (PSG period 0, D88 ID-CRC protection records, Z Kanji in any
+16-raster layout, tape turbo silence gate, OSD/tape-slot changes) at seeds
+1 and 2 (`quartus-linux-x6ZsoaT7`, `-fj0UoV2W`): 22,840 / 22,599 ALMs,
+worst slack 0.245 / 0.244 ns. Seed 1 RBF `15fb0c7519ead0cbb9a7faff5c2acbce297794cc2fce147138e0e32331c8e8c6`.
+
+MiSTer 126, setnames `X1F_20261024` (disks) and `X1H_20261024` (tapes, no
+remembered disk):
+
+| Title | Result |
+| --- | --- |
+| Suikoden (Turbo) | Loads; intro scene with its Kanji story line ✓ (did not load: rejected protection record) |
+| Shin Kugyokuden (new disk A + B) | Intro scene at 70 s ✓ (did not boot) |
+| The Man I Love (disks 1 + 2) | "DISK MISTERY #4 / THE MAN I LOVE" title at 40 s ✓ (did not load) |
+| Hyper Olympic '84 (TAP, quick start + 5x) | Score screen clean at 60 s, overlay `5:15/ 5:59` without x5 (silent tail at 1x); event screen on black at 100 s ✓ (was striped) |
+| Aoki Ookami (Turbo) | Title graphic at 60 s; the prompt row below it still shows no glyphs ✗ (Kanji fix did not cover this screen) |
+| Thunder Force speech | Not checked: the capture path recorded no audio at all (music silent too) |
+
+A tape MGL under a setname whose drives remember a disk boots the disk
+(IPL order); use a separate setname for tape tests.
+
+The tape sweep (`dcf6ac52`, 124 MAME machine-code TAPs, quick start + 5x):
+failures were 3D Bomberman, Dezeni Land, Maharito, Tomato-hime (2),
+Yakyu-kyou (2) (IPL TV timer: program over the IPL stack, excluded since
+`01e8aba`), Hyper Olympic (2) (fixed above) and Super Mario Bros. Special
+(game's TAPE ERROR, also at 5x without quick start: open). TanTan Tanuki A/B
+stay at "IPL is loading" with and without quick start (two-tape game).
 ## October 24, 2026: tape speed 5x and quick start
 
 `fef6013` (5x, ROM port, quick start) built at seeds 1/2 (22,405/22,896
