@@ -1040,7 +1040,10 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
     wire [9:0] psg_sound;
     wire psg_address = !dam && a[15:8] == 8'h1c;
     wire psg_access = !dam && a[15:8] == 8'h1b;
-    jt49_bus psg (
+    // Tone period 0 counts as 1 on the AY (MAME too): software playing
+    // samples through a volume register can leave the tone enabled at
+    // period 0 (Thunder Force speech: R7=3E, R0/R1=0, R8 at ~21 kHz).
+    jt49_bus #(.MUTE_NULL_PERIOD(0)) psg (
         .rst_n(~core_reset), .clk(clk_sys), .clk_en(psg_ce),
         .bdir(io_write && (psg_address || psg_access)),
         .bc1((io_write && psg_address) || (io_read && psg_access)),
@@ -1048,10 +1051,26 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
         .A(), .B(), .C(), .sample(), .IOA_in(joya_n), .IOB_in(joyb_n),
         .IOA_out(), .IOB_out(), .IOA_oe(), .IOB_oe()
     );
-    assign audio = {psg_sound,6'd0};
+    // That tone is ultrasonic (125 kHz) and the analog output averages it.
+    // Average 32 PSG clocks (16 us, two tone periods, 8 jt49 sums) before
+    // the 62.5 kHz mix, or it aliases into an audible beat.
+    reg [14:0] psg_sum = 0;
+    reg [4:0] psg_count = 0;
+    reg [9:0] psg_avg = 0;
+    wire [14:0] psg_total = psg_sum + {5'd0, psg_sound};
+    always @(posedge clk_sys)
+        if (core_reset) begin psg_sum <= 0; psg_count <= 0; psg_avg <= 0; end
+        else if (psg_ce) begin
+            psg_count <= psg_count + 5'd1;
+            if (psg_count == 5'd31) begin
+                psg_avg <= psg_total[14:5];
+                psg_sum <= 0;
+            end else psg_sum <= psg_total;
+        end
+    assign audio = {psg_avg,6'd0};
     generate if(TURBO && TURBO_FM_CPU) begin : turbo_fm_audio
         x1_audio_mix mixer(.clk(clk_sys),.reset(core_reset),.sample_ce(fm_sample),
-            .psg(psg_sound),.fm_left(fm_left),.fm_right(fm_right),
+            .psg(psg_avg),.fm_left(fm_left),.fm_right(fm_right),
             .left(audio_left),.right(audio_right),.mono(audio_mono));
         assign audio_sample=fm_sample;
     end else begin : no_fm_audio

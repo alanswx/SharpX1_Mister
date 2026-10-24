@@ -95,3 +95,4 @@ verilator/obj_dir_x3_release_fast/
 verilator/obj_dir_x3_release_mut/
 verilator/obj_dir_tape_overlay/
 verilator/obj_dir_tape_quickload/
+.claude/worktrees/

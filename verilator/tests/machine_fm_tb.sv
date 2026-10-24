@@ -161,8 +161,8 @@ module machine_fm_tb #(parameter FM_ENABLED=1,SINGLE_CLOCK=0,MASTER_HZ=32000000,
     always @(posedge clk or posedge dut.core_reset) begin
         if(dut.core_reset) begin dc_ref=0;psg_ref=0;end
         else if(audio_sample) begin
-            psg_ref=longint'(dut.psg_sound)*32-dc_ref/65536;
-            delta_ref=longint'(dut.psg_sound)*32*65536-dc_ref;
+            psg_ref=longint'(dut.psg_avg)*32-dc_ref/65536;
+            delta_ref=longint'(dut.psg_avg)*32*65536-dc_ref;
             dc_ref+=delta_ref<0 ? -((-delta_ref+2047)/2048) : delta_ref/2048;
         end
     end
@@ -229,7 +229,7 @@ module machine_fm_tb #(parameter FM_ENABLED=1,SINGLE_CLOCK=0,MASTER_HZ=32000000,
         while(count<6250) begin
             @(negedge clk);
             if(audio_sample) begin
-                raw_l=int'(dut.fm_left);raw_r=int'(dut.fm_right);raw_psg=int'(dut.psg_sound);
+                raw_l=int'(dut.fm_left);raw_r=int'(dut.fm_right);raw_psg=int'(dut.psg_avg);
                 tick();
                 assert(int'(audio_left)==clip(raw_l+int'(psg_ref)) &&
                     int'(audio_right)==clip(raw_r+int'(psg_ref)) &&
