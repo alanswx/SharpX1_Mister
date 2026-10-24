@@ -400,7 +400,7 @@ hps_io #(.CONF_STR(CONF_STR), .PS2DIV(1600), .VDNUM(VDNUM), .VIDEO_CDC(TURBO_VID
 
 // Read-only tape slot (S2). Mounts survive machine reset; the deck itself
 // is the machine's x1_cassette_transport.
-wire tape_mount, tape_present, tape_empty, tape_play;
+wire tape_mount, tape_present, tape_empty;
 wire tape_sample_valid, tape_sample_level, tape_sample_last, tape_sample_ready;
 // Tape speed (cfg[12:11]): 0 = 5x + quick start, 1 = 5x, 2 = Normal.
 wire tape_fast = cfg[12:11] != 2'd2;
@@ -455,7 +455,6 @@ generate if (CASSETTE_PROFILE) begin : tape_slot
 		.stream_last(tape_sample_last), .stream_rejected(tape_rejected), .stream_ready(stream_ready),
 		.stream_hz(tape_sample_hz),
 		.deck_ready(tape_sample_ready), .deck_mount(tape_mount), .deck_present(tape_present), .deck_empty(tape_empty),
-		.deck_play(tape_play),
 		.cart_addr(cart_addr), .cart_read(cart_read), .cart_data(cart_data), .cart_ready(cart_ready),
 		.reset_request(quick_reset), .busy()
 	);
@@ -469,7 +468,7 @@ end else begin : no_tape_slot
 	assign tape_status_word = 0;
 	assign tape_status_req = 0;
 	assign {tape_loaded, tape_rejected} = 2'b00;
-	assign {tape_mount, tape_present, tape_empty, tape_play} = 4'b0000;
+	assign {tape_mount, tape_present, tape_empty} = 3'b000;
 	assign {cart_ready, cart_data, quick_reset} = {1'b1, 8'hff, 1'b0};
 	assign {tape_sample_valid, tape_sample_level, tape_sample_last} = 3'b000;
 	assign tape_sample_hz = 18'd8000;
@@ -627,7 +626,7 @@ sharpx1 #(.TURBO_DSW_RUNTIME(1), .TURBO_Z_RUNTIME(TURBO_Z_VIDEO_PROFILE), .RAW_2
 	.joya_n(joya_n), .joyb_n(joyb_n),
 	// Only the X1_CASSETTE revision connects the deck and its controller.
 	.tape_mount(tape_mount), .tape_present(tape_present), .tape_empty(tape_empty),
-	.tape_sample_valid(tape_sample_valid), .tape_sample_level(tape_sample_level), .tape_sample_last(tape_sample_last), .tape_sample_hz(tape_sample_hz), .fast_tape(tape_fast), .tape_play(tape_play),
+	.tape_sample_valid(tape_sample_valid), .tape_sample_level(tape_sample_level), .tape_sample_last(tape_sample_last), .tape_sample_hz(tape_sample_hz), .fast_tape(tape_fast),
 	.cart_addr(cart_addr), .cart_read(cart_read), .cart_data(cart_data), .cart_ready(cart_ready),
 	.tape_sample_ready(tape_sample_ready), .tape_underflow(tape_underflow), .tape_mode(tape_mode), .tape_sensor(tape_sensor),
 	.disk_ready(media_present[0]), .img_mounted(img_mounted[0]),

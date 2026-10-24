@@ -78,7 +78,7 @@ module top #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636364,
 );
 `ifdef X1_CASSETTE
     localparam CASSETTE = 1;
-    wire tape_mount, tape_present, tape_empty, tape_play;
+    wire tape_mount, tape_present, tape_empty;
     wire tape_sample_valid, tape_sample_level, tape_sample_last, tape_sample_ready;
     wire stream_mount, stream_present, stream_empty, stream_ready, quick_rewind;
     wire [23:0] cart_addr;
@@ -105,7 +105,6 @@ module top #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636364,
         .stream_last(tape_sample_last), .stream_rejected(tape_rejected), .stream_ready(stream_ready),
         .stream_hz(tape_sample_hz),
         .deck_ready(tape_sample_ready), .deck_mount(tape_mount), .deck_present(tape_present), .deck_empty(tape_empty),
-        .deck_play(tape_play),
         .cart_addr(cart_addr), .cart_read(cart_read), .cart_data(cart_data), .cart_ready(cart_ready),
         .reset_request(quick_reset), .busy()
     );
@@ -142,13 +141,13 @@ module top #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636364,
 `ifdef X1_CASSETTE
         .tape_mount(tape_mount), .tape_present(tape_present), .tape_empty(tape_empty),
         .tape_sample_valid(tape_sample_valid), .tape_sample_level(tape_sample_level),
-        .tape_sample_last(tape_sample_last), .tape_sample_hz(tape_sample_hz), .fast_tape(FAST_TAPE != 0), .tape_play(tape_play),
+        .tape_sample_last(tape_sample_last), .tape_sample_hz(tape_sample_hz), .fast_tape(FAST_TAPE != 0),
         .tape_sample_ready(tape_sample_ready), .tape_underflow(tape_underflow),
         .tape_mode(tape_mode), .tape_sensor(tape_sensor),
         .cart_addr(cart_addr), .cart_read(cart_read), .cart_data(cart_data), .cart_ready(cart_ready),
 `else
         .tape_mount(1'b0), .tape_present(1'b0), .tape_empty(1'b0),
-        .tape_sample_valid(1'b0), .tape_sample_level(1'b0), .tape_sample_last(1'b0), .tape_sample_hz(18'd0), .fast_tape(1'b0), .tape_play(1'b0),
+        .tape_sample_valid(1'b0), .tape_sample_level(1'b0), .tape_sample_last(1'b0), .tape_sample_hz(18'd0), .fast_tape(1'b0),
         .tape_sample_ready(), .tape_underflow(), .tape_mode(), .tape_sensor(),
         .cart_addr(cart_addr), .cart_read(cart_read), .cart_data(cart_data), .cart_ready(cart_ready),
 `endif

@@ -2,9 +2,10 @@
 // Original board-only tape quick start. It decodes the first program of a
 // mounted TAP in the X1 IPL's own tape format straight from the SD stream and
 // offers it to the IPL as a ROM cartridge (the machine's CART_PORT, CZ-8RB
-// 0E00-0E03). The IPL checks the cartridge before floppy and tape, copies the
-// program to its load address and starts it; the tape is then left just after
-// that program, so a loader reads the rest of the tape as usual.
+// 0E00-0E03). The IPL checks the cartridge before floppy and tape and boots a
+// small stub from it, which copies the program and leaves the machine as the
+// IPL's tape boot does; the tape is then left just after that program, so a
+// loader reads the rest of the tape as usual.
 //
 // Format (X1 IPL 0x0564-0x0641; the Turbo IPL is identical):
 //   bit    a rising edge, then the level DELAY later (1 = still high), with
@@ -14,7 +15,16 @@
 //          a 16-bit count of the data 1 bits (high byte first).
 //   header 32 bytes: +00 attribute (01 = machine code), +12 size, +14 load,
 //          +16 exec. As a ROM the IPL takes the program's ROM address from
-//          +1D..+1F; this module serves 000020 there and the program behind.
+//          +1D..+1F (D:E:L = 1F:1E:1D).
+// Why a stub: loaders may inspect the IPL. Zero Fighter's reads the return
+// address at FFFE (0083 after a tape boot) and the CALLs before it to find
+// the IPL's tape routines; after a ROM boot FFFE holds 00BE. ROM layout:
+//   000000 stub header (the tape's name, 46 bytes to FFA0, exec FFA0)
+//   000020 stub: IPL ROM on (OUT 1Dxx), the IPL's ROM copy routine 0146
+//          reads 000100 (tape header) to FF00 and 000120 (program) to its
+//          load address, then FFFE = 0083, SP = 0 and JP 0083: the IPL's own
+//          tape-boot ending (trampoline, exec from FF16). FF90-FFEF is unused
+//          by the X1 and Turbo IPLs; their boot paths 0083-00BE are the same.
 // 175 us decodes every bootable machine-code TAP of the MAME 0.289 list (124
 // of 163; the rest are BASIC or data tapes) at 8-48 kHz.
 //
@@ -22,12 +32,13 @@
 //   1. Check: decode the header and the program and compare both counts. The
 //      deck does not see the tape meanwhile, and a CPU read of the port waits.
 //   2. Pass: no machine-code program (BASIC, data, no sync within 30 s of
-//      tape, bad count): the tape is presented normally and the port reads FF.
+//      tape, bad count, loads over the stub): the tape is presented normally
+//      and the port reads FF.
 //   3. Boot: rewind, decode again and hand each program byte to the CPU as the
 //      IPL reads it. If the IPL had not read the port during the check (a
 //      tape mounted after the IPL looked), request a machine reset.
-//   4. Done: the deck gets the tape positioned after the program and PLAY, as
-//      the IPL leaves it after a tape load (loaders read on without a command).
+//   4. Done: the deck gets the tape positioned after the program, in STOP (the
+//      IPL's tape routine stops the deck after a program, 0x057A).
 // A user reset (rearm) repeats step 3 while the tape stays eligible. Mounting
 // a disk in drive A or ejecting the tape makes it ineligible (the newest
 // medium boots).
@@ -48,7 +59,6 @@ module x1_tape_quickload (
     // x1_cassette_transport
     input  logic        deck_ready,
     output logic        deck_mount, deck_present, deck_empty,
-    output logic        deck_play,     // pulse after the boot's deck mount, once a sample is ready
     // machine CART_PORT
     input  logic [23:0] cart_addr,
     input  logic        cart_read,
@@ -82,7 +92,6 @@ module x1_tape_quickload (
     logic [15:0] served;             // program bytes read by the CPU
     logic [16:0] reset_count;
     logic        old_rearm;
-    logic        played, play_pending;
 
     // round(hz * 175 us) = (hz * 1468 + 2^22) >> 23: 1 at 8 kHz, 34 at 192 kHz.
     wire [28:0] delay_product = 29'(stream_hz) * 29'd1468 + 29'h0040_0000;
@@ -95,7 +104,34 @@ module x1_tape_quickload (
     wire [15:0] block_bytes = hdr_block ? 16'd32 : size;
     wire data_byte = index < block_bytes;
     wire last_byte = index == block_bytes + 16'd1;
-    wire [23:0] program_addr = 24'h20 + 24'(served);
+    wire [23:0] program_addr = 24'h120 + 24'(served);
+
+    localparam int STUB_LEN = 46;
+    // A program over the stub (FFA0-FFCD) would overwrite it: play normally.
+    wire [16:0] load_end = 17'({hdr[21], hdr[20]}) + 17'({hdr[19], hdr[18]});
+    wire over_stub = {hdr[21], hdr[20]} < 16'hffa0 + 16'(STUB_LEN) && load_end > 17'h0ffa0;
+    function automatic logic [7:0] stub(input logic [5:0] i);
+        case (i)
+            0: stub = 8'h01;  1: stub = 8'h00;  2: stub = 8'h1d;  // ld bc,1D00
+            3: stub = 8'hed;  4: stub = 8'h79;                    // out (c),a: IPL ROM on
+            5: stub = 8'hd9;                                      // exx
+            6: stub = 8'h01;  7: stub = 8'h00;  8: stub = 8'h0e;  // ld bc,0E00
+            9: stub = 8'h11; 10: stub = 8'h01; 11: stub = 8'h00;  // ld de,0001
+           12: stub = 8'h2e; 13: stub = 8'h00;                    // ld l,00: ROM 000100
+           14: stub = 8'hd9;                                      // exx
+           15: stub = 8'h21; 16: stub = 8'h00; 17: stub = 8'hff;  // ld hl,FF00
+           18: stub = 8'h01; 19: stub = 8'h20; 20: stub = 8'h00;  // ld bc,0020
+           21: stub = 8'hcd; 22: stub = 8'h46; 23: stub = 8'h01;  // call 0146: header
+           24: stub = 8'h2a; 25: stub = 8'h14; 26: stub = 8'hff;  // ld hl,(FF14)
+           27: stub = 8'hed; 28: stub = 8'h4b; 29: stub = 8'h12; 30: stub = 8'hff; // ld bc,(FF12)
+           31: stub = 8'hcd; 32: stub = 8'h46; 33: stub = 8'h01;  // call 0146: program
+           34: stub = 8'h21; 35: stub = 8'h83; 36: stub = 8'h00;  // ld hl,0083
+           37: stub = 8'h22; 38: stub = 8'hfe; 39: stub = 8'hff;  // ld (FFFE),hl
+           40: stub = 8'h31; 41: stub = 8'h00; 42: stub = 8'h00;  // ld sp,0000
+           43: stub = 8'hc3; 44: stub = 8'h83; 45: stub = 8'h00;  // jp 0083
+           default: stub = 8'hff;
+        endcase
+    endfunction
 
     assign stream_ready = owning ? step : deck_ready;
     assign busy = owning;
@@ -105,7 +141,6 @@ module x1_tape_quickload (
     assign deck_mount = state == DONE || (stream_mount && (!owning || !stream_present));
     assign deck_present = state == DONE || stream_present;
     assign deck_empty = state != DONE && stream_empty;
-    assign deck_play = played;
 
     task automatic start_block(input logic header);
         hdr_block <= header;
@@ -115,13 +150,9 @@ module x1_tape_quickload (
     always_ff @(posedge clk) begin
         stream_rewind <= 0;
         old_rearm <= rearm;
-        // The deck underflows if PLAY finds no sample: wait for the stream.
-        played <= 0;
-        if (state == DONE) play_pending <= 1;
-        else if (play_pending && stream_valid) begin played <= 1; play_pending <= 0; end
         if (reset_count != 0) reset_count <= reset_count - 17'd1;
         if (reset) begin
-            state <= OFF; eligible <= 0; from_mount <= 0; port_seen <= 0; play_pending <= 0;
+            state <= OFF; eligible <= 0; from_mount <= 0; port_seen <= 0;
             out_full <= 0; taking <= 0; served <= 0; reset_count <= 0;
             in_delay <= 0; prev <= 0; hdr_block <= 1; proto <= P_ZERO; size <= 0; index <= 0;
         end else begin
@@ -133,15 +164,15 @@ module x1_tape_quickload (
             end
 
             if (tape_insert) begin
-                eligible <= 0; out_full <= 0; taking <= 0; served <= 0; play_pending <= 0;
+                eligible <= 0; out_full <= 0; taking <= 0; served <= 0;
                 state <= enable ? LOAD : OFF;
                 from_mount <= 1; port_seen <= 0;
             end else if (disarm) begin
-                eligible <= 0; play_pending <= 0;
+                eligible <= 0;
                 if (owning) stream_rewind <= 1;
                 state <= OFF;
             end else if (rearm && !old_rearm && eligible && enable) begin
-                state <= RELOAD; from_mount <= 0; out_full <= 0; taking <= 0; served <= 0; play_pending <= 0;
+                state <= RELOAD; from_mount <= 0; out_full <= 0; taking <= 0; served <= 0;
                 stream_rewind <= 1;
             end else if (owning && stream_rejected) begin
                 eligible <= 0; state <= OFF;
@@ -197,7 +228,7 @@ module x1_tape_quickload (
                             if (!last_byte) begin
                                 index <= index + 16'd1; proto <= P_DATA; bitn <= 0;
                             end else if ({sum_high, shifter} != ones ||
-                                         (hdr_block && (hdr[0] != 8'h01 || {hdr[19], hdr[18]} == 0))) begin
+                                         (hdr_block && (hdr[0] != 8'h01 || {hdr[19], hdr[18]} == 0 || over_stub))) begin
                                 eligible <= 0; state <= OFF; stream_rewind <= 1;
                             end else if (hdr_block) begin
                                 size <= {hdr[19], hdr[18]};
@@ -218,15 +249,25 @@ module x1_tape_quickload (
         end
     end
 
-    // Port: the checked header, then the program as it decodes; FF without an
-    // eligible tape. Reads wait while the tape is being checked.
+    // Port: the stub, the checked header, then the program as it decodes; FF
+    // without an eligible tape. Reads wait while the tape is being checked.
     always_comb begin
         cart_ready = 1; cart_data = 8'hff;
         if (state == LOAD || state == CHECK) cart_ready = 0;
         else if (state == RELOAD || state == BOOT) begin
             if (cart_addr < 24'h20)
-                cart_data = cart_addr[4:0] == 5'h1d ? 8'h20 :
-                            cart_addr[4:0] >= 5'h1e ? 8'h00 : hdr[cart_addr[4:0]];
+                case (cart_addr[4:0])
+                    5'h12: cart_data = 8'(STUB_LEN);
+                    5'h13, 5'h1e, 5'h1f: cart_data = 8'h00;
+                    5'h14, 5'h16: cart_data = 8'ha0;
+                    5'h15, 5'h17: cart_data = 8'hff;
+                    5'h1d: cart_data = 8'h20;
+                    default: cart_data = hdr[cart_addr[4:0]];   // attribute 01, name
+                endcase
+            else if (cart_addr < 24'h20 + 24'(STUB_LEN))
+                cart_data = stub(6'(cart_addr - 24'h20));
+            else if (cart_addr[23:5] == 19'h8)                   // 000100-00011F
+                cart_data = hdr[cart_addr[4:0]];
             else if (cart_addr == program_addr) begin
                 cart_ready = out_full; cart_data = out_byte;
             end

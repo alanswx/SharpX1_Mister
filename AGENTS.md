@@ -284,8 +284,9 @@ first 4 KiB. `turbo_dsw` with `TURBO_DSW_RUNTIME` is the OSD boot device and Mon
 TAP samples at 5x in PLAY (enables stay two SYS edges apart); the board-only tape overlay is `x1_tape_overlay.sv`.
 Quick start is board-only `x1_tape_quickload.sv` on the machine's default-off
 `CART_PORT` (CZ-8RB 0E00-0E03, CPU WAIT): it checks the first IPL-format
-program, serves it to the IPL as a ROM and leaves the tape after it. Use
-`test-tape-quickload` and `turbo-x3-single-cassette-quick`.
+program and boots it through a ROM stub that ends in the IPL's own tape-boot
+path (FFFE = 0083: loaders inspect it), then leaves the tape after it in STOP.
+Use `test-tape-quickload` and `turbo-x3-single-cassette-quick`.
 Use `test-model-select` and `docs/MODEL_SELECT_STATUS.md`.
 `sharpx1_turbo_z_font_single` has
 cassette: S2 TAP streamed by board-only `rtl/x1_tap_sd_stream.sv` (4-192 kHz

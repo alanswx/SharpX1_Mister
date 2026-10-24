@@ -43,8 +43,17 @@ module tape_quickload_tb;
     endtask
 
     reg [7:0] header [0:255], body [0:255];
+    // The stub (FFA0): ld bc,1D00; out (c),a; exx; ld bc,0E00; ld de,0001;
+    // ld l,0; exx; ld hl,FF00; ld bc,20; call 0146; ld hl,(FF14);
+    // ld bc,(FF12); call 0146; ld hl,0083; ld (FFFE),hl; ld sp,0; jp 0083.
+    localparam logic [7:0] stub [0:45] = '{
+        8'h01, 8'h00, 8'h1d, 8'hed, 8'h79, 8'hd9, 8'h01, 8'h00, 8'h0e, 8'h11,
+        8'h01, 8'h00, 8'h2e, 8'h00, 8'hd9, 8'h21, 8'h00, 8'hff, 8'h01, 8'h20,
+        8'h00, 8'hcd, 8'h46, 8'h01, 8'h2a, 8'h14, 8'hff, 8'hed, 8'h4b, 8'h12,
+        8'hff, 8'hcd, 8'h46, 8'h01, 8'h21, 8'h83, 8'h00, 8'h22, 8'hfe, 8'hff,
+        8'h31, 8'h00, 8'h00, 8'hc3, 8'h83, 8'h00};
     integer program_size;
-    task build(input integer rate, input [7:0] attr, input integer corrupt);
+    task build(input integer rate, input [7:0] attr, input integer corrupt, input [15:0] load = 16'hc000);
         hz = rate;
         if (rate == 8000) begin one_hi = 2; one_lo = 2; zero_hi = 1; zero_lo = 1; end
         else begin one_hi = 12; one_lo = 8; zero_hi = 4; zero_lo = 6; end
@@ -54,9 +63,9 @@ module tape_quickload_tb;
         header[0] = attr;
         header[1] = "Q"; header[2] = "L";
         header[8'h12] = program_size[7:0]; header[8'h13] = 0;
-        header[8'h14] = 8'h00; header[8'h15] = 8'hc0;   // load C000
-        header[8'h16] = 8'h00; header[8'h17] = 8'hc0;   // exec C000
-        header[8'h1d] = 8'h55; header[8'h1e] = 8'h66; header[8'h1f] = 8'h77;  // replaced
+        header[8'h14] = load[7:0]; header[8'h15] = load[15:8];
+        header[8'h16] = load[7:0]; header[8'h17] = load[15:8];   // exec
+        header[8'h1d] = 8'h55; header[8'h1e] = 8'h66; header[8'h1f] = 8'h77;
         for (integer i = 0; i < 256; i++) body[i] = 8'(i * 37 + 11);
         gap(hz / 10);
         block(40, 32, header, 0);
@@ -112,27 +121,21 @@ module tape_quickload_tb;
     reg [23:0] cart_addr = 0;
     reg cart_read = 0;
     wire [7:0] cart_data;
-    wire cart_ready, reset_request, busy, deck_mount, deck_present, deck_empty, deck_play;
+    wire cart_ready, reset_request, busy, deck_mount, deck_present, deck_empty;
     x1_tape_quickload dut (
         .clk(clk), .reset(1'b0), .enable(enable), .tape_insert(tape_insert), .disarm(disarm), .rearm(rearm),
         .stream_rewind(stream_rewind), .stream_mount(s_mount), .stream_present(s_present), .stream_empty(s_empty),
         .stream_valid(s_valid), .stream_level(s_level), .stream_last(s_last), .stream_rejected(rejected),
         .stream_ready(stream_ready), .stream_hz(s_hz),
-        .deck_ready(1'b0), .deck_mount(deck_mount), .deck_present(deck_present), .deck_empty(deck_empty), .deck_play(deck_play),
+        .deck_ready(1'b0), .deck_mount(deck_mount), .deck_present(deck_present), .deck_empty(deck_empty),
         .cart_addr(cart_addr), .cart_read(cart_read), .cart_data(cart_data), .cart_ready(cart_ready),
         .reset_request(reset_request), .busy(busy));
 
     // Deck view: count mounts with a tape and remember the position at each.
-    // PLAY may only follow a mount with a tape, with a sample ready.
-    integer deck_mounts, deck_ejects, deck_plays, reset_cycles;
+    integer deck_mounts, deck_ejects, reset_cycles;
     reg [31:0] mount_position;
-    reg deck_has_tape, deck_loaded = 0;
+    reg deck_has_tape;
     always @(posedge clk) begin
-        if (deck_mount) deck_loaded <= deck_present && !deck_empty;
-        if (deck_play) begin
-            assert(deck_loaded && !deck_mount && s_valid) else $fatal(1, "deck PLAY without a mounted tape and a sample");
-            deck_plays++;
-        end
         if (deck_mount) begin
             if (deck_present) begin deck_mounts++; mount_position <= position; end else deck_ejects++;
             deck_has_tape <= deck_present && !deck_empty;
@@ -155,7 +158,7 @@ module tape_quickload_tb;
     endtask
 
     task mount();
-        deck_mounts = 0; deck_ejects = 0; deck_plays = 0; reset_cycles = 0;
+        deck_mounts = 0; deck_ejects = 0; reset_cycles = 0;
         @(negedge clk); img_mounted = 1; img_size = 64'(image_bytes); tape_insert = 1;
         @(negedge clk); img_mounted = 0; tape_insert = 0;
     endtask
@@ -166,13 +169,27 @@ module tape_quickload_tb;
         port_read(0, v);
         assert(v == 8'h01) else $fatal(1, "presence byte %h", v);
         if (expect_wait) assert(wait_cycles > 100) else $fatal(1, "presence read did not wait (%0d)", wait_cycles);
+        // Stub header: the tape's name, 46 bytes to FFA0, exec FFA0, at 000020.
         for (integer i = 0; i < 32; i++) begin
             port_read(24'(i), v);
-            assert(v == (i == 32'h1d ? 8'h20 : i >= 32'h1e ? 8'h00 : header[i])) else $fatal(1, "header %0d %h", i, v);
+            assert(v == (i == 32'h12 ? 8'd46 : i == 32'h14 || i == 32'h16 ? 8'ha0 :
+                         i == 32'h15 || i == 32'h17 ? 8'hff : i == 32'h1d ? 8'h20 :
+                         i == 32'h13 || i >= 32'h1e ? 8'h00 : header[i]))
+                else $fatal(1, "stub header %0d %h", i, v);
+        end
+        for (integer i = 0; i < 46; i++) begin
+            port_read(24'h20 + 24'(i), v);
+            assert(v == stub[i]) else $fatal(1, "stub byte %0d %h", i, v);
+        end
+        // What the stub reads with the IPL's routine: the tape header, then
+        // the program from 000120.
+        for (integer i = 0; i < 32; i++) begin
+            port_read(24'h100 + 24'(i), v);
+            assert(v == header[i]) else $fatal(1, "header %0d %h", i, v);
         end
         assert(deck_mounts == 0) else $fatal(1, "deck saw the tape during the boot");
         for (integer i = 0; i < program_size; i++) begin
-            port_read(24'h20 + 24'(i), v);
+            port_read(24'h120 + 24'(i), v);
             assert(v == body[i]) else $fatal(1, "program byte %0d %h want %h", i, v, body[i]);
         end
         wait (deck_mounts == 1);
@@ -181,7 +198,6 @@ module tape_quickload_tb;
         assert(deck_has_tape) else $fatal(1, "deck mount without tape");
         port_read(0, v);
         assert(v == 8'hff) else $fatal(1, "port after boot %h", v);
-        assert(deck_plays == 1) else $fatal(1, "deck PLAY after boot: %0d", deck_plays);
     endtask
 
     task check_pass(input string what);
@@ -192,7 +208,6 @@ module tape_quickload_tb;
         port_read(0, v);
         assert(v == 8'hff && wait_cycles == 0) else $fatal(1, "%s: port %h", what, v);
         assert(reset_cycles == 0) else $fatal(1, "%s: reset requested", what);
-        assert(deck_plays == 0) else $fatal(1, "%s: deck PLAY", what);
     endtask
 
     initial begin
@@ -207,7 +222,7 @@ module tape_quickload_tb;
             assert(reset_cycles == 0) else $fatal(1, "reset requested although the IPL read the port");
             assert(dut.delay == (r == 0 ? 6'd1 : 6'd8)) else $fatal(1, "delay %0d", dut.delay);
             // E: a user reset boots it again (no check, no reset request).
-            deck_mounts = 0; deck_plays = 0;
+            deck_mounts = 0;
             @(negedge clk); rearm = 1; repeat (3) @(negedge clk); rearm = 0;
             check_boot(0);
             assert(reset_cycles == 0) else $fatal(1, "rearm requested a reset");
@@ -231,7 +246,11 @@ module tape_quickload_tb;
             build(r == 0 ? 8000 : 44100, 8'h01, 1);
             mount();
             check_pass("bad count");
-            $display("PASS: quick start at %0d Hz: waiting check, header/program served, deck after the program, rearm, reset request, disarm, BASIC and bad-count fallback", hz);
+            // G: a program over the stub (FF80 + 40 bytes reaches FFA7).
+            build(r == 0 ? 8000 : 44100, 8'h01, 0, 16'hff80);
+            mount();
+            check_pass("over the stub");
+            $display("PASS: quick start at %0d Hz: waiting check, header/program served, deck after the program, rearm, reset request, disarm, BASIC, bad-count and over-stub fallback", hz);
         end
         // Quick start off: the tape goes to the deck as before.
         enable = 0;

@@ -43,7 +43,6 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
     // Fast tape: while the deck plays, the CPU enable and the tape samples
     // both run five times faster, so loader timing loops see the same pulses.
     input fast_tape,
-    input tape_play, // pulse: deck PLAY (board quick start hands over a playing tape)
     output tape_sample_ready, tape_underflow,
     // CZ-8RB-style ROM port (CART_PORT): 0E00-0E02 latch a 24-bit address,
     // a CPU read of 0E03 asks the board for that byte (cart_read) and waits
@@ -932,7 +931,7 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
         x1_cassette_transport #(.SYS_HZ(SINGLE_CLOCK ? MASTER_HZ : 32000000), .RUNTIME_RATE(CASSETTE_RUNTIME_RATE)) transport (
             .clk_sys(clk_sys), .reset(core_reset),
             .mount(tape_mount), .present(tape_present), .empty(tape_empty),
-            .cmd_valid(command_valid || tape_play), .cmd(tape_play ? 8'd2 : cassette_command[7:0]),
+            .cmd_valid(command_valid), .cmd(cassette_command[7:0]),
             .sample_valid(tape_sample_valid), .sample_level(tape_sample_level),
             .sample_last(tape_sample_last), .sample_hz(tape_fast ? {tape_sample_hz, 2'b00} + {2'b00, tape_sample_hz} : {2'b00, tape_sample_hz}), .sample_ready(tape_sample_ready),
             .waveform(cassette_waveform), .applied_mode(tape_mode),

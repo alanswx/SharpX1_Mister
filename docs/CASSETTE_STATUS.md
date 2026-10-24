@@ -23,15 +23,21 @@ OSD Machine page, **Tape speed** (`O[12:11]`, replaces Fast tape `O[9]`):
   own tape format from the SD stream (bit = level 175 us after a rising edge;
   N zeros and N ones of sync, N = 40 header / 20 program; bytes MSB first,
   each followed by one edge; a 16-bit count of 1 bits). After a mount or
-  rewind it checks the header (attribute 01, non-zero size) and both counts
-  while the deck does not see the tape and port reads wait; then it rewinds,
-  decodes again and serves the header (ROM address 000020 at +1D) and the
-  program byte by byte with CPU WAIT. The tape is handed to the deck just
-  after the program and in PLAY (machine input `tape_play`), as the IPL
-  leaves the deck after a tape load: loaders such as Zero Fighter's read on
-  without sending a command, so the rest loads at 5x. A tape that fails
-  the check (BASIC, data tape, no sync within 30 s, bad count) is presented
-  normally and the port reads FF. If the IPL had not read the port during the
+  rewind it checks the header (attribute 01, non-zero size, not loading over
+  FFA0-FFCD) and both counts while the deck does not see the tape and port
+  reads wait; then it rewinds and decodes again for the boot. The IPL boots
+  a 46-byte stub from the ROM (header at 000000 with the tape's name, load
+  and exec FFA0): it switches the IPL ROM back on, copies the tape header
+  (000100) to FF00 and the program (000120, served byte by byte with CPU
+  WAIT as it decodes) with the IPL's own ROM routine 0146, stores 0083 at
+  FFFE and jumps to the IPL's tape-boot ending at 0083. A plain ROM boot
+  leaves 00BE at FFFE, and Zero Fighter's loader reads FFFE and the CALLs
+  before it to find the IPL's tape routines (0564, 0648): it crashed. Both
+  IPLs share 0083-00BE and leave FF90-FFEF unused. The tape is handed to the
+  deck in STOP just after the program, as the IPL's tape routine stops the
+  deck after a program (0x057A); a loader starts it again. A tape that fails
+  the check (BASIC, data tape, no sync within 30 s, bad count, over the stub)
+  is presented normally and the port reads FF. If the IPL had not read the port during the
   check, the module requests a machine reset (a tape mounted at the IPL menu
   or in BASIC). A user reset boots the tape again; a later drive A mount or
   an eject disarms it.
@@ -41,10 +47,11 @@ OSD Machine page, **Tape speed** (`O[12:11]`, replaces Fast tape `O[9]`):
   59 are one block (instant), 65 have more data after the first program.
 - `make -C verilator test-tape-quickload`: the real `x1_tap_sd_stream` on a
   simulated SD slot, tapes built in the IPL format at 8 and 44.1 kHz. Checks
-  the waiting presence read, header and program bytes, the deck mount
-  position after the program and the PLAY that follows it, rearm, the reset
-  request, disarm, and the BASIC, bad-count and disabled fallbacks. Two mutants are rejected (program
-  byte released at the start of the CPU read; no rewind before the boot pass).
+  the waiting presence read, the stub header and bytes, tape header and
+  program bytes, the deck mount position after the program, rearm, the
+  reset request, disarm, and the BASIC, bad-count, over-stub and disabled
+  fallbacks. Three mutants are rejected (program byte released at the start
+  of the CPU read; no rewind before the boot pass; no over-stub check).
 - Machine simulation (`turbo-x3-single-cassette-quick`, 42.95 MHz single
   clock, native Turbo IPL `212895703175-ipl.x1t`, controller `boot1.rom`,
   tester-package TAPs, 8 kHz), run time from power-on:
@@ -52,13 +59,16 @@ OSD Machine page, **Tape speed** (`O[12:11]`, replaces Fast tape `O[9]`):
     attract at 34 s (4x: 40 s); Yellow Cab title at 66 s (4x: instructions
     at 80 s). No underflow; the loader stops the deck.
   - Quick start: Yellow Cab "IPL is loading Yellow_Cab" at 8 s and its title
-    at 25 s. The tape was mounted at power-on, the IPL had not looked yet, so
-    no reset was requested. Pock-Kun (BASIC) falls back: "File mode error"
-    and the IPL menu at 15 s, as without quick start.
-  - Found in simulation: with the deck left in STOP, Zero Fighter's 128-byte
-    loader (FF00, exec FF51) waited forever; the IPL's tape path leaves the
-    deck playing. A PLAY issued in the same cycle as the deck mount
-    underflowed; PLAY now waits for a buffered sample.
+    at 25 s (one block; the deck stays stopped). Zero Fighter: its 128-byte
+    loader boots from the ROM, finds the IPL's tape routine through FFFE,
+    loads the rest at 5x, title and attract at 36 s (5x only: 34 s; the
+    first program is tiny, so quick start gains nothing). The tape was
+    mounted at power-on, the IPL had not looked yet, so no reset was
+    requested. Pock-Kun (BASIC) falls back: "File mode error" and the IPL
+    menu at 15 s, as without quick start.
+  - Found in simulation (fixed before release): serving the program as the
+    ROM itself crashed Zero Fighter's loader (FFFE = 00BE); handing the deck
+    over in PLAY was wrong (the IPL stops it) and underflowed.
 
 ## Fast tape and tape overlay (October 23)
 
