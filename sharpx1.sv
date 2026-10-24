@@ -216,21 +216,13 @@ localparam CONF_STR = {
 	"SC0,D882D ,Pri. Drive A;",
 	"SC1,D882D ,Drive B;",
 `ifdef X1_CASSETTE
-	// 4-192 kHz TAP waveform images; each mount starts rewound.
-	"SC2,TAP,Tape;",
+	// 4-192 kHz TAP waveform images; each mount starts rewound. Not
+	// remembered (no C): a core start begins with no tape.
+	"S2,TAP,Tape;",
 `endif
 `ifdef X1_TURBO_FOUNDATION
-	// X1 mode boots the index-3 X1 IPL (F3 or boot2.rom) when loaded, else
-	// the main IPL's 4 KiB.
-	"F3,ROM,Load X1 IPL;",
+	// MGLs load the ANK font (f index 4): it must stay on the top page.
 	"F4,X1,Load 16-row ANK;",
-`endif
-`ifdef X1_TURBO_Z_EXTERNAL_FONT
-	"F5,ROM,Load Kanji font;",
-`endif
-`ifdef X1_CASSETTE
-	// The deck controller also loads as boot1.rom (index 0x40).
-	"F6,BIN,Load tape ctrl.;",
 `endif
 	"F0,ROM,Load ROM;",
 	"-;",
@@ -281,6 +273,20 @@ localparam CONF_STR = {
 	"h1P5-;",
 `endif
 	"P5O[1],Disk writes,Protected,Enabled;",
+	// Firmware loads (normally boot1-3.rom at core start) live here.
+	"P5-;",
+`ifdef X1_TURBO_FOUNDATION
+	// X1 mode boots the index-3 X1 IPL (F3 or boot2.rom) when loaded, else
+	// the main IPL's 4 KiB.
+	"P5F3,ROM,Load X1 IPL;",
+`endif
+`ifdef X1_TURBO_Z_EXTERNAL_FONT
+	"P5F5,ROM,Load Kanji font;",
+`endif
+`ifdef X1_CASSETTE
+	// The deck controller also loads as boot1.rom (index 0x40).
+	"P5F6,BIN,Load tape ctrl.;",
+`endif
 
 `ifdef X1_CASSETTE
 	"I,Tape ready (rewound),Tape format not supported;",

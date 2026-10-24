@@ -34,10 +34,15 @@ X1 mode turns the Turbo-only hardware off and boots a separate X1 IPL (OSD
 All ROMs load from SD; none are embedded (`boot.rom` IPL, `boot1.rom` tape
 controller, `boot2.rom` X1 IPL, `boot3.rom` Kanji font).
 
-The OSD follows the computer-core layout standard: media and ROM loads on the
-top page, then **Machine** (Model, Tape speed, Rewind tape), **Video** (Monitor,
-Aspect ratio, Tape overlay) and **Advanced** (Boot device, Disk writes).
-Settings apply at **Apply and reset**; "Changes pending" shows until then.
+The OSD follows the computer-core layout standard: drives, tape, Load 16-row
+ANK and Load ROM on the top page, then **Machine** (Model, Tape speed, Rewind
+tape), **Video** (Monitor, Aspect ratio, Tape overlay) and **Advanced** (Boot
+device, Disk writes, and the X1 IPL, Kanji font and tape controller loads that
+normally come from boot2/3/1.rom). Settings apply at **Apply and reset**;
+"Changes pending" shows until then. Drives A and B keep their disks across
+core loads; the tape does not. **Drive A and B are drives 0 and 1** to the
+machine; many games call them drive 1 and 2 ("insert disk 2 in drive 2" means
+Drive B).
 **Monitor** is the Turbo DIP monitor switch (Standard by default; set
 High-res for 24 kHz-only disks such as Hi-School Adventure hi-res: X1
 software leaves the IPL's 24 kHz scan bit set and displays half its lines).
