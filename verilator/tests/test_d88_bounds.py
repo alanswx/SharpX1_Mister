@@ -70,6 +70,29 @@ cases = [
     ("length disagrees with N", changed(688 + 14, 127, "<H"), "unsupported D88: sector length"),
     ("trailing partial volume", volume() + b"truncated", "invalid D88: truncated volume header"),
 ]
+
+
+def id_crc_record(n_code, length_delta=0, status=0xa0):
+    """First record marked with a D88 status; N/length then disagree."""
+    image = changed(688 + 8, status, "B")
+    struct.pack_into("B", image, 688 + 3, n_code)
+    struct.pack_into("<H", image, 688 + 14, 128 + length_delta)
+    struct.pack_into("<I", image, 28, len(image) + length_delta)
+    if length_delta:
+        image[688 + 16:688 + 16] = bytes(length_delta) if length_delta > 0 else b''
+        if length_delta < 0:
+            del image[688 + 16:688 + 16 - length_delta]
+        struct.pack_into("<I", image, 36, struct.unpack_from("<I", image, 36)[0] + length_delta)
+    return image
+
+
+# Copy-protection ID-CRC-error records are never read as data: any N/length
+# (Shin Kugyokuden N=255 length 0; The Man I Love N=63/127/159).
+cases.extend([
+    ("ID-CRC record with N above 3", id_crc_record(255), None),
+    ("ID-CRC record with zero length", id_crc_record(0, -128), None),
+    ("data-CRC record still needs a runtime N", id_crc_record(4, 0, 0xb0), "unsupported D88: sector length"),
+])
 # Track boundary cuts the second record's header rather than its payload.
 cases.append(("truncated sector header", changed(36, 688 + 144 + 8),
               "invalid D88: truncated sector header"))

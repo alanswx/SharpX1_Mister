@@ -1733,6 +1733,7 @@ generate
 			reg  [7:0] d_left;                 // sectors still to come this track
 			reg  [7:0] d_C, d_H, d_R;          // header +0..+2, as recorded
 			reg  [1:0] d_N;                    // header +3, sector size code
+			reg        d_N_wide;               // header +3 above 3 (no runtime size)
 			reg  [1:0] d_crc;                  // header +8, {ID CRC err, data CRC err}
 			reg        d_deleted;              // header +7, deleted data mark
 			reg  [7:0] d_slo, d_llo;           // low halves of the 16-bit fields
@@ -2023,7 +2024,8 @@ generate
 										 2: d_R   <= scan_data;              // R
 										 3: begin
 											d_N <= scan_data[1:0];
-											if(D88_ONLY && scan_data > 3) d88_bad <= 1;
+											// Checked at +$0f, once the status is known.
+											d_N_wide <= scan_data > 3;
 										 end
 										 4: d_slo <= scan_data;              // sectors LE lo
 										 5: begin
@@ -2091,8 +2093,14 @@ generate
 										end
 										14: d_llo <= scan_data;              // data length LE lo
 										15: begin
+											// An ID-CRC-error record (copy protection,
+											// e.g. Shin Kugyokuden, The Man I Love) is
+											// never matched for data, so its N and length
+											// need not be a runtime size; only READ
+											// ADDRESS reports it (N as its low two bits).
 											if((D88_ONLY && (payload_end > track_end ||
-											    {scan_data, d_llo} != (16'd128 << d_N) || edsk_size >= SECTOR_COUNT_BITS'(MAX_SECTORS))) ||
+											    (!d_crc[1] && (d_N_wide || {scan_data, d_llo} != (16'd128 << d_N))) ||
+											    edsk_size >= SECTOR_COUNT_BITS'(MAX_SECTORS))) ||
 											   (ADDRESS_BITS > 20 && (payload_end > d88_end || payload_end > {1'b0, scan_limit})) ||
 											   (MAX_SECTORS != 1992 && edsk_size >= SECTOR_COUNT_BITS'(MAX_SECTORS)))
 												d88_bad <= 1;

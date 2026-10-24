@@ -56,7 +56,10 @@ inline void validate_d88(const std::vector<uint8_t>& bytes, unsigned address_bit
                 if (length > end - cursor - 16) fail("sector payload crosses track boundary");
                 // The runtime uses N, not the explicit length. Refuse layouts
                 // it cannot reproduce, without calling copy-protected media invalid.
-                if (bytes[cursor + 3] > 3 || length != (size_t(128) << bytes[cursor + 3]))
+                // ID-CRC-error records (status A0) are never read as data, so
+                // any N/length is accepted for them, as the RTL scanner does.
+                if (bytes[cursor + 8] != 0xa0 &&
+                    (bytes[cursor + 3] > 3 || length != (size_t(128) << bytes[cursor + 3])))
                     unsupported("sector length/size code outside current runtime");
                 cursor += 16 + length;
             }
