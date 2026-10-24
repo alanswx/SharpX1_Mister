@@ -49,7 +49,8 @@ software leaves the IPL's 24 kHz scan bit set and displays half its lines).
 **Tape speed** 5x runs the CPU and the tape five times faster while the deck
 plays; **5x + quick start** (default) also boots a tape's first machine-code
 program at once through the IPL's ROM-cartridge path, then plays the rest of
-the tape at 5x. **Tape overlay** shows the tape time and progress. See [cassette status](docs/CASSETTE_STATUS.md).
+the tape at 5x. **Tape overlay** shows the tape time and progress. See [cassette status](docs/CASSETTE_STATUS.md);
+[the tape standard](docs/tape-standard.md) describes the design for other computer cores.
 
 The base two-clock `sharpx1` revision remains as a baseline. Eleven
 bring-up revisions were retired, including the Turbo Z video experiment
