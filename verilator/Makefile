@@ -1112,28 +1112,33 @@ test-x3-fm-dma-irq: turbo-x3-single-fm-dma-fast
 X3_CASSETTE_DIR ?= obj_dir_x3_single_cassette
 X3_CASSETTE_TIMING ?= --timing
 X3_CASSETTE_FAST ?= 0
+X3_CASSETTE_QUICK ?= 0
 turbo-x3-single-cassette: $(X3_CASSETTE_DIR)/Vtop
-$(X3_CASSETTE_DIR)/Vtop: $(V_SRC) ../rtl/x1_tap_sd_stream.sv sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
+$(X3_CASSETTE_DIR)/Vtop: $(V_SRC) ../rtl/x1_tap_sd_stream.sv ../rtl/x1_tape_quickload.sv sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc $(X3_CASSETTE_TIMING) --assert --trace-fst --exe --build -j 4 --Mdir $(X3_CASSETTE_DIR) --top-module top \
-		$(TURBO_DSW_FLAGS) -GTURBO=1 -GTURBO_VIDEO_MASTER=1 -GSINGLE_CLOCK=1 -GMASTER_HZ=42954540 -GRAW_2D_MEDIA=1 -GFAST_TAPE=$(X3_CASSETTE_FAST) +define+X1_RAW_2D_MEDIA +define+X1_CASSETTE \
+		$(TURBO_DSW_FLAGS) -GTURBO=1 -GTURBO_VIDEO_MASTER=1 -GSINGLE_CLOCK=1 -GMASTER_HZ=42954540 -GRAW_2D_MEDIA=1 -GFAST_TAPE=$(X3_CASSETTE_FAST) -GQUICK_TAPE=$(X3_CASSETTE_QUICK) +define+X1_RAW_2D_MEDIA +define+X1_CASSETTE \
 		-CFLAGS "-std=c++20 -DX1_SINGLE_CLOCK -DX1_SINGLE_MASTER_HZ=42954540 -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_RAW_2D_MEDIA -DX1_CASSETTE" \
-		-MAKEFLAGS "OPT_FAST=-O3 -B" $(V_SRC) ../rtl/x1_tap_sd_stream.sv sim_headless.cpp -Wno-fatal -o Vtop
+		-MAKEFLAGS "OPT_FAST=-O3 -B" $(V_SRC) ../rtl/x1_tap_sd_stream.sv ../rtl/x1_tape_quickload.sv sim_headless.cpp -Wno-fatal -o Vtop
 turbo-x3-single-cassette-fast:
 	$(MAKE) turbo-x3-single-cassette X3_CASSETTE_DIR=obj_dir_x3_single_cassette_fast X3_CASSETTE_TIMING=--no-timing
-# Fast tape on (the board's OSD default): CPU and tape samples at 4x in PLAY.
+# Fast tape on (the board's OSD default): CPU and tape samples at 5x in PLAY.
 turbo-x3-single-cassette-fast-tape:
 	$(MAKE) turbo-x3-single-cassette X3_CASSETTE_DIR=obj_dir_x3_single_cassette_fast_tape X3_CASSETTE_TIMING=--no-timing X3_CASSETTE_FAST=1
 BASE_CASSETTE_DIR ?= obj_dir_base_cassette
 BASE_CASSETTE_TIMING ?= --timing
 base-cassette: $(BASE_CASSETTE_DIR)/Vtop
-$(BASE_CASSETTE_DIR)/Vtop: $(V_SRC) ../rtl/x1_tap_sd_stream.sv sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
+$(BASE_CASSETTE_DIR)/Vtop: $(V_SRC) ../rtl/x1_tap_sd_stream.sv ../rtl/x1_tape_quickload.sv sim_headless.cpp frame_capture.h audio_capture.h d88_image.h Makefile $(MACHINE_MANIFEST)
 	$(V) -cc $(BASE_CASSETTE_TIMING) --assert --trace-fst --exe --build -j 4 --Mdir $(BASE_CASSETTE_DIR) --top-module top \
 		-GRAW_2D_MEDIA=1 +define+X1_RAW_2D_MEDIA +define+X1_CASSETTE \
 		-CFLAGS "-std=c++20 -DX1_RAW_2D_MEDIA -DX1_CASSETTE" \
-		-MAKEFLAGS "OPT_FAST=-O3 -B" $(V_SRC) ../rtl/x1_tap_sd_stream.sv sim_headless.cpp -Wno-fatal -o Vtop
+		-MAKEFLAGS "OPT_FAST=-O3 -B" $(V_SRC) ../rtl/x1_tap_sd_stream.sv ../rtl/x1_tape_quickload.sv sim_headless.cpp -Wno-fatal -o Vtop
 base-cassette-fast:
 	$(MAKE) base-cassette BASE_CASSETTE_DIR=obj_dir_base_cassette_fast BASE_CASSETTE_TIMING=--no-timing
-.PHONY: turbo-x3-single-cassette turbo-x3-single-cassette-fast turbo-x3-single-cassette-fast-tape base-cassette base-cassette-fast
+# Tape speed 5x + quick start (the board's OSD default): the first program
+# boots through the ROM port, the rest of the tape plays at 5x.
+turbo-x3-single-cassette-quick:
+	$(MAKE) turbo-x3-single-cassette X3_CASSETTE_DIR=obj_dir_x3_single_cassette_quick X3_CASSETTE_TIMING=--no-timing X3_CASSETTE_FAST=1 X3_CASSETTE_QUICK=1
+.PHONY: turbo-x3-single-cassette turbo-x3-single-cassette-fast turbo-x3-single-cassette-fast-tape turbo-x3-single-cassette-quick base-cassette base-cassette-fast
 test-x3-single: turbo-x3-single test-sub-timer test-clock-enables
 	python3 tests/test_single_clock.py ./$(X3_SINGLE_DIR)/Vtop --hz 42954540
 	python3 tests/test_keyboard_poll.py ./$(X3_SINGLE_DIR)/Vtop
@@ -3031,7 +3036,7 @@ clean:
 
 lint-wrapper-turbo-z-font-single:
 	$(V) --lint-only --timing --top-module emu -DX1_SINGLE_CLOCK -DX1_TURBO_FOUNDATION -DX1_TURBO_VIDEO_MASTER -DX1_TURBO_Z_EXTERNAL_FONT -DX1_SCALER_LOCAL_RESET_RELEASE -DX1_CASSETTE -DX1_TURBO_FM_CPU -DX1_TURBO_DMA_FONT -DX1_TURBO_Z_VIDEO_EXPERIMENT -Itests \
-		../sharpx1.sv ../sys/hps_io.sv tests/board_pll_lint.v ../rtl/x1_joystick_map.v ../rtl/x1_tap_sd_stream.sv ../rtl/x1_tape_overlay.sv $(MACHINE_SRC) -Wno-fatal
+		../sharpx1.sv ../sys/hps_io.sv tests/board_pll_lint.v ../rtl/x1_joystick_map.v ../rtl/x1_tap_sd_stream.sv ../rtl/x1_tape_overlay.sv ../rtl/x1_tape_quickload.sv $(MACHINE_SRC) -Wno-fatal
 .PHONY: lint-wrapper-turbo-z-font-single
 # Board tape status overlay: m:ss/fill from the TAP cursor and its pixels.
 test-tape-overlay:
@@ -3039,6 +3044,12 @@ test-tape-overlay:
 		--Mdir obj_dir_tape_overlay ../rtl/x1_tape_overlay.sv tests/tape_overlay_tb.sv -Wno-fatal
 	./obj_dir_tape_overlay/Vtape_overlay_tb
 .PHONY: test-tape-overlay
+
+test-tape-quickload:
+	$(V) --binary --timing --assert --top-module tape_quickload_tb -Wall -Wno-DECLFILENAME -Wno-UNUSEDSIGNAL \
+		--Mdir obj_dir_tape_quickload ../rtl/x1_tap_sd_stream.sv ../rtl/x1_tape_quickload.sv tests/tape_quickload_tb.sv -Wno-fatal
+	./obj_dir_tape_quickload/Vtape_quickload_tb
+.PHONY: test-tape-quickload
 
 test-machine-z-external-font:
 	ulimit -c 0; python3 -B tests/test_z_external_font_machine.py

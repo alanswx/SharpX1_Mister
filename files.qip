@@ -8,3 +8,4 @@ set_global_assignment -name SYSTEMVERILOG_FILE sharpx1.sv
 set_global_assignment -name QIP_FILE rtl/pll.qip
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_tap_sd_stream.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_tape_overlay.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_tape_quickload.sv

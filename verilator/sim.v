@@ -1,7 +1,7 @@
 `timescale 1ps/1ps
 // Instantiate the same machine as the MiSTer wrapper.
 module top #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0, TURBO_DSW = 241, TURBO_DMA_RESTART_IRQ = 0, TURBO_Z_PALETTE_CPU = 0, TURBO_Z_VIDEO = 0, TURBO_Z_MULTIMODE = 0, TURBO_Z_INTERNAL8 = 0, TURBO_Z_TEXT_CPU = 0, TURBO_FM_CPU = 0, RTC_ENABLE = 0, TURBO_DMA_KANJI_EXPERIMENT = 0, D88_ADDRESS_BITS = 20, TURBO_HD_SELECT = 0, TURBO_HD_MEDIA = 0,
-    TURBO_FDC_TIMING = 0, FDC_CLOCK_HZ = 1000000, TURBO_FM_CTC = 0, SUB_CAPS_OFF = 0, SUB_JOY_OFF = 0, FDC_DEFER_COMMAND = 0, TURBO_Z_RUNTIME = 0, FAST_TAPE = 0) (
+    TURBO_FDC_TIMING = 0, FDC_CLOCK_HZ = 1000000, TURBO_FM_CTC = 0, SUB_CAPS_OFF = 0, SUB_JOY_OFF = 0, FDC_DEFER_COMMAND = 0, TURBO_Z_RUNTIME = 0, FAST_TAPE = 0, QUICK_TAPE = 0) (
     input clk_sys, clk_28636, reset,
     input ioctl_download,
     input [7:0] ioctl_index,
@@ -78,23 +78,48 @@ module top #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636364,
 );
 `ifdef X1_CASSETTE
     localparam CASSETTE = 1;
-    wire tape_mount, tape_present, tape_empty;
+    wire tape_mount, tape_present, tape_empty, tape_play;
     wire tape_sample_valid, tape_sample_level, tape_sample_last, tape_sample_ready;
+    wire stream_mount, stream_present, stream_empty, stream_ready, quick_rewind;
+    wire [23:0] cart_addr;
+    wire cart_read, cart_ready, quick_reset;
+    wire [7:0] cart_data;
     x1_tap_sd_stream #(.MIN_HZ(4000), .MAX_HZ(192000)) tap_stream (
         .clk(clk_sys), .reset(1'b0),
-        .img_mounted(tape_img_mounted), .rewind(1'b0), .img_size(tape_img_size),
+        .img_mounted(tape_img_mounted), .rewind(quick_rewind), .img_size(tape_img_size),
         .sd_lba(tape_sd_lba), .sd_rd(tape_sd_rd), .sd_ack(tape_sd_ack),
         .sd_buff_addr(tape_sd_buff_addr), .sd_buff_dout(tape_sd_buff_dout), .sd_buff_wr(tape_sd_buff_wr),
-        .tape_mount(tape_mount), .tape_present(tape_present), .tape_empty(tape_empty),
+        .tape_mount(stream_mount), .tape_present(stream_present), .tape_empty(stream_empty),
         .sample_valid(tape_sample_valid), .sample_level(tape_sample_level),
-        .sample_last(tape_sample_last), .sample_ready(tape_sample_ready), .sample_hz(tape_sample_hz),
+        .sample_last(tape_sample_last), .sample_ready(stream_ready), .sample_hz(tape_sample_hz),
         .loaded(tape_loaded), .rejected(tape_rejected), .position(), .length()
+    );
+    // As the board: quick start (QUICK_TAPE) between the stream and the deck.
+    x1_tape_quickload tape_quickload (
+        .clk(clk_sys), .reset(1'b0), .enable(QUICK_TAPE != 0),
+        .tape_insert(tape_img_mounted && tape_img_size != 0),
+        .disarm((tape_img_mounted && tape_img_size == 0) || (img_mounted && img_size != 0)),
+        .rearm(reset),
+        .stream_rewind(quick_rewind), .stream_mount(stream_mount), .stream_present(stream_present),
+        .stream_empty(stream_empty), .stream_valid(tape_sample_valid), .stream_level(tape_sample_level),
+        .stream_last(tape_sample_last), .stream_rejected(tape_rejected), .stream_ready(stream_ready),
+        .stream_hz(tape_sample_hz),
+        .deck_ready(tape_sample_ready), .deck_mount(tape_mount), .deck_present(tape_present), .deck_empty(tape_empty),
+        .deck_play(tape_play),
+        .cart_addr(cart_addr), .cart_read(cart_read), .cart_data(cart_data), .cart_ready(cart_ready),
+        .reset_request(quick_reset), .busy()
     );
 `else
     localparam CASSETTE = 0;
+    wire [23:0] cart_addr;
+    wire cart_read;
+    wire cart_ready = 1'b1, quick_reset = 1'b0;
+    wire [7:0] cart_data = 8'hff;
 `endif
-    sharpx1 #(.CASSETTE_ENABLE(CASSETTE), .CASSETTE_RUNTIME_RATE(CASSETTE), .RAW_2D_MEDIA(RAW_2D_MEDIA), .SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ), .TURBO(TURBO), .TURBO_VIDEO_MASTER(TURBO_VIDEO_MASTER), .TURBO_DMA(TURBO_DMA), .TURBO_DMA_IRQ(TURBO_DMA_IRQ), .TURBO_KANJI(TURBO_KANJI), .TURBO_KANJI_RENDER(TURBO_KANJI_RENDER), .TURBO_DSW(TURBO_DSW), .TURBO_DMA_RESTART_IRQ(TURBO_DMA_RESTART_IRQ), .TURBO_Z_PALETTE_CPU(TURBO_Z_PALETTE_CPU), .TURBO_Z_VIDEO(TURBO_Z_VIDEO), .TURBO_Z_MULTIMODE(TURBO_Z_MULTIMODE), .TURBO_Z_INTERNAL8(TURBO_Z_INTERNAL8), .TURBO_Z_TEXT_CPU(TURBO_Z_TEXT_CPU), .TURBO_FM_CPU(TURBO_FM_CPU), .TURBO_FM_CTC(TURBO_FM_CTC), .SUB_CAPS_OFF(SUB_CAPS_OFF), .SUB_JOY_OFF(SUB_JOY_OFF), .FDC_DEFER_COMMAND(FDC_DEFER_COMMAND), .TURBO_Z_RUNTIME(TURBO_Z_RUNTIME), .RTC_ENABLE(RTC_ENABLE), .TURBO_DMA_KANJI_EXPERIMENT(TURBO_DMA_KANJI_EXPERIMENT), .D88_ADDRESS_BITS(D88_ADDRESS_BITS), .TURBO_HD_SELECT(TURBO_HD_SELECT), .TURBO_HD_MEDIA(TURBO_HD_MEDIA), .TURBO_FDC_TIMING(TURBO_FDC_TIMING), .FDC_CLOCK_HZ(FDC_CLOCK_HZ)) machine (
-        .clk_sys(clk_sys), .clk_28636(clk_28636), .reset(reset),
+    // The runner's reset, or quick start booting a checked tape.
+    wire machine_reset = reset || quick_reset;
+    sharpx1 #(.CASSETTE_ENABLE(CASSETTE), .CASSETTE_RUNTIME_RATE(CASSETTE), .CART_PORT(CASSETTE), .RAW_2D_MEDIA(RAW_2D_MEDIA), .SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ), .TURBO(TURBO), .TURBO_VIDEO_MASTER(TURBO_VIDEO_MASTER), .TURBO_DMA(TURBO_DMA), .TURBO_DMA_IRQ(TURBO_DMA_IRQ), .TURBO_KANJI(TURBO_KANJI), .TURBO_KANJI_RENDER(TURBO_KANJI_RENDER), .TURBO_DSW(TURBO_DSW), .TURBO_DMA_RESTART_IRQ(TURBO_DMA_RESTART_IRQ), .TURBO_Z_PALETTE_CPU(TURBO_Z_PALETTE_CPU), .TURBO_Z_VIDEO(TURBO_Z_VIDEO), .TURBO_Z_MULTIMODE(TURBO_Z_MULTIMODE), .TURBO_Z_INTERNAL8(TURBO_Z_INTERNAL8), .TURBO_Z_TEXT_CPU(TURBO_Z_TEXT_CPU), .TURBO_FM_CPU(TURBO_FM_CPU), .TURBO_FM_CTC(TURBO_FM_CTC), .SUB_CAPS_OFF(SUB_CAPS_OFF), .SUB_JOY_OFF(SUB_JOY_OFF), .FDC_DEFER_COMMAND(FDC_DEFER_COMMAND), .TURBO_Z_RUNTIME(TURBO_Z_RUNTIME), .RTC_ENABLE(RTC_ENABLE), .TURBO_DMA_KANJI_EXPERIMENT(TURBO_DMA_KANJI_EXPERIMENT), .D88_ADDRESS_BITS(D88_ADDRESS_BITS), .TURBO_HD_SELECT(TURBO_HD_SELECT), .TURBO_HD_MEDIA(TURBO_HD_MEDIA), .TURBO_FDC_TIMING(TURBO_FDC_TIMING), .FDC_CLOCK_HZ(FDC_CLOCK_HZ)) machine (
+        .clk_sys(clk_sys), .clk_28636(clk_28636), .reset(machine_reset),
         .pal(1'b0), .scandouble(1'b0),
 `ifdef X1_MODEL_SELECT
         .model_x1(model_x1),
@@ -117,13 +142,15 @@ module top #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636364,
 `ifdef X1_CASSETTE
         .tape_mount(tape_mount), .tape_present(tape_present), .tape_empty(tape_empty),
         .tape_sample_valid(tape_sample_valid), .tape_sample_level(tape_sample_level),
-        .tape_sample_last(tape_sample_last), .tape_sample_hz(tape_sample_hz), .fast_tape(FAST_TAPE != 0),
+        .tape_sample_last(tape_sample_last), .tape_sample_hz(tape_sample_hz), .fast_tape(FAST_TAPE != 0), .tape_play(tape_play),
         .tape_sample_ready(tape_sample_ready), .tape_underflow(tape_underflow),
         .tape_mode(tape_mode), .tape_sensor(tape_sensor),
+        .cart_addr(cart_addr), .cart_read(cart_read), .cart_data(cart_data), .cart_ready(cart_ready),
 `else
         .tape_mount(1'b0), .tape_present(1'b0), .tape_empty(1'b0),
-        .tape_sample_valid(1'b0), .tape_sample_level(1'b0), .tape_sample_last(1'b0), .tape_sample_hz(18'd0), .fast_tape(1'b0),
+        .tape_sample_valid(1'b0), .tape_sample_level(1'b0), .tape_sample_last(1'b0), .tape_sample_hz(18'd0), .fast_tape(1'b0), .tape_play(1'b0),
         .tape_sample_ready(), .tape_underflow(), .tape_mode(), .tape_sensor(),
+        .cart_addr(cart_addr), .cart_read(cart_read), .cart_data(cart_data), .cart_ready(cart_ready),
 `endif
         .sio_external_rx_clock(1'b0),.sio_external_tx_clock(1'b0),
         .sio_rxd(2'b11),.sio_cts_n(2'b11),.sio_dcd_n(2'b11),
@@ -187,7 +214,7 @@ module top #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636364,
         // Skip the first sampled edge of each reset pulse; allow the CPU's
         // delayed reset assignments before checking the idle bus/address.
         if (!(TURBO && TURBO_DMA))
-            assert (machine.core_reset == reset)
+            assert (machine.core_reset == machine_reset)
                 else $fatal(1, "Default reset policy changed");
         if (machine.dma_draining) begin
             assert (!machine.cpu_ce && !machine.core_reset && !machine.cpu_busak_n)
@@ -201,7 +228,7 @@ module top #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636364,
         end
         sys_edges <= sys_edges + 1;
         was_reset <= machine.core_reset;
-        if (reset) reset_edges <= reset_edges + 1;
+        if (machine_reset) reset_edges <= reset_edges + 1;
         if (machine.cpu_ce) cpu_enables <= cpu_enables + 1;
         // Exercise --timing: must settle one ns after each rising edge.
         delayed_sys_edges <= #1000 sys_edges + 1;

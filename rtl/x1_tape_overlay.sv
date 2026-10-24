@@ -2,7 +2,7 @@
 // Original board-only tape status overlay. x1_tape_status (SYS) turns the
 // TAP stream cursor into elapsed/total m:ss and a 64-step progress fill and
 // hands one packed word to x1_tape_overlay (video clock) through a toggle
-// handshake. The overlay draws "TAPE > mm:ss/mm:ss x4" and a progress bar in
+// handshake. The overlay draws "TAPE > mm:ss/mm:ss x5" and a progress bar in
 // the bottom-left corner while the deck plays. It never alters the machine.
 `timescale 1ns/1ps
 module x1_tape_status (
@@ -153,7 +153,7 @@ module x1_tape_overlay (
             5'd13: code = digit(total[15:12], 1'b1);  5'd14: code = {1'b0, total[11:8]};
             5'd15: code = 5'd10;  5'd16: code = {1'b0, total[7:4]};  5'd17: code = {1'b0, total[3:0]};
             5'd18: code = 5'd18;
-            5'd19: code = fast ? 5'd16 : 5'd18;  5'd20: code = fast ? 5'd4 : 5'd18;
+            5'd19: code = fast ? 5'd16 : 5'd18;  5'd20: code = fast ? 5'd5 : 5'd18;
             default: code = 5'd18;
         endcase
     end

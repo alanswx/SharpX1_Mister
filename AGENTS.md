@@ -280,8 +280,12 @@ X1 mode gates Turbo-only I/O (DMA, CTC, DIP, SCRN/BLACK, Kanji plane/display,
 CG read tail) but keeps the FM board and the interrupt chain. Index 3 (F3 /
 boot2.rom) is a separate 4-KiB X1 IPL; without it X1 mode reads the main IPL's
 first 4 KiB. `turbo_dsw` with `TURBO_DSW_RUNTIME` is the OSD boot device and Monitor
-(bit 0, Standard default; High-res breaks 15 kHz X1 software). `fast_tape` (OSD Fast tape) runs the CPU enable and
-TAP samples at 4x in PLAY; the board-only tape overlay is `x1_tape_overlay.sv`.
+(bit 0, Standard default; High-res breaks 15 kHz X1 software). `fast_tape` (OSD Tape speed) runs the CPU enable and
+TAP samples at 5x in PLAY (enables stay two SYS edges apart); the board-only tape overlay is `x1_tape_overlay.sv`.
+Quick start is board-only `x1_tape_quickload.sv` on the machine's default-off
+`CART_PORT` (CZ-8RB 0E00-0E03, CPU WAIT): it checks the first IPL-format
+program, serves it to the IPL as a ROM and leaves the tape after it. Use
+`test-tape-quickload` and `turbo-x3-single-cassette-quick`.
 Use `test-model-select` and `docs/MODEL_SELECT_STATUS.md`.
 `sharpx1_turbo_z_font_single` has
 cassette: S2 TAP streamed by board-only `rtl/x1_tap_sd_stream.sv` (4-192 kHz

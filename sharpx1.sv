@@ -251,8 +251,11 @@ localparam CONF_STR = {
 `endif
 `endif
 `ifdef X1_CASSETTE
-	// While the deck plays, the CPU and the tape run four times faster.
-	"P1O[9],Fast tape,On,Off;",
+	// 5x: while the deck plays, the CPU and the tape run five times faster.
+	// Quick start: a TAP whose first program is machine code boots from it
+	// at once (x1_tape_quickload, offered to the IPL as a ROM cartridge);
+	// the rest of the tape then plays at 5x. O[9] (old Fast tape) is unused.
+	"P1O[12:11],Tape speed,5x + quick start,5x,Normal;",
 	"P1-;",
 	"P1T[2],Rewind tape;",
 `endif
@@ -296,6 +299,8 @@ wire   [1:0] buttons;
 wire [127:0] status;
 // OSD settings latched at reset; see the CONF_STR note.
 reg  [127:0] cfg = 128'd0;
+// User/host reset (latches cfg); quick start may also reset the machine.
+wire reset;
 wire osd_pending, osd_no_dip;
 wire  [10:0] ps2_key;
 
@@ -395,8 +400,15 @@ hps_io #(.CONF_STR(CONF_STR), .PS2DIV(1600), .VDNUM(VDNUM), .VIDEO_CDC(TURBO_VID
 
 // Read-only tape slot (S2). Mounts survive machine reset; the deck itself
 // is the machine's x1_cassette_transport.
-wire tape_mount, tape_present, tape_empty;
+wire tape_mount, tape_present, tape_empty, tape_play;
 wire tape_sample_valid, tape_sample_level, tape_sample_last, tape_sample_ready;
+// Tape speed (cfg[12:11]): 0 = 5x + quick start, 1 = 5x, 2 = Normal.
+wire tape_fast = cfg[12:11] != 2'd2;
+wire tape_quick = cfg[12:11] == 2'd0;
+// Quick start's ROM port and reset request (x1_tape_quickload).
+wire [23:0] cart_addr;
+wire cart_read, cart_ready, quick_reset;
+wire [7:0] cart_data;
 wire tape_underflow;
 wire [17:0] tape_sample_hz;
 wire [7:0] tape_mode, tape_sensor;
@@ -417,19 +429,39 @@ generate if (CASSETTE_PROFILE) begin : tape_slot
 	end
 	assign sd_wr[2] = 1'b0;
 	assign sd_buff_din[2] = 8'hff;
+	reg tape_inserted = 0;
+	always @(posedge clk_sys) if (img_mounted[2]) tape_inserted <= img_size != 0;
+	wire osd_rewind = status[2] && !old_rewind;
+	wire stream_mount, stream_present, stream_empty, stream_ready, quick_rewind;
 	x1_tap_sd_stream #(.MIN_HZ(4000), .MAX_HZ(192000)) tap_stream (
 		.clk(clk_sys), .reset(!turbo_video_locked),
-		.img_mounted(img_mounted[2]), .rewind(status[2] && !old_rewind), .img_size(img_size),
+		.img_mounted(img_mounted[2]), .rewind(osd_rewind || quick_rewind), .img_size(img_size),
 		.sd_lba(sd_lba[2]), .sd_rd(sd_rd[2]), .sd_ack(sd_ack[2]),
 		.sd_buff_addr(sd_buff_addr[8:0]), .sd_buff_dout(sd_buff_dout), .sd_buff_wr(sd_buff_wr),
-		.tape_mount(tape_mount), .tape_present(tape_present), .tape_empty(tape_empty),
+		.tape_mount(stream_mount), .tape_present(stream_present), .tape_empty(stream_empty),
 		.sample_valid(tape_sample_valid), .sample_level(tape_sample_level),
-		.sample_last(tape_sample_last), .sample_ready(tape_sample_ready), .sample_hz(tape_sample_hz),
+		.sample_last(tape_sample_last), .sample_ready(stream_ready), .sample_hz(tape_sample_hz),
 		.loaded(tape_loaded), .rejected(tape_rejected), .position(tape_position), .length(tape_length)
+	);
+	// Quick start sits between the stream and the deck. A newer drive A disk
+	// or an eject disarms it; a user reset boots the eligible tape again.
+	x1_tape_quickload tape_quickload (
+		.clk(clk_sys), .reset(!turbo_video_locked), .enable(tape_quick),
+		.tape_insert((img_mounted[2] && img_size != 0) || (osd_rewind && tape_inserted)),
+		.disarm((img_mounted[2] && img_size == 0) || (img_mounted[0] && img_size != 0)),
+		.rearm(reset),
+		.stream_rewind(quick_rewind), .stream_mount(stream_mount), .stream_present(stream_present),
+		.stream_empty(stream_empty), .stream_valid(tape_sample_valid), .stream_level(tape_sample_level),
+		.stream_last(tape_sample_last), .stream_rejected(tape_rejected), .stream_ready(stream_ready),
+		.stream_hz(tape_sample_hz),
+		.deck_ready(tape_sample_ready), .deck_mount(tape_mount), .deck_present(tape_present), .deck_empty(tape_empty),
+		.deck_play(tape_play),
+		.cart_addr(cart_addr), .cart_read(cart_read), .cart_data(cart_data), .cart_ready(cart_ready),
+		.reset_request(quick_reset), .busy()
 	);
 	x1_tape_status tape_status (
 		.clk(clk_sys), .loaded(tape_loaded), .playing(tape_mode == 8'd2),
-		.fast(!cfg[9] && tape_mode == 8'd2 && tape_sample_hz <= 18'd48000),
+		.fast(tape_fast && tape_mode == 8'd2 && tape_sample_hz <= 18'd48000),
 		.position(tape_position), .length(tape_length), .hz(tape_sample_hz),
 		.status(tape_status_word), .req(tape_status_req), .ack(tape_status_ack)
 	);
@@ -437,7 +469,8 @@ end else begin : no_tape_slot
 	assign tape_status_word = 0;
 	assign tape_status_req = 0;
 	assign {tape_loaded, tape_rejected} = 2'b00;
-	assign {tape_mount, tape_present, tape_empty} = 3'b000;
+	assign {tape_mount, tape_present, tape_empty, tape_play} = 4'b0000;
+	assign {cart_ready, cart_data, quick_reset} = {1'b1, 8'hff, 1'b0};
 	assign {tape_sample_valid, tape_sample_level, tape_sample_last} = 3'b000;
 	assign tape_sample_hz = 18'd8000;
 end endgenerate
@@ -474,13 +507,13 @@ pll pll
 	.outclk_1(legacy_video_pll)  // Checked-in PLL: 28.571428 MHz; unchanged old profiles.
 );
 
-wire reset = RESET | status[0] | buttons[1] | ioctl_download | !turbo_video_locked;
+assign reset = RESET | status[0] | buttons[1] | ioctl_download | !turbo_video_locked;
 // The settings the machine runs with, taken from the OSD at every reset
 // (Apply and reset, the board's reset, a download, a core reload).
 always @(posedge clk_sys) if (reset) cfg <= status;
 // "Changes pending": a setting differs from the running one (not reset or
 // the Rewind tape button).
-assign osd_pending = {status[1], status[10:4], status[122:121]} != {cfg[1], cfg[10:4], cfg[122:121]};
+assign osd_pending = {status[1], status[12:4], status[122:121]} != {cfg[1], cfg[12:4], cfg[122:121]};
 // Monitor and Boot device rows do not apply to the X1 model (no DIP switches).
 assign osd_no_dip = TURBO_FOUNDATION && status[7:6] == 2'd1;
 
@@ -555,7 +588,7 @@ wire x1_ipl_index = TURBO_FOUNDATION && (ioctl_index == 16'd3 || ioctl_index == 
 wire kanji_font_index = TURBO_Z_EXTERNAL_FONT_PROFILE && (ioctl_index == 16'd5 || ioctl_index == 16'h00c0);
 
 // Boards start with CAPS LOCK released, like MAME and real keyboards.
-sharpx1 #(.TURBO_DSW_RUNTIME(1), .TURBO_Z_RUNTIME(TURBO_Z_VIDEO_PROFILE), .RAW_2D_MEDIA(1), .FDC_DEFER_COMMAND(1), .SUB_CAPS_OFF(1), .SUB_JOY_OFF(1), .CASSETTE_ENABLE(CASSETTE_PROFILE), .CASSETTE_RUNTIME_RATE(CASSETTE_PROFILE), .SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ), .TURBO(TURBO_FOUNDATION), .TURBO_VIDEO_MASTER(TURBO_VIDEO_MASTER),
+sharpx1 #(.TURBO_DSW_RUNTIME(1), .TURBO_Z_RUNTIME(TURBO_Z_VIDEO_PROFILE), .RAW_2D_MEDIA(1), .FDC_DEFER_COMMAND(1), .SUB_CAPS_OFF(1), .SUB_JOY_OFF(1), .CASSETTE_ENABLE(CASSETTE_PROFILE), .CASSETTE_RUNTIME_RATE(CASSETTE_PROFILE), .CART_PORT(CASSETTE_PROFILE), .SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ), .TURBO(TURBO_FOUNDATION), .TURBO_VIDEO_MASTER(TURBO_VIDEO_MASTER),
 	.TURBO_DMA(TURBO_DMA_PROFILE), .TURBO_DMA_IRQ(TURBO_DMA_PROFILE), .TURBO_DMA_RESTART_IRQ(TURBO_DMA_PROFILE), .TURBO_FM_CPU(TURBO_FM_PROFILE), .TURBO_FM_CTC(TURBO_FM_PROFILE),
 	.TURBO_DMA_KANJI_EXPERIMENT(TURBO_DMA_PROFILE && TURBO_Z_EXTERNAL_FONT_PROFILE),
 	.TURBO_Z_PALETTE_CPU(TURBO_Z_VIDEO_PROFILE), .TURBO_Z_VIDEO(TURBO_Z_VIDEO_PROFILE),
@@ -566,7 +599,7 @@ sharpx1 #(.TURBO_DSW_RUNTIME(1), .TURBO_Z_RUNTIME(TURBO_Z_VIDEO_PROFILE), .RAW_2
 (
 	.clk_sys(clk_sys),
 	.clk_28636(clk_28636),
-	.reset(reset),
+	.reset(reset || quick_reset),
 
 	.pal(1'b0),
 	.scandouble(forced_scandoubler),
@@ -594,7 +627,8 @@ sharpx1 #(.TURBO_DSW_RUNTIME(1), .TURBO_Z_RUNTIME(TURBO_Z_VIDEO_PROFILE), .RAW_2
 	.joya_n(joya_n), .joyb_n(joyb_n),
 	// Only the X1_CASSETTE revision connects the deck and its controller.
 	.tape_mount(tape_mount), .tape_present(tape_present), .tape_empty(tape_empty),
-	.tape_sample_valid(tape_sample_valid), .tape_sample_level(tape_sample_level), .tape_sample_last(tape_sample_last), .tape_sample_hz(tape_sample_hz), .fast_tape(!cfg[9]),
+	.tape_sample_valid(tape_sample_valid), .tape_sample_level(tape_sample_level), .tape_sample_last(tape_sample_last), .tape_sample_hz(tape_sample_hz), .fast_tape(tape_fast), .tape_play(tape_play),
+	.cart_addr(cart_addr), .cart_read(cart_read), .cart_data(cart_data), .cart_ready(cart_ready),
 	.tape_sample_ready(tape_sample_ready), .tape_underflow(tape_underflow), .tape_mode(tape_mode), .tape_sensor(tape_sensor),
 	.disk_ready(media_present[0]), .img_mounted(img_mounted[0]),
 	.disk_wp(!cfg[1] || media_readonly[0]), .img_size(media_size[0]),

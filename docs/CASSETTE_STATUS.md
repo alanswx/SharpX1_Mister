@@ -4,6 +4,62 @@ October 20, 2026: the base `sharpx1_cassette` revision was retired. Tape is
 in the release core (`sharpx1_turbo_z_font_single`) in both X1 and X1 Turbo
 models; see `REVISIONS.md`.
 
+## Tape speed: 5x and quick start (October 24)
+
+OSD Machine page, **Tape speed** (`O[12:11]`, replaces Fast tape `O[9]`):
+5x + quick start (default), 5x, Normal.
+
+- **5x**: `x1_clock_enables` steps the CPU enable at 20 MHz (was 16) and the
+  transport paces samples at five times the TAP rate. At 42.95 MHz the
+  enables stay two or three SYS edges apart; `test-clock-enables` now
+  asserts that. `sharpx1.sdc` has no multicycle paths, so every CPU path was
+  already timed at the full 42.95 MHz: the faster enable is not a timing
+  change. Tapes above 48 kHz still play at real speed.
+- **Quick start** (board-only `rtl/x1_tape_quickload.sv`, machine
+  `CART_PORT`): the X1 and Turbo IPLs check a CZ-8RB ROM cartridge (ports
+  0E00-0E02 address, 0E03 data) after the floppy and before the tape, read a
+  32-byte header with the tape header's layout, copy the program and start it
+  (IPL 0x004A/0x0094). The module decodes the TAP's first block in the IPL's
+  own tape format from the SD stream (bit = level 175 us after a rising edge;
+  N zeros and N ones of sync, N = 40 header / 20 program; bytes MSB first,
+  each followed by one edge; a 16-bit count of 1 bits). After a mount or
+  rewind it checks the header (attribute 01, non-zero size) and both counts
+  while the deck does not see the tape and port reads wait; then it rewinds,
+  decodes again and serves the header (ROM address 000020 at +1D) and the
+  program byte by byte with CPU WAIT. The tape is handed to the deck just
+  after the program and in PLAY (machine input `tape_play`), as the IPL
+  leaves the deck after a tape load: loaders such as Zero Fighter's read on
+  without sending a command, so the rest loads at 5x. A tape that fails
+  the check (BASIC, data tape, no sync within 30 s, bad count) is presented
+  normally and the port reads FF. If the IPL had not read the port during the
+  check, the module requests a machine reset (a tape mounted at the IPL menu
+  or in BASIC). A user reset boots the tape again; a later drive A mount or
+  an eject disarms it.
+- Analysis (offline decoder, not in the repo): of the MAME 0.289 list's 163
+  TAPs, 124 have an IPL machine-code program and all of them decode at
+  175 us; 35 are BASIC and 4 are data tapes (Xanadu tape C, Wingman B/C/D).
+  59 are one block (instant), 65 have more data after the first program.
+- `make -C verilator test-tape-quickload`: the real `x1_tap_sd_stream` on a
+  simulated SD slot, tapes built in the IPL format at 8 and 44.1 kHz. Checks
+  the waiting presence read, header and program bytes, the deck mount
+  position after the program and the PLAY that follows it, rearm, the reset
+  request, disarm, and the BASIC, bad-count and disabled fallbacks. Two mutants are rejected (program
+  byte released at the start of the CPU read; no rewind before the boot pass).
+- Machine simulation (`turbo-x3-single-cassette-quick`, 42.95 MHz single
+  clock, native Turbo IPL `212895703175-ipl.x1t`, controller `boot1.rom`,
+  tester-package TAPs, 8 kHz), run time from power-on:
+  - 5x only (`turbo-x3-single-cassette-fast-tape`): Zero Fighter title and
+    attract at 34 s (4x: 40 s); Yellow Cab title at 66 s (4x: instructions
+    at 80 s). No underflow; the loader stops the deck.
+  - Quick start: Yellow Cab "IPL is loading Yellow_Cab" at 8 s and its title
+    at 25 s. The tape was mounted at power-on, the IPL had not looked yet, so
+    no reset was requested. Pock-Kun (BASIC) falls back: "File mode error"
+    and the IPL menu at 15 s, as without quick start.
+  - Found in simulation: with the deck left in STOP, Zero Fighter's 128-byte
+    loader (FF00, exec FF51) waited forever; the IPL's tape path leaves the
+    deck playing. A PLAY issued in the same cycle as the deck mount
+    underflowed; PLAY now waits for a buffered sample.
+
 ## Fast tape and tape overlay (October 23)
 
 - **Fast tape** (OSD Machine page, default on; `fast_tape` machine input):

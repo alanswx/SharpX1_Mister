@@ -1,14 +1,14 @@
 // Original fractional-rate enable generator. Never used as a fabric clock.
 module x1_clock_enables #(parameter MASTER_HZ = 28636364) (
     input clk, reset,
-    input fast, // CPU enable at four times the rate (16 MHz); PSG unchanged
+    input fast, // CPU enable at five times the rate (20 MHz); PSG unchanged
     output cpu_ce, psg_ce
 );
-    // Supported masters and both rates are divisible by four. Dropping those
+    // Supported masters and all rates are divisible by four. Dropping those
     // constant low bits preserves the exact sequence and avoids reset-only bits.
     localparam [23:0] MASTER_UNITS = MASTER_HZ / 4;
     reg [23:0] cpu_phase, psg_phase;
-    wire [23:0] cpu_step = fast ? 24'd4000000 : 24'd1000000;
+    wire [23:0] cpu_step = fast ? 24'd5000000 : 24'd1000000;
     assign cpu_ce = cpu_phase >= MASTER_UNITS - cpu_step;
     assign psg_ce = psg_phase >= MASTER_UNITS - 24'd500000;
     // Prepare enables on the opposite edge, like the original divider.

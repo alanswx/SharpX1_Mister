@@ -2,7 +2,7 @@
 // See docs/BASE_X1_CONTRACT.md for address-map sources and limitations.
 module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636364, TURBO = 0, TURBO_VIDEO_MASTER = 0, TURBO_DMA = 0, TURBO_DMA_IRQ = 0, TURBO_KANJI = 0, TURBO_KANJI_RENDER = 0, TURBO_DSW = 241, TURBO_DMA_RESTART_IRQ = 0, TURBO_Z_PALETTE_CPU = 0, TURBO_Z_VIDEO = 0, TURBO_Z_MULTIMODE = 0, TURBO_Z_INTERNAL8 = 0, TURBO_Z_TEXT_CPU = 0, TURBO_SIO = 0, TURBO_FM_CPU = 0, RTC_ENABLE = 0, TURBO_Z_EFFECT_CPU = 0, TURBO_DMA_KANJI_EXPERIMENT = 0, D88_ADDRESS_BITS = 20, TURBO_HD_SELECT = 0, TURBO_HD_MEDIA = 0,
     TURBO_FDC_TIMING = 0, FDC_CLOCK_HZ = 1000000, CASSETTE_ENABLE = 0, CASSETTE_RUNTIME_RATE = 0, TURBO_FM_CTC = 0, SUB_CAPS_OFF = 0, SUB_JOY_OFF = 0,
-    TURBO_Z_KANJI = 0, TURBO_Z_EXTERNAL_FONT = 0, TURBO_DSW_RUNTIME = 0, TURBO_Z_RUNTIME = 0) (
+    TURBO_Z_KANJI = 0, TURBO_Z_EXTERNAL_FONT = 0, TURBO_DSW_RUNTIME = 0, TURBO_Z_RUNTIME = 0, CART_PORT = 0) (
     input clk_sys, clk_28636, reset,
     input pal, scandouble,
     // TURBO builds only: X1 mode (1) or Turbo (0), sampled during reset.
@@ -41,9 +41,17 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
     input tape_sample_valid, tape_sample_level, tape_sample_last,
     input [17:0] tape_sample_hz, // used only with CASSETTE_RUNTIME_RATE
     // Fast tape: while the deck plays, the CPU enable and the tape samples
-    // both run four times faster, so loader timing loops see the same pulses.
+    // both run five times faster, so loader timing loops see the same pulses.
     input fast_tape,
+    input tape_play, // pulse: deck PLAY (board quick start hands over a playing tape)
     output tape_sample_ready, tape_underflow,
+    // CZ-8RB-style ROM port (CART_PORT): 0E00-0E02 latch a 24-bit address,
+    // a CPU read of 0E03 asks the board for that byte (cart_read) and waits
+    // until cart_ready. The IPL boots a ROM whose first byte is 01.
+    output [23:0] cart_addr,
+    output cart_read,
+    input [7:0] cart_data,
+    input cart_ready,
     output [7:0] tape_mode, tape_sensor,
     input disk_ready, img_mounted, disk_wp,
     input [23:0] img_size,
@@ -126,8 +134,8 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
         if (core_reset) ce <= 0;
         else ce <= ce + 1'b1;
     wire fractional_cpu, fractional_psg;
-    // Single-clock 42.95-MHz runtime-rate decks only (16 MHz keeps CPU enables
-    // two SYS edges apart); tapes above 48 kHz keep real speed (four times
+    // Single-clock 42.95-MHz runtime-rate decks only (20 MHz keeps CPU enables
+    // two SYS edges apart); tapes above 48 kHz keep real speed (five times
     // their rate would outrun the two-sector SD stream).
     wire tape_fast = SINGLE_CLOCK && MASTER_HZ >= 40000000 && CASSETTE_ENABLE && CASSETTE_RUNTIME_RATE && fast_tape &&
                      tape_mode == 8'd2 && tape_sample_hz <= 18'd48000;
@@ -304,7 +312,8 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
     wire [7:0] z_effect_data;
     wire sio_wait_n;
     wire crtc_wait_n;
-    wire machine_wait_n=font_write_wait_n && cg_wait_n && z_palette_wait_n && sio_wait_n && fm_wait_n && crtc_wait_n;
+    wire cart_wait_n;
+    wire machine_wait_n=font_write_wait_n && cg_wait_n && z_palette_wait_n && sio_wait_n && fm_wait_n && crtc_wait_n && cart_wait_n;
     wire fm_selected,fm_read_tail,fm_wait_n,fm_irq_n,fm_sample,fm_protocol_error;
     wire [7:0] fm_data;
     wire signed [15:0] fm_left,fm_right;
@@ -321,6 +330,34 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
         assign fm_selected=0;assign fm_read_tail=0;assign fm_wait_n=1;
         assign fm_data=8'hff;assign fm_irq_n=1;assign fm_sample=0;
         assign fm_left=0;assign fm_right=0;assign fm_protocol_error=0;
+    end endgenerate
+    // ROM port: CPU cycles only (not DMA), in both models. The response is
+    // retained through the CPU's trailing I/O sampling phase, as x1_fm_bus.
+    wire cart_read_tail;
+    wire [7:0] cart_held_data;
+    generate if(CART_PORT) begin : rom_port
+        reg [23:0] address=0;
+        reg read_hold=0;
+        reg [7:0] held=8'hff;
+        wire selected=io_cycle && !dam && !dma_owner && a[15:2]==14'h0380;
+        always @(posedge clk_sys) begin
+            if(selected && io_write) case(a[1:0])
+                2'd0: address[23:16]<=data_out;
+                2'd1: address[15:8]<=data_out;
+                2'd2: address[7:0]<=data_out;
+                default: ;
+            endcase
+            if(core_reset || dma_owner || (!mreq && !rd)) read_hold<=0;
+            else if(cart_read && cart_ready) begin read_hold<=1;held<=cart_data;end
+        end
+        assign cart_addr=address;
+        assign cart_read=selected && io_read && a[1:0]==2'd3;
+        assign cart_wait_n=!(cart_read && !cart_ready);
+        assign cart_read_tail=!core_reset && !dma_owner && mreq && read_hold;
+        assign cart_held_data=held;
+    end else begin : no_rom_port
+        assign cart_addr=0;assign cart_read=0;assign cart_wait_n=1;
+        assign cart_read_tail=0;assign cart_held_data=8'hff;
     end endgenerate
     generate if(TURBO_Z_PALETTE_CPU) begin : z_palette_cpu
         // Explicit palette experiments; subordinate options add video/internal
@@ -895,9 +932,9 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
         x1_cassette_transport #(.SYS_HZ(SINGLE_CLOCK ? MASTER_HZ : 32000000), .RUNTIME_RATE(CASSETTE_RUNTIME_RATE)) transport (
             .clk_sys(clk_sys), .reset(core_reset),
             .mount(tape_mount), .present(tape_present), .empty(tape_empty),
-            .cmd_valid(command_valid), .cmd(cassette_command[7:0]),
+            .cmd_valid(command_valid || tape_play), .cmd(tape_play ? 8'd2 : cassette_command[7:0]),
             .sample_valid(tape_sample_valid), .sample_level(tape_sample_level),
-            .sample_last(tape_sample_last), .sample_hz(tape_fast ? {tape_sample_hz, 2'b00} : {2'b00, tape_sample_hz}), .sample_ready(tape_sample_ready),
+            .sample_last(tape_sample_last), .sample_hz(tape_fast ? {tape_sample_hz, 2'b00} + {2'b00, tape_sample_hz} : {2'b00, tape_sample_hz}), .sample_ready(tape_sample_ready),
             .waveform(cassette_waveform), .applied_mode(tape_mode),
             .sensor(tape_sensor), .underflow(tape_underflow)
         );
@@ -954,6 +991,8 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
               : !m1 && !iorq ? (TURBO ? irq_vector : sub_data)
               : (sio_selected && io_read) || sio_read_tail ? sio_data
               : (fm_selected && io_read) || fm_read_tail ? fm_data
+              : cart_read && cart_ready ? cart_data
+              : cart_read_tail ? cart_held_data
               : sub_cs && io_read && !dam ? sub_data
               : ppi_cs && io_read ? ppi_data
               : ctc_cs && io_read ? ctc_data

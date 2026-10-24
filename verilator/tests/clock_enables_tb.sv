@@ -1,7 +1,7 @@
 `timescale 1ns/1ps
 module clock_enables_tb #(parameter MASTER_HZ = 28636364);
     // Enable spacing is floor/ceil of master/rate: 7/8 and 14/15 at 28.6 MHz.
-    // Fast (tape) mode: CPU at 16 MHz, 2/3 at 42.95 MHz; PSG unchanged.
+    // Fast (tape) mode: CPU at 20 MHz, 2/3 at 42.95 MHz; PSG unchanged.
     localparam integer PSG_MIN = MASTER_HZ / 2000000;
     integer cpu_hz, CPU_MIN;
     reg clk = 0, reset = 1, fast = 0;
@@ -11,7 +11,9 @@ module clock_enables_tb #(parameter MASTER_HZ = 28636364);
     integer cpu_count, psg_count, last_cpu, last_psg;
     integer saved_cpu, saved_psg;
     task run_phase;
-        cpu_hz = fast ? 16000000 : 4000000; CPU_MIN = MASTER_HZ / cpu_hz;
+        cpu_hz = fast ? 20000000 : 4000000; CPU_MIN = MASTER_HZ / cpu_hz;
+        // The machine enables fast tape only at >= 40 MHz: enables two edges apart.
+        if (fast && MASTER_HZ >= 40000000) assert(CPU_MIN >= 2) else $fatal(1, "fast CPU enables %0d edges apart", CPU_MIN);
         cpu_count = 0; psg_count = 0; last_cpu = 0; last_psg = 0;
         @(posedge clk); #1; reset = 0;
         for (integer i = 1; i <= 100000; i++) begin
