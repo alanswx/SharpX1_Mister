@@ -415,7 +415,7 @@ wire tape_quick = cfg[12:11] == 2'd0;
 wire [23:0] cart_addr;
 wire cart_read, cart_ready, quick_reset;
 wire [7:0] cart_data;
-wire tape_underflow;
+wire tape_underflow, tape_turbo_active;
 wire [17:0] tape_sample_hz;
 wire [7:0] tape_mode, tape_sensor;
 wire tape_loaded, tape_rejected;
@@ -466,7 +466,7 @@ generate if (CASSETTE_PROFILE) begin : tape_slot
 	);
 	x1_tape_status tape_status (
 		.clk(clk_sys), .loaded(tape_loaded), .playing(tape_mode == 8'd2),
-		.fast(tape_fast && tape_mode == 8'd2 && tape_sample_hz <= 18'd48000),
+		.fast(tape_turbo_active),
 		.position(tape_position), .length(tape_length), .hz(tape_sample_hz),
 		.status(tape_status_word), .req(tape_status_req), .ack(tape_status_ack)
 	);
@@ -634,7 +634,7 @@ sharpx1 #(.TURBO_DSW_RUNTIME(1), .TURBO_Z_RUNTIME(TURBO_Z_VIDEO_PROFILE), .RAW_2
 	.tape_mount(tape_mount), .tape_present(tape_present), .tape_empty(tape_empty),
 	.tape_sample_valid(tape_sample_valid), .tape_sample_level(tape_sample_level), .tape_sample_last(tape_sample_last), .tape_sample_hz(tape_sample_hz), .fast_tape(tape_fast),
 	.cart_addr(cart_addr), .cart_read(cart_read), .cart_data(cart_data), .cart_ready(cart_ready),
-	.tape_sample_ready(tape_sample_ready), .tape_underflow(tape_underflow), .tape_mode(tape_mode), .tape_sensor(tape_sensor),
+	.tape_sample_ready(tape_sample_ready), .tape_underflow(tape_underflow), .tape_turbo_active(tape_turbo_active), .tape_mode(tape_mode), .tape_sensor(tape_sensor),
 	.disk_ready(media_present[0]), .img_mounted(img_mounted[0]),
 	.disk_wp(!cfg[1] || media_readonly[0]), .img_size(media_size[0]),
 	.disk_raw(media_raw[0]), .disk_raw_b(media_raw[1]),

@@ -10,7 +10,14 @@ OSD Machine page, **Tape speed** (`O[12:11]`, replaces Fast tape `O[9]`):
 5x + quick start (default), 5x, Normal.
 
 - **5x**: `x1_clock_enables` steps the CPU enable at 20 MHz (was 16) and the
-  transport paces samples at five times the TAP rate. At 42.95 MHz the
+  transport paces samples at five times the TAP rate, both only while the
+  tape has pulses: after a quarter second of tape without a rising edge both
+  return to real speed together, and the next edge restores 5x. Hyper
+  Olympic '84's loader never stops the deck; its set-up ran at 20 MHz during
+  the blank tail and its raster-timed PCG writes striped the background
+  (MiSTer 126 sweep); with the gate its score screen is clean in
+  simulation at 80 s, while Zero Fighter (40 s) and Yellow Cab (26 s) keep
+  their times. At 42.95 MHz the
   enables stay two or three SYS edges apart; `test-clock-enables` now
   asserts that. `sharpx1.sdc` has no multicycle paths, so every CPU path was
   already timed at the full 42.95 MHz: the faster enable is not a timing

@@ -44,6 +44,7 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
     // both run five times faster, so loader timing loops see the same pulses.
     input fast_tape,
     output tape_sample_ready, tape_underflow,
+    output tape_turbo_active, // fast tape is running now (for the overlay)
     // CZ-8RB-style ROM port (CART_PORT): 0E00-0E02 latch a 24-bit address,
     // a CPU read of 0E03 asks the board for that byte (cart_read) and waits
     // until cart_ready. The IPL boots a ROM whose first byte is 01.
@@ -138,8 +139,27 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
     // their rate would outrun the two-sector SD stream).
     wire tape_fast = SINGLE_CLOCK && MASTER_HZ >= 40000000 && CASSETTE_ENABLE && CASSETTE_RUNTIME_RATE && fast_tape &&
                      tape_mode == 8'd2 && tape_sample_hz <= 18'd48000;
+    // Turbo only while the tape has pulses: after a quarter second of tape
+    // without a rising edge, the CPU and the samples both return to real
+    // speed (they always change together, so a loader timing a gap sees its
+    // real length); the next edge restores 5x. A game that runs while the
+    // deck plays out a blank tail then runs at its real speed (Hyper Olympic
+    // '84 times its PCG writes to the raster with CPU loops; its loader
+    // never stops the deck).
+    reg [17:0] tape_quiet = 0;
+    reg tape_previous_level = 0;
+    always @(posedge clk_sys)
+        if (core_reset || tape_mode != 8'd2) begin
+            tape_quiet <= 0; tape_previous_level <= 0;
+        end else if (tape_sample_ready && tape_sample_valid) begin
+            tape_previous_level <= tape_sample_level;
+            if (tape_sample_level && !tape_previous_level) tape_quiet <= 0;
+            else if (tape_quiet != 18'h3ffff) tape_quiet <= tape_quiet + 1'b1;
+        end
+    wire tape_turbo = tape_fast && tape_quiet < {2'b00, tape_sample_hz[17:2]};
+    assign tape_turbo_active = tape_turbo;
     x1_clock_enables #(.MASTER_HZ(MASTER_HZ)) clock_enables (
-        .clk(clk_sys), .reset(core_reset), .fast(tape_fast), .cpu_ce(fractional_cpu), .psg_ce(fractional_psg)
+        .clk(clk_sys), .reset(core_reset), .fast(tape_turbo), .cpu_ce(fractional_cpu), .psg_ce(fractional_psg)
     );
     wire pe4M4 = SINGLE_CLOCK ? fractional_cpu : ce[2:0] == 3'b100;
     wire psg_ce = SINGLE_CLOCK ? fractional_psg : ce[3:0] == 4'b1000;
@@ -933,7 +953,7 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
             .mount(tape_mount), .present(tape_present), .empty(tape_empty),
             .cmd_valid(command_valid), .cmd(cassette_command[7:0]),
             .sample_valid(tape_sample_valid), .sample_level(tape_sample_level),
-            .sample_last(tape_sample_last), .sample_hz(tape_fast ? {tape_sample_hz, 2'b00} + {2'b00, tape_sample_hz} : {2'b00, tape_sample_hz}), .sample_ready(tape_sample_ready),
+            .sample_last(tape_sample_last), .sample_hz(tape_turbo ? {tape_sample_hz, 2'b00} + {2'b00, tape_sample_hz} : {2'b00, tape_sample_hz}), .sample_ready(tape_sample_ready),
             .waveform(cassette_waveform), .applied_mode(tape_mode),
             .sensor(tape_sensor), .underflow(tape_underflow)
         );

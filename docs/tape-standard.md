@@ -43,9 +43,15 @@ have it.
 
 ### Turbo
 
-6. **Turbo only while the tape plays.** "Plays" means what the machine's
-   deck means: motor on and PLAY. The moment the deck stops, the machine
-   is back at its normal speed, so the game never runs fast.
+6. **Turbo only while the tape plays and has pulses.** "Plays" means what
+   the machine's deck means: motor on and PLAY. The moment the deck stops,
+   the machine is back at its normal speed. Many loaders never stop the
+   deck, so a game can start while the tape plays out a blank tail: after
+   a quarter second of tape without a pulse, drop the machine **and** the
+   tape back to 1x together, and return to Nx at the next pulse. A loader
+   timing a gap then still sees its real length, and the game runs at its
+   real speed (Hyper Olympic '84 wrote its PCG at 5x into the wrong raster
+   lines before this). The overlay shows `x5` only while turbo runs.
 7. **Speed up the loader's timebase and the tape by the same factor, and
    nothing else.** A loader measures pulse widths with something: CPU
    instruction loops, a hardware timer, a video interrupt, a serial chip.
