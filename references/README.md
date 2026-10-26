@@ -62,6 +62,14 @@ preserves missing `7`/native Missing operand at 4/4 frames; 8/8 cold/repeat
 gives exact `42` and missing Enter rejects. Real mailbox I/O supports the
 delivery difference; no reference VM/FPGA timing change is made.
 
+October 26: the same xmil-libretro revision now builds outside the checkout
+(`git archive`, `SUPPORT_TURBOZ`/`SUPPORT_BANKMEM` via a forced-include overlay,
+no source patches) and runs headless through our own frontend
+`tools/xmil-cli`. X1, X1 turbo (15/24 kHz) and Turbo Z boot real disks to
+title/menu screens with verified real ROM fonts. It is a secondary
+reference; its font/text rendering is not hardware evidence. See the
+[X Millennium runner status](../docs/XMIL_REFERENCE_STATUS.md).
+
 October 15: the user supplied an existing `~/Downloads/xmil026s` source tree
 and archive. Thirteen Windows-source/reference files were inspected read-only
 and matched to the archive, not built or executed. PCG fallback, high-speed

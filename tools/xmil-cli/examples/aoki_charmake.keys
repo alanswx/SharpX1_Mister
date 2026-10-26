@@ -1,0 +1,4 @@
+# skip opening at the title, then menu choice 1
+55000 tap return
+62000 tap 1
+64000 tap return
