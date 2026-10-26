@@ -1,5 +1,31 @@
 # DMA single-clock FPGA qualification revision
 
+## October 26, 2026: tape FF/REW/APSS, drives not remembered
+
+`5d74040` at seeds 1 and 2 (`quartus-linux-qPru6HBw`, `-eTOWotXi`): 22,891 /
+22,856 ALMs (55%), worst setup slack 0.199 ns (seed 1, all corners
+positive). Seed 1 RBF `5c34cb4e2696af9453117cc0287f709c86dd859d7dc5d0be316176317e0938ec`
+(`releases/SharpX1_20261026b.rbf`). The FF/REW-only commit `cda3f30` also
+fitted at both seeds (superseded before hardware).
+
+MiSTer 126, setname `X1M_20261026` (fresh settings: 5x + quick start), MGL
+with only the Super Mario Bros. Special TAP, controller rebuilt with
+`--receive-only --joystick-off --caps-off`; MiSTer frame grabs from the MGL
+load:
+
+| Time | Screen |
+| --- | --- |
+| 30 s | "IPL is loading SuperMarioSP" |
+| 60 s | Main program loading, overlay `1:49/14:59 x5` |
+| 75 s | Black (deck rewinding; overlay shows only in PLAY) |
+| 90 s | Overlay `0:04/14:59`: first file again after the rewind |
+| 105 s | Black (APSS forward past the main program) |
+| 120 s | Title "SUPER MARIO BROS. Special", PUSH START BUTTON ✓ |
+| 135-210 s | Attract demo, WORLD 1-1 ✓ |
+
+The previous core showed "TAPE ERROR / PLEASE REWIND TAPE" here
+(reproduced in simulation at 75 s; see `CASSETTE_STATUS.md`).
+
 ## October 26, 2026: 16-row ANK fallback and boot.rom font
 
 `8ab04cb` seed 1 (`quartus-linux-qMN86gum`): 22,735 ALMs, worst slack
