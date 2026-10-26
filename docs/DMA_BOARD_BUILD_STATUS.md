@@ -1,5 +1,13 @@
 # DMA single-clock FPGA qualification revision
 
+## October 25, 2026 (later): FM reset
+
+`0b1d857` (JT51 held in reset 64 cen_p1 after the machine reset) seed 1
+(`quartus-linux-0qN0TCRs`): 22,749 ALMs, worst slack 0.246 ns, RBF
+`07c6d841…` (`releases/SharpX1_20261025.rbf`). MiSTer 126 smoke test:
+Thunder Force demo reaches its high-score screen, Zero Fighter (tape)
+its title. FM sound not listened to (the capture path records no audio).
+
 ## October 25, 2026: Kanji in 15 kHz 8-raster rows, aspect ratio
 
 `1cad521` (Z Kanji in any 16-raster row and 15 kHz 8-raster rows,
