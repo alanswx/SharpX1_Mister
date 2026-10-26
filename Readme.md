@@ -43,6 +43,9 @@ normally come from boot2/3/1.rom). Settings apply at **Apply and reset**;
 core loads; the tape does not. **Drive A and B are drives 0 and 1** to the
 machine; many games call them drive 1 and 2 ("insert disk 2 in drive 2" means
 Drive B).
+**Aspect ratio** Original shows the picture as a monitor does: 4:3 in
+24 kHz (640x400) and about 1.36:1 (19:14) in 15 kHz, where 200 of 258
+lines and 640 of 896 dots fill less height than width.
 **Monitor** is the Turbo DIP monitor switch (Standard by default; set
 High-res for 24 kHz-only disks such as Hi-School Adventure hi-res: X1
 software leaves the IPL's 24 kHz scan bit set and displays half its lines).

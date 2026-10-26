@@ -198,9 +198,15 @@ assign BUTTONS = 0;
 //////////////////////////////////////////////////////////////////
 
 wire [1:0] ar = cfg[122:121];
+wire high_scan;
 
-assign VIDEO_ARX = (!ar) ? 13'd4 : ({11'd0, ar} - 13'd1);
-assign VIDEO_ARY = (!ar) ? 13'd3 : 13'd0;
+// Original: the picture a monitor shows. 24 kHz (640x400, 448 of 24.86 kHz
+// lines, the PC-98 standard) is 4:3. 15 kHz shows 200 of 258 lines and 640
+// of 896 dots: within a TV-standard visible area (52.7 of 63.6 us, 236 of
+// 258 lines) that is 0.862 of the width and 0.848 of the height, 1.36:1
+// (19:14), slightly wider than 4:3.
+assign VIDEO_ARX = (!ar) ? (high_scan ? 13'd4 : 13'd19) : ({11'd0, ar} - 13'd1);
+assign VIDEO_ARY = (!ar) ? (high_scan ? 13'd3 : 13'd14) : 13'd0;
 
 `include "build_id.v" 
 // Keep any J/j joystick entries LAST in CONF_STR (after V); earlier entries
@@ -634,7 +640,7 @@ sharpx1 #(.TURBO_DSW_RUNTIME(1), .TURBO_Z_RUNTIME(TURBO_Z_VIDEO_PROFILE), .RAW_2
 	.tape_mount(tape_mount), .tape_present(tape_present), .tape_empty(tape_empty),
 	.tape_sample_valid(tape_sample_valid), .tape_sample_level(tape_sample_level), .tape_sample_last(tape_sample_last), .tape_sample_hz(tape_sample_hz), .fast_tape(tape_fast),
 	.cart_addr(cart_addr), .cart_read(cart_read), .cart_data(cart_data), .cart_ready(cart_ready),
-	.tape_sample_ready(tape_sample_ready), .tape_underflow(tape_underflow), .tape_turbo_active(tape_turbo_active), .tape_mode(tape_mode), .tape_sensor(tape_sensor),
+	.tape_sample_ready(tape_sample_ready), .tape_underflow(tape_underflow), .tape_turbo_active(tape_turbo_active), .high_scan(high_scan), .tape_mode(tape_mode), .tape_sensor(tape_sensor),
 	.disk_ready(media_present[0]), .img_mounted(img_mounted[0]),
 	.disk_wp(!cfg[1] || media_readonly[0]), .img_size(media_size[0]),
 	.disk_raw(media_raw[0]), .disk_raw_b(media_raw[1]),

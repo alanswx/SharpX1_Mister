@@ -45,6 +45,7 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
     input fast_tape,
     output tape_sample_ready, tape_underflow,
     output tape_turbo_active, // fast tape is running now (for the overlay)
+    output high_scan,         // Turbo 24 kHz (400-line) scan, for the display aspect ratio
     // CZ-8RB-style ROM port (CART_PORT): 0E00-0E02 latch a 24-bit address,
     // a CPU read of 0E03 asks the board for that byte (cart_read) and waits
     // until cart_ready. The IPL boots a ROM whose first byte is 01.
@@ -869,6 +870,7 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
     // Stable control latches cross into the renderer. Phase of live changes
     // still needs hardware/CDC review; diagnostics switch while masked.
     (* async_reg = "true" *) reg [7:0] turbo_scrn_meta, turbo_scrn_video;
+    assign high_scan = TURBO && turbo_scrn_video[0];
     (* async_reg = "true" *) reg [6:0] turbo_black_meta, turbo_black_video;
     (* async_reg = "true" *) reg width_meta, width_video;
     (* async_reg = "true" *) reg turbo_on_meta, turbo_on_video;
@@ -1391,7 +1393,7 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
         .I_CRTC_BUS_CLK(clk_28636), .I_CRTC_BUS_RS(crtc_bus_rs),
         .I_CRTC_BUS_DATA(crtc_bus_data), .I_CRTC_BUS_WRITE(crtc_bus_write),
         .I_TURBO_BLACK(turbo_black_video),
-        .I_TURBO_HIGH_SCAN(TURBO && turbo_scrn_video[0]),
+        .I_TURBO_HIGH_SCAN(high_scan),
         .I_TURBO_TEXT_Y2(TURBO && turbo_scrn_video[2]),
         .I_TURBO_UNDERLINE(TURBO && turbo_scrn_video[7]),
         .I_RESET(core_reset), .I_CCLK(clk_sys), .I_A(a), .I_D(data_out), .O_D(), .O_DE(),
