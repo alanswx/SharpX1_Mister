@@ -141,7 +141,9 @@ Never claim compatibility or timing closure from a boot screenshot.
 Do not run the compensated 28.6-MHz single-clock MR16 at X3 or silently
 change the default model. The separate opt-in single-clock X3 master
 (`turbo-x3-single`, `sharpx1_turbo_z_font_single`) instead gives MR16 a
-32-MHz-average rate enable; see `docs/X3_SINGLE_CLOCK_STATUS.md`. Index 4 / `--font16` accepts character-major 4096-byte ANK;
+32-MHz-average rate enable; see `docs/X3_SINGLE_CLOCK_STATUS.md`. Index 4 / `--font16` accepts character-major 4096-byte ANK (the board wrapper
+also takes it from `boot.rom` bytes 32768-36863; unloaded, 24 kHz ANK draws
+the built-in 8x8 rows doubled);
 do not embed private font bytes. See `docs/TURBO_VIDEO_CLOCK_STATUS.md` for
 exact checks and missing Kanji/text/high-speed PCG behavior. The X3 board
 revisions request their own PLL (`rtl/x1_turbo_video_pll.sv`); record the fitted

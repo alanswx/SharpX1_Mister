@@ -33,6 +33,11 @@ X1 mode turns the Turbo-only hardware off and boots a separate X1 IPL (OSD
 (provisional; Kohakuiro no Yuigon runs). Turbo software runs unchanged in it.
 All ROMs load from SD; none are embedded (`boot.rom` IPL, `boot1.rom` tape
 controller, `boot2.rom` X1 IPL, `boot3.rom` Kanji font).
+High-res (24 kHz) text needs the 16-row ANK font for half-width characters
+(numbers, kana, letters). Append the 4-KiB font to the 32-KiB IPL
+(`cat ipl.rom ank16.X1 > boot.rom`) and it loads at every core start;
+otherwise load it with **Load 16-row ANK** or an MGL. Without it the core
+draws the built-in 8x8 font with each line doubled.
 
 The OSD follows the computer-core layout standard: drives, tape, Load 16-row
 ANK and Load ROM on the top page, then **Machine** (Model, Tape speed, Rewind

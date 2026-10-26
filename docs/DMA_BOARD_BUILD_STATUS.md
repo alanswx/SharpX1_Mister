@@ -1,5 +1,27 @@
 # DMA single-clock FPGA qualification revision
 
+## October 26, 2026: 16-row ANK fallback and boot.rom font
+
+`8ab04cb` seed 1 (`quartus-linux-qMN86gum`): 22,735 ALMs, worst slack
+0.238 ns, RBF `4554a92a…` (`releases/SharpX1_20261026.rbf`). Cause of the
+tester's missing Koei numbers: in 24 kHz text, half-width cells come from the
+16-row ANK, which loaded only through an MGL/OSD (index 4); without it every
+ANK cell was blank. Now the built-in 8x8 font stands in, each line doubled,
+and a `boot.rom` longer than 32 KiB loads its next 4 KiB as the 16-row ANK.
+MiSTer 126, Monitor High-res, no ANK in the MGL:
+
+| Case | Result |
+| --- | --- |
+| 20261025 core, 32-KiB `boot.rom` (reproduction) | Aoki Ookami Character Making: table and typed digit blank; Kanji/full-width text shown |
+| `X1B_20261026`: 32-KiB `boot.rom` (fallback) | Same screen: all numbers and the typed `1` in the doubled 8x8 font ✓ |
+| `X1A_20261026`: 36-KiB `boot.rom` (IPL + `ank16.X1`) | Same screen in the real 16-row font ✓; Sangokushi Turbo scenario list and ruler stats with Kanji and numbers ✓ |
+| Aspect ratio Full Screen after Apply and reset | 1,920 px wide ✓ (it waits for the reset, OSD standard rule 1) |
+
+CSP (`../common_source_code`, `vm/x1/display.cpp`) draws 15 kHz Kanji from
+lines 0, 2 ... 14 like ours, and without `ANK16.ROM` it has no 16-row ANK
+either. The MiSTer capture's 996-line title screenshots are black-border
+trimming; the raw 640x200 frame ends its last text row at line 191.
+
 ## October 25, 2026 (later): FM reset
 
 `0b1d857` (JT51 held in reset 64 cen_p1 after the machine reset) seed 1
