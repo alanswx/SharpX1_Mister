@@ -763,6 +763,16 @@ $(HEADLESS_DIR)/fm-$(FM_MASTER_HZ)/Vfm_tb: $(FM_SRC) tests/fm_tb.sv $(FM_MANIFES
 		--Mdir $(HEADLESS_DIR)/fm-$(FM_MASTER_HZ) -j 4 $(FM_SRC) tests/fm_tb.sv -Wno-fatal
 .PHONY: test-fm
 
+# Unkeyed operators are silent after power-on and warm reset (JT51 shift
+# registers must load their reset values with the enables running).
+test-fm-reset: $(HEADLESS_DIR)/fm-reset/Vfm_reset_silence_tb
+	./$(HEADLESS_DIR)/fm-reset/Vfm_reset_silence_tb
+$(HEADLESS_DIR)/fm-reset/Vfm_reset_silence_tb: $(FM_SRC) tests/fm_reset_silence_tb.sv $(FM_MANIFEST) Makefile
+	mkdir -p $(@D)
+	$(V) --binary --timing --assert --top-module fm_reset_silence_tb \
+		--Mdir $(@D) -j 4 $(FM_SRC) tests/fm_reset_silence_tb.sv -Wno-fatal
+.PHONY: test-fm-reset
+
 test-fm-psg: $(HEADLESS_DIR)/fm-psg-$(FM_MASTER_HZ)/Vfm_tb
 	./$(HEADLESS_DIR)/fm-psg-$(FM_MASTER_HZ)/Vfm_tb +OUTPUT=$(HEADLESS_DIR)/fm-psg-$(FM_MASTER_HZ)/mixed
 	python3 tests/test_fm_psg_audio.py $(HEADLESS_DIR)/fm-psg-$(FM_MASTER_HZ)/mixed
