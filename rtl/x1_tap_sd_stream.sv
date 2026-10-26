@@ -16,6 +16,8 @@
 // The stored tape position is ignored: every mount starts rewound at sample 0.
 // Mounting presents an eject first, then a STOP-state mount once the first
 // sample is held, so the transport never sees PLAY without prebuffered data.
+// The deck's FF/REW move the cursor one sample per wind_step without
+// reading; sectors are fetched again once winding stops.
 // Two 512-byte sector slots keep the current and next sector resident; at
 // 8 kHz one sector is 0.512 s of tape.
 `timescale 1ns/1ps
@@ -43,6 +45,11 @@ module x1_tap_sd_stream #(
     output logic        sample_level,
     output logic        sample_last,
     input  logic        sample_ready,
+    input  logic        wind_step,   // move the cursor one sample (FF/REW)
+    input  logic        wind_back,
+    input  logic        winding,     // no sector fetches while winding
+    output logic        at_start,
+    output logic        at_end,
     output logic [17:0] sample_hz,
     // status
     output logic        loaded,
@@ -101,6 +108,8 @@ module x1_tap_sd_stream #(
     assign sample_valid = state == RUN && byte_ok && bits_left;
     assign sample_level = byte_reg[3'd7 - cur_bit[2:0]];
     assign sample_last = cur_bit + 32'd1 == total_bits;
+    assign at_start = cur_bit == 0;
+    assign at_end = !bits_left;
     assign loaded = state == RUN;
     assign position = cur_bit;
     assign length = total_bits;
@@ -185,8 +194,17 @@ module x1_tap_sd_stream #(
                         cur_bit <= cur_bit + 32'd1;
                         if (cur_bit[2:0] == 3'd7) byte_ok <= 0;
                     end
+                    if (state == RUN && wind_step) begin
+                        if (wind_back && cur_bit != 0) begin
+                            cur_bit <= cur_bit - 32'd1;
+                            if (cur_bit[2:0] == 3'd0) byte_ok <= 0;
+                        end else if (!wind_back && bits_left) begin
+                            cur_bit <= cur_bit + 32'd1;
+                            if (cur_bit[2:0] == 3'd7) byte_ok <= 0;
+                        end
+                    end
                     // Keep the current and next sector resident.
-                    if (!fetching && bits_left) begin
+                    if (!fetching && bits_left && !winding) begin
                         if (!need_ok) begin
                             sd_lba <= {9'd0, need}; sd_rd <= 1; fetching <= 1;
                             fetch_slot <= need[0]; slot_ok[need[0]] <= 0;
@@ -198,7 +216,7 @@ module x1_tap_sd_stream #(
                         end
                     end
                     // Load the byte under the cursor (two-cycle RAM read).
-                    if (!byte_ok && bits_left && need_ok &&
+                    if (!byte_ok && bits_left && need_ok && !winding &&
                         !(state == RUN && sample_valid && sample_ready)) begin
                         if (rd_wait == 0) begin
                             rd_addr <= {need[0], byte_addr[8:0]};

@@ -35,9 +35,10 @@ have it.
 3. **Rewind tape** is a one-press button: Machine page, bottom (OSD
    standard: buttons go in Machine).
 4. **The tape slot is not remembered:** `S2,TAP,Tape;`, not `SC2`. A core
-   start begins with no tape; disks may stay remembered. A tape that comes
-   back by itself at the next start surprises users, and with quick start
-   it would boot by itself.
+   start begins with no tape. A tape that comes back by itself at the next
+   start surprises users, and with quick start it would boot by itself. The
+   X1 core does not remember its disks either: testers found the last disk
+   booting at every core start just as surprising.
 5. **Every mount starts rewound**, and the OSD says so with an info
    message (`"I,Tape ready (rewound),Tape format not supported;"`).
 

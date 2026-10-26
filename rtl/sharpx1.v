@@ -44,6 +44,10 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
     // both run five times faster, so loader timing loops see the same pulses.
     input fast_tape,
     output tape_sample_ready, tape_underflow,
+    // FF/REW: the deck steps the producer's cursor (one sample per pulse)
+    // and stops at its ends; no sector reads while winding.
+    input tape_at_start, tape_at_end,
+    output tape_wind_step, tape_wind_back, tape_winding,
     output tape_turbo_active, // fast tape is running now (for the overlay)
     output high_scan,         // Turbo 24 kHz (400-line) scan, for the display aspect ratio
     // CZ-8RB-style ROM port (CART_PORT): 0E00-0E02 latch a 24-bit address,
@@ -956,11 +960,14 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
             .cmd_valid(command_valid), .cmd(cassette_command[7:0]),
             .sample_valid(tape_sample_valid), .sample_level(tape_sample_level),
             .sample_last(tape_sample_last), .sample_hz(tape_turbo ? {tape_sample_hz, 2'b00} + {2'b00, tape_sample_hz} : {2'b00, tape_sample_hz}), .sample_ready(tape_sample_ready),
+            .at_start(tape_at_start), .at_end(tape_at_end),
+            .wind_step(tape_wind_step), .wind_back(tape_wind_back), .winding(tape_winding),
             .waveform(cassette_waveform), .applied_mode(tape_mode),
             .sensor(tape_sensor), .underflow(tape_underflow)
         );
     end else begin : cassette_disabled
         assign tape_sample_ready = 0;
+        assign {tape_wind_step, tape_wind_back, tape_winding} = 3'b000;
         assign tape_underflow = 0;
         assign tape_mode = 0;
         assign tape_sensor = 0;
@@ -985,7 +992,8 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
         ioctl_download && ioctl_wr && ioctl_index==7 && ioctl_addr==0 && ioctl_dout==1;
     x1_sub #(.CLOCK_HZ(SINGLE_CLOCK ? MASTER_HZ : 32000000), .PS2_RECEIVE_ONLY(1), .CAPS_OFF(SUB_CAPS_OFF), .JOY_OFF(SUB_JOY_OFF), .IRQ_ACK_ONCE(TURBO), .RTC_ENABLE(RTC_ENABLE), .CASSETTE_ENABLE(CASSETTE_ENABLE)) subCPU (
         .I_reset(core_reset), .I_rtc_power_reset(rtc_power_reset), .I_clk(clk_sys), .I_cs(sub_cs),
-        .I_cassette_mode(tape_mode[1:0]), .I_cassette_sensor(tape_sensor),
+        // Mode bit 2 (REW = 4) rides on sensor bit 7, which the deck never sets.
+        .I_cassette_mode(tape_mode[1:0]), .I_cassette_sensor({tape_mode[2], tape_sensor[6:0]}),
         .O_cassette_command(cassette_command),
         .I_rd(io_read), .I_wr(io_write || rtc_firmware_load), .I_M1_n(m1),
         .I_D(rtc_firmware_load ? ioctl_dout : data_out), .O_D(sub_data), .O_DOE(), .O_clk1(clk1),

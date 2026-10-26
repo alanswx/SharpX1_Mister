@@ -167,6 +167,34 @@ n = check_play(run(exe, 'rewind', image, mode='rewind', remount=5000), image, SY
 checks.append(('osd-rewind', n))
 print('PASS osd-rewind', n, flush=True)
 
+
+def check_wind(rows, image, ff):
+    """Deck REW to the start / FF 1000 then STOP: play resumes at the cursor."""
+    want = expected_samples(image)
+    accepts = [int(r[3]) for r in rows if r[0] == 'A']
+    wind = [r for r in rows if r[0] == 'W'][0]
+    before, after, mode = int(wind[2]), int(wind[3]), int(wind[4])
+    end = [r for r in rows if r[0] == 'E'][-1]
+    assert int(end[4]) == 0, 'underflow after a wind'
+    assert mode == 1, ('wind ends stopped', wind)
+    # FF stops on the STOP command a cycle or two after 1000 steps.
+    assert (1000 <= after - before <= 1002) if ff else after == 0, ('cursor after wind', wind)
+    assert len([r for r in rows if r[0] == 'A' and int(r[1]) < int(wind[1])]) == before, 'accepted before wind'
+    assert accepts[:before] == want[:before], 'levels before the wind'
+    assert accepts[before:] == want[after:], 'levels after the wind'
+    assert int(end[2]) == 2 and int(end[3]) == 1, end
+    return len(accepts)
+
+
+# Mid-sector cursor (not a multiple of 8 or 4096), several sectors back/ahead.
+image = new_tap(60000)
+n = check_wind(run(exe, 'wind-rew', image, mode='wind', remount=37123), image, False)
+checks.append(('wind-rew', n))
+print('PASS wind-rew', n, flush=True)
+n = check_wind(run(exe, 'wind-ff', image, mode='windff', remount=20005), image, True)
+checks.append(('wind-ff', n))
+print('PASS wind-ff', n, flush=True)
+
 slow = build('slow', SYS, 20000)
 image = old_tap(2600)
 n = check_play(run(slow, 'slow-sd', image), image, SYS)

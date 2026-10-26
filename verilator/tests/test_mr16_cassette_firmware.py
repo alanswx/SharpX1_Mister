@@ -108,7 +108,7 @@ class CassetteFirmwareTest(unittest.TestCase):
                 transfer(s["cassette_start"] + 2, "cassette_set", True)
                 transfer(s["cassette_start"] + 6, "start")
                 at = s["cassette_set"]
-                for value in (0, 1, 2):
+                for value in (0, 1, 2, 3, 4):  # EJECT STOP PLAY FF REW
                     check(at, [0xD000 | value])
                     branch(at + 2, "cassette_set_supported", 1)
                     at += 4
@@ -119,8 +119,14 @@ class CassetteFirmwareTest(unittest.TestCase):
                 branch(at + 16, "cassette_set_return", 1)
                 check(at + 18, [0x3F90, 0x0F00])  # conditional STI only
                 # Exact refresh: sole GPIO read is PORT1; output writes only RAM.
-                check(s["cassette_refresh"], [0x0E21, 0x3027, 0x2704, 0xF000,
-                      0x4003, 0x1D04, 0x3027, 0x2701, 0xF000, 0x40FF, 0x1D05, 0x0F00])
+                # Mode bit 2 (REW) is PORT1 bit 15: TST #8000h, BEQ +4, OR #4;
+                # the sensor byte keeps bits 6:0.
+                at = s["cassette_refresh"]
+                check(at, [0x0E21, 0x3027, 0x2704, 0xF000, 0x4003, 0x2780, 0xC200])
+                branch(at + 14, "cassette_refresh_mode", 1)
+                check(at + 16, [0x5004])
+                self.assertEqual(s["cassette_refresh_mode"], at + 18)
+                check(at + 18, [0x1D04, 0x3027, 0x2701, 0xF000, 0x407F, 0x1D05, 0x0F00])
                 at = s["cassette_cmd_e9"]
                 transfer(at, "host_r", True)
                 check(at + 4, [0x0D04, 0x40FF])

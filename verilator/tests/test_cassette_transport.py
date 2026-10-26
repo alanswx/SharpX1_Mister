@@ -20,8 +20,18 @@ for name in FILES:
 print('Frozen cassette evidence:', folder, flush=True)
 
 
-def run_case(hz, negative=False, sample_hz=8000, parameter_only=False, invalid=False, sum_negative=False):
-    tag = str(hz) + ('-negative' if negative else '')
+# Wind mutants: (name, original, replacement, expected failure marker).
+WIND_MUTANTS = {
+    'no-refill': ("end else if (!refill) begin", "end else if (1'b1) begin",
+                  'play after a wind waits for the producer'),
+    'no-start-stop': ("if (wind_back ? at_start : at_end) begin", "if (!wind_back && at_end) begin",
+                      'rewind'),
+}
+
+
+def run_case(hz, negative=False, sample_hz=8000, parameter_only=False, invalid=False, sum_negative=False,
+             wind_mutant=None):
+    tag = str(hz) + ('-negative' if negative else '') + ('-' + wind_mutant if wind_mutant else '')
     if parameter_only or invalid:
         tag += '-sample' + str(sample_hz)
     if sum_negative:
@@ -35,6 +45,13 @@ def run_case(hz, negative=False, sample_hz=8000, parameter_only=False, invalid=F
                else 'applied_mode <= PLAY; // MATCHED MUTANT')
         assert original.count(old) == 1
         source = folder / ('sum-mutant' if sum_negative else 'underflow-mutant') / 'x1_cassette_transport.sv'
+        source.parent.mkdir()
+        source.write_text(original.replace(old, new))
+    if wind_mutant:
+        old, new, _ = WIND_MUTANTS[wind_mutant]
+        original = source.read_text()
+        assert original.count(old) == 1
+        source = folder / (wind_mutant + '-mutant') / 'x1_cassette_transport.sv'
         source.parent.mkdir()
         source.write_text(original.replace(old, new))
     obj = folder / ('obj-' + tag)
@@ -53,18 +70,24 @@ def run_case(hz, negative=False, sample_hz=8000, parameter_only=False, invalid=F
     if invalid:
         assert result.returncode != 0 and 'unsupported cassette sample/system rate' in text, text
         assert 'PASS cassette' not in text
+    elif wind_mutant:
+        assert result.returncode != 0 and WIND_MUTANTS[wind_mutant][2] in text, text
+        assert 'PASS cassette transport' not in text
     elif negative or sum_negative:
         marker = 'cassette widened sum lost carry' if sum_negative else 'cassette underflow must stop'
         assert result.returncode != 0 and marker in text, text
         assert 'PASS cassette transport' not in text
     else:
         assert result.returncode == 0 and 'PASS cassette' in text, text
-    print('PASS', tag, 'parameter rejection' if invalid else 'matched underflow rejection' if negative else 'synthetic transport', flush=True)
+    print('PASS', tag, 'parameter rejection' if invalid else 'matched underflow rejection' if negative
+          else 'matched wind mutant rejection' if wind_mutant else 'synthetic transport', flush=True)
 
 
 for rate in (32000000, 28571428, 28636364):
     run_case(rate)
 run_case(32000000, negative=True)
+for mutant in WIND_MUTANTS:
+    run_case(32000000, wind_mutant=mutant)
 run_case(4294967295, sample_hz=4294967295, parameter_only=True)
 run_case(4294967295, sample_hz=2147483648, parameter_only=True)
 run_case(4294967295, sample_hz=2147483648, parameter_only=True, sum_negative=True)

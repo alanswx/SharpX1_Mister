@@ -80,7 +80,8 @@ module top #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636364,
     localparam CASSETTE = 1;
     wire tape_mount, tape_present, tape_empty;
     wire tape_sample_valid, tape_sample_level, tape_sample_last, tape_sample_ready;
-    wire stream_mount, stream_present, stream_empty, stream_ready, quick_rewind;
+    wire stream_mount, stream_present, stream_empty, stream_ready, quick_rewind, quick_busy;
+    wire tape_at_start, tape_at_end, tape_wind_step, tape_wind_back, tape_winding;
     wire [23:0] cart_addr;
     wire cart_read, cart_ready, quick_reset;
     wire [7:0] cart_data;
@@ -92,6 +93,8 @@ module top #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636364,
         .tape_mount(stream_mount), .tape_present(stream_present), .tape_empty(stream_empty),
         .sample_valid(tape_sample_valid), .sample_level(tape_sample_level),
         .sample_last(tape_sample_last), .sample_ready(stream_ready), .sample_hz(tape_sample_hz),
+        .wind_step(tape_wind_step && !quick_busy), .wind_back(tape_wind_back), .winding(tape_winding && !quick_busy),
+        .at_start(tape_at_start), .at_end(tape_at_end),
         .loaded(tape_loaded), .rejected(tape_rejected), .position(), .length()
     );
     // As the board: quick start (QUICK_TAPE) between the stream and the deck.
@@ -106,7 +109,7 @@ module top #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636364,
         .stream_hz(tape_sample_hz),
         .deck_ready(tape_sample_ready), .deck_mount(tape_mount), .deck_present(tape_present), .deck_empty(tape_empty),
         .cart_addr(cart_addr), .cart_read(cart_read), .cart_data(cart_data), .cart_ready(cart_ready),
-        .reset_request(quick_reset), .busy()
+        .reset_request(quick_reset), .busy(quick_busy)
     );
 `else
     localparam CASSETTE = 0;
@@ -143,12 +146,16 @@ module top #(parameter RAW_2D_MEDIA = 0, SINGLE_CLOCK = 0, MASTER_HZ = 28636364,
         .tape_sample_valid(tape_sample_valid), .tape_sample_level(tape_sample_level),
         .tape_sample_last(tape_sample_last), .tape_sample_hz(tape_sample_hz), .fast_tape(FAST_TAPE != 0),
         .tape_sample_ready(tape_sample_ready), .tape_underflow(tape_underflow),
+        .tape_at_start(tape_at_start), .tape_at_end(tape_at_end),
+        .tape_wind_step(tape_wind_step), .tape_wind_back(tape_wind_back), .tape_winding(tape_winding),
         .tape_mode(tape_mode), .tape_sensor(tape_sensor),
         .cart_addr(cart_addr), .cart_read(cart_read), .cart_data(cart_data), .cart_ready(cart_ready),
 `else
         .tape_mount(1'b0), .tape_present(1'b0), .tape_empty(1'b0),
         .tape_sample_valid(1'b0), .tape_sample_level(1'b0), .tape_sample_last(1'b0), .tape_sample_hz(18'd0), .fast_tape(1'b0),
         .tape_sample_ready(), .tape_underflow(), .tape_mode(), .tape_sensor(),
+        .tape_at_start(1'b1), .tape_at_end(1'b1),
+        .tape_wind_step(), .tape_wind_back(), .tape_winding(),
         .cart_addr(cart_addr), .cart_read(cart_read), .cart_data(cart_data), .cart_ready(cart_ready),
 `endif
         .sio_external_rx_clock(1'b0),.sio_external_tx_clock(1'b0),

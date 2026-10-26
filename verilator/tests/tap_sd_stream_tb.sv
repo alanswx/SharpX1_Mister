@@ -34,6 +34,15 @@ module tap_sd_stream_tb;
     logic [7:0] cmd = 0;
     wire waveform, underflow;
     wire [7:0] applied_mode, sensor;
+    wire at_start, at_end, wind_step, wind_back, winding;
+    wire [31:0] position, length;
+    int wind_steps = 0, wind_before = 0;
+    logic winding_q = 0;
+    always @(posedge clk) begin
+        if (wind_step) wind_steps <= wind_steps + 1;
+        winding_q <= winding;
+        if (winding && !winding_q) wind_before <= position; // cursor when winding starts
+    end
 
     x1_tap_sd_stream #(.MIN_HZ(MIN_HZ), .MAX_HZ(MAX_HZ)) dut(.clk(clk), .reset(reset),
         .img_mounted(img_mounted), .rewind(rewind), .img_size(img_size),
@@ -42,13 +51,17 @@ module tap_sd_stream_tb;
         .tape_mount(tape_mount), .tape_present(tape_present), .tape_empty(tape_empty),
         .sample_valid(sample_valid), .sample_level(sample_level), .sample_last(sample_last),
         .sample_ready(sample_ready), .sample_hz(sample_hz), .loaded(loaded), .rejected(rejected),
-        .position(), .length());
+        .wind_step(wind_step), .wind_back(wind_back), .winding(winding),
+        .at_start(at_start), .at_end(at_end),
+        .position(position), .length(length));
 
     x1_cassette_transport #(.SYS_HZ(SYS_HZ), .RUNTIME_RATE(RUNTIME)) transport(.clk_sys(clk), .reset(1'b0),
         .mount(tape_mount), .present(tape_present), .empty(tape_empty),
         .cmd_valid(cmd_valid), .cmd(cmd),
         .sample_valid(sample_valid), .sample_level(sample_level),
         .sample_last(sample_last), .sample_hz({2'b00, sample_hz}), .sample_ready(sample_ready),
+        .at_start(at_start), .at_end(at_end),
+        .wind_step(wind_step), .wind_back(wind_back), .winding(winding),
         .waveform(waveform), .applied_mode(applied_mode),
         .sensor(sensor), .underflow(underflow));
 
@@ -153,6 +166,22 @@ module tap_sd_stream_tb;
             end else mount_image();
             wait_ready();
             $fdisplay(fd, "L %0d %0d %0d %0d", cycle, loaded, rejected, sample_hz);
+            repeat (100) @(negedge clk);
+            command(8'd2);
+        end
+        if (mode == "wind" || mode == "windff") begin
+            // The deck's REW (to the start) or FF (1000 steps, then STOP),
+            // then PLAY from the cursor: "W cycle before after".
+            while (accepted < remount_after) @(negedge clk);
+            if (mode == "wind") begin
+                command(8'd4);
+                while (applied_mode == 8'd4) @(negedge clk);
+            end else begin
+                command(8'd3);
+                while (wind_steps < 1000) @(negedge clk);
+                command(8'd1);
+            end
+            $fdisplay(fd, "W %0d %0d %0d %0d", cycle, wind_before, position, applied_mode);
             repeat (100) @(negedge clk);
             command(8'd2);
         end

@@ -44,8 +44,8 @@ ANK and Load ROM on the top page, then **Machine** (Model, Tape speed, Rewind
 tape), **Video** (Monitor, Aspect ratio, Tape overlay) and **Advanced** (Boot
 device, Disk writes, and the X1 IPL, Kanji font and tape controller loads that
 normally come from boot2/3/1.rom). Settings apply at **Apply and reset**;
-"Changes pending" shows until then. Drives A and B keep their disks across
-core loads; the tape does not. **Drive A and B are drives 0 and 1** to the
+"Changes pending" shows until then. Drives and tape start empty at every core
+load (the last disk no longer boots by itself); MGLs mount their own media. **Drive A and B are drives 0 and 1** to the
 machine; many games call them drive 1 and 2 ("insert disk 2 in drive 2" means
 Drive B).
 **Aspect ratio** Original shows the picture as a monitor does: 4:3 in

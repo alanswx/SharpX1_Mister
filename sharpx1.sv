@@ -219,8 +219,10 @@ localparam CONF_STR = {
 	"-;",
 	// One entry per drive. Main reports the extension's list position in
 	// ioctl_index[7:6] before each mount: 0 = D88 container, 1 = raw X1 2D.
-	"SC0,D882D ,Pri. Drive A;",
-	"SC1,D882D ,Drive B;",
+	// Not remembered (no C): a core start begins with empty drives, so the
+	// last disk does not boot by itself (MGLs still mount theirs).
+	"S0,D882D ,Pri. Drive A;",
+	"S1,D882D ,Drive B;",
 `ifdef X1_CASSETTE
 	// 4-192 kHz TAP waveform images; each mount starts rewound. Not
 	// remembered (no C): a core start begins with no tape.
@@ -414,6 +416,7 @@ hps_io #(.CONF_STR(CONF_STR), .PS2DIV(1600), .VDNUM(VDNUM), .VIDEO_CDC(TURBO_VID
 // is the machine's x1_cassette_transport.
 wire tape_mount, tape_present, tape_empty;
 wire tape_sample_valid, tape_sample_level, tape_sample_last, tape_sample_ready;
+wire tape_at_start, tape_at_end, tape_wind_step, tape_wind_back, tape_winding;
 // Tape speed (cfg[12:11]): 0 = 5x + quick start, 1 = 5x, 2 = Normal.
 wire tape_fast = cfg[12:11] != 2'd2;
 wire tape_quick = cfg[12:11] == 2'd0;
@@ -444,7 +447,7 @@ generate if (CASSETTE_PROFILE) begin : tape_slot
 	reg tape_inserted = 0;
 	always @(posedge clk_sys) if (img_mounted[2]) tape_inserted <= img_size != 0;
 	wire osd_rewind = status[2] && !old_rewind;
-	wire stream_mount, stream_present, stream_empty, stream_ready, quick_rewind;
+	wire stream_mount, stream_present, stream_empty, stream_ready, quick_rewind, quick_busy;
 	x1_tap_sd_stream #(.MIN_HZ(4000), .MAX_HZ(192000)) tap_stream (
 		.clk(clk_sys), .reset(!turbo_video_locked),
 		.img_mounted(img_mounted[2]), .rewind(osd_rewind || quick_rewind), .img_size(img_size),
@@ -453,6 +456,8 @@ generate if (CASSETTE_PROFILE) begin : tape_slot
 		.tape_mount(stream_mount), .tape_present(stream_present), .tape_empty(stream_empty),
 		.sample_valid(tape_sample_valid), .sample_level(tape_sample_level),
 		.sample_last(tape_sample_last), .sample_ready(stream_ready), .sample_hz(tape_sample_hz),
+		.wind_step(tape_wind_step && !quick_busy), .wind_back(tape_wind_back), .winding(tape_winding && !quick_busy),
+		.at_start(tape_at_start), .at_end(tape_at_end),
 		.loaded(tape_loaded), .rejected(tape_rejected), .position(tape_position), .length(tape_length)
 	);
 	// Quick start sits between the stream and the deck. A newer drive A disk
@@ -468,7 +473,7 @@ generate if (CASSETTE_PROFILE) begin : tape_slot
 		.stream_hz(tape_sample_hz),
 		.deck_ready(tape_sample_ready), .deck_mount(tape_mount), .deck_present(tape_present), .deck_empty(tape_empty),
 		.cart_addr(cart_addr), .cart_read(cart_read), .cart_data(cart_data), .cart_ready(cart_ready),
-		.reset_request(quick_reset), .busy()
+		.reset_request(quick_reset), .busy(quick_busy)
 	);
 	x1_tape_status tape_status (
 		.clk(clk_sys), .loaded(tape_loaded), .playing(tape_mode == 8'd2),
@@ -484,6 +489,7 @@ end else begin : no_tape_slot
 	assign {cart_ready, cart_data, quick_reset} = {1'b1, 8'hff, 1'b0};
 	assign {tape_sample_valid, tape_sample_level, tape_sample_last} = 3'b000;
 	assign tape_sample_hz = 18'd8000;
+	assign {tape_at_start, tape_at_end} = 2'b11;
 end endgenerate
 
 ///////////////////////   CLOCKS   ///////////////////////////////
@@ -643,7 +649,9 @@ sharpx1 #(.TURBO_DSW_RUNTIME(1), .TURBO_Z_RUNTIME(TURBO_Z_VIDEO_PROFILE), .RAW_2
 	.tape_mount(tape_mount), .tape_present(tape_present), .tape_empty(tape_empty),
 	.tape_sample_valid(tape_sample_valid), .tape_sample_level(tape_sample_level), .tape_sample_last(tape_sample_last), .tape_sample_hz(tape_sample_hz), .fast_tape(tape_fast),
 	.cart_addr(cart_addr), .cart_read(cart_read), .cart_data(cart_data), .cart_ready(cart_ready),
-	.tape_sample_ready(tape_sample_ready), .tape_underflow(tape_underflow), .tape_turbo_active(tape_turbo_active), .high_scan(high_scan), .tape_mode(tape_mode), .tape_sensor(tape_sensor),
+	.tape_sample_ready(tape_sample_ready), .tape_underflow(tape_underflow),
+	.tape_at_start(tape_at_start), .tape_at_end(tape_at_end),
+	.tape_wind_step(tape_wind_step), .tape_wind_back(tape_wind_back), .tape_winding(tape_winding), .tape_turbo_active(tape_turbo_active), .high_scan(high_scan), .tape_mode(tape_mode), .tape_sensor(tape_sensor),
 	.disk_ready(media_present[0]), .img_mounted(img_mounted[0]),
 	.disk_wp(!cfg[1] || media_readonly[0]), .img_size(media_size[0]),
 	.disk_raw(media_raw[0]), .disk_raw_b(media_raw[1]),

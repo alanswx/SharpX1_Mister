@@ -12,6 +12,11 @@ module cassette_transport_tb;
     logic [7:0] cmd;
     logic valid, level, last;
     wire ready, wave, underflow;
+    wire wind_step, wind_back, winding;
+    // Synthetic producer cursor for FF/REW: LEN samples, steps by wind_step.
+    integer pos, len;
+    wire at_start = pos == 0, at_end = pos >= len;
+    always @(posedge clk) if (wind_step) pos <= wind_back ? pos - 1 : pos + 1;
     wire [7:0] mode, sensor;
     // External CPU enables deliberately stopped/irregular; not a DUT input.
     logic external_ce;
@@ -19,13 +24,15 @@ module cassette_transport_tb;
         .clk_sys(clk), .reset(reset), .mount(mount), .present(present), .empty(empty),
         .cmd_valid(cmd_valid), .cmd(cmd), .sample_valid(valid),
         .sample_level(level), .sample_last(last), .sample_hz(20'd0), .sample_ready(ready),
+        .at_start(at_start), .at_end(at_end),
+        .wind_step(wind_step), .wind_back(wind_back), .winding(winding),
         .waveform(wave), .applied_mode(mode), .sensor(sensor), .underflow(underflow));
     task automatic tick;
         @(posedge clk); #1; @(negedge clk);
     endtask
     task automatic command(input logic [7:0] value);
         cmd_valid = 1; cmd = value; #1;
-        if (value <= 2 && ready) $fatal(1, "command must block stream handshake");
+        if (value <= 4 && (ready || wind_step)) $fatal(1, "command must block stream handshake");
         tick(); cmd_valid = 0;
     endtask
     task automatic load(input logic is_empty = 0);
@@ -42,7 +49,7 @@ module cassette_transport_tb;
     longint unsigned elapsed;
     longint unsigned expected;
     initial begin
-        reset = 0; mount = 0; present = 0; empty = 0;
+        reset = 0; mount = 0; present = 0; empty = 0; pos = 0; len = 0;
         cmd_valid = 0; cmd = 0; valid = 0; level = 0; last = 0;
         external_ce = 0;
         if (PARAMETER_ONLY) begin
@@ -139,7 +146,41 @@ module cassette_transport_tb;
         if (mode != 1 || sensor != 3 || ready) $fatal(1, "mount priority");
         mount = 1; present = 0; tick(); mount = 0;
         if (mode != 0 || sensor != 0 || ready) $fatal(1, "absent mount");
-        $display("PASS cassette transport SYS_HZ=%0d: 1000 exact fractional waveform intervals, pause/reset/EOF/priorities/unsupported/underflow; no native baud/loading claim", SYS_HZ);
+        // FF/REW: 16x the sample rate, exact cumulative step intervals, stop
+        // at either end (FF end reads as EOF), STOP mid-wind, and PLAY after a
+        // wind waits for the producer instead of underflowing.
+        load(); valid = 0; pos = 50; len = 100;
+        command(4);
+        if (mode != 4 || !winding || !wind_back || wave) $fatal(1, "rewind mode");
+        accepted = 0; elapsed = 0;
+        while (mode == 4) begin
+            #1; boundary = wind_step;
+            tick(); elapsed++;
+            if (boundary) begin
+                accepted++;
+                expected = (64'(accepted) * SYS_HZ + 127999) / 128000;
+                if (elapsed != expected) $fatal(1, "rewind step interval");
+            end
+            if (elapsed > 64'(SYS_HZ)) $fatal(1, "rewind timeout");
+        end
+        if (pos != 0 || accepted != 50 || mode != 1 || sensor != 3 || underflow)
+            $fatal(1, "rewind must stop at the start of the tape");
+        command(3); accepted = 0;
+        while (mode == 3) begin #1; if (wind_step) accepted++; tick(); end
+        if (pos != 100 || accepted != 100 || mode != 1 || sensor != 2)
+            $fatal(1, "fast forward must stop at the end (EOF)");
+        command(2); if (mode != 1) $fatal(1, "EOF after FF must not play");
+        command(4); accepted = 0;
+        while (accepted < 10) begin #1; if (wind_step) accepted++; tick(); end
+        command(1);
+        if (pos != 90 || mode != 1 || sensor != 3 || winding) $fatal(1, "stop mid-rewind");
+        command(2); valid = 0;
+        repeat (200) tick();
+        if (mode != 2 || underflow || wave) $fatal(1, "play after a wind waits for the producer");
+        valid = 1; level = 1; last = 0; #1;
+        if (!ready) $fatal(1, "play after a wind takes the next sample");
+        tick(); if (mode != 2 || !wave || underflow) $fatal(1, "play after a wind");
+        $display("PASS cassette transport SYS_HZ=%0d: 1000 exact fractional waveform intervals, pause/reset/EOF/priorities/unsupported/underflow, FF/REW 16x ends/stop/refill; no native baud/loading claim", SYS_HZ);
         $finish;
     end
 endmodule
