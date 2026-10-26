@@ -1,5 +1,19 @@
 # DMA single-clock FPGA qualification revision
 
+## October 25, 2026: Kanji in 15 kHz 8-raster rows, aspect ratio
+
+`1cad521` (Z Kanji in any 16-raster row and 15 kHz 8-raster rows,
+scan-dependent Original aspect) seed 1 (`quartus-linux-y1EY4wef`): 22,697
+ALMs, worst slack 0.241 ns, RBF `012bd12b…`. MiSTer 126 (setnames
+`X1F_20261024`, `X1S_20261025`):
+
+| Title | Result |
+| --- | --- |
+| Aoki Ookami (Turbo), Monitor Standard | "SIMULATION WAR GAME" and the 1-3 menu in Kanji under the title (8-raster rows, every other glyph line) ✓ (was blank); picture 1,472 px wide at 1,080 lines (19:14 = 1,466; 4:3 = 1,440) |
+| Sangokushi Turbo (`9253317`) | Scenario years, all rulers' stats and the stat roll show numbers ✓ |
+| Hi-School Adventure (hi-res), Monitor High-res, Disk writes Enabled | AS-SOFT title, 1-3 menu, first room with Kanji text and "2F" ✓; picture 1,444 x 1,080 (4:3) |
+| OSD | Top page: drives, tape, 16-row ANK, Load ROM; Advanced: Boot device, Disk writes, Load X1 IPL / Kanji font / tape ctrl. ✓ |
+
 ## October 24, 2026 (later): tester fixes
 
 `9253317` (PSG period 0, D88 ID-CRC protection records, Z Kanji in any
