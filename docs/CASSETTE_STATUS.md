@@ -4,27 +4,37 @@ October 20, 2026: the base `sharpx1_cassette` revision was retired. Tape is
 in the release core (`sharpx1_turbo_z_font_single`) in both X1 and X1 Turbo
 models; see `REVISIONS.md`.
 
-## Deck FF/REW (October 26)
+## Deck FF/REW and APSS (October 26)
 
-Super Mario Bros. Special's loader sends deck commands beyond STOP/PLAY:
-the native IPL trace shows `E9 01`, `E9 04` (REW), `E9 01` between blocks.
-The transport ignored FF (3) and REW (4) and the controller firmware
-filtered them out. Now:
+Super Mario Bros. Special uses the deck commands beyond STOP/PLAY. Native
+IPL trace (simulation, 5x): after the main program (tape 236 s) the game
+sends `E9 04` (REW) and polls EA until the deck stops at the start, plays
+the first file again, then sends `E9 05` (APSS forward) to skip the main
+program and loads the level file at 243.5 s. With REW ignored EA read 1 at
+once and the game showed "TAPE ERROR / PLEASE REWIND TAPE" (reproduced at
+75 s). X Millennium does the same rewind and skip (tester report). The
+transport ignored FF (3), REW (4) and APSS (5/6), and the controller
+firmware filtered them out. Now:
 
 - `x1_cassette_transport` winds at 16x the sample rate (CSP
   `DATAREC_FAST_FWD/REW_SPEED` for the X1), one `wind_step` per sample,
   stopping on STOP or at either end (FF's end reads as EOF, sensor 02;
   CSP stops the motor there too). No samples play while winding; PLAY after
   a wind waits for the producer instead of reporting underflow.
+- APSS forward (5) / back (6) wind at the same speed but read every sample
+  (the producer keeps fetching; a step waits for a valid sample) and stop in
+  the first gap after sound: 1.8125 s of tape without a level change, where
+  CSP's 2-s APSS window turns 90% one level. A tape end stops it too.
 - `x1_tap_sd_stream` moves its cursor per step and fetches no sectors while
   winding; the sector under the cursor is fetched when winding stops.
-- The cassette controller extension accepts FF and REW. EA reads modes 0-4:
+- The cassette controller extension accepts FF, REW and APSS. EA reads modes 0-6:
   mode bit 2 rides on PORT1 bit 15 (sensor bit 7, which the deck never
   sets); EB keeps sensor bits 6:0. The tester package's `boot1.rom` must be
   rebuilt (`--receive-only --joystick-off --caps-off`).
 - Quick start's own passes hold winding off (`busy`).
 - `test-cassette-transport`: exact cumulative 16x step intervals, both end
-  stops, STOP mid-wind, PLAY refill; two wind mutants rejected.
+  stops, STOP mid-wind, PLAY refill, APSS gap stops both ways and the end
+  stop; three mutants rejected.
   `test-tap-sd-stream`: REW to the start from a mid-sector cursor and FF
   1000 samples then STOP, levels checked against the decoded image after
   the wind. `test-mr16-cassette-firmware` checks the new instructions.
@@ -33,7 +43,8 @@ filtered them out. Now:
   from the first sample; the ledger checks every wind step at 250 SYS
   edges (16 x 8 kHz at 32 MHz).
 
-Not done: APSS (5/6), recording, the deck's mechanical start/stop times.
+Not done: recording, the deck's mechanical start/stop times, APSS with
+more than one program (the firmware command has no count).
 
 ## Tape speed: 5x and quick start (October 24)
 
@@ -294,7 +305,7 @@ because MAME only plays 8 kHz tapes.
 
 Still open on the board: Car Chase, the only 176.4 kHz tape (its payload is
 4 bytes shorter than the declared bit count, so the exact-length rule rejects
-it); format 0; recording and APSS (FF/REW since October 26);
+it); format 0; recording (FF/REW/APSS since October 26);
 BASIC tapes through HuBASIC; a running RTC (Rally-X seed). The external-font
 X3 core is the only Turbo revision with tape.
 

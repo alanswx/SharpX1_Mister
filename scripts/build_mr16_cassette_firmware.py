@@ -23,12 +23,12 @@ BASE_SHA = "2d9c9745e0a1a09d98c0e14ace627c03cd39d71ceb21e3fef5957e7a62428c01"
 # Original extension, deliberately no new RAM allocation. GPIO input PORT1
 # preserves bits5:0; bits7:6 are applied mode, bits15:8 are live sensor byte.
 # EB 00/03/02 and zero upper bits are provisional read-only virtual-deck policy.
-# Sensor bit 7 carries applied mode bit 2 (REW = 4): EA reads modes 0-4.
+# Sensor bit 7 carries applied mode bit 2 (REW/APSS 4-6): EA reads modes 0-6.
 EXTENSION = """
 ; SPDX-License-Identifier: GPL-2.0-only
 ; Original cassette-only extension; not native 80C49 or CZ-8RL1 firmware.
 ; PORT5 OUTPUT: command[7:0], commit[8]. PORT5 INPUT remains HWD_CLR.
-; PORT1 INPUT: applied mode[7:6], live EB[14:8], mode bit 2 at [15],
+; PORT1 INPUT: applied mode[1:0] at [7:6], live EB[14:8], mode bit 2 at [15],
 ; inherited status[5:0].
     cseg
     org 4000h
@@ -50,6 +50,10 @@ cassette_set:
     cmp r0,#CMT_FF:8
     beq cassette_set_supported
     cmp r0,#CMT_REW:8
+    beq cassette_set_supported
+    cmp r0,#CMT_APSS_F:8
+    beq cassette_set_supported
+    cmp r0,#CMT_APSS_R:8
     beq cassette_set_supported
     ret
 cassette_set_supported:

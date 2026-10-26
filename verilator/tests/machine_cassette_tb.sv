@@ -101,7 +101,7 @@ module machine_cassette_tb #(parameter bit CASSETTE_ENABLED=1, RTC_ENABLED=0);
                 $fdisplay(trace_fd,"%0d,mount,%0d,%0d,%0d",cycles,present,empty,commit);
             end else if(dut.core_reset) begin
                 expected_mode=inserted ? 1 : 0;
-            end else if(commit && cmd<=4) begin
+            end else if(commit && cmd<=6) begin
                 if(cmd==1 && inserted) expected_mode=1;
                 if(cmd==2 && inserted && !ended) expected_mode=2;
                 if(cmd>=3 && inserted) begin

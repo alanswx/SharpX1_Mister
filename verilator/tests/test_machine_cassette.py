@@ -205,7 +205,7 @@ def program(case, Program):
         expect(0xEB, 3)
         command(2)              # plays again from the first sample
         expect(0xEA, 2, wait=True)
-        for unsupported in (5, 6, 0x0A, 0xFF):
+        for unsupported in (7, 0x0A, 0xFF):
             command(unsupported)
             expect(0xEA, 2)
         expect(0xEA, 1, wait=True) # live EOF, not cached requested PLAY

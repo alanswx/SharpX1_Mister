@@ -17,13 +17,19 @@ module cassette_transport_tb;
     integer pos, len;
     wire at_start = pos == 0, at_end = pos >= len;
     always @(posedge clk) if (wind_step) pos <= wind_back ? pos - 1 : pos + 1;
+    // APSS tape: sound (alternating samples) in [20000,30000) and
+    // [60000,70000), constant gaps elsewhere; levels follow the cursor.
+    bit apss_tape = 0;
+    wire apss_sound = (pos >= 20000 && pos < 30000) || (pos >= 60000 && pos < 70000);
+    wire dut_valid = apss_tape ? pos < len : valid;
+    wire dut_level = apss_tape ? apss_sound && pos[0] : level;
     wire [7:0] mode, sensor;
     // External CPU enables deliberately stopped/irregular; not a DUT input.
     logic external_ce;
     x1_cassette_transport #(.SYS_HZ(SYS_HZ), .SAMPLE_HZ(SAMPLE_HZ)) dut(
         .clk_sys(clk), .reset(reset), .mount(mount), .present(present), .empty(empty),
-        .cmd_valid(cmd_valid), .cmd(cmd), .sample_valid(valid),
-        .sample_level(level), .sample_last(last), .sample_hz(20'd0), .sample_ready(ready),
+        .cmd_valid(cmd_valid), .cmd(cmd), .sample_valid(dut_valid),
+        .sample_level(dut_level), .sample_last(last), .sample_hz(20'd0), .sample_ready(ready),
         .at_start(at_start), .at_end(at_end),
         .wind_step(wind_step), .wind_back(wind_back), .winding(winding),
         .waveform(wave), .applied_mode(mode), .sensor(sensor), .underflow(underflow));
@@ -32,7 +38,7 @@ module cassette_transport_tb;
     endtask
     task automatic command(input logic [7:0] value);
         cmd_valid = 1; cmd = value; #1;
-        if (value <= 4 && (ready || wind_step)) $fatal(1, "command must block stream handshake");
+        if (value <= 6 && (ready || wind_step)) $fatal(1, "command must block stream handshake");
         tick(); cmd_valid = 0;
     endtask
     task automatic load(input logic is_empty = 0);
@@ -180,7 +186,21 @@ module cassette_transport_tb;
         valid = 1; level = 1; last = 0; #1;
         if (!ready) $fatal(1, "play after a wind takes the next sample");
         tick(); if (mode != 2 || !wave || underflow) $fatal(1, "play after a wind");
-        $display("PASS cassette transport SYS_HZ=%0d: 1000 exact fractional waveform intervals, pause/reset/EOF/priorities/unsupported/underflow, FF/REW 16x ends/stop/refill; no native baud/loading claim", SYS_HZ);
+        // APSS: wind reading samples, stop 14501 samples (1.8125 s at 8 kHz)
+        // into the first gap after sound, or at the end of the tape.
+        command(1); load(); apss_tape = 1; pos = 5000; len = 100000;
+        command(5);
+        if (mode != 5 || winding || wind_back) $fatal(1, "apss forward mode");
+        while (mode == 5) tick();
+        if (pos != 30000 + 14501 || mode != 1 || sensor != 3) $fatal(1, "apss forward gap stop");
+        pos = 65000; command(6);
+        if (mode != 6 || winding || !wind_back) $fatal(1, "apss back mode");
+        while (mode == 6) tick();
+        if (pos != 60000 - 14501 || mode != 1 || sensor != 3) $fatal(1, "apss back gap stop");
+        pos = 75000; command(5);
+        while (mode == 5) tick();
+        if (pos != 100000 || mode != 1 || sensor != 2) $fatal(1, "apss forward end stop");
+        $display("PASS cassette transport SYS_HZ=%0d: 1000 exact fractional waveform intervals, pause/reset/EOF/priorities/unsupported/underflow, FF/REW 16x ends/stop/refill, APSS gap/end stops; no native baud/loading claim", SYS_HZ);
         $finish;
     end
 endmodule

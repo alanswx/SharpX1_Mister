@@ -24,6 +24,8 @@ print('Frozen cassette evidence:', folder, flush=True)
 WIND_MUTANTS = {
     'no-refill': ("end else if (!refill) begin", "end else if (1'b1) begin",
                   'play after a wind waits for the producer'),
+    'no-apss-gap': ("wire apss_gap = heard && quiet >= gap_samples;", "wire apss_gap = heard && quiet >= gap_samples && 1'b0;",
+                    'apss forward gap stop'),
     'no-start-stop': ("if (wind_back ? at_start : at_end) begin", "if (!wind_back && at_end) begin",
                       'rewind'),
 }

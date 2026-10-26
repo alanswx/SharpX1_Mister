@@ -108,7 +108,7 @@ class CassetteFirmwareTest(unittest.TestCase):
                 transfer(s["cassette_start"] + 2, "cassette_set", True)
                 transfer(s["cassette_start"] + 6, "start")
                 at = s["cassette_set"]
-                for value in (0, 1, 2, 3, 4):  # EJECT STOP PLAY FF REW
+                for value in (0, 1, 2, 3, 4, 5, 6):  # EJECT STOP PLAY FF REW APSS+/-
                     check(at, [0xD000 | value])
                     branch(at + 2, "cassette_set_supported", 1)
                     at += 4
