@@ -9,7 +9,8 @@ module x1_font16 (
     output [7:0] display_data,
     output reg loaded = 0,
     input [11:0] cpu_address,
-    output [7:0] cpu_data
+    output [7:0] cpu_data,
+    output display_loaded
 );
     reg [12:0] expected_address = 0;
     reg bad_load = 0;
@@ -29,6 +30,7 @@ module x1_font16 (
         .video_clk(video_clk), .video_addr(display_address), .video_q(rom_data)
     );
     assign display_data = loaded_read ? rom_data : 8'd0;
+    assign display_loaded = loaded_read;
     // Upload owns this port and holds the machine reset in the loader flow.
     // CPU reads outside that flow require a complete load and one read edge.
     assign cpu_data = loaded_cpu_read && loaded && !load ? cpu_rom_data : 8'd0;

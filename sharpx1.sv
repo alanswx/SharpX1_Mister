@@ -597,6 +597,9 @@ wire [7:0] boot_dsw = {4'hf, cfg[5:4] == 2'd3 ? 3'b111 : {1'b0, cfg[5:4]}, !cfg[
 wire x1_ipl_index = TURBO_FOUNDATION && (ioctl_index == 16'd3 || ioctl_index == 16'h0080);
 // Main loads boot3.rom as index 0xC0: the physical Kanji font slot (index 5).
 wire kanji_font_index = TURBO_Z_EXTERNAL_FONT_PROFILE && (ioctl_index == 16'd5 || ioctl_index == 16'h00c0);
+// A boot.rom longer than the 32-KiB IPL may carry the 4-KiB 16-row ANK font
+// after it; those bytes load as index 4 (the X1 Turbo CG ROM holds both).
+wire ank16_tail = TURBO_FOUNDATION && ioctl_index == 16'd0 && ioctl_addr >= 27'd32768 && ioctl_addr < 27'd36864;
 
 // Boards start with CAPS LOCK released, like MAME and real keyboards.
 sharpx1 #(.TURBO_DSW_RUNTIME(1), .TURBO_Z_RUNTIME(TURBO_Z_VIDEO_PROFILE), .RAW_2D_MEDIA(1), .FDC_DEFER_COMMAND(1), .SUB_CAPS_OFF(1), .SUB_JOY_OFF(1), .CASSETTE_ENABLE(CASSETTE_PROFILE), .CASSETTE_RUNTIME_RATE(CASSETTE_PROFILE), .CART_PORT(CASSETTE_PROFILE), .SINGLE_CLOCK(SINGLE_CLOCK), .MASTER_HZ(MASTER_HZ), .TURBO(TURBO_FOUNDATION), .TURBO_VIDEO_MASTER(TURBO_VIDEO_MASTER),
@@ -620,12 +623,12 @@ sharpx1 #(.TURBO_DSW_RUNTIME(1), .TURBO_Z_RUNTIME(TURBO_Z_VIDEO_PROFILE), .RAW_2
 	.ce_pix(ce_pix),
 
 	.ioctl_download(ioctl_download),
-	.ioctl_index(cassette_controller_index ? 8'd6 : x1_ipl_index ? 8'd3 : kanji_font_index ? 8'd5 : ioctl_index[7:0]),
-	.ioctl_wr(ioctl_wr && ((ioctl_index == 0 && ioctl_addr < (TURBO_FOUNDATION ? 27'd32768 : 27'd4096)) || (TURBO_FOUNDATION && ioctl_index == 4) || kanji_font_index ||
+	.ioctl_index(cassette_controller_index ? 8'd6 : x1_ipl_index ? 8'd3 : kanji_font_index ? 8'd5 : ank16_tail ? 8'd4 : ioctl_index[7:0]),
+	.ioctl_wr(ioctl_wr && ((ioctl_index == 0 && ioctl_addr < (TURBO_FOUNDATION ? 27'd32768 : 27'd4096)) || (TURBO_FOUNDATION && ioctl_index == 4) || ank16_tail || kanji_font_index ||
 		(cassette_controller_index && ioctl_addr < 27'd8192) || (x1_ipl_index && ioctl_addr < 27'd4096))),
 	.ioctl_addr((ioctl_index == 4 && ioctl_addr >= 27'd4096) ||
         (kanji_font_index && ioctl_addr >= 27'd262144)
-        ? 25'h1ffffff : ioctl_addr[24:0]),
+        ? 25'h1ffffff : ank16_tail ? {13'd0, ioctl_addr[11:0]} : ioctl_addr[24:0]),
 	.ioctl_dout(ioctl_data),
 	.ioctl_wait(machine_ioctl_wait),
     .DDRAM_CLK(DDRAM_CLK), .DDRAM_BUSY(DDRAM_BUSY), .DDRAM_BURSTCNT(DDRAM_BURSTCNT),

@@ -1357,13 +1357,20 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
     x1_cg8 access_font(clk_28636,cg_access_addr,cg_rom_cpu);
     x1_cg8 font(clk_28636,cgaddr,cg8_data);
     generate if (TURBO) begin : turbo_font
+        wire [7:0] font16_data, tall8_data;
+        wire font16_ready;
         x1_font16 font16 (
             .cpu_clk(clk_sys), .video_clk(clk_28636),
             .load(ioctl_download && ioctl_wr && !ioctl_wait && ioctl_index == 4),
             .load_address(ioctl_addr), .load_data(ioctl_dout),
-            .display_address(ank16_addr), .display_data(ank16_data), .loaded(),
+            .display_address(ank16_addr), .display_data(font16_data), .loaded(),
+            .display_loaded(font16_ready),
             .cpu_address(cg_font_cpu_addr), .cpu_data(cg_font_cpu_data)
         );
+        // Without a loaded 16-row ANK, 24 kHz text uses the built-in 8x8
+        // font with each line doubled instead of blank cells (Koei numbers).
+        x1_cg8 tall8(clk_28636,{ank16_addr[11:4],ank16_addr[3:1]},tall8_data);
+        assign ank16_data = font16_ready ? font16_data : tall8_data;
     end else begin : no_turbo_font
         assign ank16_data = 0;
         assign cg_font_cpu_data = 0;
