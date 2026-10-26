@@ -28,6 +28,10 @@ filtered them out. Now:
   `test-tap-sd-stream`: REW to the start from a mid-sector cursor and FF
   1000 samples then STOP, levels checked against the decoded image after
   the wind. `test-mr16-cassette-firmware` checks the new instructions.
+  `test-machine-cassette` (generated IPL, real MR16 controller): FF reads
+  EA 3, STOP mid-wind, REW reads EA 4 and stops at the start, PLAY replays
+  from the first sample; the ledger checks every wind step at 250 SYS
+  edges (16 x 8 kHz at 32 MHz).
 
 Not done: APSS (5/6), recording, the deck's mechanical start/stop times.
 

@@ -195,7 +195,17 @@ def program(case, Program):
         command(2)
         expect(0xEA, 2, wait=True)
         phase(0x40)
-        for unsupported in (3, 4, 5, 6, 0x0A, 0xFF):
+        command(3)              # FF, stopped mid-wind
+        expect(0xEA, 3)
+        command(1)
+        expect(0xEA, 1)
+        command(4)              # REW: EA reads 4 (mode bit 2), then stops at the start
+        expect(0xEA, 4)
+        expect(0xEA, 1, wait=True)
+        expect(0xEB, 3)
+        command(2)              # plays again from the first sample
+        expect(0xEA, 2, wait=True)
+        for unsupported in (5, 6, 0x0A, 0xFF):
             command(unsupported)
             expect(0xEA, 2)
         expect(0xEA, 1, wait=True) # live EOF, not cached requested PLAY

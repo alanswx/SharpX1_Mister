@@ -12,7 +12,7 @@ module machine_cassette_tb #(parameter bit CASSETTE_ENABLED=1, RTC_ENABLED=0);
     wire upload_wait;
     bit ps2_clock=1,ps2_data=1;
     bit mount=0,present=0,empty=0;
-    wire ready,underflow;
+    wire ready,underflow,wind_step,wind_back;
     wire [7:0] mode,sensor;
     integer scenario=0,sample_count=256,cursor=0;
     bit producer=0,stimuli_done=0;
@@ -27,8 +27,8 @@ module machine_cassette_tb #(parameter bit CASSETTE_ENABLED=1, RTC_ENABLED=0);
     integer trace_fd,cycles=0,commands=0,accepted=0,timer_ack_edges=0,timer_ack_rises=0;
     integer warm_resets=0,tie_witnesses=0,stop_cycles=0,held_commit_cycles=0;
     logic [7:0] expected_mode=0;
-    integer slot_age=0;
-    bit inserted=0,ended=0,have_sample=0,held_level=0,held_last=0;
+    integer slot_age=0,wind_forward=0,wind_backward=0;
+    bit inserted=0,ended=0,have_sample=0,held_level=0,held_last=0,refill=0;
     bit previous_commit=0,previous_timer_ack=0;
     bit bus_read_seen=0,bus_write_seen=0;
     bit debug_trace=0;
@@ -41,6 +41,8 @@ module machine_cassette_tb #(parameter bit CASSETTE_ENABLED=1, RTC_ENABLED=0);
         .tape_mount(mount),.tape_present(present),.tape_empty(empty),
         .tape_sample_valid(sample_valid),.tape_sample_level(sample_level),.tape_sample_last(sample_last),.fast_tape(1'b0), .tape_sample_hz(18'd0),
         .tape_sample_ready(ready),.tape_underflow(underflow),.tape_mode(mode),.tape_sensor(sensor),
+        .tape_at_start(cursor==0),.tape_at_end(cursor>=sample_count),
+        .tape_wind_step(wind_step),.tape_wind_back(wind_back),.tape_winding(),
         .sio_external_rx_clock(1'b0),.sio_external_tx_clock(1'b0),.sio_rxd(2'b11),
         .sio_cts_n(2'b11),.sio_dcd_n(2'b11),.sio_txd(),.sio_rts_n(),.sio_dtr_n(),
         .disk_ready(1'b0),.img_mounted(1'b0),.disk_wp(1'b1),.img_size(24'd0),
@@ -55,11 +57,12 @@ module machine_cassette_tb #(parameter bit CASSETTE_ENABLED=1, RTC_ENABLED=0);
     // samples, mount/reset and observed executed GPIO commits; no deck state read.
     // Supported command edges freeze the slot; unsupported requests do not.
     always @(posedge clk) begin : ledger
-        bit commit,accept_now,expect_accept;
+        bit commit,accept_now,expect_accept,expect_step,step_now,step_back;
         logic [7:0] cmd,expected_sensor;
         commit=!dut.core_reset && dut.cassette_command[8] && !previous_commit;
         cmd=dut.cassette_command[7:0];
         accept_now=sample_valid && ready;
+        step_now=wind_step;step_back=wind_back;
         cycles++;
         if(debug_trace && !dut.core_reset && dut.subCPU.wram_cs && dut.subCPU.mem_we &&
             dut.subCPU.sub_addr>=16'h1092 && dut.subCPU.sub_addr<=16'h109e)
@@ -88,21 +91,36 @@ module machine_cassette_tb #(parameter bit CASSETTE_ENABLED=1, RTC_ENABLED=0);
             $fdisplay(trace_fd,"%0d,command,%0d,%0d,%0d",cycles,cmd,cursor,mount);
         end else if(dut.cassette_command[8] && !dut.core_reset) held_commit_cycles++;
         if(CASSETTE_ENABLED && !RTC_ENABLED) begin
-            expect_accept=0;
+            expect_accept=0;expect_step=0;
             if(commit && cmd==0) begin
-                inserted=0;ended=0;have_sample=0;held_level=0;slot_age=0;expected_mode=0;
+                inserted=0;ended=0;have_sample=0;held_level=0;slot_age=0;expected_mode=0;refill=0;
             end else if(mount) begin
                 inserted=present;ended=present && empty;have_sample=0;held_level=0;slot_age=0;
-                expected_mode=present ? 1 : 0;
+                expected_mode=present ? 1 : 0;refill=0;
                 if(commit && cmd==2) tie_witnesses++;
                 $fdisplay(trace_fd,"%0d,mount,%0d,%0d,%0d",cycles,present,empty,commit);
             end else if(dut.core_reset) begin
                 expected_mode=inserted ? 1 : 0;
-            end else if(commit && cmd<=2) begin
+            end else if(commit && cmd<=4) begin
                 if(cmd==1 && inserted) expected_mode=1;
                 if(cmd==2 && inserted && !ended) expected_mode=2;
+                if(cmd>=3 && inserted) begin
+                    expected_mode=cmd;have_sample=0;held_last=0;slot_age=0;refill=1;
+                end
+            end else if(expected_mode==3 || expected_mode==4) begin
+                // FF/REW: one cursor step per 250 SYS edges (16 x 8000 Hz at
+                // 32 MHz), stopping at the start (REW) or the end (FF, EOF).
+                if(expected_mode==4 ? cursor==0 : cursor>=sample_count) begin
+                    ended=expected_mode==3;expected_mode=1;
+                end else begin
+                    slot_age++;
+                    if(slot_age==250) begin
+                        slot_age=0;expect_step=1;
+                        if(expected_mode==4) ended=0;
+                    end
+                end
             end else if(expected_mode==2) begin
-                if(!have_sample) expect_accept=1;
+                if(!have_sample) expect_accept=sample_valid || !refill;
                 else begin
                     slot_age++;
                     if(slot_age==4000) begin
@@ -112,11 +130,13 @@ module machine_cassette_tb #(parameter bit CASSETTE_ENABLED=1, RTC_ENABLED=0);
                     end
                 end
             end
+            assert(step_now==expect_step && (!step_now || step_back==(expected_mode==4)))
+                else $fatal(1,"CASSETTE_WIND_CADENCE cycle=%0d age=%0d cursor=%0d actual=%0d expected=%0d",cycles,slot_age,cursor,step_now,expect_step);
             assert(accept_now==expect_accept)
                 else $fatal(1,"CASSETTE_SAMPLE_CADENCE cycle=%0d age=%0d cursor=%0d actual=%0d expected=%0d",cycles,slot_age,cursor,accept_now,expect_accept);
             if(expect_accept) begin
                 assert(sample_valid) else $fatal(1,"CASSETTE_PRODUCER_NOT_PREBUFFERED");
-                have_sample=1;held_level=sample_level;held_last=sample_last;accepted++;
+                have_sample=1;held_level=sample_level;held_last=sample_last;accepted++;refill=0;
                 $fdisplay(trace_fd,"%0d,sample,%0d,%0d,%0d",cycles,cursor,sample_level,sample_last);
             end
             if(expected_mode==1 && have_sample && !dut.core_reset) stop_cycles++;
@@ -129,6 +149,8 @@ module machine_cassette_tb #(parameter bit CASSETTE_ENABLED=1, RTC_ENABLED=0);
                 else $fatal(1,"CASSETTE_WAVEFORM_LEDGER");
             if(mount) cursor=0;
             else if(accept_now) cursor++;
+            else if(step_now && step_back) begin cursor--;wind_backward++;end
+            else if(step_now) begin cursor++;wind_forward++;end
         end else #1;
         if(dut.RAM.mem['hf010]!=previous_marker) begin
             previous_marker=dut.RAM.mem['hf010];
@@ -240,22 +262,23 @@ module machine_cassette_tb #(parameter bit CASSETTE_ENABLED=1, RTC_ENABLED=0);
         // Independently emitted requests: unsupported requests cause NO commit;
         // repeated STOPs each cause one, a held GPIO high causes no extra. Reset
         // has two executed startup STOPs and cancels the first boot before STOP.
+        // Cases 0 and 5 add FF, STOP, REW and PLAY (four commits).
         case(scenario)
-            0: assert(commands==8) else $fatal(1,"CASSETTE_COMMAND_COUNT");
+            0: assert(commands==12) else $fatal(1,"CASSETTE_COMMAND_COUNT");
             1,2: assert(commands==3) else $fatal(1,"CASSETTE_COMMAND_COUNT");
             3: assert(commands==5) else $fatal(1,"CASSETTE_COMMAND_COUNT");
             4: assert(commands==4) else $fatal(1,"CASSETTE_COMMAND_COUNT");
-            5: assert(commands==9) else $fatal(1,"CASSETTE_COMMAND_COUNT");
+            5: assert(commands==13) else $fatal(1,"CASSETTE_COMMAND_COUNT");
             default: $fatal(1,"CASSETTE_INVALID_CASE");
         endcase
         if(scenario==0) begin
-            assert(accepted==256 && stop_cycles>1000 && dut.RAM.mem['hf020]==3)
+            assert(accepted==256+wind_backward-wind_forward && wind_forward>0 && wind_backward>0 && stop_cycles>1000 && dut.RAM.mem['hf020]==3)
                 else $fatal(1,"CASSETTE_EOF_RESUME_PPI_COVERAGE");
         end
         if(scenario==3) assert(warm_resets==1 && accepted>16)
             else $fatal(1,"CASSETTE_WARM_RESTART_COVERAGE");
         if(scenario==4) assert(accepted==0) else $fatal(1,"CASSETTE_EMPTY_ACCEPTED_SAMPLE");
-        if(scenario==5) assert(tie_witnesses==1 && accepted==256)
+        if(scenario==5) assert(tie_witnesses==1 && accepted==256+wind_backward-wind_forward && wind_backward>0)
             else $fatal(1,"CASSETTE_MOUNT_PLAY_PRIORITY_COVERAGE");
         $display("PASS cassette machine case=%0d accepted=%0d commits=%0d timer_ack_edges=%0d timer_ack_rises=%0d held_commit_edges=%0d stopped_sample_edges=%0d reset=%0d mount_play_ties=%0d; generated Z80/MR16, public upload/mailbox/PS2; ACK rises are witnesses, not handler counts; PB0 is experimental BREAK, NOT native tape STOP",scenario,accepted,commands,timer_ack_edges,timer_ack_rises,held_commit_cycles,stop_cycles,warm_resets,tie_witnesses);
         $fclose(trace_fd);$finish;
