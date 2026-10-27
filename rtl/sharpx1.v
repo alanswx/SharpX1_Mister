@@ -678,7 +678,10 @@ module sharpx1 #(parameter RAW_2D_MEDIA = 0, FDC_DEFER_COMMAND = 0, SINGLE_CLOCK
     wire sub_cs = io_cycle && !dam && a[15:8] == 8'h19;
     wire ppi_cs = io_cycle && !dam && a[15:8] == 8'h1a;
     wire ipl_set_cs = io_write && !dam && a[15:8] == 8'h1d;
-    wire ipl_clear_cs = io_write && !dam && a[15:8] == 8'h1e;
+    // A read of 1Exx also maps RAM (CSP, after Mr. Sato): Brain Breaker's
+    // tape loader leaves the IPL with IN A,(C) at BC=1E00. Reading 1Dxx
+    // does not map the ROM back.
+    wire ipl_clear_cs = io_cycle && !dam && a[15:8] == 8'h1e;
 
     // CTC is opt-in with the experimental Turbo profile. Bus writes are
     // edge-qualified, not repeated on every master edge of a Z80 strobe.

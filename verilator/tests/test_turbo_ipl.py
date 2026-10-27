@@ -19,12 +19,23 @@ def equal(address, value):
 def out(port):
     p.word(0x01, port)
     p.emit(0xED, 0x79)
+def inp(port):
+    p.word(0x01, port)
+    p.emit(0xED, 0x78)
 for i, address in enumerate(addresses):
     rom[address] = 0x31 + i
     equal(address, 0x31+i)
     p.store(address, 0xA0+i)  # ROM-protected reads, writes land underneath.
     equal(address, 0x31+i)
 out(0x1E00)
+for i, address in enumerate(addresses): equal(address, 0xA0+i)
+out(0x1D00)
+for i, address in enumerate(addresses): equal(address, 0x31+i)
+# Reading 1Exx also maps RAM (CSP; Brain Breaker's loader uses IN A,(C) with
+# BC=1E00); reading 1Dxx does not map the ROM back.
+inp(0x1E00)
+for i, address in enumerate(addresses): equal(address, 0xA0+i)
+inp(0x1D00)
 for i, address in enumerate(addresses): equal(address, 0xA0+i)
 out(0x1D00)
 for i, address in enumerate(addresses): equal(address, 0x31+i)
@@ -45,4 +56,4 @@ with tempfile.TemporaryDirectory(prefix="x1-turbo-ipl-") as folder:
     firmware.write_bytes(rom+b"oversize")
     result=subprocess.run([exe,"--cycles","1000000","--rom",str(firmware)],capture_output=True,text=True)
     assert result.returncode != 0 and "exceeds memory aperture" in result.stderr,result.stderr
-print("PASS: 32 KiB Turbo IPL boundaries, no 4 KiB aliasing, underlying RAM writes, overlay switching and oversize rejection")
+print("PASS: 32 KiB Turbo IPL boundaries, no 4 KiB aliasing, underlying RAM writes, overlay switching (1E00 read or write) and oversize rejection")
