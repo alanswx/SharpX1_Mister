@@ -16,7 +16,7 @@ static void rejects(Function function, const char* message) {
         if (std::string(e.what()) == message) return;
         throw;
     }
-    throw std::runtime_error("expected exact TAP failure");
+    throw std::runtime_error(std::string("expected exact TAP failure: ") + message);
 }
 static void le32(std::vector<std::uint8_t>& b, std::size_t at, std::uint32_t n) {
     for (unsigned i = 0; i < 4; ++i) b.at(at + i) = std::uint8_t(n >> (8 * i));
@@ -85,12 +85,15 @@ int main() {
             auto short_new = modern(0); short_new.resize(n);
             rejects<std::invalid_argument>([&]{ X1TapImage t(short_new); }, "truncated new header");
         }
-        b = modern(9); b.pop_back();
-        rejects<std::invalid_argument>([&]{ X1TapImage t(b); }, "declared bit count does not match payload length");
+        // A declared count longer than the payload is clamped to it (CSP plays
+        // the file; Cosmo Cross declares 32 extra bits); a longer payload
+        // plays only the declared bits (MAME).
+        b = modern(9, 9); b.pop_back();
+        { X1TapImage t(b); check(t.metadata().sample_count == 8 && t.metadata().start_position == 8); }
         b = modern(8); b.push_back(0);
-        rejects<std::invalid_argument>([&]{ X1TapImage t(b); }, "declared bit count does not match payload length");
+        { X1TapImage t(b); check(t.metadata().sample_count == 8); }
         b = modern(0); le32(b, 32, UINT32_MAX);
-        rejects<std::invalid_argument>([&]{ X1TapImage t(b); }, "declared bit count does not match payload length");
+        { X1TapImage t(b); check(t.metadata().sample_count == 0 && t.eof()); }
         b = modern(8, 9);
         rejects<std::invalid_argument>([&]{ X1TapImage t(b); }, "position exceeds sample count");
         b = modern(8); le32(b, 28, 44100);

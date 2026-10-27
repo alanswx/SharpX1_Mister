@@ -9,8 +9,10 @@
 // Accepted images (anything else mounts as "no tape"):
 //   old header: u32 rate, payload at byte 4, every byte is samples;
 //   new header: "TAPE", write-protect flags only bit 4, format flags == 1
-//   (constant-rate sampling), u32 rate, u32 bit count with the payload
-//   at byte 40 exactly ceil(bits/8) long.
+//   (constant-rate sampling), u32 rate, u32 bit count, payload at byte 40.
+//   The bit count is clamped to the payload: some dumps declare more bits
+//   than they hold (Cosmo Cross: 32 more), and CSP plays whatever is in the
+//   file; a longer payload plays only the declared bits, as in MAME.
 // The rate must lie in MIN_HZ..MAX_HZ and is reported on sample_hz for a
 // transport built with RUNTIME_RATE (MAME plays only 8000 Hz; CSP any rate).
 // The stored tape position is ignored: every mount starts rewound at sample 0.
@@ -97,12 +99,12 @@ module x1_tap_sd_stream #(
     wire [31:0] old_rate = le32(hdr[0], hdr[1], hdr[2], hdr[3]);
     wire [31:0] new_rate = le32(hdr[28], hdr[29], hdr[30], hdr[31]);
     wire [31:0] new_bits = le32(hdr[32], hdr[33], hdr[34], hdr[35]);
-    wire [31:0] new_bytes = {3'd0, new_bits[31:3]} + {31'd0, |new_bits[2:0]};
+    wire [31:0] payload_bits = (size - 32'd40) << 3;  // size < 2^28: no overflow
     function automatic logic rate_ok(input logic [31:0] hz);
         return hz >= MIN_HZ && hz <= MAX_HZ;
     endfunction
     wire new_ok = size >= 32'd40 && (hdr[26] & 8'hEF) == 0 && hdr[27] == 8'd1 &&
-        rate_ok(new_rate) && new_bytes == size - 32'd40;
+        rate_ok(new_rate);
     wire old_ok = !new_header && size >= 32'd4 && rate_ok(old_rate);
 
     assign sample_valid = state == RUN && byte_ok && bits_left;
@@ -176,7 +178,8 @@ module x1_tap_sd_stream #(
                     if (new_header ? new_ok : old_ok) begin
                         data_off <= new_header ? 32'd40 : 32'd4;
                         sample_hz <= 18'(new_header ? new_rate : old_rate);
-                        total_bits <= new_header ? new_bits : (size - 32'd4) << 3;
+                        total_bits <= !new_header ? (size - 32'd4) << 3 :
+                            new_bits < payload_bits ? new_bits : payload_bits;
                         cur_bit <= 0;
                         state <= PRIME;
                     end else begin

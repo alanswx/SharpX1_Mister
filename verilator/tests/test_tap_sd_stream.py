@@ -47,9 +47,9 @@ def expected_samples(image, rates=(8000, 8000)):
             return None
         wp, fmt = image[26], image[27]
         rate, bits, _ = struct.unpack('<III', image[28:40])
-        if wp & ~0x10 or fmt != 1 or not rates[0] <= rate <= rates[1] or (bits + 7) // 8 != len(image) - 40:
+        if wp & ~0x10 or fmt != 1 or not rates[0] <= rate <= rates[1]:
             return None
-        data, count = image[40:], bits
+        data, count = image[40:], min(bits, (len(image) - 40) * 8)
     else:
         if len(image) < 4 or not rates[0] <= struct.unpack('<I', image[:4])[0] <= rates[1]:
             return None
@@ -129,6 +129,10 @@ cases = [
     ('old-1300', old_tap(1300)),
     ('new-wp10', new_tap(4000, wp=0x10, pos=1234)),
     ('new-empty', new_tap(0)),
+    # Declared count disagrees with the payload: clamp, never reject.
+    ('new-long-payload', new_tap(800, extra=3)),
+    ('new-short-payload', new_tap(3000)[:-4]),
+    ('new-no-payload', new_tap(800)[:40]),
     ('old-empty', old_tap(0)),
 ]
 for tag, image in cases:
@@ -141,8 +145,6 @@ rejects = [
     ('rej-176k', new_tap(800, rate=176400)),
     ('rej-format0', new_tap(800, fmt=0)),
     ('rej-wp-unknown', new_tap(800, wp=0x01)),
-    ('rej-long', new_tap(800, extra=1)),
-    ('rej-short', new_tap(800)[:-1]),
     ('rej-old-rate', old_tap(100, rate=0)),
     ('rej-tiny', b'TAP'),
 ]

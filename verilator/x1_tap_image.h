@@ -49,9 +49,13 @@ public:
             meta_.sample_rate = le32(28);
             meta_.sample_count = le32(32);
             meta_.start_position = le32(36);
-            const auto required = meta_.sample_count / 8 + (meta_.sample_count % 8 != 0);
-            if (required != input.size() - payload_offset_)
-                invalid("declared bit count does not match payload length");
+            // Clamp the declared count to the payload, as the board stream does:
+            // some dumps declare more bits than they hold.
+            const std::uint64_t payload_bits = std::uint64_t(input.size() - payload_offset_) * 8;
+            if (meta_.sample_count > payload_bits) {
+                meta_.sample_count = payload_bits;
+                if (meta_.start_position > payload_bits) meta_.start_position = payload_bits;
+            }
         } else {
             meta_.sample_rate = le32(0);
             meta_.sample_count = std::uint64_t(input.size() - 4) * 8;

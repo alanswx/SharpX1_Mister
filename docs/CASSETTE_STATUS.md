@@ -4,6 +4,19 @@ October 20, 2026: the base `sharpx1_cassette` revision was retired. Tape is
 in the release core (`sharpx1_turbo_z_font_single`) in both X1 and X1 Turbo
 models; see `REVISIONS.md`.
 
+## Declared bit count clamped to the payload (October 27)
+
+Cosmo Cross (CZ-8CB01) and Car Chase declare exactly 32 more bits than
+their payload holds (the converter apparently counted the 4-byte position
+field). The exact-length rule rejected both, which the OSD reported as an
+unrecognized format. CSP ignores the declared count and plays the file;
+MAME plays the declared count. Both `x1_tap_sd_stream.sv` and
+`x1_tap_image.h` now play `min(declared, payload)` bits, so a short
+payload plays what it holds and a longer one plays only the declared bits.
+`test-tap-image` (356 checks) and `test-tap-sd-stream` (long, short and
+empty-payload cases replace the two length rejections) pass. Neither tape
+has been loaded on hardware yet.
+
 ## Deck FF/REW and APSS (October 26)
 
 Super Mario Bros. Special uses the deck commands beyond STOP/PLAY. Native
@@ -166,7 +179,8 @@ Base X1 (two-clock: SYS 32 MHz, VID 28.571428 MHz) with the existing
   SD block interface (VDNUM 3), parses the header and holds one MSB-first
   sample for `x1_cassette_transport`. Admission mirrors `x1_tap_image.h`:
   old header with rate 8000, or new `TAPE` header with format 1, rate 8000,
-  write-protect flags limited to bit 4 and an exact payload length. Anything
+  write-protect flags limited to bit 4 (the declared bit count is clamped to
+  the payload since October 27). Anything
   else mounts as no tape. Two 512-byte slots keep the current and next sector
   resident (0.512 s of tape each). It mounts the deck only after the first
   sample is held, so PLAY never starts without data.
@@ -304,8 +318,8 @@ non-8-kHz rates. The non-8 kHz titles have no emulator reference here,
 because MAME only plays 8 kHz tapes.
 
 Still open on the board: Car Chase, the only 176.4 kHz tape (its payload is
-4 bytes shorter than the declared bit count, so the exact-length rule rejects
-it); format 0; recording (FF/REW/APSS since October 26);
+4 bytes shorter than the declared bit count; admitted since October 27, not
+yet loaded); format 0; recording (FF/REW/APSS since October 26);
 BASIC tapes through HuBASIC; a running RTC (Rally-X seed). The external-font
 X3 core is the only Turbo revision with tape.
 
