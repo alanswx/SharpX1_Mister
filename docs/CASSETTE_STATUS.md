@@ -4,6 +4,30 @@ October 20, 2026: the base `sharpx1_cassette` revision was retired. Tape is
 in the release core (`sharpx1_turbo_z_font_single`) in both X1 and X1 Turbo
 models; see `REVISIONS.md`.
 
+## Reading 1Exx maps RAM; BASIC tapes (October 27)
+
+Brain Breaker reached its title, then the IPL boot menu appeared at tape
+2:47 and the deck rewound. Trace (`--bus-trace` 77.00-77.44 s, native IPL,
+5x): after its custom blocks the game runs `LD BC,1E00 / IN A,(C)` at FC00
+to leave the IPL, then jumps to its code below 8000. Only writes switched
+the ROM, so the IPL ran instead. CSP decodes the read as well (credited to
+Mr. Sato); MAME and XMil do not (XMil cannot load this tape). A read of
+1Dxx still does not map the ROM back. `test_turbo_ipl.py` covers both reads
+and fails without the change. On MiSTer the game now starts.
+
+Cosmo Cross and Creamy Mami (both "CZ-8CB01") begin with a mode 02 (BASIC)
+file: the IPL alone shows "File mode error". With the HuBASIC CZ-8CB01
+disk, `LOAD` then `RUN` loads them. Cosmo Cross reaches its title. Creamy
+Mami shows its title picture and instructions, then stays at "LOADING
+PLEASE WAIT" after its last block, at 5x and at normal speed. Hu-BASIC's
+own byte routine reads that block (`0CAA`: edge, about 215 µs delay,
+sample). The bytes it stores at B000 match an offline decode exactly (171 of
+171 in the 110-s trace window), but over the 18,941-byte body the stored
+checksum (16-bit count of 1 bits, `C19B`) is 8 more than the count of
+the decoded data (`C193`). Files 1-3 of the same tape and every block of the
+other tapes match. So the dump appears to have lost one byte's worth of
+1 bits; a tester reports the tape working in an X Millennium build.
+
 ## Declared bit count clamped to the payload (October 27)
 
 Cosmo Cross (CZ-8CB01) and Car Chase declare exactly 32 more bits than

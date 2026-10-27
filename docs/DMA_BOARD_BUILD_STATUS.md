@@ -1,5 +1,25 @@
 # DMA single-clock FPGA qualification revision
 
+## October 27, 2026: TAP length clamp, 1Exx read maps RAM
+
+`a232490` (declared TAP bit count clamped to the payload) seed 1
+(`quartus-linux-kcvT1mqS`): 22,885 ALMs, worst setup slack 0.582 ns, RBF
+`69427df41cdc4ee359e47e0d5612b894245a149f549ffa12a82570d35971df7c`.
+`d26f423` (a read of port 1Exx also maps RAM over the IPL ROM, as in CSP)
+seed 1 (`quartus-linux-Y0pxK6sA`): 22,946 ALMs, worst setup slack 0.712 ns,
+RBF `7907d0dd9df5f42525975de10a7a874d6175993a244d4ec42c150a52b6c12fcc`.
+MiSTer 126, setname `X1M_20261027`, default 5x + quick start unless noted:
+
+| Tape (build) | Result |
+| --- | --- |
+| Car Chase, 176.4 kHz (`a232490`) | Mounts (was rejected); loads at real speed (above 48 kHz); title, PUSH SPACE ✓ |
+| Cosmo Cross (CZ-8CB01) (`a232490`) | Mounts (was "unknown format"). IPL alone: "File mode error" (file 1 is BASIC). HuBASIC CZ-8CB01 disk, `LOAD`, `RUN`: all 17 files, title, PASS WORD prompt ✓ |
+| Creamy Mami (CZ-8CB01) (`a232490`) | HuBASIC `LOAD`/`RUN`: title picture, instructions; stays at "LOADING PLEASE WAIT" after the last block, also at normal tape speed (see `CASSETTE_STATUS.md`) |
+| Brain Breaker (`a232490`) | Loads to the title; at tape 2:47 the IPL boot menu appears over it |
+| Brain Breaker (`d26f423`) | Story screen, PUSH SPACE KEY, game ("We will enter the q.154-3") ✓ |
+| Makaio (CZ-8CB01) (`d26f423`) | Same converter header as Cosmo Cross (mounts). HuBASIC `LOAD`/`RUN`, CAPS LOCK prompt, data N, Bond Soft logo, opening story ✓ |
+| Macadam (`d26f423`) | IPL tape: loading screen, title "PUSH RETURN KEY"; Return/Space not accepted (under investigation) |
+
 ## October 26, 2026: tape FF/REW/APSS, drives not remembered
 
 `5d74040` at seeds 1 and 2 (`quartus-linux-qPru6HBw`, `-eTOWotXi`): 22,891 /
