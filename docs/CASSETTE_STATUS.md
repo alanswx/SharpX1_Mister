@@ -4,6 +4,35 @@ October 20, 2026: the base `sharpx1_cassette` revision was retired. Tape is
 in the release core (`sharpx1_turbo_z_font_single`) in both X1 and X1 Turbo
 models; see `REVISIONS.md`.
 
+## APSS right after a file (October 28)
+
+Z Gundam (tester TAP, 22,050 Hz; four programs ZETSTART/ZETMAIN/ZETDATA/
+ZETEND at 0100, the last cut short by the dump) stayed on its title on
+MiSTer 126 while the whole tape played. ZETSTART's loader (copied to F000)
+sends `E9 05` and then loads ZETMAIN and ZETDATA through IPL 0567/0564. The
+IPL had stopped the deck just after ZETSTART's data, in the 7.7-s gap
+before ZETMAIN. Our APSS cleared its gap detector on the command, so it
+wound through that gap, through ZETMAIN, and stopped in the gap before
+ZETDATA. CSP (`datarec.cpp`, the `apss_buffer` window) keeps a running
+2-s window of the samples that went past the head, including PLAY, and
+does not clear it on the command: right after a file the window still
+holds sound, so APSS stops in the gap behind it.
+
+The transport now counts samples since the last level change in PLAY as
+well as APSS; APSS starts "heard" when that count is under the 1.8125-s gap.
+FF/REW, mount and eject forget it. Super Mario Bros. Special still works the
+same: it reads only the first header, so its first APSS stops after the first
+file; its second APSS starts 1.8125 s into that gap (not heard) and skips
+MAIN as before. `test-cassette-transport` adds those three cases (PLAY then
+APSS stops in the gap behind; a second APSS skips the next sound; FF before
+APSS forgets) and a mutant without the window; `test-tap-sd-stream` (32),
+`test-machine-cassette` and the wrapper lint pass. Hardware: pending build.
+
+The tester's Black Onyx and The Fire Crystal tapes decode with good
+checksums and load on MiSTer 126 (Onyx menu and character creation; Fire
+Crystal title). Both then ask for a writable user tape ("Save no youi wa
+ii desu ka?" / "LOAD no youi..."); recording is not implemented.
+
 ## Running EF clock in the controller (October 27)
 
 Rally-X loaded, but its playfield stayed blank and pressing Space froze the

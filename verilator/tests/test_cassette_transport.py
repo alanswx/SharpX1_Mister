@@ -26,6 +26,8 @@ WIND_MUTANTS = {
                   'play after a wind waits for the producer'),
     'no-apss-gap': ("wire apss_gap = heard && quiet >= gap_samples;", "wire apss_gap = heard && quiet >= gap_samples && 1'b0;",
                     'apss forward gap stop'),
+    'no-play-window': ("heard <= (cmd == APSS_F || cmd == APSS_R) && level_known &&", "heard <= 1'b0 && level_known &&",
+                       'apss after play stops in the gap behind it'),
     'no-start-stop': ("if (wind_back ? at_start : at_end) begin", "if (!wind_back && at_end) begin",
                       'rewind'),
 }

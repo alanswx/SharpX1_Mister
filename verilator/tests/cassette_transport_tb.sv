@@ -16,7 +16,9 @@ module cassette_transport_tb;
     // Synthetic producer cursor for FF/REW: LEN samples, steps by wind_step.
     integer pos, len;
     wire at_start = pos == 0, at_end = pos >= len;
-    always @(posedge clk) if (wind_step) pos <= wind_back ? pos - 1 : pos + 1;
+    always @(posedge clk)
+        if (wind_step) pos <= wind_back ? pos - 1 : pos + 1;
+        else if (apss_tape && ready) pos <= pos + 1; // PLAY reads the cursor
     // APSS tape: sound (alternating samples) in [20000,30000) and
     // [60000,70000), constant gaps elsewhere; levels follow the cursor.
     bit apss_tape = 0;
@@ -200,7 +202,25 @@ module cassette_transport_tb;
         pos = 75000; command(5);
         while (mode == 5) tick();
         if (pos != 100000 || mode != 1 || sensor != 2) $fatal(1, "apss forward end stop");
-        $display("PASS cassette transport SYS_HZ=%0d: 1000 exact fractional waveform intervals, pause/reset/EOF/priorities/unsupported/underflow, FF/REW 16x ends/stop/refill, APSS gap/end stops; no native baud/loading claim", SYS_HZ);
+        // APSS right after PLAY read sound (CSP's window spans those
+        // samples): stop in the gap just behind it (Z Gundam), then a second
+        // APSS from that gap skips the next sound (Super Mario Bros. Special).
+        command(4); while (mode == 4) tick();
+        pos = 29000; command(2);
+        while (pos < 30010) tick();
+        command(1); command(5);
+        while (mode == 5) tick();
+        if (pos != 30000 + 14501 || mode != 1) $fatal(1, "apss after play stops in the gap behind it");
+        command(5);
+        while (mode == 5) tick();
+        if (pos != 70000 + 14501 || mode != 1) $fatal(1, "second apss skips the next sound");
+        // FF forgets the sound PLAY read.
+        pos = 29000; command(2);
+        while (pos < 30010) tick();
+        command(1); command(3); repeat (10) tick(); command(1); command(5);
+        while (mode == 5) tick();
+        if (pos != 70000 + 14501 || mode != 1) $fatal(1, "apss after ff waits for sound");
+        $display("PASS cassette transport SYS_HZ=%0d: 1000 exact fractional waveform intervals, pause/reset/EOF/priorities/unsupported/underflow, FF/REW 16x ends/stop/refill, APSS gap/end stops, after-PLAY window; no native baud/loading claim", SYS_HZ);
         $finish;
     end
 endmodule

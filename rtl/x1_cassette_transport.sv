@@ -10,7 +10,9 @@
 // APSS forward (5) / back (6) wind the same way but read every sample on the
 // way (the producer keeps fetching, a step waits for a valid sample) and stop
 // in the first gap after sound: about 1.8 s of tape without a level change,
-// where CSP's 2-s window turns 90% one level.
+// where CSP's 2-s window turns 90% one level. As in CSP the window spans
+// the samples PLAY read before the command, so APSS sent right after a file
+// stops in the gap behind it (Z Gundam); FF/REW forget it.
 // Sensor bits 0/1 provisionally mean not-ended/inserted; upper mask unresolved.
 `timescale 1ns/1ps
 module x1_cassette_transport #(
@@ -74,9 +76,11 @@ module x1_cassette_transport #(
     wire [19:0] rate_hz = RUNTIME_RATE ? sample_hz : 20'(SAMPLE_HZ);
     wire [23:0] gap_samples = {4'd0, rate_hz} + {5'd0, rate_hz[19:1]} +
         {6'd0, rate_hz[19:2]} + {8'd0, rate_hz[19:4]} + 24'd1; // 1.8125 s
+    // quiet: samples read (PLAY or APSS) since the last level change.
     logic [23:0] quiet;
-    logic heard, apss_level;
+    logic heard, apss_level, level_known;
     wire apss_gap = heard && quiet >= gap_samples;
+    wire level_change = level_known && sample_level != apss_level;
     // Eject wins mount, then mount, warm reset, supported commands, playback.
     // Unsupported commands are ignored without stalling natural playback.
     assign sample_ready = !reset && !mount && !supported_cmd &&
@@ -90,7 +94,7 @@ module x1_cassette_transport #(
     assign sensor = !mounted ? 8'h00 : ended ? 8'h02 : 8'h03;
     initial begin
         applied_mode = EJECT; underflow = 0; refill = 0;
-        quiet = 0; heard = 0; apss_level = 0;
+        quiet = '1; heard = 0; apss_level = 0; level_known = 0;
         mounted = 0; ended = 0; have_sample = 0;
         held_level = 0; held_last = 0; phase = 0;
     end
@@ -104,11 +108,13 @@ module x1_cassette_transport #(
             mounted <= 0; ended <= 0; have_sample <= 0;
             held_level <= 0; held_last <= 0; phase <= 0;
             applied_mode <= EJECT; underflow <= 0; refill <= 0;
+            quiet <= '1; level_known <= 0;
         end else if (mount) begin
             mounted <= present; ended <= present && empty;
             have_sample <= 0; held_level <= 0; held_last <= 0;
             phase <= 0; underflow <= 0; refill <= 0;
             applied_mode <= present ? STOP : EJECT;
+            quiet <= '1; level_known <= 0;
         end else if (reset) begin
             // Retain media, cursor represented by accepted stream, phase/sample.
             applied_mode <= mounted ? STOP : EJECT;
@@ -119,7 +125,12 @@ module x1_cassette_transport #(
                 // The held sample is dropped; PLAY refills from the cursor.
                 applied_mode <= cmd; have_sample <= 0; held_last <= 0;
                 phase <= 0; underflow <= 0; refill <= 1;
-                quiet <= 0; heard <= 0; apss_level <= 0;
+                // APSS keeps the sound PLAY just read; FF/REW forget it.
+                heard <= (cmd == APSS_F || cmd == APSS_R) && level_known &&
+                    quiet < gap_samples;
+                if (cmd == FF || cmd == REW) begin
+                    quiet <= '1; level_known <= 0;
+                end
             end
         end else if (moving && mounted) begin
             // Stop at either end of the tape, like the deck's end sensor, and
@@ -132,10 +143,10 @@ module x1_cassette_transport #(
                 phase <= PHASE_W'(wind_sum - (PHASE_W+5)'(SYS_HZ));
                 if (wind_back) ended <= 0;
                 if (apss) begin
-                    apss_level <= sample_level;
-                    if (quiet != 0 && sample_level != apss_level) begin
+                    apss_level <= sample_level; level_known <= 1;
+                    if (level_change) begin
                         quiet <= 1; heard <= 1;
-                    end else if (quiet != 24'hffffff) quiet <= quiet + 1'b1;
+                    end else if (quiet != '1) quiet <= quiet + 1'b1;
                 end
             end else if (!(apss && !sample_valid)) phase <= PHASE_W'(wind_sum);
         end else if (applied_mode == PLAY && mounted && !ended) begin
@@ -143,6 +154,8 @@ module x1_cassette_transport #(
                 if (sample_valid) begin
                     held_level <= sample_level; held_last <= sample_last;
                     have_sample <= 1; refill <= 0;
+                    apss_level <= sample_level; level_known <= 1;
+                    quiet <= level_change ? 24'd1 : quiet != '1 ? quiet + 1'b1 : quiet;
                 end else if (refill && at_end) begin
                     ended <= 1; applied_mode <= STOP;
                 end else if (!refill) begin
@@ -154,6 +167,8 @@ module x1_cassette_transport #(
                     ended <= 1; have_sample <= 0; applied_mode <= STOP;
                 end else if (sample_valid) begin
                     held_level <= sample_level; held_last <= sample_last;
+                    apss_level <= sample_level; level_known <= 1;
+                    quiet <= level_change ? 24'd1 : quiet != '1 ? quiet + 1'b1 : quiet;
                 end else begin
                     // Boundary missed: do NOT stretch current waveform or fake EOF.
                     have_sample <= 0; underflow <= 1;
