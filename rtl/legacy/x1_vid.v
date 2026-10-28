@@ -261,19 +261,22 @@ crtc6845s #(.ENABLE_MODE(ENABLE_CRTC || TURBO_CLOCKS)) crtc6845s(
 //
 reg vdisp;
 reg vdisp_dly;
+reg [4:0] vdisp_ra;
 
+// Latch VDISP at the first character of every raster line (a new RA). The
+// inherited latch only sampled an even raster after an odd one: an odd R5
+// (Time Secret: R5=3) put an even adjust raster before row 0 and dropped
+// the first two display lines.
 always @(posedge I_VCLK)
 begin
-  if(crtc_ra[0])
+  if(crtc_ra != vdisp_ra) begin
+    vdisp_ra  <= crtc_ra;
     vdisp_dly <= 1;
-  else begin
-    // latch VDISP
-    if(video_step & ~QP & QA & ~QD & ~QC & ~QB)
-    begin
-      if(vdisp_dly)
-        vdisp <= crtc_disptmg;
-      vdisp_dly <= 1'b0;
-    end
+  end else if(video_step & ~QP & QA & ~QD & ~QC & ~QB)
+  begin
+    if(vdisp_dly)
+      vdisp <= crtc_disptmg;
+    vdisp_dly <= 1'b0;
   end
 end
 

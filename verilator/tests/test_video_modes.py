@@ -25,6 +25,8 @@ parser.add_argument("--turbo-raster", type=int, choices=(0, 1, 2, 3),
                     help="SCRN low two bits, 16-raster graphics address fixture; NOT high-scan timing acceptance")
 parser.add_argument("--ank16", action="store_true", help="original 16-row font fixture with high-scan text")
 parser.add_argument("--ank16-warm-reset", action="store_true", help="retain the loaded font across a 10 us reset at 120 ms")
+parser.add_argument("--vadjust", type=int, choices=(2, 3), default=2,
+                    help="CRTC R5; 3 is Time Secret's odd adjust (row 0 after an even raster)")
 parser.add_argument("--blackclip", type=lambda value: int(value, 0),
                     help="experimental Turbo blackclip mask, graphics/text fixtures only")
 args = parser.parse_args()
@@ -98,7 +100,7 @@ def program(columns, kind):
         out(0x1FD0, (args.turbo_bank << 3) | ((1 - args.turbo_bank) << 4) | (args.turbo_raster or 0))
     if args.blackclip is not None: out(0x1FE0, args.blackclip)
     registers = [55 if columns == 40 else 111, columns,
-                 46 if columns == 40 else 92, 0x28, 31, 2, 25, 28, 0, 7,
+                 46 if columns == 40 else 92, 0x28, 31, args.vadjust, 25, 28, 0, 7,
                  0, 0, 0, 0, 0, 0]
     if args.turbo_raster is not None:
         registers[4:10] = [27, 0, 25, 26, 0, 15]
@@ -162,6 +164,7 @@ def run(folder, columns, kind):
     if args.turbo_bank is not None: name += f"-turbo-page{args.turbo_bank}"
     if args.turbo_raster is not None: name += f"-raster{args.turbo_raster}"
     if args.blackclip is not None: name += f"-clip{args.blackclip:02x}"
+    if args.vadjust != 2: name += f"-r5{args.vadjust}"
     code, frame = folder / (name + ".bin"), folder / (name + ".ppm")
     code.write_bytes(program(columns, kind))
     # The inherited MR16 firmware clears CLK_1HZ at boot and toggles it every
@@ -190,7 +193,7 @@ def run(folder, columns, kind):
     # 28*16 = 448, but deliberately keep the old clock). Periods are measured on
     # clk_sys, so allow one system sampling edge, not arbitrary percentage.
     tolerance = (10**12 + report["sys_hz"] - 1) // report["sys_hz"] + 1
-    total_lines = 448 if args.turbo_raster is not None else 258
+    total_lines = 448 if args.turbo_raster is not None else 256 + args.vadjust
     line_edges = 1792
     if report.get("turbo_video_master"):
         line_edges = 1792 if args.turbo_raster is not None and args.turbo_raster & 1 else 2688
