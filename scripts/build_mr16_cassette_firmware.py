@@ -130,6 +130,74 @@ cassette_brk_ctrl:
     pop r0
 cassette_brk_tail:
     jmp brk_ctrl
+; Running clock for EF (time read): the inherited 500-ms ISR only toggled
+; the 1-Hz blink bit (its clock branch is commented out and has no target),
+; so EF always read 00:00:00 and Rally-X seeded its generator with zero.
+; Replaces the ISR's "add r0,#500000/8"; r0 is the next compare value and
+; must come back as the inherited add left it. Called with interrupts off.
+; time bytes (host_w order): +0 hour, +1 minute, +2 second, all BCD.
+cassette_clock:
+    add r0,#500000/8
+    push r0
+    push r1
+    push r2
+    push r3
+    ; once a second: the blink bit is still set here and cleared after us
+    ldm r1,(r14,#HOST_CTRL-R14_BASE)
+    tst r1,#CLK_1HZ:8
+    beq cassette_clock_done
+    mov r0,#time+2
+    ldm r3,(r0)
+    mov r1,r3
+    and r1,#0ffh:8
+    mov r2,#60h:8
+    jsr cassette_bcd_inc
+    and r3,#0ff00h
+    or r3,r1
+    stm (r0),r3
+    cmp r1,#0:8
+    bne cassette_clock_done
+    mov r0,#time
+    ldm r3,(r0)
+    mov r1,r3
+    shr r1,#8
+    mov r2,#60h:8
+    jsr cassette_bcd_inc
+    mlt r1,#100h
+    and r3,#0ffh:8
+    or r3,r1
+    cmp r1,#0:8
+    bne cassette_clock_store
+    mov r1,r3
+    mov r2,#24h:8
+    jsr cassette_bcd_inc
+    mov r3,r1
+cassette_clock_store:
+    stm (r0),r3
+cassette_clock_done:
+    pop r3
+    pop r2
+    pop r1
+    pop r0
+    ret
+
+; r1 = BCD byte (upper byte zero), r2 = wrap value; r1 = next, 0 at the wrap.
+; Clobbers r3 and flags.
+cassette_bcd_inc:
+    mov r3,r1
+    and r3,#0fh:8
+    cmp r3,#9:8
+    beq cassette_bcd_ten
+    add r1,#1:8
+    bra cassette_bcd_wrap
+cassette_bcd_ten:
+    add r1,#7:8
+cassette_bcd_wrap:
+    cmp r1,r2
+    bne cassette_bcd_return
+    mov r1,#0:8
+cassette_bcd_return:
+    ret
 cassette_extension_end:
 """
 
@@ -145,7 +213,8 @@ def patch_sites(baseline, symbols):
     sites = []
     for op, operand, target in (("mov", "r0,#start", "cassette_start"),
                                 ("jsr", "key_irq", "cassette_key_irq"),
-                                ("jsr", "brk_ctrl", "cassette_brk_ctrl")):
+                                ("jsr", "brk_ctrl", "cassette_brk_ctrl"),
+                                ("add", "r0,#500000/8", "cassette_clock")):
         old = instruction(op, operand, symbols)
         matches = [i for i in range(0, 4096 - len(old) + 1, 2)
                    if baseline[i:i + len(old)] == old]
@@ -210,7 +279,8 @@ def validate(image, symbols, baseline, original, sites, options=()):
     expected = bytearray(baseline)
     allowed = set()
     for address, op, operand, target in sites:
-        replacement = instruction(op, "r0,#" + target if op == "mov" else target, symbols)
+        replacement = (instruction("mov", "r0,#" + target, symbols) if op == "mov"
+                       else instruction("jsr", target, symbols))
         if len(replacement) != 4:
             raise AssemblyError("hook instruction changed size")
         expected[address:address + 4] = replacement
@@ -250,6 +320,7 @@ def build(receive_only=False, with_report=False, joystick_off=False, caps_off=Fa
         (r"(?m)^(\s*mov\s+r0,\s*#)start(\s*;entry point.*)$", r"\1cassette_start\2"),
         (r"(?m)^(\s*jsr\s+)key_irq(\s*)$", r"\1cassette_key_irq\2"),
         (r"(?m)^(\s*jsr\s+)brk_ctrl(\s*)$", r"\1cassette_brk_ctrl\2"),
+        (r"(?m)^(\s*)add(\s+)r0,#500000/8(\s*;next 500ms.*)$", r"\1jsr\2cassette_clock\3"),
     ]
     for command, handler, pointer in (("e9", "CMD_E9", "cmt_ctrl"),
                                       ("ea", "host_w", "cmt_ctrl"),

@@ -72,7 +72,7 @@ class CassetteFirmwareTest(unittest.TestCase):
                     allowed.update((at, at + 1))
                 self.assertEqual(image[:4096], expected)
                 self.assertEqual(report["allowed_low_bytes"], sorted(allowed))
-                self.assertEqual(len(allowed), 18)
+                self.assertEqual(len(allowed), 22)
                 self.assertEqual(image[:2], baseline[:2])  # original reset vector
                 for command in (12, 13, 14, 15):
                     at = old["cmd_tbl"] + command * 4
@@ -150,7 +150,15 @@ class CassetteFirmwareTest(unittest.TestCase):
                 transfer(at + 16, "cassette_set", True)
                 check(at + 20, [0x0F21, 0x0F01])
                 transfer(at + 24, "brk_ctrl")
-                self.assertEqual(at + 28, s["cassette_extension_end"])
+                self.assertEqual(at + 28, s["cassette_clock"])
+                # The running EF clock replaces the 500-ms ISR's compare
+                # reload with a JSR; the routine begins with that exact add.
+                site = [x for x in self.products[mode][2]["sites"] if x[3] == "cassette_clock"]
+                self.assertEqual(len(site), 1)
+                base = self.products[mode][3]
+                at = s["cassette_clock"]
+                self.assertEqual(image[at - 0x3000:at - 0x3000 + 4], base[site[0][0]:site[0][0] + 4])
+                self.assertLess(s["cassette_bcd_inc"], s["cassette_extension_end"])
                 # :8 encodes the immediate, not a byte-wide compare. The
                 # inherited whole-register CMP remains unchanged at D003.
                 check(s["brk_ctrl"], [0xD003])

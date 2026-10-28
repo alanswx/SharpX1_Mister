@@ -4,6 +4,23 @@ October 20, 2026: the base `sharpx1_cassette` revision was retired. Tape is
 in the release core (`sharpx1_turbo_z_font_single`) in both X1 and X1 Turbo
 models; see `REVISIONS.md`.
 
+## Running EF clock in the controller (October 27)
+
+Rally-X loaded, but its playfield stayed blank and pressing Space froze the
+game. As recorded below ("Native Rally-X time dependency"), it seeds its
+generator from the EF time read, and the inherited MR16 firmware never
+advanced `time`: the 500-ms ISR only toggled the 1-Hz blink bit, and its
+clock branch was commented out with no target. The cassette controller
+(`scripts/build_mr16_cassette_firmware.py`) now replaces that ISR's compare
+reload (`add r0,#500000/8`, one 4-byte hook site in the ledger) with a JSR
+to `cassette_clock`, which does the same add and, once per second, counts
+the BCD seconds/minutes/hours that EF returns (hour, minute, second,
+starting from 00:00:00 or from an EE time set). MiSTer 126, `x1r`
+(`d26f423`) with only `boot1.rom` changed: the previous controller
+(`dafb9bef…`) shows the blank, frozen playfield; the new one
+(`79442263…`) plays the attract demo, and Space starts a game. The time
+is not set from the MiSTer RTC.
+
 ## Reading 1Exx maps RAM; BASIC tapes (October 27)
 
 Brain Breaker reached its title, then the IPL boot menu appeared at tape
@@ -344,7 +361,7 @@ because MAME only plays 8 kHz tapes.
 Still open on the board: Car Chase, the only 176.4 kHz tape (its payload is
 4 bytes shorter than the declared bit count; admitted since October 27, not
 yet loaded); format 0; recording (FF/REW/APSS since October 26);
-BASIC tapes through HuBASIC; a running RTC (Rally-X seed). The external-font
+BASIC tapes through HuBASIC (Cosmo Cross, Makaio load since October 27); EF clock running since October 27, not set from the MiSTer RTC. The external-font
 X3 core is the only Turbo revision with tape.
 
 October 10: the default-off `CASSETTE_ENABLE` shared-machine profile now connects

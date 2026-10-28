@@ -18,7 +18,9 @@ MiSTer 126, setname `X1M_20261027`, default 5x + quick start unless noted:
 | Brain Breaker (`a232490`) | Loads to the title; at tape 2:47 the IPL boot menu appears over it |
 | Brain Breaker (`d26f423`) | Story screen, PUSH SPACE KEY, game ("We will enter the q.154-3") ✓ |
 | Makaio (CZ-8CB01) (`d26f423`) | Same converter header as Cosmo Cross (mounts). HuBASIC `LOAD`/`RUN`, CAPS LOCK prompt, data N, Bond Soft logo, opening story ✓ |
-| Macadam (`d26f423`) | IPL tape: loading screen, title "PUSH RETURN KEY"; Return/Space not accepted (under investigation) |
+| Macadam (`d26f423`) | IPL tape: loading screen, title "PUSH RETURN KEY". Remote taps are lost: the game reads the key from its interrupt only occasionally and the release interrupt clears it (MAME also interrupts on release). Simulation with Return held 1.5 s: PLAY, APSS forward, next part loads |
+| Rally-X (`d26f423`, previous `boot1.rom`) | Blank playfield, frozen (EF time constant) |
+| Rally-X (`d26f423`, clock `boot1.rom` `79442263…`) | Attract demo, Space starts a game ✓ |
 
 ## October 26, 2026: tape FF/REW/APSS, drives not remembered
 
