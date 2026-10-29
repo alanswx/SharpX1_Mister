@@ -27,8 +27,9 @@ honest about what has been built, executed, booted, and verified on hardware.
 - `rtl/x1_pcg_access.v` transfers beam-addressed CG/PCG transactions to the
   video domain; CPU WAIT is CDC latency, not a validated native scanline trap.
   Preserve bundled-data stability and one-write-per-transaction semantics.
-- `sys/` is inherited MiSTer framework code. Prefer implementing core-specific
-  changes in the wrapper or `rtl/`; explain any required framework edits.
+- `sys/` is the unmodified MiSTer Template_MiSTer `sys/` (76dd8f5). Never edit
+  it (MiSTer-devel cores must use it as is); update it only by copying a newer
+  template. Core-specific changes go in the wrapper or `rtl/`.
 
 Track machine dependencies in `rtl/machine.qip`, read by Quartus through
 `files.qip` and by the Verilator Makefile. Keep board-only dependencies separate. The FPGA
@@ -421,9 +422,8 @@ See `docs/PLAYING.md` for `boot-game` and `play`. Regenerate snapshots after
 RTL changes; they contain ROM/game bytes and must not be bundled or committed.
 The disk's non-commercial use grant is not binary redistribution permission.
 `lint-wrapper` uses a PLL interface stand-in, not Intel PLL simulation or a
-Quartus/hardware validation. The narrow `sys/hps_io.sv` edits move shared PS/2
-registers out of generate scope and correct an initialized ROM's variable
-declaration; avoid unrelated framework changes.
+Quartus/hardware validation. It waives PROCASSWIRE for the stock
+`sys/hps_io.sv` (generate-scoped PS/2 registers Quartus accepts).
 
 For functional changes, choose checks that demonstrate the affected behavior:
 CPU/bus traces for ROM mapping and wait states, memory readback for RAM banking,

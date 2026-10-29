@@ -6,6 +6,7 @@ hardware results are in `docs/DMA_BOARD_BUILD_STATUS.md`.
 
 | File | SHA-256 | Notes |
 |---|---|---|
+| `SharpX1_20261029.rbf` | `dfd096c3b240e6273642e122812b5984af5c97d6c244a1edf0da6dc181c50cce` | Seed 1 (`7f7ed4e`). Same machine as 20261028 on the unmodified MiSTer template `sys/` (76dd8f5) |
 | `SharpX1_20261028.rbf` | `f35f2ecad8f599833c8a139cc2ef745a21f51e1a1cf29a2190d0f5403b86b313` | Seed 1 (`5dc9c83`). APSS right after a file stops in the gap behind it, as in CSP (Z Gundam); vertical display starts on the first raster with an odd CRTC R5 (Time Secret's top row) |
 | `SharpX1_20261027.rbf` | `7907d0dd9df5f42525975de10a7a874d6175993a244d4ec42c150a52b6c12fcc` | Seed 1 (`d26f423`). TAP images whose header declares more bits than they hold now mount (Cosmo Cross, Makaio, Car Chase); reading port 1Exx leaves the IPL ROM like writing it (Brain Breaker) |
 | `SharpX1_20261026b.rbf` | `5c34cb4e2696af9453117cc0287f709c86dd859d7dc5d0be316176317e0938ec` | Seed 1 (`5d74040`). Tape deck FF, REW and APSS (Super Mario Bros. Special loads its levels); drives start empty at every core load (needs the new `boot1.rom` controller) |

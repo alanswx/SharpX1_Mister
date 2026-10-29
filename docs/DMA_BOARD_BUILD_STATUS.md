@@ -1,5 +1,24 @@
 # DMA single-clock FPGA qualification revision
 
+## October 29, 2026: stock template sys
+
+`7f7ed4e` replaces `sys/` with Template_MiSTer `76dd8f5` (2026-10-28)
+unchanged. The previous `sys/` was the 2022-08-25 template (`10e2b6c`) with
+local edits to `sys_top.v` (VSYNC synchronizer, scaler local reset release,
+HDMI handoff experiment), `ascal.vhd` and `hps_io.sv` (video-measurement
+CDC snapshots, PS/2 scope). Those hooks (`x1_vsync_sys`,
+`x1_scaler_reset_release`, `X1_SCALER_LOCAL_RESET_RELEASE`, hps_io
+`VIDEO_CDC`, `x1_hdmi_clock_handoff`) leave the board build; `emu` takes
+`sys/emu_ports.vh`. Seeds 1/2 (plain `quartus_sh` in `~/x1ss_s1`, `~/x1ss_s2`
+on misterubuntu): 22,611 / 22,660 ALMs, no negative slack in any summary,
+worst 0.243 / 0.221 ns (setup: HDMI PLL 0.661 / 0.579 ns, X3 master
+1.591 / 2.234 ns). Seed 1 RBF
+`dfd096c3b240e6273642e122812b5984af5c97d6c244a1edf0da6dc181c50cce`
+(`releases/SharpX1_20261029.rbf`). MiSTer 126 (`x1s.rbf`, setname
+`X1M_20261027`): HDMI picture and OSD; HuBASIC CZ-8CB01 from D88, typed
+`load`/`run`, Zenon from tape to its key screen, Caps Lock + K ✓; Z Gundam
+tape: title, then the demo with the full status panel ✓.
+
 ## October 28, 2026: APSS after a file, VDISP on every raster
 
 `9ff3780` (APSS keeps the sound PLAY just read) seeds 1/2
