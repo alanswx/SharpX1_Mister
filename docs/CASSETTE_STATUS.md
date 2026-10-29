@@ -26,12 +26,20 @@ file; its second APSS starts 1.8125 s into that gap (not heard) and skips
 MAIN as before. `test-cassette-transport` adds those three cases (PLAY then
 APSS stops in the gap behind; a second APSS skips the next sound; FF before
 APSS forgets) and a mutant without the window; `test-tap-sd-stream` (32),
-`test-machine-cassette` and the wrapper lint pass. Hardware: pending build.
+`test-machine-cassette` and the wrapper lint pass. Hardware (`9ff3780` and
+`5dc9c83`, MiSTer 126): PLAY resumes at 1:41 (ZETMAIN), ZETMAIN and ZETDATA
+load, Space starts the game.
 
 The tester's Black Onyx and The Fire Crystal tapes decode with good
 checksums and load on MiSTer 126 (Onyx menu and character creation; Fire
 Crystal title). Both then ask for a writable user tape ("Save no youi wa
 ii desu ka?" / "LOAD no youi..."); recording is not implemented.
+
+Zero Fighter (Hudson) is an IPL boot tape: `ZERO COM`, 128 bytes at FF00,
+run at FF51, then its own blocks; mount it and reset (Hu-BASIC `LOAD` is
+the wrong path). Zenon (CZ-8CB01): BASIC `LOAD`/`RUN` sets KEY0 to the
+monitor commands `L`, `L`, `G A000`; the game polls port 1900 for uppercase
+`J`/`K`, so it needs Caps Lock (the controller starts with Caps off).
 
 ## Running EF clock in the controller (October 27)
 

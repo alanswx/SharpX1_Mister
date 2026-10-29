@@ -1,5 +1,29 @@
 # DMA single-clock FPGA qualification revision
 
+## October 28, 2026: APSS after a file, VDISP on every raster
+
+`9ff3780` (APSS keeps the sound PLAY just read) seeds 1/2
+(`quartus-linux-VfjHrTV1`, `-A3dsMVF8`): 22,914 / 22,979 ALMs, worst setup
+slack 0.226 / 0.478 ns; seed 2 RBF
+`166ef6b6e079b4ae4856aefc982e7ac973ebcb10e6929bc7f3c032e64b0e83ac`.
+`5dc9c83` (adds VDISP latched at every new raster) seeds 1/2
+(`quartus-linux-XZOJgdU5`, `-SnWyFKkv`): 23,032 / 22,980 ALMs, worst setup
+slack 0.931 / 0.901 ns; seed 1 RBF
+`f35f2ecad8f599833c8a139cc2ef745a21f51e1a1cf29a2190d0f5403b86b313`
+(`releases/SharpX1_20261028.rbf`). MiSTer 126, setname `X1M_20261027`,
+clock `boot1.rom` (`79442263…`), 5x + quick start:
+
+| Tape (build) | Result |
+| --- | --- |
+| Z Gundam, 22.05 kHz (`d26f423`) | Title; whole tape plays (APSS winds past ZETMAIN), stays on the title |
+| Z Gundam (`9ff3780`, `5dc9c83`) | APSS stops before ZETMAIN (PLAY at 1:41), ZETMAIN and ZETDATA load; Space: game panel (Z GUNDAM / WAVERIDER / BEEM RIFLE, score) ✓. ZETEND is cut short in the dump |
+| Time Secret (`d26f423`) | Top text row cut (game CRTC R5=3; 198 lines, as in the tester's grab) |
+| Time Secret (`5dc9c83`) | Full top row "The Time Secret"; screen matches MAME `x1` (green block bars beside the title are in MAME too) ✓ |
+| Zenon (CZ-8CB01) (`5dc9c83`) | HuBASIC `LOAD`, `RUN`, F1 (KEY0: monitor `L`, `L`, `G A000`); "PUSH J OR K" reads port 1900 for uppercase `J`/`K` only. Plain K sends `6B` (simulation trace); Caps Lock then K: key layout, HIT SPACE KEY ✓ |
+| The Black Onyx (`d26f423`) | Loads (one 63,229-byte program at 0103); menu, character creation; then asks for a cassette to save on (no recording) |
+| The Fire Crystal (`d26f423`) | FIREG, FIRE load; title; HIT RETURN asks "LOAD no youi wa ii desu ka" for a character tape (N repeats) |
+| Tritorn (analysis only) | Loader writes a 15-kHz CRTC table (R0=6F, 258 lines). With Monitor High-res it runs at about 24 kHz / 93 Hz (port 1FD0 stays high-scan), as a turbo with the high-res DIP would |
+
 ## October 27, 2026: TAP length clamp, 1Exx read maps RAM
 
 `a232490` (declared TAP bit count clamped to the payload) seed 1
