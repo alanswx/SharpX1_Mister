@@ -9,7 +9,6 @@ set_global_assignment -name VERILOG_MACRO "X1_TURBO_VIDEO_MASTER=1"
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/x1_turbo_video_pll.sv
 set_global_assignment -name VERILOG_MACRO "X1_SINGLE_CLOCK=1"
 set_global_assignment -name VERILOG_MACRO "X1_TURBO_Z_EXTERNAL_FONT=1"
-set_global_assignment -name VERILOG_MACRO "X1_SCALER_LOCAL_RESET_RELEASE=1"
 set_global_assignment -name NUM_PARALLEL_PROCESSORS 2
 # Framework parity only: the X3 master takes stock CLK_VIDEO's clock groups.
 # The two-clock font SDCs are not used: their 31.25-ns payload bound would
